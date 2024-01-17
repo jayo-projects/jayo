@@ -1,0 +1,11 @@
+/*
+ * Copyright (c) 2024-present, pull-vert and Jayo contributors.
+ * Use of this source code is governed by the Apache 2.0 license.
+ */
+
+@file:JvmName("-Buffer") // A leading '-' hides this class from Java.
+
+package jayo
+
+/** Build a new [Buffer] */
+public fun Buffer(): Buffer = Buffer.create()
