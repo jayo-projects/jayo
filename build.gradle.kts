@@ -1,13 +1,13 @@
-val ossrhUsername = if (project.hasProperty("ossrhUsername")) {
-    project.property("ossrhUsername") as String?
-} else {
-    System.getenv("OSSRH_USERNAME")
-}
-val ossrhPassword = if (project.hasProperty("ossrhPassword")) {
-    project.property("ossrhPassword") as String?
-} else {
-    System.getenv("OSSRH_PASSWORD")
-}
+//val centralUsername = if (project.hasProperty("centralUsername")) {
+//    project.property("centralUsername") as String?
+//} else {
+//    System.getenv("CENTRAL_USERNAME")
+//}
+//val centralPassword = if (project.hasProperty("centralPassword")) {
+//    project.property("centralPassword") as String?
+//} else {
+//    System.getenv("CENTRAL_PASSWORD")
+//}
 
 plugins {
     `maven-publish`
@@ -25,15 +25,46 @@ subprojects {
     publishing {
         repositories {
             maven {
-                if (project.version.toString().endsWith("SNAPSHOT")) {
-                    setUrl("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-                } else {
-                    setUrl("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                }
+                url = uri(layout.buildDirectory.dir("repos/releases"))
 
-                credentials {
-                    username = ossrhUsername
-                    password = ossrhPassword
+//                if (project.version.toString().endsWith("SNAPSHOT")) {
+//                    url = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+//                } else {
+//                    url = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+//                }
+//                credentials {
+//                    username = centralUsername
+//                    password = centralPassword
+//                }
+            }
+        }
+
+        publications {
+            create<MavenPublication>("mavenJava") {
+                pom {
+                    name.set(project.name)
+                    description.set("Jayo is a synchronous I/O library for the JVM")
+                    url.set("https://github.com/jayo-projects/jayo")
+
+                    licenses {
+                        license {
+                            name.set("Apache-2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name.set("pull-vert")
+                            url.set("https://github.com/pull-vert")
+                        }
+                    }
+
+                    scm {
+                        connection.set("scm:git:https://github.com/jayo-projects/jayo")
+                        developerConnection.set("scm:git:git://github.com/jayo-projects/jayo.git")
+                        url.set("https://github.com/jayo-projects/jayo.git")
+                    }
                 }
             }
         }

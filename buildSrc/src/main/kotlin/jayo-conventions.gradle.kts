@@ -108,31 +108,12 @@ val dokkaHtmlJar by tasks.register<Jar>("dokkaHtmlJar") {
     archiveClassifier.set("html-doc")
 }
 
+java {
+    withSourcesJar()
+}
+
 publishing.publications.withType<MavenPublication> {
     from(components["java"])
-
-    pom {
-        name.set(project.name)
-        description.set("Jayo is a synchronous I/O library for the JVM")
-        url.set("https://github.com/jayo-projects/jayo")
-        licenses {
-            license {
-                name.set("Apache-2.0")
-                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
-            }
-        }
-        scm {
-            connection.set("scm:git:https://github.com/jayo-projects/jayo")
-            developerConnection.set("scm:git:git://github.com/jayo-projects/jayo.git")
-            url.set("https://github.com/jayo-projects/jayo.git")
-        }
-        developers {
-            developer {
-                name.set("pull-vert")
-                url.set("https://github.com/pull-vert")
-            }
-        }
-    }
 
     artifact(dokkaJavadocJar)
     artifact(dokkaHtmlJar)
