@@ -2,9 +2,9 @@
  * Copyright (c) 2024-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
  *
- * Forked from  Spring Framework (https://github.com/spring-projects/spring-framework), original copyright is below
+ * Copied from Spring Framework (https://github.com/spring-projects/spring-framework), original copyright is below
  *
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

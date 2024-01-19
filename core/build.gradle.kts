@@ -6,7 +6,6 @@ println("Using Java compiler version: ${JavaVersion.current()}")
 
 plugins {
     id("jayo.build.optional-dependencies")
-    id("org.jetbrains.kotlinx.kover")
 }
 
 dependencies {
