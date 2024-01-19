@@ -44,7 +44,7 @@ import static java.lang.System.Logger.Level.INFO;
  * shared.
  */
 public sealed class Segment permits SegmentQueue {
-    private static final System.Logger LOGGER = System.getLogger("o.u.d.Segment");
+    private static final System.Logger LOGGER = System.getLogger("jayo.Segment");
 
     /**
      * The default size of all segments in bytes, if no System property is provided.

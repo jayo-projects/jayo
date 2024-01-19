@@ -64,16 +64,16 @@ public class SegmentPoolTest {
         final var segments = new ArrayList<Segment>();
         final Runnable runnable = () -> segments.add(SegmentPool.take());
         //create a new virtual Thread
-        var newThread = ThreadUtils.newThread(runnable);
+        var newThread = TestUtil.newThread(runnable);
         if (matching) {
             // loop until we have a matching hash bucket
             while (SegmentPool.getHashBucketIndex(newThread) != initialThreadHashBucketIndex) {
-                newThread = ThreadUtils.newThread(runnable);
+                newThread = TestUtil.newThread(runnable);
             }
         } else {
             // loop until we have a non-matching hash bucket
             while (SegmentPool.getHashBucketIndex(newThread) == initialThreadHashBucketIndex) {
-                newThread = ThreadUtils.newThread(runnable);
+                newThread = TestUtil.newThread(runnable);
             }
         }
         // okay we now have another thread, run it !

@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 
 final class SourceSegmentQueue extends SegmentQueue {
     private final static Thread.Builder SOURCE_CONSUMER_THREAD_BUILDER =
-            ThreadUtils.threadBuilder("JayoSourceConsumer#");
+            Utils.threadBuilder("JayoSourceConsumer#");
 
     private final @NonNull RawSource source;
     private final @NonNull RealBuffer buffer;

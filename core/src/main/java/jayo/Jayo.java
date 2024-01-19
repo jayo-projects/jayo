@@ -21,10 +21,10 @@
 
 package jayo;
 
-import org.jspecify.annotations.NonNull;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import jayo.internal.*;
+import org.jspecify.annotations.NonNull;
 
 import java.io.*;
 import java.net.Socket;
@@ -43,18 +43,19 @@ import static java.lang.System.Logger.Level.WARNING;
  * Essential APIs for working with Jayo.
  */
 public final class Jayo {
-    private static final System.Logger LOGGER = System.getLogger("o.u.d.Jayo");
-    private static final System.Logger LOGGER_SOCKET_ASYNC_TIMEOUT = System.getLogger("o.u.d.SocketAsyncTimeout");
+    private static final System.Logger LOGGER = System.getLogger("jayo.Jayo");
+    private static final System.Logger LOGGER_SOCKET_ASYNC_TIMEOUT = System.getLogger("jayo.SocketAsyncTimeout");
 
     // un-instantiable
     private Jayo() {
     }
 
     /**
-     * @return a new sink that buffers writes to {@code sink}. The returned sink will batch writes to {@code sink}. On
-     * each write operation, the underlying buffer will automatically emit all the complete segment(s), if any.
+     * @return a new sink that buffers writes to the raw {@code sink}. The returned sink will batch writes to
+     * {@code sink}. On each write operation, the underlying buffer will automatically emit all the complete segment(s),
+     * if any.
      * <p>
-     * Use this wherever you write to a sink to get an ergonomic and efficient access to data.
+     * Use this wherever you write to a raw sink to get an ergonomic and efficient access to data.
      */
     public static @NonNull Sink buffer(final @NonNull RawSink sink) {
         Objects.requireNonNull(sink);
@@ -65,10 +66,10 @@ public final class Jayo {
     }
 
     /**
-     * @return a new source that buffers reads from {@code source}. The returned source will perform bulk reads into its
-     * underlying buffer.
+     * @return a new source that buffers reads from the raw {@code source}. The returned source will perform bulk reads
+     * into its underlying buffer.
      * <p>
-     * Use this wherever you read a source to get an ergonomic and efficient access to data.
+     * Use this wherever you read from a raw source to get an ergonomic and efficient access to data.
      */
     public static @NonNull Source buffer(final @NonNull RawSource source) {
         Objects.requireNonNull(source);
@@ -79,7 +80,7 @@ public final class Jayo {
     }
 
     /**
-     * @return a sink that writes to {@code out} stream.
+     * @return a raw sink that writes to {@code out} stream.
      */
     public static @NonNull RawSink sink(final @NonNull OutputStream out) {
         Objects.requireNonNull(out);
@@ -87,7 +88,7 @@ public final class Jayo {
     }
 
     /**
-     * @return a source that reads from {@code in} stream.
+     * @return a raw source that reads from {@code in} stream.
      */
     public static @NonNull RawSource source(final @NonNull InputStream in) {
         Objects.requireNonNull(in);
@@ -95,7 +96,7 @@ public final class Jayo {
     }
 
     /**
-     * @return a sink that writes to {@code socket}. Prefer this over {@link #sink(OutputStream)} because this
+     * @return a raw sink that writes to {@code socket}. Prefer this over {@link #sink(OutputStream)} because this
      * method honors timeouts. When the socket write times out, the socket is asynchronously closed by a watchdog
      * thread.
      */
@@ -116,7 +117,7 @@ public final class Jayo {
     }
 
     /**
-     * @return a source that reads from {@code socket}. Prefer this over {@link #source(InputStream)} because this
+     * @return a raw source that reads from {@code socket}. Prefer this over {@link #source(InputStream)} because this
      * method honors timeouts. When the socket read times out, the socket is asynchronously closed by a watchdog
      * thread.
      */
@@ -137,7 +138,7 @@ public final class Jayo {
     }
 
     /**
-     * @return a sink that writes to {@code path}. {@code options} allow to specify how the file is opened.
+     * @return a raw sink that writes to {@code path}. {@code options} allow to specify how the file is opened.
      * @implNote We always add the {@code StandardOpenOption.WRITE} option to the options Set, so we ensure we can write
      * in this {@code path}.
      */
@@ -156,7 +157,7 @@ public final class Jayo {
     }
 
     /**
-     * @return a source that reads from {@code path}. {@code options} allow to specify how the file is opened.
+     * @return a raw source that reads from {@code path}. {@code options} allow to specify how the file is opened.
      * @implNote We always add the {@code StandardOpenOption.READ} option to the options Set, so we ensure we can read
      * from this {@code path}.
      */
@@ -180,8 +181,9 @@ public final class Jayo {
     }
 
     /**
-     * @return a sink that writes to {@code file}. If you need specific options, please use
-     * {@link #sink(Path, OpenOption...)} instead.
+     * @return a raw sink that writes to {@code file}.
+     * <p>
+     * If you need specific options, please use {@link #sink(Path, OpenOption...)} instead.
      */
     public static @NonNull RawSink sink(@NonNull File file) {
         Objects.requireNonNull(file);
@@ -193,8 +195,9 @@ public final class Jayo {
     }
 
     /**
-     * @return a source that reads from {@code file}. If you need specific options, please use
-     * {@link #source(Path, OpenOption...)} instead.
+     * @return a raw source that reads from {@code file}.
+     * <p>
+     * If you need specific options, please use {@link #source(Path, OpenOption...)} instead.
      */
     public static @NonNull RawSource source(final @NonNull File file) {
         Objects.requireNonNull(file);

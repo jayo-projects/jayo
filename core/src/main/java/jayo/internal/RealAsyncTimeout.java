@@ -287,8 +287,8 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      */
     private static @Nullable RealAsyncTimeout head = null;
 
-    private final static Thread.Builder jayoAsyncTimeoutWatchdogThreadBuilder =
-            ThreadUtils.threadBuilder("JayoWatchdog#");
+    private final static Thread.Builder ASYNC_TIMEOUT_WATCHDOG_THREAD_BUILDER =
+            Utils.threadBuilder("JayoWatchdog#");
 
     private static void scheduleTimeout(RealAsyncTimeout node, final long timeoutNanos, final long deadlineNanoTime) {
         LOCK.lock();
@@ -302,7 +302,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             if (head == null) {
                 head = new RealAsyncTimeout(() -> {
                 });
-                jayoAsyncTimeoutWatchdogThreadBuilder.start(new Watchdog());
+                ASYNC_TIMEOUT_WATCHDOG_THREAD_BUILDER.start(new Watchdog());
             }
 
             final var now = System.nanoTime();

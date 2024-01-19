@@ -21,10 +21,10 @@
 
 package jayo.internal
 
-import org.junit.jupiter.api.Assertions.*
 import jayo.Buffer
 import jayo.ByteString
 import jayo.encodeToByteString
+import org.junit.jupiter.api.Assertions.*
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
@@ -152,5 +152,11 @@ object TestUtil {
         return result
     }
 
+    @JvmStatic
+    fun newThread(task: Runnable): Thread {
+        return Utils.threadBuilder("").unstarted(task)
+    }
+
+    @JvmStatic
     fun assumeNotWindows() = assertFalse(System.getProperty("os.name").lowercase(Locale.getDefault()).contains("win"))
 }

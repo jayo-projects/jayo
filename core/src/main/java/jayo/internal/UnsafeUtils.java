@@ -16,7 +16,6 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.*;
-import static java.lang.System.Logger.Level.DEBUG;
 
 /**
  * This class exposes unsafe operations
@@ -28,11 +27,10 @@ final class UnsafeUtils {
 
     static final boolean UNSAFE_AVAILABLE;
     
-    private static final System.Logger LOGGER = System.getLogger("o.u.d.UnsafeUtils");
+    private static final System.Logger LOGGER = System.getLogger("jayo.UnsafeUtils");
     
     private static @Nullable final Unsafe UNSAFE;
     private static final String VALUE_FIELD_NAME = "value";
-    //    private static final String COUNT_FIELD_NAME = "count";
     private static final String CODER_FIELD_NAME = "coder";
 
     private static final Field S_VALUE;

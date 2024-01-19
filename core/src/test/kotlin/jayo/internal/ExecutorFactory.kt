@@ -13,7 +13,7 @@ interface ExecutorFactory {
     fun newExecutorService(): ExecutorService
     fun newScheduledExecutorService(): ScheduledExecutorService
 
-    companion object {        
+    companion object {
         private val CORE_POOL_SIZE = Runtime.getRuntime().availableProcessors()
 
         @JvmStatic
@@ -24,7 +24,7 @@ interface ExecutorFactory {
             override fun newScheduledExecutorService(): ScheduledExecutorService =
                 Executors.newSingleThreadScheduledExecutor()
         }
-        
+
         @JvmStatic
         val PLATFORM_SCHEDULED_EXECUTOR_FACTORY: ExecutorFactory = object : ExecutorFactory {
             override fun newExecutorService(): ExecutorService =
@@ -37,10 +37,10 @@ interface ExecutorFactory {
         @JvmStatic
         val VIRTUAL_SCHEDULED_EXECUTOR_FACTORY: ExecutorFactory = object : ExecutorFactory {
             override fun newExecutorService(): ExecutorService =
-                Executors.newScheduledThreadPool(CORE_POOL_SIZE, ThreadUtils::newThread)
+                Executors.newScheduledThreadPool(CORE_POOL_SIZE, TestUtil::newThread)
 
             override fun newScheduledExecutorService(): ScheduledExecutorService =
-                Executors.newScheduledThreadPool(CORE_POOL_SIZE, ThreadUtils::newThread)
+                Executors.newScheduledThreadPool(CORE_POOL_SIZE, TestUtil::newThread)
         }
     }
 }

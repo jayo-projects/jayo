@@ -23,9 +23,9 @@ import java.util.function.Consumer;
 import static java.lang.System.Logger.Level.DEBUG;
 
 final class SinkSegmentQueue extends SegmentQueue {
-    private static final System.Logger LOGGER = System.getLogger("o.u.d.SinkSegmentQueue");
+    private static final System.Logger LOGGER = System.getLogger("jayo.SinkSegmentQueue");
     private final static Thread.Builder SINK_EMITTER_THREAD_BUILDER =
-            ThreadUtils.threadBuilder("JayoSinkEmitter#");
+            Utils.threadBuilder("JayoSinkEmitter#");
 
     private final @NonNull RawSink sink;
     private final @NonNull RealBuffer buffer;

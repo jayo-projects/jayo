@@ -15,7 +15,12 @@ import java.util.Objects;
 /**
  * Wraps a {@link FileNotFoundException} or a {@link NoSuchFileException} with an unchecked exception.
  */
-public final class JayoFileNotFoundException extends JayoException {    
+public final class JayoFileNotFoundException extends JayoException {
+    @SuppressWarnings("unused")
+    public JayoFileNotFoundException(final @NonNull String message) {
+        super(Objects.requireNonNull(message), new EOFException(message));
+    }
+    
     public JayoFileNotFoundException(final @NonNull FileNotFoundException cause) {
         super(Objects.requireNonNull(cause));
     }

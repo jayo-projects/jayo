@@ -24,6 +24,7 @@ package jayo.internal;
 import org.jspecify.annotations.NonNull;
 import jayo.Buffer;
 import jayo.Source;
+import java.lang.Thread.Builder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -250,5 +251,12 @@ final class Utils {
 
         // Round up to the nearest full byte
         return (int) ((x + 3) / 4);
+    }
+
+    static @NonNull Builder threadBuilder(final @NonNull String prefix) {
+        Objects.requireNonNull(prefix);
+        return Thread.ofVirtual()
+                .name(prefix, 0)
+                .inheritInheritableThreadLocals(true);
     }
 }
