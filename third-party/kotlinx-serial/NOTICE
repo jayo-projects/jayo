@@ -1,4 +1,7 @@
-This module is a fork of kotlinx.serialization : json-okio module
-(https://github.com/Kotlin/kotlinx.serialization/tree/master/formats/json-okio)
+Jayo integration with kotlinx.serialization module
+Copyright (c) 2024-present, pull-vert and Jayo contributors.
+
+A lot of parts of this module are copied from, derived from, or inspired by the "json-okio" module from
+kotlinx.serialization (https://github.com/Kotlin/kotlinx.serialization/tree/master/formats/json-okio)
 Copyright 2017-2023 JetBrains s.r.o.
 Licensed under the Apache License, Version 2.0 (the "License");

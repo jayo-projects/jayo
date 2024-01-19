@@ -1,7 +1,10 @@
-This module is a fork of Okio (https://github.com/square/okio)
+Jayo core module
+Copyright (c) 2024-present, pull-vert and Jayo contributors.
+
+A lot of parts of this module are copied from, derived from, or inspired by Okio (https://github.com/square/okio)
 Copyright (C) 2013 Square, Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
 
 This module also contains some parts of kotlinx-io (https://github.com/Kotlin/kotlinx-io)
-Copyright 2017-2023 JetBrains s.r.o. and respective authors and developers.
+Copyright 2017-2024 JetBrains s.r.o. and respective authors and developers.
 Licensed under the Apache License, Version 2.0 (the "License");
