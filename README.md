@@ -12,7 +12,7 @@ threads as we need without requiring thread pools or event-loop.
 
 Jayo is written in Java without any external dependencies, to stay as light as possible. But we also love Kotlin ! Jayo
 is fully usable and optimized from Kotlin code thanks to `@NonNull` annotations, Kotlin friendly method naming (`get*`
-and `set*`) and a lot of Kotlin extension functions included in thi project.
+and `set*`) and a lot of Kotlin extension functions included in this project.
 
 Jayo's source code is derived from [Okio](https://github.com/square/okio) and
 [kotlinx-io](https://github.com/Kotlin/kotlinx-io), but does not preserve strict backward compatibility with them.
