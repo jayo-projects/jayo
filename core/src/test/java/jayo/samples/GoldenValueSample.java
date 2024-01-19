@@ -29,7 +29,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-public final class GoldenValue {
+public final class GoldenValueSample {
     public void run() throws Exception {
         Point point = new Point(8.0, 15.0);
         ByteString pointBytes = serialize(point);
@@ -41,7 +41,7 @@ public final class GoldenValue {
         assertEquals(point, decoded);
     }
 
-    private ByteString serialize(Object o) throws IOException {
+    private static ByteString serialize(Object o) throws IOException {
         Buffer buffer = Buffer.create();
         try (ObjectOutputStream objectOut = new ObjectOutputStream(buffer.asOutputStream())) {
             objectOut.writeObject(o);
@@ -49,7 +49,7 @@ public final class GoldenValue {
         return buffer.readByteString();
     }
 
-    private Object deserialize(ByteString byteString) throws IOException, ClassNotFoundException {
+    private static Object deserialize(ByteString byteString) throws IOException, ClassNotFoundException {
         Buffer buffer = Buffer.create();
         buffer.write(byteString);
         try (ObjectInputStream objectIn = new ObjectInputStream(buffer.asInputStream())) {
@@ -74,6 +74,6 @@ public final class GoldenValue {
     }
 
     public static void main(String... args) throws Exception {
-        new GoldenValue().run();
+        new GoldenValueSample().run();
     }
 }

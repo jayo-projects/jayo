@@ -4,8 +4,40 @@
 
 # Jayo
 
-Jayo is a synchronous I/O library for the JVM based on `java.io`. This leads to simple, readable and debuggable code,
-just like a standard blocking program, yet it executes non-blocking I/O under the hood.
+Jayo is a synchronous I/O library for the JVM based on `java.io`. This leads to simple, readable and debuggable code.
+
+Jayo library is available on Maven Central.
+```
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("dev.jayo:jayo:X.Y.Z")
+}
+```
+```java
+var freePortNumber = 54321;
+var serverThread = Thread.startVirtualThread(() -> {
+    try (var serverSocket = new ServerSocket(freePortNumber);
+        var acceptedSocket = serverSocket.accept();
+        var serverRawSink = Jayo.sink(acceptedSocket);
+        var serverSink = Jayo.buffer(serverRawSink)) {
+        serverSink.writeUtf8("The Answer to the Ultimate Question of Life is ")
+            .writeUtf8CodePoint('4')
+            .writeUtf8CodePoint('2');
+    } catch (IOException e) {
+        fail("Unexpected exception", e);
+    }
+});
+try (var clientSocket = new Socket("localhost", freePortNumber);
+    var clientRawSource = Jayo.source(clientSocket);
+    var clientSource = Jayo.buffer(clientRawSource)) {
+    assertThat(clientSource.readUtf8())
+        .isEqualTo("The Answer to the Ultimate Question of Life is 42");
+}
+serverThread.join();
+```
 
 Jayo heavily relies on [virtual threads](https://wiki.openjdk.java.net/display/loom/Main), that allow to run as many
 threads as we need without requiring thread pools or event-loop.
