@@ -1,8 +1,8 @@
 # jayo-core
 
 `jayo-core` module makes I/O on the JVM easier by providing you a deliberately reduced range of powerful tools. \
-It is based the amazing *Okio library* [1], but does not preserve backward compatibility with it, that has been
-rewritten in Java. \
+It is based the amazing *Okio library* [1], but does not preserve strict backward compatibility with it, and has been
+fully rewritten in Java. \
 It also contains some naming, designs and documentation from the great *kotlinx-io library* [2].
 
 _[1] : [Okio](https://square.github.io/okio/) is a very nice Kotlin multiplatform IO library ! \
@@ -26,8 +26,8 @@ uses pooled `byte[]` based segments to avoid GC churn and zero-fill of the memor
 * Create a `RawSource` for reading from or a `RawSink` for writing to a file or a network socket, then just obtain a
 buffered `Source` or a `Sink` from it. With them, you have access to feature rich interfaces that provide all you need,
 yet remaining relatively light with a few dozen useful functions.
-* `RawSource` and `RawSink`, and their buffered versions, are all you need ; wether you manipulate String, ByteStrings,
-numbers, pure binary content and so on. No more additional readers needed here.
+* `Source` and `Sink` are all you need ; wether you manipulate Strings, ByteStrings, numbers, pure binary content and so
+on. No more specific readers needed here.
 * `RawSource` and `RawSink` are reasonably easy to implement, feel free to try it !
 
 ## Timeouts and cancellation
@@ -37,4 +37,4 @@ Define cancellable code blocks thanks to our **cancellable builders** (like `Can
 bound to the current thread thanks to ThreadLocal or Scoped Values, and will automatically propagate cancellation and
 timeouts to inner children threads, if any.
 
-The *CancelToken* will only apply inside the code block, and will be removed when the code block has ended.
+The *CancelToken* will only apply inside its associated code block, and will be removed when the code block has ended.

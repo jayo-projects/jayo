@@ -37,9 +37,9 @@ try (var clientSocket = new Socket("localhost", freePortNumber);
 serverThread.join();
 ```
 
-Jayo heavily relies on Java 21 [Virtual Threads](https://wiki.openjdk.java.net/display/loom/Main), that allow to run as many
-threads as we need without requiring thread pools or event-loop. With a blocking code that uses virtual threads we
-achieve blazing fast performances, leading to simple, readable and debuggable code.
+Jayo relies on Java 21 [Virtual Threads](https://wiki.openjdk.java.net/display/loom/Main), that allow to run as many
+threads as we need without requiring thread pools or event-loop. With blocking code that uses virtual threads we achieve
+blazing fast performances and scalability, leading to simple, readable and debuggable code.
 
 Jayo is written in Java without any external dependencies, to stay as light as possible.
 
@@ -59,7 +59,7 @@ Java 21 is required to use Jayo.
 
 ## Main concepts
 
-[jayo](./core) offers solid I/O foundations by providing the tools we need for binary data manipulation
+[Jayo](./core) offers solid I/O foundations by providing the tools we need for binary data manipulation
 * `Buffer` is a mutable sequence of bytes one can easily write to and read from.
 * `ByteString` is an immutable and serializable sequence of bytes that stores a String binary content.
 * `RawSource` and `RawSink` (and their buffered versions `Source` and `Sink`) offer great improvements over
