@@ -4,10 +4,10 @@
 
 # Jayo
 
-Jayo is a synchronous I/O library for the JVM based on `java.io`. This leads to simple, readable and debuggable code.
+Jayo is a synchronous I/O library for the JVM based on `java.io`.
 
 Jayo library is available on Maven Central.
-```
+```groovy
 repositories {
     mavenCentral()
 }
@@ -39,25 +39,25 @@ try (var clientSocket = new Socket("localhost", freePortNumber);
 serverThread.join();
 ```
 
-Jayo heavily relies on [virtual threads](https://wiki.openjdk.java.net/display/loom/Main), that allow to run as many
-threads as we need without requiring thread pools or event-loop.
+Jayo heavily relies on Java 21 [Virtual Threads](https://wiki.openjdk.java.net/display/loom/Main), that allow to run as many
+threads as we need without requiring thread pools or event-loop. With a blocking code that uses virtual threads we
+achieve blazing fast performances, leading to simple, readable and debuggable code.
 
-Jayo is written in Java without any external dependencies, to stay as light as possible. But we also love Kotlin ! Jayo
-is fully usable and optimized from Kotlin code thanks to `@NonNull` annotations, Kotlin friendly method naming (`get*`
-and `set*`) and a lot of Kotlin extension functions included in this project.
+Jayo is written in Java without any external dependencies, to stay as light as possible.
+
+We also love Kotlin ! Jayo is fully usable and optimized from Kotlin code thanks to `@NonNull` annotations, Kotlin
+friendly method naming (`get*` and `set*`) and a lot of Kotlin extension functions included in this project.
 
 Jayo's source code is derived from [Okio](https://github.com/square/okio) and
 [kotlinx-io](https://github.com/Kotlin/kotlinx-io), but does not preserve strict backward compatibility with them.
 
-See the project website (*coming soon*) for documentation and APIs.
-
-You can also read [concepts](CONCEPT.md) and [draft ideas](DRAFT_IDEAS.md).
-
 By the way, Jayo simply refers to **Ja**va **IO**, revisited.
 
-## Requirements
+See the project website (*coming soon*) for documentation and APIs.
 
-Jayo requires at least Java 21.
+Java 21 is required to use Jayo.
+
+*Contributions are very welcome, simply clone this repo and submit a PR when your fix or feature is ready !*
 
 ## Main concepts
 
@@ -67,17 +67,17 @@ Jayo requires at least Java 21.
 * `RawSource` and `RawSink` (and their buffered versions `Source` and `Sink`) offer great improvements over
 `InputStream` and `OutputStream`.
 
+You can also read [concepts](CONCEPT.md) and [draft ideas](DRAFT_IDEAS.md).
+
 ### Third-party integration modules
 
 Jayo includes modules to integrate it with third-party external libraries
 * [jayo-3p-kotlinx-serialization](./third-party/kotlinx-serial) allow you to serialize JSON content directly into Jayo's sinks and
 from Jayo's sources thanks to [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization)
 
-## Contributors
+## Build
 
-Contributions are very welcome.
-
-Use a JDK 21 to compile Jayo
+You need a JDK 21 to build Jayo.
 
 1. Clone this repo
 
