@@ -22,7 +22,7 @@ public class SocketTest {
         var serverThread = Thread.startVirtualThread(() -> {
             try (var serverSocket = new ServerSocket(freePortNumber);
                  var acceptedSocket = serverSocket.accept();
-                 var serverRawSink = Jayo.sink(acceptedSocket); var serverSink = Jayo.buffer(serverRawSink)) {
+                 var serverSink = Jayo.buffer(Jayo.sink(acceptedSocket))) {
                 serverSink.writeUtf8("The Answer to the Ultimate Question of Life is ")
                         .writeUtf8CodePoint('4')
                         .writeUtf8CodePoint('2');
@@ -31,8 +31,7 @@ public class SocketTest {
             }
         });
         try (var clientSocket = new Socket("localhost", freePortNumber);
-             var clientRawSource = Jayo.source(clientSocket); var clientSource = Jayo.buffer(clientRawSource)
-        ) {
+             var clientSource = Jayo.buffer(Jayo.source(clientSocket))) {
             assertThat(clientSource.readUtf8()).isEqualTo("The Answer to the Ultimate Question of Life is 42");
         }
         serverThread.join();
