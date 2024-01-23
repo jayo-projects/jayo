@@ -172,7 +172,8 @@ fun main() {
     val proxyServer = KotlinSocksProxyServer()
     proxyServer.start()
 
-    val url = URI("https://github.com/jayo-projects/jayo/tree/main/samples/src/main/resources/jayo.txt").toURL()
+    val url =
+        URI("https://raw.githubusercontent.com/jayo-projects/jayo/main/samples/src/main/resources/jayo.txt").toURL()
     val connection = url.openConnection(proxyServer.proxy())
     connection.getInputStream().source().buffered().use { source ->
         generateSequence { source.readUtf8Line() }

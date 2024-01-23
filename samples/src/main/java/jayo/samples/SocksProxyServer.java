@@ -178,7 +178,8 @@ public final class SocksProxyServer {
         SocksProxyServer proxyServer = new SocksProxyServer();
         proxyServer.start();
 
-        URL url = new URI("https://github.com/jayo-projects/jayo/tree/main/samples/src/main/resources/jayo.txt")
+        URL url = new URI(
+                "https://raw.githubusercontent.com/jayo-projects/jayo/main/samples/src/main/resources/jayo.txt")
                 .toURL();
         URLConnection connection = url.openConnection(proxyServer.proxy());
         try (final var source = Jayo.buffer(Jayo.source(connection.getInputStream()))) {
