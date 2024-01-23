@@ -29,19 +29,19 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-public final class GoldenValueSample {
+public final class GoldenValue {
     public void run() throws Exception {
         Point point = new Point(8.0, 15.0);
         ByteString pointBytes = serialize(point);
         System.out.println(pointBytes.base64());
 
-        ByteString goldenBytes = ByteString.decodeBase64("rO0ABXNyAChvcmcudWZvc3MuZGluby5zYW1wbGVz" +
-                "LkdvbGRlblZhbHVlJFBvaW50NwIhU3bWX1cCAAJEAAF4RAABeXhwQCAAAAAAAABALgAAAAAAAA==");
+        ByteString goldenBytes = ByteString.decodeBase64("rO0ABXNyAB5qYXlvLnNhbXBsZXMuR29sZGVuVmFsdWUkU" +
+                "G9pbnRUIwdw/sniAQIAAkQAAXhEAAF5eHBAIAAAAAAAAEAuAAAAAAAA");
         Point decoded = (Point) deserialize(goldenBytes);
         assertEquals(point, decoded);
     }
 
-    private static ByteString serialize(Object o) throws IOException {
+    private static ByteString serialize(final Object o) throws IOException {
         Buffer buffer = Buffer.create();
         try (ObjectOutputStream objectOut = new ObjectOutputStream(buffer.asOutputStream())) {
             objectOut.writeObject(o);
@@ -49,17 +49,17 @@ public final class GoldenValueSample {
         return buffer.readByteString();
     }
 
-    private static Object deserialize(ByteString byteString) throws IOException, ClassNotFoundException {
+    private static Object deserialize(final ByteString byteString) throws IOException, ClassNotFoundException {
         Buffer buffer = Buffer.create();
         buffer.write(byteString);
-        try (ObjectInputStream objectIn = new ObjectInputStream(buffer.asInputStream())) {
+        try (final var objectIn = new ObjectInputStream(buffer.asInputStream())) {
             Object result = objectIn.readObject();
             if (objectIn.read() != -1) throw new IOException("Unconsumed bytes in stream");
             return result;
         }
     }
 
-    static final class Point implements Serializable {
+    public static final class Point implements Serializable {
         double x;
         double y;
 
@@ -74,6 +74,6 @@ public final class GoldenValueSample {
     }
 
     public static void main(String... args) throws Exception {
-        new GoldenValueSample().run();
+        new GoldenValue().run();
     }
 }
