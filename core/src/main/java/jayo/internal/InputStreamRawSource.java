@@ -32,10 +32,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public final class InputStreamSource implements RawSource {
+public final class InputStreamRawSource implements RawSource {
     private final @NonNull InputStream in;
 
-    public InputStreamSource(final @NonNull InputStream in) {
+    public InputStreamRawSource(final @NonNull InputStream in) {
         this.in = Objects.requireNonNull(in);
     }
 

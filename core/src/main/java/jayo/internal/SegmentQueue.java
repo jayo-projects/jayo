@@ -202,14 +202,17 @@ sealed class SegmentQueue extends Segment implements AutoCloseable
         final var tail = tail();
         if (tail == null || !tail.owner || tail.limit + minimumCapacity > Segment.SIZE) {
             // acquire a new empty segment to fill up.
-            final var segment = SegmentPool.take();
-            return segment;
+            return SegmentPool.take();
         }
 
         // tail has enough space, return it
         return tail;
     }
 
+    /**
+     * @return a tail segment queue node that we can write at least {@code 1} byte to, creating it if necessary.
+     * The status of the returned segment is guaranteed to be {@code WRITING}.
+     */
     final @NonNull Segment writableSegmentWithState() {
         final var tail = tail();
         if (tail == null) {

@@ -100,7 +100,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     /**
      * Encodes {@code string} using UTF-8 and wraps these bytes into a byte string.
      */
-    static @NonNull ByteString encode(final @NonNull String string) {
+    static @NonNull ByteString encodeUtf8(final @NonNull String string) {
         return new RealByteString(string);
     }
 
@@ -109,7 +109,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      */
     static @NonNull ByteString encode(final @NonNull String string, final @NonNull Charset charset) {
         if (charset == StandardCharsets.UTF_8) {
-            return encode(string);
+            return encodeUtf8(string);
         }
         return new RealByteString(string.getBytes(charset));
     }

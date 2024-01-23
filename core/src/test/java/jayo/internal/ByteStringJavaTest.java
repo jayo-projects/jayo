@@ -363,8 +363,8 @@ public final class ByteStringJavaTest {
     @Test
     public void readAndToLowercase() {
         InputStream in = new ByteArrayInputStream("ABC".getBytes(Charsets.UTF_8));
-        assertEquals(ByteString.encode("ab"), ByteString.read(in, 2).toAsciiLowercase());
-        assertEquals(ByteString.encode("c"), ByteString.read(in, 1).toAsciiLowercase());
+        assertEquals(ByteString.encodeUtf8("ab"), ByteString.read(in, 2).toAsciiLowercase());
+        assertEquals(ByteString.encodeUtf8("c"), ByteString.read(in, 1).toAsciiLowercase());
         assertEquals(ByteString.EMPTY, ByteString.read(in, 0).toAsciiLowercase());
     }
 
@@ -381,27 +381,27 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiAllUppercase(ByteStringFactory factory) {
-        assertEquals(ByteString.encode("ab"), factory.encodeUtf8("AB").toAsciiLowercase());
+        assertEquals(ByteString.encodeUtf8("ab"), factory.encodeUtf8("AB").toAsciiLowercase());
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiStartsLowercaseEndsUppercase(ByteStringFactory factory) {
-        assertEquals(ByteString.encode("abcd"), factory.encodeUtf8("abCD").toAsciiLowercase());
+        assertEquals(ByteString.encodeUtf8("abcd"), factory.encodeUtf8("abCD").toAsciiLowercase());
     }
 
     @Test
     public void readAndToUppercase() {
         InputStream in = new ByteArrayInputStream("abc".getBytes(Charsets.UTF_8));
-        assertEquals(ByteString.encode("AB"), ByteString.read(in, 2).toAsciiUppercase());
-        assertEquals(ByteString.encode("C"), ByteString.read(in, 1).toAsciiUppercase());
+        assertEquals(ByteString.encodeUtf8("AB"), ByteString.read(in, 2).toAsciiUppercase());
+        assertEquals(ByteString.encodeUtf8("C"), ByteString.read(in, 1).toAsciiUppercase());
         assertEquals(ByteString.EMPTY, ByteString.read(in, 0).toAsciiUppercase());
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiStartsUppercaseEndsLowercase(ByteStringFactory factory) {
-        assertEquals(ByteString.encode("ABCD"), factory.encodeUtf8("ABcd").toAsciiUppercase());
+        assertEquals(ByteString.encodeUtf8("ABCD"), factory.encodeUtf8("ABcd").toAsciiUppercase());
     }
 
     @ParameterizedTest
@@ -410,9 +410,9 @@ public final class ByteStringJavaTest {
         ByteString byteString = factory.encodeUtf8("Hello, World!");
 
         assertEquals(byteString.substring(0), byteString);
-        assertEquals(byteString.substring(0, 5), ByteString.encode("Hello"));
-        assertEquals(byteString.substring(7), ByteString.encode("World!"));
-        assertEquals(byteString.substring(6, 6), ByteString.encode(""));
+        assertEquals(byteString.substring(0, 5), ByteString.encodeUtf8("Hello"));
+        assertEquals(byteString.substring(7), ByteString.encodeUtf8("World!"));
+        assertEquals(byteString.substring(6, 6), ByteString.encodeUtf8(""));
     }
 
     @ParameterizedTest

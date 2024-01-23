@@ -39,10 +39,10 @@ public final class Base64Utils {
     }
 
     private static final byte @NonNull [] BASE64 = ((RealByteString) ByteString
-            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).data;
+            .encodeUtf8("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).data;
 
     private static final byte @NonNull [] BASE64_URL_SAFE = ((RealByteString) ByteString
-            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")).data;
+            .encodeUtf8("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")).data;
 
     public static byte @Nullable [] decodeBase64ToArray(final @NonNull CharSequence source) {
         // Ignore trailing '=' padding and whitespace from the input.

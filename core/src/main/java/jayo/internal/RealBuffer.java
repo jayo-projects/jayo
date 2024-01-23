@@ -128,7 +128,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Source peek() {
-        return new RealSource(new PeekSource(this));
+        return new RealSource(new PeekRawSource(this));
     }
 
     @Override
@@ -754,11 +754,11 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @Nullable String readLine() {
+    public @Nullable String readUtf8Line() {
         final var newline = indexOf((byte) ((int) '\n'));
 
         if (newline != -1L) {
-            return readUtf8Line(this, newline);
+            return Utils.readUtf8Line(this, newline);
         }
         if (segmentQueue.size() != 0L) {
             return readUtf8(segmentQueue.size());
@@ -768,25 +768,25 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull String readLineStrict() {
-        return readLineStrict(Long.MAX_VALUE);
+    public @NonNull String readUtf8LineStrict() {
+        return readUtf8LineStrict(Long.MAX_VALUE);
     }
 
     @Override
-    public @NonNull String readLineStrict(final @NonNegative long limit) {
+    public @NonNull String readUtf8LineStrict(final @NonNegative long limit) {
         if (limit < 0L) {
             throw new IllegalArgumentException("limit < 0: " + limit);
         }
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1L;
         final var newline = indexOf((byte) ((int) '\n'), 0L, scanLength);
         if (newline != -1L) {
-            return readUtf8Line(this, newline);
+            return Utils.readUtf8Line(this, newline);
         }
         if (scanLength < segmentQueue.size() &&
                 get(scanLength - 1) == (byte) ((int) '\r') &&
                 get(scanLength) == (byte) ((int) '\n')) {
             // The line was 'limit' UTF-8 bytes followed by \r\n.
-            return readUtf8Line(this, scanLength);
+            return Utils.readUtf8Line(this, scanLength);
         }
         final var data = new RealBuffer();
         copyTo(data, 0, Math.min(32, segmentQueue.size()));

@@ -5,11 +5,11 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.RawSource;
 import jayo.exceptions.JayoCancelledException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -231,20 +231,35 @@ final class SourceSegmentQueue extends SegmentQueue {
         public void run() {
             try {
                 while (!Thread.interrupted()) {
-                    final var expectedS = expectedSize;
-                    final var toRead = Math.max(expectedS, Segment.SIZE);
-                    // read from source
-                    final var read = source.readAtMostTo(buffer, toRead);
-                    final var size = size();
-                    if (read > 0 && expectedS != 0L && size < expectedS) {
-                        continue; // when expecting a given byte size we must not stop reading from source
-                    }
                     try {
+                        var expectedS = expectedSize;
+                        var size = size();
+                        if (expectedS != 0L && size >= expectedS) {
+                            // signal expectedSize if byte size fulfilled the expectation
+                            lock.lockInterruptibly();
+                            try {
+                                // byte size fulfilled the expectation
+                                expectedSize = 0L; // reset the expectation
+                                expectingSize.signal();
+                            } finally {
+                                lock.unlock();
+                            }
+                        }
+
+                        expectedS = expectedSize;
+                        final var toRead = Math.max(expectedS, Segment.SIZE);
+                        // read from source
+                        final var read = source.readAtMostTo(buffer, toRead);
+                        size = size();
+                        if (read > 0 && expectedS != 0L && size < expectedS) {
+                            continue; // when expecting a given byte size we must not stop reading from source
+                        }
+
                         lock.lockInterruptibly();
                         try {
                             var mustSignalExpectingSize = false;
                             if (expectedS != 0L && size >= expectedS) {
-                                // byte size fulfilled the expectation
+                                // signal expectedSize if byte size fulfilled the expectation
                                 expectedSize = 0L; // reset the expectation
                                 mustSignalExpectingSize = true;
                             }

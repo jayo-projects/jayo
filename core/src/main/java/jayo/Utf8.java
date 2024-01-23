@@ -37,7 +37,7 @@ import java.util.Objects;
  * </tr>
  * <tr>
  * <td>Encode a string</td>
- * <td>{@link ByteString#encode(String)}</td>
+ * <td>{@link ByteString#encodeUtf8(String)}</td>
  * <td>{@link Sink#writeUtf8(CharSequence)}, {@link Sink#writeUtf8(CharSequence, int, int)}</td>
  * </tr>
  * <tr>
@@ -58,12 +58,12 @@ import java.util.Objects;
  * <tr>
  * <td>Decode until the next {@code \r\n} or {@code \n}</td>
  * <td></td>
- * <td>{@link Source#readLineStrict()}, {@link Source#readLineStrict(long)}</td>
+ * <td>{@link Source#readUtf8LineStrict()}, {@link Source#readUtf8LineStrict(long)}</td>
  * </tr>
  * <tr>
  * <td>Decode until the next {@code \r\n}, {@code \n}, or {@code EOF}</td>
  * <td></td>
- * <td>{@link Source#readLine()}</td>
+ * <td>{@link Source#readUtf8Line()}</td>
  * </tr>
  * <tr>
  * <td>Measure the bytes in a UTF-8 char sequence</td>

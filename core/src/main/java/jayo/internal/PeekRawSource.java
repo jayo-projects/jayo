@@ -41,7 +41,7 @@ import static jayo.internal.Utils.getBufferFromSource;
  * every read. If the upstream buffer is read from, this source will become invalid and throw
  * {@link IllegalStateException} on any future reads.
  */
-final class PeekSource implements RawSource {
+final class PeekRawSource implements RawSource {
     private @NonNull final Source upstream;
     private @NonNull final RealBuffer buffer;
     private @Nullable Segment expectedSegment;
@@ -49,7 +49,7 @@ final class PeekSource implements RawSource {
     private boolean closed = false;
     private @NonNegative long pos = 0L;
 
-    public PeekSource(final @NonNull Source upstream) {
+    public PeekRawSource(final @NonNull Source upstream) {
         this.upstream = Objects.requireNonNull(upstream);
         buffer = getBufferFromSource(upstream);
         final var bufferHead = buffer.segmentQueue.head();

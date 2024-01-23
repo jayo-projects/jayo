@@ -486,7 +486,7 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      *
      * @throws IllegalStateException if this source is closed.
      */
-    @Nullable String readLine();
+    @Nullable String readUtf8Line();
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
@@ -497,7 +497,7 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      *
      * @throws IllegalStateException if this source is closed.
      */
-    @NonNull String readLineStrict();
+    @NonNull String readUtf8LineStrict();
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
@@ -528,7 +528,7 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * @throws IllegalArgumentException when {@code limit} is negative.
      * @throws IllegalStateException    if this source is closed.
      */
-    @NonNull String readLineStrict(final @NonNegative long limit);
+    @NonNull String readUtf8LineStrict(final @NonNegative long limit);
 
     /**
      * Removes and returns a single UTF-8 code point, reading between 1 and 4 bytes as necessary.

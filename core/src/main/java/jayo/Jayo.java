@@ -84,7 +84,7 @@ public final class Jayo {
      */
     public static @NonNull RawSink sink(final @NonNull OutputStream out) {
         Objects.requireNonNull(out);
-        return new OutputStreamSink(out);
+        return new OutputStreamRawSink(out);
     }
 
     /**
@@ -92,7 +92,7 @@ public final class Jayo {
      */
     public static @NonNull RawSource source(final @NonNull InputStream in) {
         Objects.requireNonNull(in);
-        return new InputStreamSource(in);
+        return new InputStreamRawSource(in);
     }
 
     /**
@@ -110,7 +110,7 @@ public final class Jayo {
             }
         });
         try {
-            return timeout.sink(new OutputStreamSink(socket.getOutputStream()));
+            return timeout.sink(new OutputStreamRawSink(socket.getOutputStream()));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -131,7 +131,7 @@ public final class Jayo {
             }
         });
         try {
-            return timeout.source(new InputStreamSource(socket.getInputStream()));
+            return timeout.source(new InputStreamRawSource(socket.getInputStream()));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -188,7 +188,7 @@ public final class Jayo {
     public static @NonNull RawSink sink(@NonNull File file) {
         Objects.requireNonNull(file);
         try {
-            return new OutputStreamSink(new FileOutputStream(file));
+            return new OutputStreamRawSink(new FileOutputStream(file));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -202,7 +202,7 @@ public final class Jayo {
     public static @NonNull RawSource source(final @NonNull File file) {
         Objects.requireNonNull(file);
         try {
-            return new InputStreamSource(new FileInputStream(file));
+            return new InputStreamRawSource(new FileInputStream(file));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -218,7 +218,7 @@ public final class Jayo {
     private static @NonNull RawSink sink(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
         Objects.requireNonNull(path);
         try {
-            return new OutputStreamSink(Files.newOutputStream(path, options.toArray(new OpenOption[0])));
+            return new OutputStreamRawSink(Files.newOutputStream(path, options.toArray(new OpenOption[0])));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -227,7 +227,7 @@ public final class Jayo {
     private static RawSource source(@NonNull Path path, @NonNull Set<OpenOption> options) {
         Objects.requireNonNull(path);
         try {
-            return new InputStreamSource(Files.newInputStream(path, options.toArray(new OpenOption[0])));
+            return new InputStreamRawSource(Files.newInputStream(path, options.toArray(new OpenOption[0])));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }

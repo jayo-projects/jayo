@@ -1289,71 +1289,71 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
     fun readUtf8Line() {
         sink.writeUtf8("first line\nsecond line\n")
         sink.flush()
-        assertEquals("first line", source.readLine())
+        assertEquals("first line", source.readUtf8Line())
         assertEquals("second line\n", source.readUtf8())
-        assertEquals(null, source.readLine())
+        assertEquals(null, source.readUtf8Line())
 
         sink.writeUtf8("\nnext line\n")
         sink.flush()
-        assertEquals("", source.readLine())
-        assertEquals("next line", source.readLine())
+        assertEquals("", source.readUtf8Line())
+        assertEquals("next line", source.readUtf8Line())
 
         sink.writeUtf8("There is no newline!")
         sink.flush()
-        assertEquals("There is no newline!", source.readLine())
+        assertEquals("There is no newline!", source.readUtf8Line())
 
         sink.writeUtf8("Wot do u call it?\r\nWindows")
         sink.flush()
-        assertEquals("Wot do u call it?", source.readLine())
+        assertEquals("Wot do u call it?", source.readUtf8Line())
         source.transferTo(discardingSink())
 
         sink.writeUtf8("reo\rde\red\n")
         sink.flush()
-        assertEquals("reo\rde\red", source.readLine())
+        assertEquals("reo\rde\red", source.readUtf8Line())
     }
 
     @Test
     fun readUtf8LineStrict() {
         sink.writeUtf8("first line\nsecond line\n")
         sink.flush()
-        assertEquals("first line", source.readLineStrict())
+        assertEquals("first line", source.readUtf8LineStrict())
         assertEquals("second line\n", source.readUtf8())
-        assertFailsWith<JayoEOFException> { source.readLineStrict() }
+        assertFailsWith<JayoEOFException> { source.readUtf8LineStrict() }
 
         sink.writeUtf8("\nnext line\n")
         sink.flush()
-        assertEquals("", source.readLineStrict())
-        assertEquals("next line", source.readLineStrict())
+        assertEquals("", source.readUtf8LineStrict())
+        assertEquals("next line", source.readUtf8LineStrict())
 
         sink.writeUtf8("There is no newline!")
         sink.flush()
-        assertFailsWith<JayoEOFException> { source.readLineStrict() }
+        assertFailsWith<JayoEOFException> { source.readUtf8LineStrict() }
         assertEquals("There is no newline!", source.readUtf8())
 
         sink.writeUtf8("Wot do u call it?\r\nWindows")
         sink.flush()
-        assertEquals("Wot do u call it?", source.readLineStrict())
+        assertEquals("Wot do u call it?", source.readUtf8LineStrict())
         source.transferTo(discardingSink())
 
         sink.writeUtf8("reo\rde\red\n")
         sink.flush()
-        assertEquals("reo\rde\red", source.readLineStrict())
+        assertEquals("reo\rde\red", source.readUtf8LineStrict())
 
         sink.writeUtf8("line\n")
         sink.flush()
-        assertFailsWith<JayoEOFException> { source.readLineStrict(3) }
-        assertEquals("line", source.readLineStrict(4))
+        assertFailsWith<JayoEOFException> { source.readUtf8LineStrict(3) }
+        assertEquals("line", source.readUtf8LineStrict(4))
         assertTrue(source.exhausted())
 
         sink.writeUtf8("line\r\n")
         sink.flush()
-        assertFailsWith<JayoEOFException> { source.readLineStrict(3) }
-        assertEquals("line", source.readLineStrict(4))
+        assertFailsWith<JayoEOFException> { source.readUtf8LineStrict(3) }
+        assertEquals("line", source.readUtf8LineStrict(4))
         assertTrue(source.exhausted())
 
         sink.writeUtf8("line\n")
         sink.flush()
-        assertEquals("line", source.readLineStrict(5))
+        assertEquals("line", source.readUtf8LineStrict(5))
         assertTrue(source.exhausted())
     }
 

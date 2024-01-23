@@ -35,7 +35,6 @@ import java.nio.charset.Charset;
 import java.util.Objects;
 
 import static jayo.internal.Utils.checkOffsetAndCount;
-import static jayo.internal.Utils.readUtf8Line;
 
 public final class RealSource implements Source {
     private static final long INTEGER_MAX_PLUS_1 = (long) Integer.MAX_VALUE + 1;
@@ -47,10 +46,10 @@ public final class RealSource implements Source {
 
     public RealSource(final @NonNull RawSource source) {
         this.source = Objects.requireNonNull(source);
-        if (source instanceof PeekSource) {
-            final var sourceSegmentQueue = new SynchronousSourceSegmentQueue(source);
-            segmentQueue = sourceSegmentQueue;
-            buffer = sourceSegmentQueue.getBuffer();
+        if (source instanceof PeekRawSource) {
+            final var syncSourceSegmentQueue = new SynchronousSourceSegmentQueue(source);
+            segmentQueue = syncSourceSegmentQueue;
+            buffer = syncSourceSegmentQueue.getBuffer();
         } else {
             final var asyncSourceSegmentQueue = new SourceSegmentQueue(source);
             segmentQueue = asyncSourceSegmentQueue;
@@ -300,7 +299,7 @@ public final class RealSource implements Source {
     }
 
     @Override
-    public @Nullable String readLine() {
+    public @Nullable String readUtf8Line() {
         final var newline = indexOf((byte) ((int) '\n'));
 
         if (newline == -1L) {
@@ -312,29 +311,29 @@ public final class RealSource implements Source {
             }
         }
 
-        return readUtf8Line(buffer, newline);
+        return Utils.readUtf8Line(buffer, newline);
     }
 
     @Override
-    public @NonNull String readLineStrict() {
-        return readLineStrict(Long.MAX_VALUE);
+    public @NonNull String readUtf8LineStrict() {
+        return readUtf8LineStrict(Long.MAX_VALUE);
     }
 
     @Override
-    public @NonNull String readLineStrict(final @NonNegative long limit) {
+    public @NonNull String readUtf8LineStrict(final @NonNegative long limit) {
         if (limit < 0) {
             throw new IllegalArgumentException("limit < 0: " + limit);
         }
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1;
         final var newline = indexOf((byte) ((int) '\n'), 0, scanLength);
         if (newline != -1L) {
-            return readUtf8Line(buffer, newline);
+            return Utils.readUtf8Line(buffer, newline);
         }
         if (scanLength < Long.MAX_VALUE &&
                 request(scanLength) && buffer.get(scanLength - 1) == (byte) ((int) '\r') &&
                 request(scanLength + 1) && buffer.get(scanLength) == (byte) ((int) '\n')
         ) {
-            return readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
+            return Utils.readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
         }
         final var data = new RealBuffer();
         final var size = segmentQueue.size();
@@ -607,7 +606,7 @@ public final class RealSource implements Source {
 
     @Override
     public @NonNull Source peek() {
-        return new RealSource(new PeekSource(this));
+        return new RealSource(new PeekRawSource(this));
     }
 
     @Override

@@ -35,10 +35,10 @@ import java.util.Objects;
 
 import static jayo.internal.Utils.checkOffsetAndCount;
 
-public final class OutputStreamSink implements RawSink {
+public final class OutputStreamRawSink implements RawSink {
     private final @NonNull OutputStream out;
 
-    public OutputStreamSink(final @NonNull OutputStream out) {
+    public OutputStreamRawSink(final @NonNull OutputStream out) {
         this.out = Objects.requireNonNull(out);
     }
 
