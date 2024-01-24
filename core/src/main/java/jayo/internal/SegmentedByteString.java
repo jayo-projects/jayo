@@ -123,19 +123,19 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public @NonNull ByteString hmac(final @NonNull Hmac mac, final @NonNull ByteString key) {
+    public @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
         Objects.requireNonNull(key);
         final javax.crypto.Mac javaMac;
         try {
-            javaMac = javax.crypto.Mac.getInstance(mac.algorithm());
+            javaMac = javax.crypto.Mac.getInstance(hMac.algorithm());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + mac.algorithm(), e);
+            throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
         }
         if (!(key instanceof RealByteString _key)) {
-            throw new IllegalArgumentException("key must be an instance of JayoByteString");
+            throw new IllegalArgumentException("key must be an instance of RealByteString");
         }
         try {
-            javaMac.init(new SecretKeySpec(_key.internalArray(), mac.algorithm()));
+            javaMac.init(new SecretKeySpec(_key.internalArray(), hMac.algorithm()));
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }

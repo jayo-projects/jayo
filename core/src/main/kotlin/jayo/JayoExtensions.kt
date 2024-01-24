@@ -23,6 +23,8 @@
 
 package jayo
 
+import jayo.crypto.Digest
+import jayo.crypto.Hmac
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -63,27 +65,40 @@ public fun Socket.source(): RawSource = Jayo.source(this)
 
 /**
  * @return a sink that writes to this [Path]. options allow to specify how the file is opened.
- * 
+ *
  * Note : we always add the `StandardOpenOption.WRITE` option to the options Set, so we ensure we can write in this path
  */
 public fun Path.sink(vararg options: OpenOption): RawSink = Jayo.sink(this, *options)
 
 /**
  * @return a sink that writes to this [Path]. options allow to specify how the file is opened.
- * 
+ *
  * Note : we always add the `StandardOpenOption.READ` option to the options Set, so we ensure we can read from this path
  */
 public fun Path.source(vararg options: OpenOption): RawSource = Jayo.source(this, *options)
 
-/**
- * @return a sink that writes to this [File]. If you need specific options, please use [Path.sink] instead.
- */
+/** @return a sink that writes to this [File]. If you need specific options, please use [Path.sink] instead. */
 public fun File.sink(): RawSink = Jayo.sink(this)
 
-/**
- * @return a source that reads from this [File]. If you need specific options, please use [Path.source] instead.
- */
+/** @return a source that reads from this [File]. If you need specific options, please use [Path.source] instead. */
 public fun File.source(): RawSource = Jayo.source(this)
+
+/**
+ * Consumes all this source and return its hash.
+ *
+ * @param digest the chosen message digest algorithm to use for hashing.
+ * @return the hash of this source.
+ */
+public fun RawSource.hash(digest: Digest): ByteString = Jayo.hash(this, digest)
+
+/**
+ * Consumes all this source and return its MAC result.
+ *
+ * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
+ * @param key the key to use for this MAC operation.
+ * @return the MAC result of this source.
+ */
+public fun RawSource.hmac(hMac: Hmac, key: ByteString): ByteString = Jayo.hmac(this, hMac, key)
 
 /** @return a sink that discards all data written to it. */
 public fun discardingSink(): RawSink = Jayo.discardingSink()

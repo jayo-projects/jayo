@@ -21,6 +21,8 @@
 
 package jayo;
 
+import jayo.crypto.Digest;
+import jayo.crypto.Hmac;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import jayo.internal.*;
@@ -206,6 +208,31 @@ public final class Jayo {
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
+    }
+
+    /**
+     * Consumes all this source and return its hash.
+     * 
+     * @param rawSource the source
+     * @param digest the chosen message digest algorithm to use for hashing.
+     * @return the hash of this source.
+     */
+    public static @NonNull ByteString hash(final @NonNull RawSource rawSource, final @NonNull Digest digest) {
+        return HashingUtils.hash(rawSource, digest);
+    }
+
+    /**
+     * Consumes all this source and return its MAC result.
+     *
+     * @param rawSource the source
+     * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
+     * @param key the key to use for this MAC operation.
+     * @return the MAC result of this source.
+     */
+    public static @NonNull ByteString hmac(final @NonNull RawSource rawSource,
+                                           final @NonNull Hmac hMac,
+                                           final @NonNull ByteString key) {
+        return HashingUtils.hmac(rawSource, hMac, key);
     }
 
     /**

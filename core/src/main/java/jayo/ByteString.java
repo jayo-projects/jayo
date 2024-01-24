@@ -216,12 +216,13 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     ByteString hash(final @NonNull Digest digest);
 
     /**
-     * @param mac the chosen "Message Authentication Code" (MAC) algorithm to use.
+     * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
+     * @param key the key to use for this MAC operation.
      * @return the MAC result of this byte string.
      * @throws IllegalArgumentException if the {@code key} is invalid
      */
     @NonNull
-    ByteString hmac(final @NonNull Hmac mac, final @NonNull ByteString key);
+    ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key);
 
     /**
      * @return a byte string equal to this byte string, but with the bytes 'A' through 'Z' replaced with the

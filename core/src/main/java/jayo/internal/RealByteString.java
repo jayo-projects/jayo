@@ -124,19 +124,19 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public @NonNull ByteString hmac(final @NonNull Hmac mac, final @NonNull ByteString key) {
+    public @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
         Objects.requireNonNull(key);
         final javax.crypto.Mac javaMac;
         try {
-            javaMac = javax.crypto.Mac.getInstance(mac.algorithm());
+            javaMac = javax.crypto.Mac.getInstance(hMac.algorithm());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + mac.algorithm(), e);
+            throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
         }
         if (!(key instanceof RealByteString _key)) {
-            throw new IllegalArgumentException("key must be an instance of JayoByteString");
+            throw new IllegalArgumentException("key must be an instance of RealByteString");
         }
         try {
-            javaMac.init(new SecretKeySpec(_key.internalArray(), mac.algorithm()));
+            javaMac.init(new SecretKeySpec(_key.internalArray(), hMac.algorithm()));
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
@@ -324,7 +324,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     @Override
     public final int indexOf(final @NonNull ByteString other, final @NonNegative int startIndex) {
         if (!(Objects.requireNonNull(other) instanceof RealByteString _other)) {
-            throw new IllegalArgumentException("other must be an instance of JayoByteString");
+            throw new IllegalArgumentException("other must be an instance of RealByteString");
         }
         return indexOf(_other.internalArray(), startIndex);
     }
@@ -354,7 +354,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     @Override
     public final int lastIndexOf(final @NonNull ByteString other, final @NonNegative int startIndex) {
         if (!(Objects.requireNonNull(other) instanceof RealByteString _other)) {
-            throw new IllegalArgumentException("other must be an instance of JayoByteString");
+            throw new IllegalArgumentException("other must be an instance of RealByteString");
         }
         return lastIndexOf(_other.internalArray(), startIndex);
     }

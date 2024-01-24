@@ -317,11 +317,12 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
     @NonNull ByteString hash(final @NonNull Digest digest);
 
     /**
-     * @param mac the chosen "Message Authentication Code" (MAC) algorithm to use.
+     * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
+     * @param key the key to use for this MAC operation.
      * @return the MAC result of this buffer.
      * @throws IllegalArgumentException if the {@code key} is invalid
      */
-    @NonNull ByteString hmac(final @NonNull Hmac mac, final @NonNull ByteString key);
+    @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key);
 
     /**
      * Returns a new byte channel that read from and writes to this buffer.

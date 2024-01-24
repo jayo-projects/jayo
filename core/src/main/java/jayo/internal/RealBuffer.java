@@ -1011,7 +1011,7 @@ public final class RealBuffer implements Buffer {
                                  final @NonNegative int offset,
                                  final @NonNegative int byteCount) {
         if (!(Objects.requireNonNull(byteString) instanceof RealByteString _byteString)) {
-            throw new IllegalArgumentException("byteString must be an instance of JayoByteString");
+            throw new IllegalArgumentException("byteString must be an instance of RealByteString");
         }
         _byteString.write(this, offset, byteCount);
         return this;
@@ -1746,7 +1746,7 @@ public final class RealBuffer implements Buffer {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
         }
         if (!(byteString instanceof RealByteString _bytes)) {
-            throw new IllegalArgumentException("bytes must be an instance of JayoByteString");
+            throw new IllegalArgumentException("bytes must be an instance of RealByteString");
         }
 
         return seek(startIndex, (s, o) -> {
@@ -1797,7 +1797,7 @@ public final class RealBuffer implements Buffer {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
         }
         if (!(Objects.requireNonNull(targetBytes) instanceof RealByteString _targetBytes)) {
-            throw new IllegalArgumentException("targetBytes must be an instance of JayoByteString");
+            throw new IllegalArgumentException("targetBytes must be an instance of RealByteString");
         }
 
         return seek(startIndex, (s, o) -> {
@@ -1914,19 +1914,19 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull ByteString hmac(final @NonNull Hmac mac, final @NonNull ByteString key) {
+    public @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
         Objects.requireNonNull(key);
         final javax.crypto.Mac javaMac;
         try {
-            javaMac = javax.crypto.Mac.getInstance(mac.algorithm());
+            javaMac = javax.crypto.Mac.getInstance(hMac.algorithm());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + mac.algorithm(), e);
+            throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
         }
         if (!(key instanceof RealByteString _key)) {
-            throw new IllegalArgumentException("key must be an instance of JayoByteString");
+            throw new IllegalArgumentException("key must be an instance of RealByteString");
         }
         try {
-            javaMac.init(new SecretKeySpec(_key.internalArray(), mac.algorithm()));
+            javaMac.init(new SecretKeySpec(_key.internalArray(), hMac.algorithm()));
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
