@@ -30,6 +30,8 @@ import java.io.ObjectOutputStream
 import java.io.Serializable
 import java.util.*
 
+val SEGMENT_SIZE = Segment.SIZE
+
 object TestUtil {
     // Necessary to make an internal member visible to Java.
     @JvmField

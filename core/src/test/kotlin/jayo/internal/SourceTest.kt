@@ -43,8 +43,6 @@ import java.nio.charset.Charset
 import java.util.stream.Stream
 import kotlin.test.*
 
-val SEGMENT_SIZE = Segment.SIZE
-
 class BufferSourceTest : AbstractSourceTest(SourceFactory.BUFFER)
 
 class RealSourceTest : AbstractSourceTest(SourceFactory.REAL_SOURCE)
