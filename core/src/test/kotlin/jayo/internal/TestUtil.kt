@@ -144,6 +144,56 @@ object TestUtil {
         return input.readObject() as T
     }
 
+    /** Returns a copy of `buffer` with no segments with `original`.  */
+    @JvmStatic
+    fun deepCopy(original: Buffer): Buffer {
+        val result = RealBuffer()
+        if (original.size == 0L) {
+            return result
+        }
+        if (original !is RealBuffer) {
+            throw IllegalArgumentException()
+        }
+        
+        var s = original.segmentQueue.next
+        while (s !== original.segmentQueue) {
+            result.segmentQueue.addTail(s!!.unsharedCopy())
+            s = s.next
+        }
+        result.segmentQueue.incrementSize(original.size)
+
+        return result
+    }
+
+    /**
+     * Returns a new buffer containing the data in `data` and a segment
+     * layout determined by `dice`.
+     */
+    @JvmStatic
+    fun bufferWithRandomSegmentLayout(dice: Random, data: ByteArray): Buffer {
+        val result = Buffer()
+
+        // Writing to result directly will yield packed segments. Instead, write to
+        // other buffers, then write those buffers to result.
+        var pos = 0
+        var byteCount: Int
+        while (pos < data.size) {
+            byteCount = Segment.SIZE / 2 + dice.nextInt(Segment.SIZE / 2)
+            if (byteCount > data.size - pos) byteCount = data.size - pos
+            val offset = dice.nextInt(Segment.SIZE - byteCount)
+
+            val buffer = Buffer()
+            buffer.write(ByteArray(offset))
+            buffer.write(data, pos, byteCount)
+            buffer.skip(offset.toLong())
+
+            result.write(buffer, byteCount.toLong())
+            pos += byteCount
+        }
+
+        return result
+    }
+
     /** Remove all segments from the pool and return them as a list. */
     @JvmStatic
     fun takeAllPoolSegments(): List<Segment> {

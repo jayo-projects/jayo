@@ -46,7 +46,7 @@ fun bufferWithSegments(vararg segments: String): Buffer {
         buffer.writeUtf8('_'.repeat(offsetInSegment))
         buffer.writeUtf8(s)
         buffer.skip(offsetInSegment.toLong())
-        result.write(buffer.copyTo(RealBuffer()), buffer.size)
+        result.write(buffer.clone(), buffer.size)
     }
     return result
 }

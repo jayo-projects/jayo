@@ -579,14 +579,13 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
         public static @NonNull UnsafeCursor create() {
             return new RealBuffer.RealUnsafeCursor();
         }
-
-        @Nullable
-        public Buffer buffer;
-        public boolean readWrite;
-        public @NonNegative long offset;
-        public byte[] data;
-        public @NonNegative int start;
-        public @NonNegative int end;
+        
+        public @Nullable Buffer buffer = null;
+        public boolean readWrite = false;
+        public @NonNegative long offset = -1L;
+        public byte[] data = null;
+        public @NonNegative int start = -1;
+        public @NonNegative int end = -1;
 
         /**
          * Seeks to the next range of bytes, advancing the offset by {@code end - start}.

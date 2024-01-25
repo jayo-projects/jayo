@@ -1570,33 +1570,26 @@ public final class RealBuffer implements Buffer {
         var _byteCount = byteCount;
         while (_byteCount > 0L) {
             final var sourceHeadForTransferring = _source.segmentQueue.headForTransferring();
-            final var tail = segmentQueue.writableSegmentWithState();
-            final var currentLimit = tail.limit;
-            final var isNewTail = currentLimit == 0;
             final var sourceHeadIsWriting = sourceHeadForTransferring.isWriting();
             var needSplit = sourceHeadIsWriting;
             var sourceHead = sourceHeadForTransferring.head();
             var bytesInSource = sourceHead.limit - sourceHead.pos;
+            final var tail = segmentQueue.tailWithState();
             // Is a prefix of the source's head segment all that we need to move?
             if (_byteCount < bytesInSource) {
-                if (tail.owner &&
-                        _byteCount + currentLimit
-                                - ((tail.shared) ? 0 : tail.pos) <= Segment.SIZE
+                if (tail != null && tail.owner &&
+                        _byteCount + tail.limit - ((tail.shared) ? 0 : tail.pos) <= Segment.SIZE
                 ) {
                     try {
                         // Our existing segments are sufficient. Move bytes from source's head to our tail.
                         _source.segmentQueue.decrementSize(_byteCount);
                         sourceHead.writeTo(tail, (int) _byteCount);
-                        if (isNewTail) {
-                            segmentQueue.addTail(tail);
-                        }
                         return;
                     } finally {
                         segmentQueue.finishWrite(tail);
                         segmentQueue.incrementSize(_byteCount);
                         _source.segmentQueue.finishTransfer(sourceHead, sourceHeadIsWriting);
                     }
-
                 }
                 needSplit = true;
             }
@@ -1616,11 +1609,11 @@ public final class RealBuffer implements Buffer {
                 newTail = newTailIfNeeded(tail, segmentToMove);
                 if (newTail != null) {
                     segmentQueue.addTail(newTail);
-                } else if (isNewTail) {
-                    segmentQueue.addTail(tail);
                 }
             } finally {
-                segmentQueue.finishWrite(tail);
+                if (tail != null) {
+                    segmentQueue.finishWrite(tail);
+                }
                 segmentQueue.incrementSize(bytesInSource);
                 if (newTail != null) {
                     _source.segmentQueue.finishTransfer(sourceHead, sourceHeadIsWriting);
@@ -1634,12 +1627,11 @@ public final class RealBuffer implements Buffer {
      * Call this when the tail and its predecessor may both be less than half full. In this case, we will copy data so
      * that a segment can be recycled.
      */
-    private static @Nullable Segment newTailIfNeeded(final @NonNull Segment currentTail,
+    private static @Nullable Segment newTailIfNeeded(final @Nullable Segment currentTail,
                                                      final @NonNull Segment newTail) {
-        Objects.requireNonNull(currentTail);
         Objects.requireNonNull(newTail);
-        if (!currentTail.owner) {
-            return newTail; // Cannot compact: current tail isn't writable.
+        if (currentTail == null || !currentTail.owner) {
+            return newTail; // Cannot compact: current tail is null or isn't writable.
         }
         final var byteCount = newTail.limit - newTail.pos;
         final var availableByteCount = Segment.SIZE - currentTail.limit
@@ -2265,7 +2257,7 @@ public final class RealBuffer implements Buffer {
 
         @Override
         public int next() {
-            Objects.requireNonNull(buffer, "not attached to a buffer");
+            checkHasBuffer();
             if (offset == buffer.getSize()) {
                 throw new IllegalStateException("no more bytes");
             }
@@ -2274,7 +2266,7 @@ public final class RealBuffer implements Buffer {
 
         @Override
         public int seek(final @NonNegative long offset) {
-            Objects.requireNonNull(buffer, "not attached to a buffer");
+            checkHasBuffer();
             if (!(buffer instanceof RealBuffer _buffer)) {
                 throw new IllegalStateException("buffer must be an instance of JayoBuffer");
             }
@@ -2296,7 +2288,7 @@ public final class RealBuffer implements Buffer {
             var min = 0L;
             var max = size;
             var head = _buffer.segmentQueue.head();
-            var tail = _buffer.segmentQueue.tail();
+            Segment tail = _buffer.segmentQueue;
             if (this.segment != null) {
                 final var segmentOffset = this.offset - (this.start - this.segment.pos);
                 if (segmentOffset > offset) {
@@ -2325,9 +2317,8 @@ public final class RealBuffer implements Buffer {
                 }
             } else {
                 // Start at the 'end' and search backwards
-                assert tail != null;
                 next = tail;
-                nextOffset = max - (next.limit - next.pos);
+                nextOffset = max;
                 while (nextOffset > offset) {
                     next = next.prev;
                     nextOffset -= (next.limit - next.pos);
@@ -2336,7 +2327,11 @@ public final class RealBuffer implements Buffer {
 
             // If we're going to write and our segment is shared, swap it for a read-write one.
             if (readWrite && next.shared) {
-                next = next.unsharedCopy();
+                final var unsharedNext = next.unsharedCopy();
+                unsharedNext.next = next.next;
+                unsharedNext.prev = next.prev;
+                next.prev.next = unsharedNext;
+                next.next.prev = unsharedNext;
             }
 
             // Update this cursor to the requested offset within the found segment.
@@ -2350,7 +2345,7 @@ public final class RealBuffer implements Buffer {
 
         @Override
         public @NonNegative long resizeBuffer(final long newSize) {
-            Objects.requireNonNull(buffer, "not attached to a buffer");
+            checkHasBuffer();
             if (!readWrite) {
                 throw new IllegalStateException("resizeBuffer() is only permitted for read/write buffers");
             }
@@ -2425,7 +2420,7 @@ public final class RealBuffer implements Buffer {
             if (minByteCount > Segment.SIZE) {
                 throw new IllegalArgumentException("minByteCount > Segment.SIZE: " + minByteCount);
             }
-            Objects.requireNonNull(buffer, "not attached to a buffer");
+            checkHasBuffer();
             if (!readWrite) {
                 throw new IllegalStateException("expandBuffer() is only permitted for read/write buffers");
             }
@@ -2445,8 +2440,8 @@ public final class RealBuffer implements Buffer {
             _buffer.segmentQueue.incrementSize(result);
 
             // Seek to the old size.
+            this.segment = tail;
             this.offset = oldSize;
-            this.segment = _buffer.segmentQueue.tail();
             this.data = tail.data;
             this.start = Segment.SIZE - result;
             this.end = Segment.SIZE;
@@ -2457,7 +2452,7 @@ public final class RealBuffer implements Buffer {
         @Override
         public void close() {
             // TODO(jwilson): use edit counts or other information to track unexpected changes?
-            Objects.requireNonNull(buffer, "not attached to a buffer");
+            checkHasBuffer();
 
             buffer = null;
             segment = null;
@@ -2465,6 +2460,12 @@ public final class RealBuffer implements Buffer {
             data = null;
             start = -1;
             end = -1;
+        }
+        
+        private void checkHasBuffer() {
+            if (buffer == null) {
+                throw new IllegalStateException("not attached to a buffer");
+            }
         }
     }
 }

@@ -244,9 +244,9 @@ final class SourceSegmentQueue extends SegmentQueue {
                             } finally {
                                 lock.unlock();
                             }
+                            expectedS = expectedSize;
                         }
-
-                        expectedS = expectedSize;
+                        
                         final var toRead = Math.max(expectedS, Segment.SIZE);
                         // read from source
                         final var read = source.readAtMostTo(buffer, toRead);

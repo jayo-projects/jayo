@@ -21,8 +21,8 @@
 
 package jayo.internal
 
-import org.junit.jupiter.api.Test
 import jayo.Buffer
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -32,7 +32,7 @@ class UnsafeCursorTest {
         val buffer = RealBuffer()
         buffer.writeUtf8("xo".repeat(5000))
 
-        val cursor = buffer.readAndWriteUnsafe()
+        val cursor = buffer.readUnsafe()
         try {
             val copy = RealBuffer()
             while (cursor.next() != -1) {

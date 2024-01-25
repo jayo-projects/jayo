@@ -91,6 +91,17 @@ sealed class SegmentQueue extends Segment implements AutoCloseable
         return (tail != this) ? tail : null;
     }
 
+    final @Nullable Segment tailWithState() {
+        final var tail = prev;
+        if (tail == this) {
+            return null;
+        }
+        if (!STATUS.compareAndSet(tail, AVAILABLE, WRITING)) {
+            return null;
+        }
+        return tail;
+    }
+
     @NonNull Segment forceRemoveHead() {
         // default to removeHead
         final var removedHead = removeHead();
