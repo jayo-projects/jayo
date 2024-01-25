@@ -105,23 +105,23 @@ SlowSinkBenchmark.sinkOkio    okio  thrpt    5  0.738 ± 0.033  ops/s
 ## SlowSourceBenchmark
 
 Benchmark                       (type)   Mode  Cnt  Score   Error  Units
-SlowSourceBenchmark.sourceJayo    jayo  thrpt    5  1.447 ± 0.043  ops/s
-SlowSourceBenchmark.sourceOkio    okio  thrpt    5  0.703 ± 0.051  ops/s
+SlowSourceBenchmark.sourceJayo    jayo  thrpt    5  1.446 ± 0.165  ops/s
+SlowSourceBenchmark.sourceOkio    okio  thrpt    5  0.738 ± 0.028  ops/s
 
 ## SocketSourceBenchmark
 
 Benchmark                         (type)   Mode  Cnt      Score      Error  Units
-SocketSourceBenchmark.readerJayo    jayo  thrpt    5  36213.013 ± 2013.543  ops/s
-SocketSourceBenchmark.readerOkio    okio  thrpt    5  47730.588 ± 2876.245  ops/s
+SocketSourceBenchmark.readerJayo    jayo  thrpt    5  36918.609 ± 2367.091  ops/s
+SocketSourceBenchmark.readerOkio    okio  thrpt    5  45338.049 ± 8744.595  ops/s
 
 ## TcpAndJsonSerializationBenchmark
 
 Benchmark                                            Mode  Cnt      Score     Error  Units
-TcpAndJsonSerializationBenchmark.readerJayo         thrpt    5  15104.107 ± 222.908  ops/s
-TcpAndJsonSerializationBenchmark.readerOkio         thrpt    5  22841.002 ± 396.029  ops/s
-TcpAndJsonSerializationBenchmark.senderJayo         thrpt    5    325.355 ±  94.082  ops/s
-TcpAndJsonSerializationBenchmark.senderJayoJackson  thrpt    5    253.068 ± 326.333  ops/s
-TcpAndJsonSerializationBenchmark.senderOkio         thrpt    5    336.756 ±  97.709  ops/s
+TcpAndJsonSerializationBenchmark.readerJayo         thrpt    5  15225.560 ±   219.601  ops/s
+TcpAndJsonSerializationBenchmark.readerOkio         thrpt    5  22575.264 ±   694.424  ops/s
+TcpAndJsonSerializationBenchmark.senderJayo         thrpt    5    325.355 ±    94.082  ops/s
+TcpAndJsonSerializationBenchmark.senderJayoJackson  thrpt    5    253.068 ±   326.333  ops/s
+TcpAndJsonSerializationBenchmark.senderOkio         thrpt    5    336.756 ±    97.709  ops/s
 
 ## TcpBenchmark
 

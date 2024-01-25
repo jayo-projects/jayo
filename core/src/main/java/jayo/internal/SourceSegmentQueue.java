@@ -232,21 +232,23 @@ final class SourceSegmentQueue extends SegmentQueue {
             try {
                 while (!Thread.interrupted()) {
                     try {
-                        var expectedS = expectedSize;
-                        var size = size();
-                        if (expectedS != 0L && size >= expectedS) {
-                            // signal expectedSize if byte size fulfilled the expectation
-                            lock.lockInterruptibly();
-                            try {
+                        var expectedS = 0L;
+                        var size = 0L;
+                        // signal expectedSize if byte size fulfilled the expectation
+                        lock.lockInterruptibly();
+                        try {
+                            expectedS = expectedSize;
+                            size = size();
+                            if (expectedS != 0L && size >= expectedS) {
                                 // byte size fulfilled the expectation
                                 expectedSize = 0L; // reset the expectation
+                                expectedS = 0L;
                                 expectingSize.signal();
-                            } finally {
-                                lock.unlock();
                             }
-                            expectedS = expectedSize;
+                        } finally {
+                            lock.unlock();
                         }
-                        
+
                         final var toRead = Math.max(expectedS, Segment.SIZE);
                         // read from source
                         final var read = source.readAtMostTo(buffer, toRead);
@@ -258,6 +260,7 @@ final class SourceSegmentQueue extends SegmentQueue {
                         lock.lockInterruptibly();
                         try {
                             var mustSignalExpectingSize = false;
+                            expectedS = expectedSize;
                             if (expectedS != 0L && size >= expectedS) {
                                 // signal expectedSize if byte size fulfilled the expectation
                                 expectedSize = 0L; // reset the expectation
