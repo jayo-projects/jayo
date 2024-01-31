@@ -1,7 +1,7 @@
-Jayo core module
+Jayo core modules
 Copyright (c) 2024-present, pull-vert and Jayo contributors.
 
-A lot of parts of this module are copied from, derived from, or inspired by Okio (https://github.com/square/okio)
+A lot of parts of Jayo core modules are copied from, derived from, or inspired by Okio (https://github.com/square/okio)
 Copyright (C) 2013 Square, Inc.
 Licensed under the Apache License, Version 2.0 (the "License");
 
