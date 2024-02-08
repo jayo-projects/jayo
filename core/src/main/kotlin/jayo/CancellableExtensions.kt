@@ -16,34 +16,38 @@ import kotlin.time.toTimeUnit
  *
  * If `timeout == null && unit == null`, operations will run indefinitely. (Operating system timeouts may still apply)
  */
-public fun <T> cancelScope(timeout: Long? = null,
-                           timeoutUnit: DurationUnit? = null,
-                           deadline: Long? = null,
-                           deadlineUnit: DurationUnit? = null,
-                           block: CancelScope.() -> T): T {
+public fun <T> cancelScope(
+    timeout: Long? = null,
+    timeoutUnit: DurationUnit? = null,
+    deadline: Long? = null,
+    deadlineUnit: DurationUnit? = null,
+    block: CancelScope.() -> T
+): T {
     if ((timeout != null && timeoutUnit == null) || (timeout == null && timeoutUnit != null)) {
         throw IllegalArgumentException("timeout and timeoutUnit must be both present or both null")
     }
     if ((deadline != null && deadlineUnit == null) || (deadline == null && deadlineUnit != null)) {
         throw IllegalArgumentException("deadline and deadlineUnit must be both present or both null")
     }
-    
-    val cancellableBuilder = Cancellable.Builder()
-    if (timeout != null && timeoutUnit != null) {
-        cancellableBuilder.timeout(timeout, timeoutUnit.toTimeUnit())
+
+    val cancellable = Cancellable.create { configurer ->
+        if (timeout != null && timeoutUnit != null) {
+            configurer.setTimeout(timeout, timeoutUnit)
+        }
+        if (deadline != null && deadlineUnit != null) {
+            configurer.setDeadline(deadline, deadlineUnit)
+        }
     }
-    if (deadline != null && deadlineUnit != null) {
-        cancellableBuilder.deadline(deadline, deadlineUnit.toTimeUnit())
-    }
-    return cancellableBuilder.build().executeCancellable(block)
+
+    return cancellable.executeCancellable(block)
 }
 
 /** Sets a timeout of now plus `timeout` time. */
-public fun Cancellable.Builder.timeout(timeout: Long, unit: DurationUnit) {
-    timeout(timeout, unit.toTimeUnit())
+public fun Cancellable.Config.setTimeout(timeout: Long, unit: DurationUnit) {
+    setTimeout(timeout, unit.toTimeUnit())
 }
 
 /** Sets a deadline of now plus `duration` time. */
-public fun Cancellable.Builder.deadline(duration: Long, unit: DurationUnit) {
-    deadline(duration, unit.toTimeUnit())
+public fun Cancellable.Config.setDeadline(duration: Long, unit: DurationUnit) {
+    setDeadline(duration, unit.toTimeUnit())
 }
