@@ -21,14 +21,12 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.Buffer;
 import jayo.ByteString;
 import jayo.Options;
+import org.jspecify.annotations.NonNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public final class RealOptions extends AbstractList<ByteString> implements Options {
     final @NonNull ByteString @NonNull [] byteStrings;
@@ -59,15 +57,12 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
         // caller's indexes.
         final var list = new ArrayList<>(Arrays.asList(byteStrings));
         Collections.sort(list);
-        final var indexes = Arrays.stream(byteStrings)
-                .map(_unused -> -1)
-                .collect(Collectors.toCollection(ArrayList::new));
-        IntStream.range(0, byteStrings.length)
-                .forEach(callerIndex -> {
-                    final var byteString = byteStrings[callerIndex];
-                    final var sortedIndex = Collections.binarySearch(list, byteString);
-                    indexes.set(sortedIndex, callerIndex);
-                });
+        final var indexes = new ArrayList<>(Collections.nCopies(list.size(), -1));
+        for (var callerIndex = 0; callerIndex < byteStrings.length; callerIndex++) {
+            final var byteString = byteStrings[callerIndex];
+            final var sortedIndex = Collections.binarySearch(list, byteString);
+            indexes.set(sortedIndex, callerIndex);
+        }
         if (list.getFirst().getSize() <= 0) {
             throw new IllegalArgumentException("the empty byte string is not a supported option");
         }
@@ -101,10 +96,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
         buildTrieRecursive(0L, trieBytes, 0, list, 0, list.size(), indexes);
 
         final var trie = new int[(int) intCount(trieBytes)];
-        var i = 0;
-        while (!trieBytes.exhausted()) {
-            trie[i++] = trieBytes.readInt();
-        }
+        Arrays.setAll(trie, (_unused) -> trieBytes.readInt());
 
         return new RealOptions(byteStrings.clone() /* Defensive copy. */, trie);
     }
