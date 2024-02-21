@@ -10,7 +10,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -229,7 +229,7 @@ final class Utils {
 
     /**
      * Mask every bit below the
-     * <a href="http://aggregate.org/MAGIC/#Most%20Significant%201%20Bit">most significant bit</a> to a 1
+     * <a href="https://aggregate.org/MAGIC/#Most%20Significant%201%20Bit">most significant bit</a> to a 1
      */
     static int getHexadecimalUnsignedLongWidth(final long _l) {
         var x = _l;
@@ -241,7 +241,7 @@ final class Utils {
         x = x | (x >>> 32);
 
         // Count the number of 1s
-        // http://aggregate.org/MAGIC/#Population%20Count%20(Ones%20Count)
+        // https://aggregate.org/MAGIC/#Population%20Count%20(Ones%20Count)
         x -= x >>> 1 & 0x5555555555555555L;
         x = (x >>> 2 & 0x3333333333333333L) + (x & 0x3333333333333333L);
         x = (x >>> 4) + x & 0x0f0f0f0f0f0f0f0fL;

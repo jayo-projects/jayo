@@ -14,7 +14,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -183,7 +183,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
 
     /**
      * Constructs a new String by encoding all the bytes from this byte string using
-     * <a href="http://www.ietf.org/rfc/rfc2045.txt">Base64</a>. In violation of the RFC, the returned string does not
+     * <a href="https://www.ietf.org/rfc/rfc2045.txt">Base64</a>. In violation of the RFC, the returned string does not
      * wrap lines at 76 columns.
      * <p>
      * If the size of this byte string is not an integral multiple of 3, the result is padded with {@code '='} to an
