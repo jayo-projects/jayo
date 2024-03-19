@@ -12,7 +12,7 @@ plugins {
 }
 
 val koverage = mapOf(
-    "jayo" to 86,
+    "jayo" to 83,
     "jayo-3p-kotlinx-serialization" to 57,
 )
 
