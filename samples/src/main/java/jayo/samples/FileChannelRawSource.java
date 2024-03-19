@@ -24,6 +24,7 @@ package jayo.samples;
 import jayo.Buffer;
 import jayo.RawSource;
 import jayo.exceptions.JayoException;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -44,7 +45,7 @@ final class FileChannelRawSource implements RawSource {
     }
 
     @Override
-    public long readAtMostTo(Buffer sink, long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer sink, final long byteCount) {
         if (!channel.isOpen()) throw new IllegalStateException("closed");
         try {
             if (position == channel.size()) {

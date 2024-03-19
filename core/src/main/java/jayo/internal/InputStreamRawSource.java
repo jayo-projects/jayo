@@ -51,7 +51,7 @@ public final class InputStreamRawSource implements RawSource {
             throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
         }
         if (!(sink instanceof RealBuffer _sink)) {
-            throw new IllegalArgumentException("sink must be an instance of JayoBuffer");
+            throw new IllegalArgumentException("sink must be an instance of RealBuffer");
         }
 
         final var cancelToken = CancellableUtils.getCancelToken();

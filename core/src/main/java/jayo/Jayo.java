@@ -37,6 +37,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
@@ -233,6 +235,48 @@ public final class Jayo {
                                            final @NonNull Hmac hMac,
                                            final @NonNull ByteString key) {
         return HashingUtils.hmac(rawSource, hMac, key);
+    }
+
+    /**
+     * @return a {@link RawSink} that DEFLATE-compresses data to this {@code sink} while writing.
+     */
+    public static @NonNull RawSink deflate(final @NonNull RawSink sink) {
+        return deflate(sink, new Deflater());
+    }
+
+    /**
+     * @return a {@link RawSink} that DEFLATE-compresses data to this {@code sink} while writing.
+     */
+    public static @NonNull RawSink deflate(final @NonNull RawSink sink, final @NonNull Deflater deflater) {
+        return new DeflaterRawSink(sink, deflater);
+    }
+
+    /**
+     * @return an {@link InflaterRawSource} that DEFLATE-decompresses this {@code source} while reading.
+     *
+     * @see InflaterRawSource
+     */
+    public static @NonNull InflaterRawSource inflate(final @NonNull RawSource source) {
+        return inflate(source, new Inflater());
+    }
+
+    /**
+     * @return an {@link InflaterRawSource} that DEFLATE-decompresses this {@code source} while reading.
+     *
+     * @see InflaterRawSource
+     */
+    public static @NonNull InflaterRawSource inflate(final @NonNull RawSource source,
+                                                     final @NonNull Inflater inflater) {
+        return new RealInflaterRawSource(source, inflater);
+    }
+
+    /**
+     * @return a {@link RawSource} that gzip-decompresses this {@code source} while reading.
+     *
+     * @see GzipRawSource
+     */
+    public static @NonNull RawSource gzip(final @NonNull RawSource source) {
+        return new GzipRawSource(source);
     }
 
     /**

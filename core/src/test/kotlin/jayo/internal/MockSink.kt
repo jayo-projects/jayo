@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import jayo.Buffer
 import jayo.exceptions.JayoException
 import jayo.RawSink
+import kotlin.test.assertTrue
 
 /** A scriptable sink. Like Mockito, but worse and requiring less configuration.  */
 class MockSink : RawSink {
@@ -33,6 +34,14 @@ class MockSink : RawSink {
 
   fun assertLog(vararg messages: String) {
     assertEquals(messages.toList(), log)
+  }
+
+  fun assertLogContains(message: String) {
+    assertTrue(message in log)
+  }
+
+  fun scheduleThrow(call: Int, e: JayoException) {
+    callThrows[call] = e
   }
 
   private fun throwIfScheduled() {

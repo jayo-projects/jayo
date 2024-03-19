@@ -38,7 +38,7 @@ import java.util.Objects;
 public final class RealSink implements Sink {
     private final @NonNull RawSink sink;
     private final @NonNull SinkSegmentQueue segmentQueue;
-    private final @NonNull RealBuffer buffer;
+    final @NonNull RealBuffer buffer;
     private boolean closed = false;
 
     public RealSink(final @NonNull RawSink sink) {
@@ -313,11 +313,15 @@ public final class RealSink implements Sink {
         if (closed) {
             return;
         }
-        segmentQueue.close();
-
         // Emit buffered data to the underlying sink. If this fails, we still need
         // to close the sink; otherwise we risk leaking resources.
         Throwable thrown = null;
+        try {
+            segmentQueue.close();
+        } catch (Throwable e) {
+            thrown = e;
+        }
+
         try {
             if (buffer.getSize() > 0) {
                 sink.write(buffer, buffer.getSize());
@@ -325,7 +329,9 @@ public final class RealSink implements Sink {
         } catch (JayoCancelledException _cancelled) {
             // cancellation lead to closing, ignore
         } catch (Throwable e) {
-            thrown = e;
+            if (thrown == null) {
+                thrown = e;
+            }
         }
 
         try {
@@ -339,12 +345,10 @@ public final class RealSink implements Sink {
         closed = true;
 
         if (thrown != null) {
-            if (thrown instanceof RuntimeException runtimeThrown) {
-                throw runtimeThrown;
-            } else {
-                // wrap checked Exception in a Runtime
-                throw new RuntimeException(thrown);
+            if (thrown instanceof RuntimeException runtime) {
+                throw runtime;
             }
+            throw (Error) thrown;
         }
     }
 

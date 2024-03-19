@@ -24,6 +24,7 @@ package jayo.samples;
 import jayo.Buffer;
 import jayo.RawSink;
 import jayo.exceptions.JayoException;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -44,7 +45,7 @@ final class FileChannelRawSink implements RawSink {
     }
 
     @Override
-    public void write(Buffer source, long byteCount) {
+    public void write(@NonNull Buffer source, long byteCount) {
         if (!channel.isOpen()) throw new IllegalStateException("closed");
         if (byteCount == 0) return;
 

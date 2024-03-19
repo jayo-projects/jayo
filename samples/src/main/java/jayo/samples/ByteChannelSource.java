@@ -25,6 +25,7 @@ import jayo.Buffer;
 import jayo.RawSource;
 import jayo.exceptions.JayoException;
 import jayo.external.CancelToken;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -47,7 +48,7 @@ final class ByteChannelSource implements RawSource {
     }
 
     @Override
-    public long readAtMostTo(final Buffer sink, final long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer sink, final long byteCount) {
         if (!channel.isOpen()) throw new IllegalStateException("closed");
 
         final var cancelToken = CancelToken.getCancelToken();

@@ -73,7 +73,7 @@ public interface RawSource extends AutoCloseable {
      * @param sink      the destination to write the data from this source.
      * @param byteCount the number of bytes to read.
      * @return the number of bytes read, or {@code -1L} if this source is exhausted.
-     * @throws IllegalArgumentException when [byteCount] is negative.
+     * @throws IllegalArgumentException when {@code byteCount} is negative.
      * @throws IllegalStateException    when the source is closed.
      */
     long readAtMostTo(final @NonNull Buffer sink, final @NonNegative long byteCount);

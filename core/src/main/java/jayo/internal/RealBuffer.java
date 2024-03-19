@@ -228,7 +228,7 @@ public final class RealBuffer implements Buffer {
                                   final @NonNegative long byteCount) {
         checkOffsetAndCount(segmentQueue.size(), offset, byteCount);
         if (!(Objects.requireNonNull(out) instanceof RealBuffer _out)) {
-            throw new IllegalArgumentException("out must be an instance of JayoBuffer");
+            throw new IllegalArgumentException("out must be an instance of RealBuffer");
         }
         if (byteCount == 0L) {
             return this;
@@ -1564,7 +1564,7 @@ public final class RealBuffer implements Buffer {
         }
         checkOffsetAndCount(source.getSize(), 0, byteCount);
         if (!(source instanceof RealBuffer _source)) {
-            throw new IllegalArgumentException("source must be an instance of JayoBuffer");
+            throw new IllegalArgumentException("source must be an instance of RealBuffer");
         }
 
         var _byteCount = byteCount;
@@ -2258,6 +2258,7 @@ public final class RealBuffer implements Buffer {
         @Override
         public int next() {
             checkHasBuffer();
+            assert buffer != null;
             if (offset == buffer.getSize()) {
                 throw new IllegalStateException("no more bytes");
             }
@@ -2268,7 +2269,7 @@ public final class RealBuffer implements Buffer {
         public int seek(final @NonNegative long offset) {
             checkHasBuffer();
             if (!(buffer instanceof RealBuffer _buffer)) {
-                throw new IllegalStateException("buffer must be an instance of JayoBuffer");
+                throw new IllegalStateException("buffer must be an instance of RealBuffer");
             }
             final var size = _buffer.segmentQueue.size();
             if (offset < -1L || offset > size) {
@@ -2350,7 +2351,7 @@ public final class RealBuffer implements Buffer {
                 throw new IllegalStateException("resizeBuffer() is only permitted for read/write buffers");
             }
             if (!(buffer instanceof RealBuffer _buffer)) {
-                throw new IllegalStateException("buffer must be an instance of JayoBuffer");
+                throw new IllegalStateException("buffer must be an instance of RealBuffer");
             }
 
             final var oldSize = _buffer.segmentQueue.size();
@@ -2425,7 +2426,7 @@ public final class RealBuffer implements Buffer {
                 throw new IllegalStateException("expandBuffer() is only permitted for read/write buffers");
             }
             if (!(buffer instanceof RealBuffer _buffer)) {
-                throw new IllegalStateException("buffer must be an instance of JayoBuffer");
+                throw new IllegalStateException("buffer must be an instance of RealBuffer");
             }
 
             final var oldSize = _buffer.segmentQueue.size();
