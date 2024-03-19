@@ -16,10 +16,10 @@ jmh {
     duplicateClassesStrategy.set(DuplicatesStrategy.WARN)
     jmhVersion.set(property("jmhVersion").toString())
 
-//    includes.set(listOf("""jayo\.benchmarks\.BufferLatin1Benchmark.*"""))
+    includes.set(listOf("""jayo\.benchmarks\.BufferLatin1Benchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.BufferUtf8Benchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.JsonSerializationBenchmark.*"""))
-    includes.set(listOf("""jayo\.benchmarks\.SlowSinkBenchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.SlowSinkBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SlowSourceBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SocketSourceBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
