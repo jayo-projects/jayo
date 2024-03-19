@@ -24,6 +24,7 @@ package jayo.samples;
 import jayo.Buffer;
 import jayo.RawSink;
 import jayo.RawSource;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 import java.util.Random;
@@ -96,7 +97,7 @@ public final class Interceptors {
         }
 
         @Override
-        public long readAtMostTo(Buffer sink, long byteCount) {
+        public long readAtMostTo(final @NonNull Buffer sink, final long byteCount) {
             if (byteCount < 0L) {
                 throw new IllegalArgumentException("byteCount < 0: " + byteCount);
             }
@@ -144,7 +145,7 @@ public final class Interceptors {
         }
 
         @Override
-        public void write(Buffer source, long byteCount) {
+        public void write(@NonNull Buffer source, long byteCount) {
             if (byteCount < 0) throw new IllegalArgumentException("byteCount < 0: " + byteCount);
             if (source.getSize() < byteCount) {
                 throw new IllegalArgumentException("size=" + source.getSize() + " byteCount=" + byteCount);

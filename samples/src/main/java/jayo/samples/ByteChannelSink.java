@@ -25,6 +25,7 @@ import jayo.Buffer;
 import jayo.RawSink;
 import jayo.exceptions.JayoException;
 import jayo.external.CancelToken;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -47,7 +48,7 @@ final class ByteChannelSink implements RawSink {
     }
 
     @Override
-    public void write(final Buffer source, final long byteCount) {
+    public void write(@NonNull final Buffer source, final long byteCount) {
         if (!channel.isOpen()) throw new IllegalStateException("closed");
         if (byteCount == 0) return;
 

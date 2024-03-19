@@ -26,6 +26,8 @@
 package jayo.internal
 
 import jayo.Buffer
+import jayo.ByteString
+import kotlin.random.Random
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -49,6 +51,13 @@ fun String.decodeHex(): ByteArray {
     }
 
     return result
+}
+
+fun randomBytes(length: Int, seed: Int = 0): ByteString {
+    val random = Random(seed)
+    val randomBytes = ByteArray(length)
+    random.nextBytes(randomBytes)
+    return ByteString.of(*randomBytes)
 }
 
 fun assertArrayEquals(a: ByteArray, b: ByteArray) {

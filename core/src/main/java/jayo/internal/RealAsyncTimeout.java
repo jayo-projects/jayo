@@ -124,7 +124,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 Objects.requireNonNull(source);
                 checkOffsetAndCount(source.getSize(), 0, byteCount);
                 if (!(source instanceof RealBuffer _source)) {
-                    throw new IllegalArgumentException("source must be an instance of JayoBuffer");
+                    throw new IllegalArgumentException("source must be an instance of RealBuffer");
                 }
 
                 // get cancel token immediately, if present it will be used in all I/O calls

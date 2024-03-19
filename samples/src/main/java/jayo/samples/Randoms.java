@@ -25,6 +25,7 @@ import jayo.Buffer;
 import jayo.Jayo;
 import jayo.RawSource;
 import jayo.Source;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Random;
 
@@ -45,28 +46,29 @@ public final class Randoms {
         }
 
         @Override
-        public long readAtMostTo(Buffer sink, long byteCount) {
+        public long readAtMostTo(final @NonNull Buffer sink, final long byteCount) {
             if (bytesLeft == -1L) {
                 throw new IllegalStateException("closed");
             }
             if (bytesLeft == 0L) {
                 return -1L;
             }
+            long resolvedByteCount = byteCount;
             if (byteCount > Integer.MAX_VALUE) {
-                byteCount = Integer.MAX_VALUE;
+                resolvedByteCount = Integer.MAX_VALUE;
             }
             if (byteCount > bytesLeft) {
-                byteCount = bytesLeft;
+                resolvedByteCount = bytesLeft;
             }
 
             // Random is most efficient when computing 32 bits of randomness. Start with that.
-            int ints = (int) (byteCount / 4);
+            int ints = (int) (resolvedByteCount / 4);
             for (int i = 0; i < ints; i++) {
                 sink.writeInt(random.nextInt());
             }
 
             // If we need 1, 2, or 3 bytes more, keep going. We'll discard 24, 16 or 8 random bits!
-            int bytes = (int) (byteCount - ints * 4);
+            int bytes = (int) (resolvedByteCount - ints * 4);
             if (bytes > 0) {
                 int bits = random.nextInt();
                 for (int i = 0; i < bytes; i++) {
@@ -75,8 +77,8 @@ public final class Randoms {
                 }
             }
 
-            bytesLeft -= byteCount;
-            return byteCount;
+            bytesLeft -= resolvedByteCount;
+            return resolvedByteCount;
         }
 
         @Override

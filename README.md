@@ -21,7 +21,7 @@ var freePortNumber = 54321;
 var serverThread = Thread.startVirtualThread(() -> {
     try (var serverSocket = new ServerSocket(freePortNumber);
         var acceptedSocket = serverSocket.accept();
-         var serverSink = Jayo.buffer(Jayo.sink(acceptedSocket))) {
+        var serverSink = Jayo.buffer(Jayo.sink(acceptedSocket))) {
         serverSink.writeUtf8("The Answer to the Ultimate Question of Life is ")
             .writeUtf8CodePoint('4')
             .writeUtf8CodePoint('2');
@@ -30,7 +30,7 @@ var serverThread = Thread.startVirtualThread(() -> {
     }
 });
 try (var clientSocket = new Socket("localhost", freePortNumber);
-     var clientSource = Jayo.buffer(Jayo.source(clientSocket))) {
+    var clientSource = Jayo.buffer(Jayo.source(clientSocket))) {
     assertThat(clientSource.readUtf8())
         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
 }

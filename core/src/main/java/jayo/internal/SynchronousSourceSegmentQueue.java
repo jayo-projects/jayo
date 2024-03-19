@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 final class SynchronousSourceSegmentQueue extends SegmentQueue {
     private final @NonNull RawSource source;
     private final @NonNull RealBuffer buffer;
+    private boolean closed = false;
 
     SynchronousSourceSegmentQueue(final @NonNull RawSource source) {
         this.source = Objects.requireNonNull(source);
@@ -50,7 +51,7 @@ final class SynchronousSourceSegmentQueue extends SegmentQueue {
         }
         // fast-path : current size is enough
         final var currentSize = size();
-        if (currentSize >= expectedSize) {
+        if (currentSize >= expectedSize || closed) {
             return currentSize;
         }
         // else read from source until expected size is reached or source is exhausted
@@ -64,6 +65,14 @@ final class SynchronousSourceSegmentQueue extends SegmentQueue {
             remaining -= read;
         }
         return size();
+    }
+
+    @Override
+    public void close() {
+        if (closed) {
+            return;
+        }
+        closed = true;
     }
 
     @NonNull RealBuffer getBuffer() {
