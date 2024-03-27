@@ -49,15 +49,15 @@ public final class RealSource implements Source {
 
     public RealSource(final @NonNull RawSource source) {
         this.source = Objects.requireNonNull(source);
-        //if (source instanceof PeekRawSource) {
-        final var syncSourceSegmentQueue = new SynchronousSourceSegmentQueue(source);
-        segmentQueue = syncSourceSegmentQueue;
-        buffer = syncSourceSegmentQueue.getBuffer();
-        /*} else { todo fix SourceSegmentQueue ! Not consistent
+        if (source instanceof InputStreamRawSource) {
             final var asyncSourceSegmentQueue = new SourceSegmentQueue(source);
             segmentQueue = asyncSourceSegmentQueue;
             buffer = asyncSourceSegmentQueue.getBuffer();
-        }*/
+        } else {
+            final var syncSourceSegmentQueue = new SynchronousSourceSegmentQueue(source);
+            segmentQueue = syncSourceSegmentQueue;
+            buffer = syncSourceSegmentQueue.getBuffer();
+        }
     }
 
     @Override
