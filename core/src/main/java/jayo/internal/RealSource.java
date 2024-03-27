@@ -21,15 +21,18 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.*;
 import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Objects;
@@ -47,9 +50,9 @@ public final class RealSource implements Source {
     public RealSource(final @NonNull RawSource source) {
         this.source = Objects.requireNonNull(source);
         //if (source instanceof PeekRawSource) {
-            final var syncSourceSegmentQueue = new SynchronousSourceSegmentQueue(source);
-            segmentQueue = syncSourceSegmentQueue;
-            buffer = syncSourceSegmentQueue.getBuffer();
+        final var syncSourceSegmentQueue = new SynchronousSourceSegmentQueue(source);
+        segmentQueue = syncSourceSegmentQueue;
+        buffer = syncSourceSegmentQueue.getBuffer();
         /*} else { todo fix SourceSegmentQueue ! Not consistent
             final var asyncSourceSegmentQueue = new SourceSegmentQueue(source);
             segmentQueue = asyncSourceSegmentQueue;
@@ -70,7 +73,7 @@ public final class RealSource implements Source {
         if (segmentQueue.expectSize(1L) == 0L) {
             return -1;
         }
-        
+
         return buffer.readAtMostTo(sink, byteCount);
     }
 
@@ -138,6 +141,10 @@ public final class RealSource implements Source {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        return readByteArrayPrivate();
+    }
+
+    private byte @NonNull [] readByteArrayPrivate() {
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
         return buffer.readByteArray();
     }
@@ -147,6 +154,13 @@ public final class RealSource implements Source {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
+        return readByteArrayPrivate(byteCount);
+    }
+
+    private byte @NonNull [] readByteArrayPrivate(final @NonNegative long byteCount) {
         require(byteCount);
         return buffer.readByteArray(byteCount);
     }
@@ -190,10 +204,15 @@ public final class RealSource implements Source {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        return readAtMostToPrivate(sink, offset, byteCount);
+    }
+
+    private int readAtMostToPrivate(final byte @NonNull [] sink,
+                                    final @NonNegative int offset,
+                                    final @NonNegative int byteCount) {
         if (segmentQueue.expectSize(1L) == 0L) {
             return -1;
         }
-
         return buffer.readAtMostTo(sink, offset, byteCount);
     }
 
@@ -203,6 +222,10 @@ public final class RealSource implements Source {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        return readAtMostToPrivate(sink);
+    }
+
+    private int readAtMostToPrivate(final @NonNull ByteBuffer sink) {
         if (segmentQueue.expectSize(1L) == 0L) {
             return -1;
         }
@@ -246,16 +269,19 @@ public final class RealSource implements Source {
             throw new IllegalStateException("closed");
         }
         var written = 0L;
-        // trying to read Segment.SIZE, so we have at least one complete segment in the buffer
-        var size = segmentQueue.expectSize(Segment.SIZE);
-        while (size > 0L) {
+        while (segmentQueue.expectSize(Segment.SIZE) > 0L) {
             final var emitByteCount = buffer.completeSegmentByteCount();
-            final var toWrite = (emitByteCount > 0L)
-                    ? emitByteCount
-                    : size; // write the last uncompleted segment, if any
-            written += toWrite;
-            sink.write(buffer, toWrite);
-            size = segmentQueue.expectSize(Segment.SIZE);
+            if (emitByteCount == 0L) {
+                break;
+            }
+            written += emitByteCount;
+            sink.write(buffer, emitByteCount);
+        }
+        // write the last remaining bytes in the last uncompleted segment, if any
+        final var remaining = segmentQueue.size();
+        if (remaining > 0L) {
+            written += remaining;
+            sink.write(buffer, remaining);
         }
         return written;
     }
@@ -421,23 +447,31 @@ public final class RealSource implements Source {
 
     @Override
     public void skip(final @NonNegative long byteCount) {
-        if (closed) {
-            throw new IllegalStateException("closed");
-        }
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
+        final var skipped = skipPrivate(byteCount);
+        if (skipped < byteCount) {
+            throw new JayoEOFException("could not skip " + byteCount + " bytes, skipped: " + skipped);
+        }
+    }
+
+    private @NonNegative long skipPrivate(final @NonNegative long byteCount) {
         var remaining = byteCount;
         while (remaining > 0) {
             // trying to read Segment.SIZE, so we have at least one complete segment in the buffer
             final var size = segmentQueue.expectSize(Segment.SIZE);
             if (size == 0L) {
-                throw new JayoEOFException("could not skip " + byteCount + " bytes from source");
+                break;
             }
             final var toSkip = Math.min(remaining, size);
             buffer.skip(toSkip);
             remaining -= toSkip;
         }
+        return byteCount - remaining;
     }
 
     @Override
@@ -610,76 +644,6 @@ public final class RealSource implements Source {
     }
 
     @Override
-    public @NonNull InputStream asInputStream() {
-        return new InputStream() {
-            @Override
-            public int read() {
-                if (closed) {
-                    throw new JayoException("Underlying source is closed.");
-                }
-                if (exhausted()) {
-                    return -1;
-                }
-                return readByte() & 0xff;
-            }
-
-            @Override
-            public int read(final byte @NonNull [] data, final int offset, final int byteCount) {
-                if (closed) {
-                    throw new JayoException("Underlying source is closed.");
-                }
-                return RealSource.this.readAtMostTo(data, offset, byteCount);
-            }
-
-            @Override
-            public int available() {
-                if (closed) {
-                    throw new JayoException("Underlying source is closed.");
-                }
-                return (int) Math.min(segmentQueue.size(), Segment.SIZE);
-            }
-
-            @Override
-            public void close() {
-                RealSource.this.close();
-            }
-
-            @Override
-            public String toString() {
-                return RealSource.this + ".asInputStream()";
-            }
-        };
-    }
-
-    @Override
-    public @NonNull ReadableByteChannel asReadableByteChannel() {
-        return new ReadableByteChannel() {
-            @Override
-            public int read(final @NonNull ByteBuffer sink) {
-                if (closed) {
-                    throw new JayoException("Underlying source is closed.");
-                }
-                return RealSource.this.readAtMostTo(sink);
-            }
-
-            @Override
-            public boolean isOpen() {
-                return !closed;
-            }
-
-            @Override
-            public void close() {
-                RealSource.this.close();
-            }
-
-            @Override
-            public String toString() {
-                return RealSource.this + ".asReadableByteChannel()";
-            }
-        };
-    }
-
-    @Override
     public void close() {
         if (closed) {
             return;
@@ -693,5 +657,170 @@ public final class RealSource implements Source {
     @Override
     public String toString() {
         return "buffered(" + source + ")";
+    }
+
+    @Override
+    public @NonNull InputStream asInputStream() {
+        return new InputStream() {
+            @Override
+            public int read() throws IOException {
+                if (closed) {
+                    throw new IOException("Underlying source is closed.");
+                }
+                try {
+                    if (exhausted()) {
+                        return -1;
+                    }
+                    return buffer.readByte() & 0xff;
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public int read(final byte @NonNull [] data, final int offset, final int byteCount) throws IOException {
+                if (closed) {
+                    throw new IOException("Underlying source is closed.");
+                }
+                try {
+                    return readAtMostToPrivate(data, offset, byteCount);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public byte @NonNull [] readAllBytes() throws IOException {
+                if (closed) {
+                    throw new IOException("Underlying source is closed.");
+                }
+                try {
+                    return readByteArrayPrivate();
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public byte @NonNull [] readNBytes(final @NonNegative int len) throws IOException {
+                if (len < 0) {
+                    throw new IllegalArgumentException("invalid length: " + len);
+                }
+                if (closed) {
+                    throw new IOException("Underlying source is closed.");
+                }
+                try {
+                    return readByteArrayPrivate(len);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public @NonNegative long skip(final @NonNegative long byteCount) throws IOException {
+                if (closed) {
+                    throw new IOException("Underlying source is closed.");
+                }
+                if (byteCount < 0L) {
+                    return 0L;
+                }
+                try {
+                    return skipPrivate(byteCount);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public int available() throws IOException {
+                if (closed) {
+                    throw new IOException("Underlying source is closed.");
+                }
+                try {
+                    return (int) Math.min(segmentQueue.size(), Segment.SIZE);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                try {
+                    RealSource.this.close();
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public @NonNegative long transferTo(final @NonNull OutputStream out) throws IOException {
+                Objects.requireNonNull(out);
+                if (closed) {
+                    throw new IOException("Underlying source is closed.");
+                }
+                try {
+                    var written = 0L;
+                    while (segmentQueue.expectSize(Segment.SIZE) > 0L) {
+                        final var emitByteCount = buffer.completeSegmentByteCount();
+                        if (emitByteCount == 0L) {
+                            break;
+                        }
+                        written += emitByteCount;
+                        buffer.readTo(out, emitByteCount);
+                    }
+                    // write the last remaining bytes in the last uncompleted segment, if any
+                    final var remaining = segmentQueue.size();
+                    if (remaining > 0L) {
+                        written += remaining;
+                        buffer.readTo(out, remaining);
+                    }
+                    return written;
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public String toString() {
+                return RealSource.this + ".asInputStream()";
+            }
+        };
+    }
+
+    @Override
+    public @NonNull ReadableByteChannel asReadableByteChannel() {
+        return new ReadableByteChannel() {
+            @Override
+            public int read(final @NonNull ByteBuffer sink) throws IOException {
+                Objects.requireNonNull(sink);
+                if (closed) {
+                    throw new ClosedChannelException();
+                }
+                try {
+                    return readAtMostToPrivate(sink);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public boolean isOpen() {
+                return !closed;
+            }
+
+            @Override
+            public void close() throws IOException {
+                try {
+                    RealSource.this.close();
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public String toString() {
+                return RealSource.this + ".asReadableByteChannel()";
+            }
+        };
     }
 }

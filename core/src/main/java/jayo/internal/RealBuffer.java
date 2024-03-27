@@ -66,34 +66,6 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull OutputStream asOutputStream() {
-        return new OutputStream() {
-            @Override
-            public void write(final int b) {
-                writeByte((byte) b);
-            }
-
-            @Override
-            public void write(final byte @NonNull [] data, final int offset, final int byteCount) {
-                RealBuffer.this.write(data, offset, byteCount);
-            }
-
-            @Override
-            public void flush() {
-            }
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public String toString() {
-                return RealBuffer.this + ".asOutputStream()";
-            }
-        };
-    }
-
-    @Override
     public @NonNull Buffer emitCompleteSegments() {
         return this; // Nowhere to emit to!
     }
@@ -129,38 +101,6 @@ public final class RealBuffer implements Buffer {
     @Override
     public @NonNull Source peek() {
         return new RealSource(new PeekRawSource(this));
-    }
-
-    @Override
-    public @NonNull InputStream asInputStream() {
-        return new InputStream() {
-            @Override
-            public int read() {
-                if (segmentQueue.size() > 0L) {
-                    return readByte() & 0xff;
-                }
-                return -1;
-            }
-
-            @Override
-            public int read(final byte @NonNull [] sink, final int offset, final int byteCount) {
-                return RealBuffer.this.readAtMostTo(sink, offset, byteCount);
-            }
-
-            @Override
-            public int available() {
-                return (int) Math.min(segmentQueue.size(), Integer.MAX_VALUE);
-            }
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public String toString() {
-                return RealBuffer.this + ".asInputStream()";
-            }
-        };
     }
 
     @Override
@@ -960,29 +900,35 @@ public final class RealBuffer implements Buffer {
     public void clear() {
         final var size = segmentQueue.size();
         if (size > 0) {
-            skip(size, true);
+            final var skipped = skipPrivate(size, true);
+            if (skipped < size) {
+                throw new JayoEOFException();
+            }
         }
     }
 
     @Override
     public void skip(final @NonNegative long byteCount) {
-        skip(byteCount, false);
-    }
-
-    private void skip(final @NonNegative long byteCount, final boolean forceRemoveSegments) {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
-        var _byteCount = byteCount;
+        final var skipped = skipPrivate(byteCount, false);
+        if (skipped < byteCount) {
+            throw new JayoEOFException("could not skip " + byteCount + " bytes, skipped: " + skipped);
+        }
+    }
+
+    private @NonNegative long skipPrivate(final @NonNegative long byteCount, final boolean forceRemoveSegments) {
         var head = segmentQueue.head();
-        while (_byteCount > 0) {
+        var remaining = byteCount;
+        while (remaining > 0) {
             if (head == null) {
-                throw new JayoEOFException();
+                break;
             }
             final var currentLimit = head.limit;
             var pos = head.pos;
 
-            final var toSkip = (int) Math.min(_byteCount, currentLimit - pos);
+            final var toSkip = (int) Math.min(remaining, currentLimit - pos);
             pos += toSkip;
             segmentQueue.decrementSize(toSkip);
             head.pos = pos;
@@ -997,8 +943,9 @@ public final class RealBuffer implements Buffer {
                 SegmentPool.recycle(removed);
                 head = segmentQueue.head();
             }
-            _byteCount -= toSkip;
+            remaining -= toSkip;
         }
+        return byteCount - remaining;
     }
 
     @Override
@@ -1929,45 +1876,6 @@ public final class RealBuffer implements Buffer {
         return new RealByteString(javaMac.doFinal());
     }
 
-    @Override
-    public @NonNull ReadableByteChannel asReadableByteChannel() {
-        return asByteChannel();
-    }
-
-    @Override
-    public @NonNull WritableByteChannel asWritableByteChannel() {
-        return asByteChannel();
-    }
-
-    @Override
-    public @NonNull ByteChannel asByteChannel() {
-        return new ByteChannel() {
-            @Override
-            public int read(final @NonNull ByteBuffer sink) {
-                return RealBuffer.this.readAtMostTo(sink);
-            }
-
-            @Override
-            public int write(final @NonNull ByteBuffer source) {
-                return RealBuffer.this.transferFrom(source);
-            }
-
-            @Override
-            public boolean isOpen() {
-                return true;
-            }
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public String toString() {
-                return RealBuffer.this + ".asByteChannel()";
-            }
-        };
-    }
-
 //    @Override
 //    public boolean equals(final @Nullable Object other) {
 //        if (other == null) {
@@ -2250,6 +2158,111 @@ public final class RealBuffer implements Buffer {
         }
 
         return true;
+    }
+
+    @Override
+    public @NonNull OutputStream asOutputStream() {
+        return new OutputStream() {
+            @Override
+            public void write(final int b) {
+                writeByte((byte) b);
+            }
+
+            @Override
+            public void write(final byte @NonNull [] data, final int offset, final int byteCount) {
+                RealBuffer.this.write(data, offset, byteCount);
+            }
+
+            @Override
+            public String toString() {
+                return RealBuffer.this + ".asOutputStream()";
+            }
+        };
+    }
+
+    @Override
+    public @NonNull InputStream asInputStream() {
+        return new InputStream() {
+            @Override
+            public int read() {
+                if (segmentQueue.size() > 0L) {
+                    return readByte() & 0xff;
+                }
+                return -1;
+            }
+
+            @Override
+            public int read(final byte @NonNull [] sink, final int offset, final int byteCount) {
+                return readAtMostTo(sink, offset, byteCount);
+            }
+
+            @Override
+            public byte @NonNull [] readAllBytes() {
+                return readByteArray();
+            }
+
+            @Override
+            public byte @NonNull [] readNBytes(final @NonNegative int len) {
+                return readByteArray(len);
+            }
+
+            @Override
+            public @NonNegative long skip(final @NonNegative long byteCount) {
+                if (byteCount < 0L) {
+                    return 0L;
+                }
+                return skipPrivate(byteCount, false);
+            }
+
+            @Override
+            public int available() {
+                return (int) Math.min(segmentQueue.size(), Integer.MAX_VALUE);
+            }
+
+            @Override
+            public String toString() {
+                return RealBuffer.this + ".asInputStream()";
+            }
+        };
+    }
+
+    @Override
+    public @NonNull ReadableByteChannel asReadableByteChannel() {
+        return asByteChannel();
+    }
+
+    @Override
+    public @NonNull WritableByteChannel asWritableByteChannel() {
+        return asByteChannel();
+    }
+
+    @Override
+    public @NonNull ByteChannel asByteChannel() {
+        return new ByteChannel() {
+            @Override
+            public int read(final @NonNull ByteBuffer sink) {
+                return RealBuffer.this.readAtMostTo(sink);
+            }
+
+            @Override
+            public int write(final @NonNull ByteBuffer source) {
+                return RealBuffer.this.transferFrom(source);
+            }
+
+            @Override
+            public boolean isOpen() {
+                return true;
+            }
+
+            @Override
+            public void close() {
+            }
+
+            @Override
+            public String toString() {
+                return RealBuffer.this + ".asByteChannel()";
+            }
+        };
     }
 
     public static final class RealUnsafeCursor extends UnsafeCursor {

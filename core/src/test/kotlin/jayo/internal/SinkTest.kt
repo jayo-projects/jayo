@@ -25,12 +25,12 @@
 
 package jayo.internal
 
+import jayo.*
+import jayo.exceptions.JayoEOFException
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import jayo.*
-import jayo.exceptions.JayoEOFException
-import jayo.exceptions.JayoException
+import java.io.IOException
 import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
@@ -476,9 +476,10 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         }
         val out = sink.asOutputStream()
         sink.close()
-        assertFailsWith<JayoException> { out.write(0) }
-        assertFailsWith<JayoException> { out.write(ByteArray(1)) }
-        assertFailsWith<JayoException> { out.write(ByteArray(42), 0, 1) }
+        assertFailsWith<IOException> { out.write(0) }
+        assertFailsWith<IOException> { out.write(ByteArray(1)) }
+        assertFailsWith<IOException> { out.write(ByteArray(42), 0, 1) }
+        assertFailsWith<IOException> { out.flush() }
     }
 
     @Test
