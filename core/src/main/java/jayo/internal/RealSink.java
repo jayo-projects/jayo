@@ -21,15 +21,17 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.*;
 import jayo.exceptions.JayoCancelledException;
 import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Objects;
@@ -163,6 +165,12 @@ public final class RealSink implements Sink {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        return writePrivate(source, offset, byteCount);
+    }
+
+    private @NonNull Sink writePrivate(final byte @NonNull [] source,
+                                       final @NonNegative int offset,
+                                       final @NonNegative int byteCount) {
         segmentQueue.pauseIfFull();
         buffer.write(source, offset, byteCount);
         return emitCompleteSegments();
@@ -174,6 +182,10 @@ public final class RealSink implements Sink {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        return transferFromPrivate(source);
+    }
+
+    private @NonNegative int transferFromPrivate(final @NonNull ByteBuffer source) {
         segmentQueue.pauseIfFull();
         final var totalBytesRead = buffer.transferFrom(source);
         emitCompleteSegments();
@@ -227,6 +239,10 @@ public final class RealSink implements Sink {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+        return writeBytePrivate(b);
+    }
+
+    private @NonNull Sink writeBytePrivate(final byte b) {
         segmentQueue.pauseIfFull();
         buffer.writeByte(b);
         return emitCompleteSegments();
@@ -353,38 +369,57 @@ public final class RealSink implements Sink {
     }
 
     @Override
+    public String toString() {
+        return "buffered(" + sink + ")";
+    }
+
+    @Override
     public @NonNull OutputStream asOutputStream() {
         return new OutputStream() {
             @Override
-            public void write(final int b) {
+            public void write(final int b) throws IOException {
                 if (closed) {
-                    throw new JayoException("Underlying sink is closed.");
+                    throw new IOException("Underlying sink is closed.");
                 }
-                buffer.writeByte((byte) b);
-                emitCompleteSegments();
+                try {
+                    writeBytePrivate((byte) b);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
             }
 
             @Override
-            public void write(final byte @NonNull [] data, final int offset, final int byteCount) {
+            public void write(final byte @NonNull [] data, final int offset, final int byteCount) throws IOException {
                 Objects.requireNonNull(data);
                 if (closed) {
-                    throw new JayoException("Underlying sink is closed.");
+                    throw new IOException("Underlying sink is closed.");
                 }
-                buffer.write(data, offset, byteCount);
-                emitCompleteSegments();
-            }
-
-            @Override
-            public void flush() {
-                // For backwards compatibility, a flush() on a closed stream is a no-op.
-                if (!closed) {
-                    RealSink.this.flush();
+                try {
+                    writePrivate(data, offset, byteCount);
+                } catch (JayoException e) {
+                    throw e.getCause();
                 }
             }
 
             @Override
-            public void close() {
-                RealSink.this.close();
+            public void flush() throws IOException {
+                if (closed) {
+                    throw new IOException("Underlying sink is closed.");
+                }
+                try {
+                    segmentQueue.emit(true);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                try {
+                    RealSink.this.close();
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
             }
 
             @Override
@@ -398,12 +433,16 @@ public final class RealSink implements Sink {
     public @NonNull WritableByteChannel asWritableByteChannel() {
         return new WritableByteChannel() {
             @Override
-            public int write(final @NonNull ByteBuffer source) {
+            public int write(final @NonNull ByteBuffer source) throws IOException {
                 Objects.requireNonNull(source);
                 if (closed) {
-                    throw new JayoException("Underlying sink is closed.");
+                    throw new ClosedChannelException();
                 }
-                return RealSink.this.transferFrom(source);
+                try {
+                    return transferFromPrivate(source);
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
             }
 
             @Override
@@ -412,8 +451,12 @@ public final class RealSink implements Sink {
             }
 
             @Override
-            public void close() {
-                RealSink.this.close();
+            public void close() throws IOException {
+                try {
+                    RealSink.this.close();
+                } catch (JayoException e) {
+                    throw e.getCause();
+                }
             }
 
             @Override
@@ -421,10 +464,5 @@ public final class RealSink implements Sink {
                 return RealSink.this + ".asWritableByteChannel()";
             }
         };
-    }
-
-    @Override
-    public String toString() {
-        return "buffered(" + sink + ")";
     }
 }

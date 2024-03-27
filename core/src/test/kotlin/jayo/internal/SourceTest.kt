@@ -25,6 +25,10 @@
 
 package jayo.internal
 
+import jayo.*
+import jayo.exceptions.JayoEOFException
+import jayo.internal.TestUtil.assertByteArrayEquals
+import jayo.internal.Utils.getBufferFromSource
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -32,11 +36,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import jayo.*
-import jayo.exceptions.JayoEOFException
-import jayo.exceptions.JayoException
-import jayo.internal.TestUtil.assertByteArrayEquals
-import jayo.internal.Utils.getBufferFromSource
+import java.io.ByteArrayOutputStream
+import java.io.EOFException
+import java.io.IOException
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
@@ -1663,6 +1665,61 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
     }
 
     @Test
+    fun indexOfElement() {
+        sink.writeUtf8("a").writeUtf8("b".repeat(Segment.SIZE)).writeUtf8("c")
+        sink.emit()
+        assertEquals(0, source.indexOfElement("DEFGaHIJK".encodeToByteString()))
+        assertEquals(1, source.indexOfElement("DEFGHIJKb".encodeToByteString()))
+        assertEquals((Segment.SIZE + 1).toLong(), source.indexOfElement("cDEFGHIJK".encodeToByteString()))
+        assertEquals(1, source.indexOfElement("DEFbGHIc".encodeToByteString()))
+        assertEquals(-1L, source.indexOfElement("DEFGHIJK".encodeToByteString()))
+        assertEquals(-1L, source.indexOfElement("".encodeToByteString()))
+    }
+
+    @Test
+    fun indexOfElementWithOffset() {
+        sink.writeUtf8("a").writeUtf8("b".repeat(Segment.SIZE)).writeUtf8("c")
+        sink.emit()
+        assertEquals(-1, source.indexOfElement("DEFGaHIJK".encodeToByteString(), 1))
+        assertEquals(15, source.indexOfElement("DEFGHIJKb".encodeToByteString(), 15))
+    }
+
+    @Test
+    fun rangeEquals() {
+        sink.writeUtf8("A man, a plan, a canal. Panama.")
+        sink.emit()
+        assertTrue(source.rangeEquals(7, "a plan".encodeToByteString()))
+        assertTrue(source.rangeEquals(0, "A man".encodeToByteString()))
+        assertTrue(source.rangeEquals(24, "Panama".encodeToByteString()))
+        assertFalse(source.rangeEquals(24, "Panama. Panama. Panama.".encodeToByteString()))
+    }
+
+    @Test
+    fun rangeEqualsWithOffsetAndCount() {
+        sink.writeUtf8("A man, a plan, a canal. Panama.")
+        sink.emit()
+        assertTrue(source.rangeEquals(7, "aaa plannn".encodeToByteString(), 2, 6))
+        assertTrue(source.rangeEquals(0, "AAA mannn".encodeToByteString(), 2, 5))
+        assertTrue(source.rangeEquals(24, "PPPanamaaa".encodeToByteString(), 2, 6))
+    }
+
+    @Test
+    fun rangeEqualsArgumentValidation() {
+        // Negative source offset.
+        assertFalse(source.rangeEquals(-1, "A".encodeToByteString()))
+        // Negative bytes offset.
+        assertFalse(source.rangeEquals(0, "A".encodeToByteString(), -1, 1))
+        // Bytes offset longer than bytes length.
+        assertFalse(source.rangeEquals(0, "A".encodeToByteString(), 2, 1))
+        // Negative byte count.
+        assertFalse(source.rangeEquals(0, "A".encodeToByteString(), 0, -1))
+        // Byte count longer than bytes length.
+        assertFalse(source.rangeEquals(0, "A".encodeToByteString(), 0, 2))
+        // Bytes offset plus byte count longer than bytes length.
+        assertFalse(source.rangeEquals(0, "A".encodeToByteString(), 1, 1))
+    }
+
+    @Test
     fun inputStream() {
         sink.writeUtf8("abc")
         sink.emit()
@@ -1687,6 +1744,36 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
     }
 
     @Test
+    fun inputStreamOffsetCountNBytes() {
+        sink.writeUtf8("abcde")
+        sink.emit()
+        val input: InputStream = source.asInputStream()
+        val bytes =
+            byteArrayOf('z'.code.toByte(), 'z'.code.toByte(), 'z'.code.toByte(), 'z'.code.toByte(), 'z'.code.toByte())
+        val read: Int = input.readNBytes(bytes, 1, 3)
+        assertEquals(3, read)
+        assertByteArrayEquals("zabcz", bytes)
+    }
+
+    @Test
+    fun inputStreamReadNbytes() {
+        sink.writeUtf8("abcde")
+        sink.emit()
+        val input: InputStream = source.asInputStream()
+        val bytes: ByteArray = input.readNBytes(3)
+        assertByteArrayEquals("abc", bytes)
+    }
+
+    @Test
+    fun inputStreamReadAllBytes() {
+        sink.writeUtf8("abcde")
+        sink.emit()
+        val input: InputStream = source.asInputStream()
+        val bytes: ByteArray = input.readAllBytes()
+        assertByteArrayEquals("abcde", bytes)
+    }
+
+    @Test
     fun inputStreamSkip() {
         sink.writeUtf8("abcde")
         sink.emit()
@@ -1695,8 +1782,23 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals('e'.code, input.read())
         sink.writeUtf8("abcde")
         sink.emit()
+        @Suppress("KotlinConstantConditions")
+        assertEquals(0, input.skip(-42L)) // Try to skip when exhausted.
         assertEquals(5, input.skip(10)) // Try to skip too much.
         assertEquals(0, input.skip(1)) // Try to skip when exhausted.
+    }
+
+    @Test
+    fun inputStreamSkipNBytes() {
+        sink.writeUtf8("abcde")
+        sink.emit()
+        val input: InputStream = source.asInputStream()
+        input.skipNBytes(4)
+        assertEquals('e'.code, input.read())
+        sink.writeUtf8("abcde")
+        sink.emit()
+        assertFailsWith<EOFException> { input.skipNBytes(10) } // Try to skip too much.
+        assertFailsWith<EOFException> { input.skipNBytes(1) } // Try to skip when exhausted.
     }
 
     @Test
@@ -1711,12 +1813,30 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
     }
 
     @Test
+    fun writeToStream() {
+        sink.writeUtf8("hello, world!")
+        sink.emit()
+        val input: InputStream = source.asInputStream()
+        val out = ByteArrayOutputStream()
+        input.transferTo(out)
+        val outString = String(out.toByteArray(), Charsets.UTF_8)
+        assertEquals("hello, world!", outString)
+        assertEquals(-1, input.read())
+    }
+
+    @Test
     fun inputStreamBounds() {
         sink.writeUtf8("a".repeat(100))
         sink.emit()
         val input: InputStream = source.asInputStream()
         assertFailsWith<IndexOutOfBoundsException> {
             input.read(ByteArray(100), 50, 51)
+        }
+        assertFailsWith<IndexOutOfBoundsException> {
+            input.readNBytes(ByteArray(100), 50, 51)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            input.readNBytes(-1)
         }
     }
 
@@ -1731,9 +1851,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
 
         val input = source.asInputStream()
         source.close()
-        assertFailsWith<JayoException> { input.read() }
-        assertFailsWith<JayoException> { input.read(ByteArray(1)) }
-        assertFailsWith<JayoException> { input.read(ByteArray(10), 0, 1) }
+        assertFailsWith<IOException> { input.read() }
+        assertFailsWith<IOException> { input.readNBytes(1) }
+        assertFailsWith<IOException> { input.readAllBytes() }
+        assertFailsWith<IOException> { input.read(ByteArray(1)) }
+        assertFailsWith<IOException> { input.read(ByteArray(10), 0, 1) }
+        assertFailsWith<IOException> { input.readNBytes(ByteArray(10), 0, 1) }
+        assertFailsWith<IOException> { input.skip(1L) }
     }
 
     @Test
@@ -1788,7 +1912,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         val input = source.asInputStream()
         source.close()
 
-        assertFailsWith<JayoException> { input.available() }
+        assertFailsWith<IOException> { input.available() }
     }
 
     @Test
