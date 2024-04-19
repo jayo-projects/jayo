@@ -21,22 +21,22 @@
 
 package jayo.internal
 
-import org.assertj.core.api.Assertions.*
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.MethodSource
 import jayo.cancelScope
 import jayo.exceptions.JayoCancelledException
 import jayo.exceptions.JayoTimeoutException
 import jayo.external.CancelToken
 import jayo.internal.TestUtil.assumeNotWindows
+import org.assertj.core.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import java.util.stream.Stream
 import kotlin.concurrent.withLock
-import kotlin.time.DurationUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 class AwaitSignalTest {
     private val lock: ReentrantLock = ReentrantLock()
@@ -57,7 +57,7 @@ class AwaitSignalTest {
     @MethodSource("parameters")
     fun signaled(factory: ExecutorFactory) = lock.withLock {
         val scheduledExecutorService = factory.newScheduledExecutorService()
-        cancelScope(500, DurationUnit.MILLISECONDS) {
+        cancelScope(500.milliseconds) {
             val start = now()
             scheduledExecutorService.schedule(
                 { lock.withLock { condition.signal() } },
@@ -73,7 +73,7 @@ class AwaitSignalTest {
     @Test
     fun timeout() = lock.withLock {
         assumeNotWindows()
-        cancelScope(100, DurationUnit.MILLISECONDS) {
+        cancelScope(100.milliseconds) {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
@@ -85,7 +85,7 @@ class AwaitSignalTest {
     @Test
     fun deadline() = lock.withLock {
         assumeNotWindows()
-        cancelScope(deadline = 100, deadlineUnit = DurationUnit.MILLISECONDS) {
+        cancelScope(deadline = 100.milliseconds) {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoCancelledException::class.java)
@@ -97,7 +97,7 @@ class AwaitSignalTest {
     @Test
     fun deadlineBeforeTimeout() = lock.withLock {
         assumeNotWindows()
-        cancelScope(500, DurationUnit.MILLISECONDS, 100, DurationUnit.MILLISECONDS) {
+        cancelScope(500.milliseconds, 100.milliseconds) {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
@@ -109,7 +109,7 @@ class AwaitSignalTest {
     @Test
     fun timeoutBeforeDeadline() = lock.withLock {
         assumeNotWindows()
-        cancelScope(100, DurationUnit.MILLISECONDS, 500, DurationUnit.MILLISECONDS) {
+        cancelScope(100.milliseconds, 500.milliseconds) {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
@@ -121,7 +121,7 @@ class AwaitSignalTest {
     @Test
     fun deadlineAlreadyReached() = lock.withLock {
         assumeNotWindows()
-        cancelScope(deadline = 1, deadlineUnit = DurationUnit.MILLISECONDS) {
+        cancelScope(deadline = 1.milliseconds) {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)

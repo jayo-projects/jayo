@@ -21,47 +21,47 @@
 
 package jayo.internal
 
+import jayo.cancelScope
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Offset.offset
 import org.junit.jupiter.api.Test
-import jayo.cancelScope
 import java.util.concurrent.TimeUnit
-import kotlin.time.DurationUnit
+import kotlin.time.Duration.Companion.nanoseconds
 
 class TimeoutTest {
 
     companion object {
-        val smallerNanos = TimeUnit.MILLISECONDS.toNanos(500L)
-        val biggerNanos = TimeUnit.MILLISECONDS.toNanos(1500L)
+        val smallerNanos = TimeUnit.MILLISECONDS.toNanos(500L).nanoseconds
+        val biggerNanos = TimeUnit.MILLISECONDS.toNanos(1500L).nanoseconds
     }
 
 
     @Test
     fun intersectUseCurrentTimeout() {
         var cancelToken: RealCancelToken?
-        cancelScope(smallerNanos, DurationUnit.NANOSECONDS) {
+        cancelScope(smallerNanos) {
             cancelToken = CancellableUtils.getCancelToken()
-            assertThat(cancelToken!!.timeoutNanos).isEqualTo(smallerNanos)
-            cancelScope(biggerNanos, DurationUnit.NANOSECONDS) {
+            assertThat(cancelToken!!.timeoutNanos).isEqualTo(smallerNanos.inWholeNanoseconds)
+            cancelScope(biggerNanos) {
                 cancelToken = CancellableUtils.getCancelToken()
-                assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos)
+                assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos.inWholeNanoseconds)
             }
             cancelToken = CancellableUtils.getCancelToken()
-            assertThat(cancelToken!!.timeoutNanos).isEqualTo(smallerNanos)
+            assertThat(cancelToken!!.timeoutNanos).isEqualTo(smallerNanos.inWholeNanoseconds)
         }
 
         cancelToken = CancellableUtils.getCancelToken()
         assertThat(cancelToken).isNull()
 
-        cancelScope(biggerNanos, DurationUnit.NANOSECONDS) {
+        cancelScope(biggerNanos) {
             cancelToken = CancellableUtils.getCancelToken()
-            assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos)
-            cancelScope(smallerNanos, DurationUnit.NANOSECONDS) {
+            assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos.inWholeNanoseconds)
+            cancelScope(smallerNanos) {
                 cancelToken = CancellableUtils.getCancelToken()
-                assertThat(cancelToken!!.timeoutNanos).isEqualTo(smallerNanos)
+                assertThat(cancelToken!!.timeoutNanos).isEqualTo(smallerNanos.inWholeNanoseconds)
             }
             cancelToken = CancellableUtils.getCancelToken()
-            assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos)
+            assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos.inWholeNanoseconds)
         }
     }
 
@@ -71,9 +71,9 @@ class TimeoutTest {
         cancelScope {
             cancelToken = CancellableUtils.getCancelToken()
             assertThat(cancelToken!!.timeoutNanos).isEqualTo(0L)
-            cancelScope(biggerNanos, DurationUnit.NANOSECONDS) {
+            cancelScope(biggerNanos) {
                 cancelToken = CancellableUtils.getCancelToken()
-                assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos)
+                assertThat(cancelToken!!.timeoutNanos).isEqualTo(biggerNanos.inWholeNanoseconds)
             }
             cancelToken = CancellableUtils.getCancelToken()
             assertThat(cancelToken!!.timeoutNanos).isEqualTo(0L)
@@ -83,11 +83,11 @@ class TimeoutTest {
     @Test
     fun intersectWithPrefersSmallerDeadline() {
         var cancelToken: RealCancelToken?
-        cancelScope(deadline = smallerNanos, deadlineUnit = DurationUnit.NANOSECONDS) {
-            val expectedDeadlineNanoTime = System.nanoTime() + TimeUnit.NANOSECONDS.toNanos(smallerNanos)
+        cancelScope(deadline = smallerNanos) {
+            val expectedDeadlineNanoTime = System.nanoTime() + smallerNanos.inWholeNanoseconds
             cancelToken = CancellableUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(1_000_000))
-            cancelScope(deadline = biggerNanos, deadlineUnit = DurationUnit.NANOSECONDS) {
+            cancelScope(deadline = biggerNanos) {
                 cancelToken = CancellableUtils.getCancelToken()
                 assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(1_000_000))
             }
@@ -98,12 +98,12 @@ class TimeoutTest {
         cancelToken = CancellableUtils.getCancelToken()
         assertThat(cancelToken).isNull()
 
-        cancelScope(deadline = biggerNanos, deadlineUnit = DurationUnit.NANOSECONDS) {
-            val expectedDeadlineNanoTime = System.nanoTime() + TimeUnit.NANOSECONDS.toNanos(biggerNanos)
+        cancelScope(deadline = biggerNanos) {
+            val expectedDeadlineNanoTime = System.nanoTime() + biggerNanos.inWholeNanoseconds
             cancelToken = CancellableUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(350_000))
-            cancelScope(deadline = smallerNanos, deadlineUnit = DurationUnit.NANOSECONDS) {
-                val expectedDeadlineNanoTime2 = System.nanoTime() + TimeUnit.NANOSECONDS.toNanos(smallerNanos)
+            cancelScope(deadline = smallerNanos) {
+                val expectedDeadlineNanoTime2 = System.nanoTime() + smallerNanos.inWholeNanoseconds
                 cancelToken = CancellableUtils.getCancelToken()
                 assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime2, offset(100_000))
             }
@@ -118,8 +118,8 @@ class TimeoutTest {
         cancelScope {
             cancelToken = CancellableUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isEqualTo(0L)
-            cancelScope(deadline = biggerNanos, deadlineUnit = DurationUnit.NANOSECONDS) {
-                val expectedDeadlineNanoTime = System.nanoTime() + TimeUnit.NANOSECONDS.toNanos(biggerNanos)
+            cancelScope(deadline = biggerNanos) {
+                val expectedDeadlineNanoTime = System.nanoTime() + biggerNanos.inWholeNanoseconds
                 cancelToken = CancellableUtils.getCancelToken()
                 assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(350_000))
             }
@@ -131,7 +131,7 @@ class TimeoutTest {
     @Test
     fun shield() {
         var cancelToken: RealCancelToken?
-        cancelScope(deadline = biggerNanos, deadlineUnit = DurationUnit.NANOSECONDS) {
+        cancelScope(deadline = biggerNanos) {
             cancelToken = CancellableUtils.getCancelToken()
             assertThat(cancelToken!!.shielded).isFalse()
             shield()

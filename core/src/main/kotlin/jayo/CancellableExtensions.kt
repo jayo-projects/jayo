@@ -7,8 +7,9 @@
 
 package jayo
 
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
 import kotlin.time.DurationUnit
-import kotlin.time.toTimeUnit
 
 /**
  * Wait at most `timeout` time before aborting an operation. Using a per-operation timeout means that as long as forward
@@ -17,37 +18,18 @@ import kotlin.time.toTimeUnit
  * If `timeout == null && unit == null`, operations will run indefinitely. (Operating system timeouts may still apply)
  */
 public fun <T> cancelScope(
-    timeout: Long? = null,
-    timeoutUnit: DurationUnit? = null,
-    deadline: Long? = null,
-    deadlineUnit: DurationUnit? = null,
+    timeout: Duration? = null,
+    deadline: Duration? = null,
     block: CancelScope.() -> T
 ): T {
-    if ((timeout != null && timeoutUnit == null) || (timeout == null && timeoutUnit != null)) {
-        throw IllegalArgumentException("timeout and timeoutUnit must be both present or both null")
-    }
-    if ((deadline != null && deadlineUnit == null) || (deadline == null && deadlineUnit != null)) {
-        throw IllegalArgumentException("deadline and deadlineUnit must be both present or both null")
-    }
-
     val cancellable = Cancellable.builder().apply {
-        if (timeout != null && timeoutUnit != null) {
-            setTimeout(timeout, timeoutUnit)
+        if (timeout != null) {
+            timeout(timeout.toLong(DurationUnit.NANOSECONDS), TimeUnit.NANOSECONDS)
         }
-        if (deadline != null && deadlineUnit != null) {
-            setDeadline(deadline, deadlineUnit)
+        if (deadline != null) {
+            deadline(deadline.toLong(DurationUnit.NANOSECONDS), TimeUnit.NANOSECONDS)
         }
     }.build()
 
     return cancellable.executeCancellable(block)
-}
-
-/** Sets a timeout of now plus `timeout` time. */
-public fun Cancellable.Builder.setTimeout(timeout: Long, unit: DurationUnit) {
-    timeout(timeout, unit.toTimeUnit())
-}
-
-/** Sets a deadline of now plus `duration` time. */
-public fun Cancellable.Builder.setDeadline(duration: Long, unit: DurationUnit) {
-    deadline(duration, unit.toTimeUnit())
 }

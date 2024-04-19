@@ -32,7 +32,7 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream
-import kotlin.time.DurationUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 class WaitUntilNotifiedTest {
 
@@ -53,7 +53,7 @@ class WaitUntilNotifiedTest {
     @MethodSource("parameters")
     fun signaled(factory: ExecutorFactory) = synchronized(monitor) {
         val scheduledExecutorService = factory.newScheduledExecutorService()
-        cancelScope(500, DurationUnit.MILLISECONDS) {
+        cancelScope(500.milliseconds) {
             val start = now()
             scheduledExecutorService.schedule(
                 {
@@ -73,7 +73,7 @@ class WaitUntilNotifiedTest {
     @Test
     fun timeout() = synchronized(monitor) {
         assumeNotWindows()
-        cancelScope(100, DurationUnit.MILLISECONDS) {
+        cancelScope(100.milliseconds) {
             val start = now()
             assertThatThrownBy {
                 waitUntilNotified(monitor)
@@ -87,7 +87,7 @@ class WaitUntilNotifiedTest {
     @Test
     fun deadline() = synchronized(monitor) {
         assumeNotWindows()
-        cancelScope(deadline = 100, deadlineUnit = DurationUnit.MILLISECONDS) {
+        cancelScope(deadline = 100.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
                 .isInstanceOf(JayoCancelledException::class.java)
@@ -99,7 +99,7 @@ class WaitUntilNotifiedTest {
     @Test
     fun deadlineBeforeTimeout() = synchronized(monitor) {
         assumeNotWindows()
-        cancelScope(500, DurationUnit.MILLISECONDS, 100, DurationUnit.MILLISECONDS) {
+        cancelScope(500.milliseconds, 100.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
                 .isInstanceOf(JayoTimeoutException::class.java)
@@ -111,7 +111,7 @@ class WaitUntilNotifiedTest {
     @Test
     fun timeoutBeforeDeadline() = synchronized(monitor) {
         assumeNotWindows()
-        cancelScope(100, DurationUnit.MILLISECONDS, 500, DurationUnit.MILLISECONDS) {
+        cancelScope(100.milliseconds, 500.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
                 .isInstanceOf(JayoTimeoutException::class.java)
@@ -123,7 +123,7 @@ class WaitUntilNotifiedTest {
     @Test
     fun deadlineAlreadyReached() = synchronized(monitor) {
         assumeNotWindows()
-        cancelScope(deadline = 1, deadlineUnit = DurationUnit.MILLISECONDS) {
+        cancelScope(deadline = 1.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
                 .isInstanceOf(JayoTimeoutException::class.java)
