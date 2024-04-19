@@ -199,9 +199,9 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void deadlineOnly() {
-        Cancellable.create(config ->
-                config.setDeadline(25, TimeUnit.MILLISECONDS)
-        ).executeCancellable(cancelScope -> {
+        final var builder = Cancellable.builder();
+        builder.deadline(25, TimeUnit.MILLISECONDS);
+        builder.build().executeCancellable(cancelScope -> {
             final var timeout = recordingAsyncTimeout();
             timeout.enter(cancelScope);
             try {
@@ -217,10 +217,10 @@ public final class AsyncTimeoutTest {
     @Test
     public void deadlineBeforeTimeout() {
         final var timeout = recordingAsyncTimeout();
-        Cancellable.create(config -> {
-            config.setTimeout(75, TimeUnit.MILLISECONDS);
-            config.setDeadline(25, TimeUnit.MILLISECONDS);
-        }).executeCancellable(cancelScope -> {
+        final var builder = Cancellable.builder();
+        builder.timeout(75, TimeUnit.MILLISECONDS);
+        builder.deadline(25, TimeUnit.MILLISECONDS);
+        builder.build().executeCancellable(cancelScope -> {
             timeout.enter(cancelScope);
             try {
                 Thread.sleep(50);
@@ -235,10 +235,10 @@ public final class AsyncTimeoutTest {
     @Test
     public void deadlineAfterTimeout() {
         final var timeout = recordingAsyncTimeout();
-        Cancellable.create(config -> {
-            config.setTimeout(25, TimeUnit.MILLISECONDS);
-            config.setDeadline(75, TimeUnit.MILLISECONDS);
-        }).executeCancellable(cancelScope -> {
+        final var builder = Cancellable.builder();
+        builder.timeout(25, TimeUnit.MILLISECONDS);
+        builder.deadline(75, TimeUnit.MILLISECONDS);
+        builder.build().executeCancellable(cancelScope -> {
             timeout.enter(cancelScope);
             try {
                 Thread.sleep(50);
@@ -253,9 +253,9 @@ public final class AsyncTimeoutTest {
     @Test
     public void deadlineStartsBeforeEnter() {
         final var timeout = recordingAsyncTimeout();
-        Cancellable.create(config ->
-                config.setDeadline(50, TimeUnit.MILLISECONDS)
-        ).executeCancellable(cancelScope -> {
+        final var builder = Cancellable.builder();
+        builder.deadline(50, TimeUnit.MILLISECONDS);
+        builder.build().executeCancellable(cancelScope -> {
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
@@ -275,9 +275,9 @@ public final class AsyncTimeoutTest {
     @Test
     public void shortDeadlineReached() {
         final var timeout = recordingAsyncTimeout();
-        Cancellable.create(config ->
-                config.setDeadline(1, TimeUnit.NANOSECONDS)
-        ).executeCancellable(cancelScope -> {
+        final var builder = Cancellable.builder();
+        builder.deadline(1, TimeUnit.NANOSECONDS);
+        builder.build().executeCancellable(cancelScope -> {
             timeout.enter(cancelScope);
             try {
                 Thread.sleep(25);

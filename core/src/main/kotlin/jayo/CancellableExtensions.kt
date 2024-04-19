@@ -30,24 +30,24 @@ public fun <T> cancelScope(
         throw IllegalArgumentException("deadline and deadlineUnit must be both present or both null")
     }
 
-    val cancellable = Cancellable.create { configurer ->
+    val cancellable = Cancellable.builder().apply {
         if (timeout != null && timeoutUnit != null) {
-            configurer.setTimeout(timeout, timeoutUnit)
+            setTimeout(timeout, timeoutUnit)
         }
         if (deadline != null && deadlineUnit != null) {
-            configurer.setDeadline(deadline, deadlineUnit)
+            setDeadline(deadline, deadlineUnit)
         }
-    }
+    }.build()
 
     return cancellable.executeCancellable(block)
 }
 
 /** Sets a timeout of now plus `timeout` time. */
-public fun Cancellable.Config.setTimeout(timeout: Long, unit: DurationUnit) {
-    setTimeout(timeout, unit.toTimeUnit())
+public fun Cancellable.Builder.setTimeout(timeout: Long, unit: DurationUnit) {
+    timeout(timeout, unit.toTimeUnit())
 }
 
 /** Sets a deadline of now plus `duration` time. */
-public fun Cancellable.Config.setDeadline(duration: Long, unit: DurationUnit) {
-    setDeadline(duration, unit.toTimeUnit())
+public fun Cancellable.Builder.setDeadline(duration: Long, unit: DurationUnit) {
+    deadline(duration, unit.toTimeUnit())
 }

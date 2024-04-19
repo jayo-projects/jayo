@@ -20,7 +20,7 @@ import java.util.function.Function;
  * use-cases ({@link #withTimeout}, {@link #withCancellable}).
  * <p>
  * For advanced cancellable configuration, or of you need a cancellable instance that you can reuse to build multiple
- * cancellable code blocks with the same configuration, then use our {@link #create(Consumer)} class.
+ * cancellable code blocks with the same configuration, then use {@link #builder()}.
  * <p>
  * All these cancellable builders create a {@code CancelScope} implementation called a {@code CancelToken} that is bound
  * to the current thread, and will automatically propagate cancellation and timeouts to children threads.
@@ -43,6 +43,10 @@ public sealed interface Cancellable permits RealCancellable {
      * deadline, manual cancellation, await for {@link Condition} signal...
      */
     void executeCancellable(final @NonNull Consumer<CancelScope> block);
+
+    static @NonNull Builder builder() {
+        return new RealCancellable.Builder();
+    }
 
     /**
      * Execute {@code block} in a cancellable context, throwing a {@link CancellationException} if a cancellation
@@ -118,19 +122,9 @@ public sealed interface Cancellable permits RealCancellable {
     }
 
     /**
-     * @return a new {@link Cancellable} built with this {@code configurer}.
-     */
-    static Cancellable create(final @NonNull Consumer<Config> configurer) {
-        Objects.requireNonNull(configurer);
-        final var builder = new RealCancellable.Builder();
-        configurer.accept(builder);
-        return builder.build();
-    }
-
-    /**
      * The configuration used to create a {@link Cancellable} reusable instance.
      */
-    interface Config {
+    interface Builder {
         /**
          * Sets a timeout of {@code duration} time. All I/O operations invoked in the cancellable code block, and its
          * children, will wait at most {@code timeout} time before aborting.
@@ -138,13 +132,18 @@ public sealed interface Cancellable permits RealCancellable {
          * Using a per-operation timeout means that as long as forward progress is being made, no sequence of operations
          * will fail.
          */
-        void setTimeout(final long timeout, final @NonNull TimeUnit unit);
+        @NonNull Builder timeout(final long timeout, final @NonNull TimeUnit unit);
 
         /**
          * Sets a deadline of now plus {@code duration} time. The deadline will start when the associated cancellable
          * code block will execute. All I/O operations invoked in the cancellable code block, and in children threads,
          * will regularly check if this deadline is reached.
          */
-        void setDeadline(final long duration, final @NonNull TimeUnit unit);
+        @NonNull Builder deadline(final long duration, final @NonNull TimeUnit unit);
+
+        /**
+         * @return the {@link Cancellable} reusable instance.
+         */
+        @NonNull Cancellable build();
     }
 }

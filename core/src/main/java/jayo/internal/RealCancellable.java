@@ -5,11 +5,11 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.CancelScope;
 import jayo.Cancellable;
 import jayo.exceptions.JayoCancelledException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -71,31 +71,31 @@ public final class RealCancellable implements Cancellable {
         }
     }
 
-    public static final class Builder implements Cancellable.Config {
+    public static final class Builder implements Cancellable.Builder {
         private @NonNegative long timeoutNanos = 0L;
         private @NonNegative long deadlineNanos = 0L;
 
         @Override
-        public void setTimeout(long timeout, @NonNull TimeUnit unit) {
+        public @NonNull Builder timeout(long timeout, @NonNull TimeUnit unit) {
             Objects.requireNonNull(unit);
             if (timeout < 1L) {
                 throw new IllegalArgumentException("timeout < 1L: " + timeout);
             }
             this.timeoutNanos = unit.toNanos(timeout);
+            return this;
         }
 
         @Override
-        public void setDeadline(long duration, @NonNull TimeUnit unit) {
+        public @NonNull Builder deadline(long duration, @NonNull TimeUnit unit) {
             Objects.requireNonNull(unit);
             if (duration < 1L) {
                 throw new IllegalArgumentException("duration < 1L: " + duration);
             }
             this.deadlineNanos = unit.toNanos(duration);
+            return this;
         }
 
-        /**
-         * @return the {@link Cancellable} reusable instance.
-         */
+        @Override
         public @NonNull Cancellable build() {
             return new RealCancellable(timeoutNanos, deadlineNanos);
         }
