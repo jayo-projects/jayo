@@ -7,9 +7,8 @@
 
 package jayo
 
-import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
-import kotlin.time.DurationUnit
+import kotlin.time.toJavaDuration
 
 /**
  * Wait at most `timeout` time before aborting an operation. Using a per-operation timeout means that as long as forward
@@ -24,10 +23,10 @@ public fun <T> cancelScope(
 ): T {
     val cancellable = Cancellable.builder().apply {
         if (timeout != null) {
-            timeout(timeout.toLong(DurationUnit.NANOSECONDS), TimeUnit.NANOSECONDS)
+            timeout(timeout.toJavaDuration())
         }
         if (deadline != null) {
-            deadline(deadline.toLong(DurationUnit.NANOSECONDS), TimeUnit.NANOSECONDS)
+            deadline(deadline.toJavaDuration())
         }
     }.build()
 

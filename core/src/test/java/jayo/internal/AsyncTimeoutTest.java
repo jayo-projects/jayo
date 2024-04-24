@@ -25,10 +25,10 @@ import jayo.Cancellable;
 import jayo.external.AsyncTimeout;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -80,7 +80,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void singleInstanceTimedOut() {
-        Cancellable.withTimeout(25, TimeUnit.MILLISECONDS, cancelScope -> {
+        Cancellable.withTimeout(Duration.ofMillis(25), cancelScope -> {
             a.enter(cancelScope);
             try {
                 Thread.sleep(50);
@@ -94,7 +94,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void singleInstanceTimedOutFunction() {
-        Cancellable.withTimeout(25, TimeUnit.MILLISECONDS, cancelScope -> {
+        Cancellable.withTimeout(Duration.ofMillis(25), cancelScope -> {
             a.enter(cancelScope);
             try {
                 Thread.sleep(50);
@@ -109,7 +109,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void singleInstanceNotTimedOut() {
-        Cancellable.withTimeout(50, TimeUnit.MILLISECONDS, cancelScope -> {
+        Cancellable.withTimeout(Duration.ofMillis(50), cancelScope -> {
             b.enter(cancelScope);
             try {
                 Thread.sleep(25);
@@ -124,14 +124,14 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void instancesAddedAtEnd() {
-        Cancellable.withTimeout(100, TimeUnit.MILLISECONDS, cancelScope1 -> {
+        Cancellable.withTimeout(Duration.ofMillis(100), cancelScope1 -> {
             a.enter(cancelScope1);
             b.enter(cancelScope1);
             c.enter(cancelScope1);
             d.enter(cancelScope1);
-            Cancellable.withTimeout(75, TimeUnit.MILLISECONDS, cancelScope2 -> {
-                Cancellable.withTimeout(50, TimeUnit.MILLISECONDS, cancelScope3 -> {
-                    Cancellable.withTimeout(25, TimeUnit.MILLISECONDS, cancelScope4 -> {
+            Cancellable.withTimeout(Duration.ofMillis(75), cancelScope2 -> {
+                Cancellable.withTimeout(Duration.ofMillis(50), cancelScope3 -> {
+                    Cancellable.withTimeout(Duration.ofMillis(25), cancelScope4 -> {
                         try {
                             Thread.sleep(125);
                         } catch (InterruptedException e) {
@@ -165,7 +165,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void doubleEnter() {
-        Cancellable.withTimeout(25, TimeUnit.MILLISECONDS, cancelScope -> {
+        Cancellable.withTimeout(Duration.ofMillis(25), cancelScope -> {
             a.enter(cancelScope);
             assertThatThrownBy(() -> a.enter(cancelScope))
                     .isInstanceOf(IllegalStateException.class);
@@ -174,7 +174,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void reEnter() {
-        Cancellable.withTimeout(1, TimeUnit.SECONDS, cancelScope -> {
+        Cancellable.withTimeout(Duration.ofSeconds(1), cancelScope -> {
             a.enter(cancelScope);
             assertFalse(a.exit());
             a.enter(cancelScope);
@@ -184,7 +184,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void reEnterAfterTimeout() {
-        Cancellable.withTimeout(1, TimeUnit.SECONDS, cancelScope -> {
+        Cancellable.withTimeout(Duration.ofSeconds(1), cancelScope -> {
             a.enter(cancelScope);
             try {
                 assertSame(a, timedOut.take());
@@ -200,7 +200,7 @@ public final class AsyncTimeoutTest {
     @Test
     public void deadlineOnly() {
         final var builder = Cancellable.builder();
-        builder.deadline(25, TimeUnit.MILLISECONDS);
+        builder.deadline(Duration.ofMillis(25));
         builder.build().executeCancellable(cancelScope -> {
             final var timeout = recordingAsyncTimeout();
             timeout.enter(cancelScope);
@@ -218,8 +218,8 @@ public final class AsyncTimeoutTest {
     public void deadlineBeforeTimeout() {
         final var timeout = recordingAsyncTimeout();
         final var builder = Cancellable.builder();
-        builder.timeout(75, TimeUnit.MILLISECONDS);
-        builder.deadline(25, TimeUnit.MILLISECONDS);
+        builder.timeout(Duration.ofMillis(75));
+        builder.deadline(Duration.ofMillis(25));
         builder.build().executeCancellable(cancelScope -> {
             timeout.enter(cancelScope);
             try {
@@ -236,8 +236,8 @@ public final class AsyncTimeoutTest {
     public void deadlineAfterTimeout() {
         final var timeout = recordingAsyncTimeout();
         final var builder = Cancellable.builder();
-        builder.timeout(25, TimeUnit.MILLISECONDS);
-        builder.deadline(75, TimeUnit.MILLISECONDS);
+        builder.timeout(Duration.ofMillis(25));
+        builder.deadline(Duration.ofMillis(75));
         builder.build().executeCancellable(cancelScope -> {
             timeout.enter(cancelScope);
             try {
@@ -254,7 +254,7 @@ public final class AsyncTimeoutTest {
     public void deadlineStartsBeforeEnter() {
         final var timeout = recordingAsyncTimeout();
         final var builder = Cancellable.builder();
-        builder.deadline(50, TimeUnit.MILLISECONDS);
+        builder.deadline(Duration.ofMillis(50));
         builder.build().executeCancellable(cancelScope -> {
             try {
                 Thread.sleep(50);
@@ -276,7 +276,7 @@ public final class AsyncTimeoutTest {
     public void shortDeadlineReached() {
         final var timeout = recordingAsyncTimeout();
         final var builder = Cancellable.builder();
-        builder.deadline(1, TimeUnit.NANOSECONDS);
+        builder.deadline(Duration.ofNanos(1));
         builder.build().executeCancellable(cancelScope -> {
             timeout.enter(cancelScope);
             try {

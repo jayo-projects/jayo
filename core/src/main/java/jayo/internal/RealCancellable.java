@@ -11,8 +11,8 @@ import jayo.exceptions.JayoCancelledException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
+import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -76,22 +76,16 @@ public final class RealCancellable implements Cancellable {
         private @NonNegative long deadlineNanos = 0L;
 
         @Override
-        public @NonNull Builder timeout(long timeout, @NonNull TimeUnit unit) {
-            Objects.requireNonNull(unit);
-            if (timeout < 1L) {
-                throw new IllegalArgumentException("timeout < 1L: " + timeout);
-            }
-            this.timeoutNanos = unit.toNanos(timeout);
+        public @NonNull Builder timeout(final @NonNull Duration timeout) {
+            Objects.requireNonNull(timeout);
+            this.timeoutNanos = timeout.toNanos();
             return this;
         }
 
         @Override
-        public @NonNull Builder deadline(long duration, @NonNull TimeUnit unit) {
-            Objects.requireNonNull(unit);
-            if (duration < 1L) {
-                throw new IllegalArgumentException("duration < 1L: " + duration);
-            }
-            this.deadlineNanos = unit.toNanos(duration);
+        public @NonNull Builder deadline(final @NonNull Duration deadline) {
+            Objects.requireNonNull(deadline);
+            this.deadlineNanos = deadline.toNanos();
             return this;
         }
 

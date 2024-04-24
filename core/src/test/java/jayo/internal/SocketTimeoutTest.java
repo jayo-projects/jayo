@@ -21,12 +21,12 @@
 
 package jayo.internal;
 
-import org.junit.jupiter.api.Test;
 import jayo.Cancellable;
 import jayo.Jayo;
 import jayo.Sink;
 import jayo.Source;
 import jayo.exceptions.JayoCancelledException;
+import org.junit.jupiter.api.Test;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -35,6 +35,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,7 +51,7 @@ public final class SocketTimeoutTest {
     public void readWithoutTimeout() throws Exception {
         try (Socket socket = socket(ONE_MB, 0);
              Source source = Jayo.buffer(Jayo.source(socket))) {
-            Cancellable.withTimeout(500, TimeUnit.MILLISECONDS, _scope -> {
+            Cancellable.withTimeout(Duration.ofMillis(500), _scope -> {
                 source.require(ONE_MB);
             });
         }
@@ -59,7 +60,7 @@ public final class SocketTimeoutTest {
     @Test
     public void readWithTimeout() throws Exception {
         try (Socket socket = socket(0, 0)) {
-            Cancellable.withTimeout(25, TimeUnit.MILLISECONDS, _scope -> {
+            Cancellable.withTimeout(Duration.ofMillis(25), _scope -> {
                 try (Source source = Jayo.buffer(Jayo.source(socket))) {
                     assertThatThrownBy(() -> source.require(ONE_MB))
                             // we may fail when expecting 1MB and socket is reading, or after the read, exception is not
@@ -71,9 +72,21 @@ public final class SocketTimeoutTest {
     }
 
     @Test
+    public void readWitManualCancellation() throws Exception {
+        try (Socket socket = socket(ONE_MB, 0);
+             Source source = Jayo.buffer(Jayo.source(socket))) {
+            Cancellable.create().executeCancellable(scope -> {
+                scope.cancel();
+                assertThatThrownBy(() -> source.require(ONE_MB))
+                        .isInstanceOf(JayoCancelledException.class);
+            });
+        }
+    }
+
+    @Test
     public void writeWithoutTimeout() throws Exception {
         try (Socket socket = socket(0, ONE_MB)) {
-            Cancellable.withTimeout(50, TimeUnit.MILLISECONDS, _scope -> {
+            Cancellable.withTimeout(Duration.ofMillis(50), _scope -> {
                 try (Sink sink = Jayo.buffer(Jayo.sink(socket))) {
                     byte[] data = new byte[ONE_MB];
                     sink.write(new RealBuffer().write(data), data.length);
@@ -86,7 +99,7 @@ public final class SocketTimeoutTest {
     @Test
     public void writeWithTimeout() throws Exception {
         try (Socket socket = socket(0, 0)) {
-            Cancellable.withTimeout(50, TimeUnit.MILLISECONDS, _scope -> {
+            Cancellable.withTimeout(Duration.ofMillis(50), _scope -> {
                 try (Sink sink = Jayo.buffer(Jayo.sink(socket))) {
                     byte[] data = new byte[ONE_MB];
                     long start = System.nanoTime();
