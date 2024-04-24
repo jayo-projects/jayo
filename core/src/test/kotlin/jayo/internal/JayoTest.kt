@@ -43,6 +43,7 @@ class JayoTest {
         file.createNewFile()
         val sink = file.sink()
         sink.write(RealBuffer().writeUtf8("a"), 1L)
+        sink.flush()
         assertThat(file.readText()).isEqualTo("a")
     }
 
@@ -62,6 +63,7 @@ class JayoTest {
         file.createNewFile()
         val sink = file.toPath().sink()
         sink.write(RealBuffer().writeUtf8("a"), 1L)
+        sink.flush()
         assertThat(file.readText()).isEqualTo("a")
     }
 
@@ -87,7 +89,7 @@ class JayoTest {
     fun pathRawSource() {
         val file = tempDir.resolve("pathSource.txt")
         file.writeText("a")
-        val source = file.toPath().source()
+        val source = file.toPath().source(StandardOpenOption.DELETE_ON_CLOSE)
         val buffer = RealBuffer()
         source.readAtMostTo(buffer, 1L)
         assertThat(buffer.readUtf8()).isEqualTo("a")

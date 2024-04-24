@@ -30,6 +30,7 @@ import org.jspecify.annotations.NonNull;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -289,7 +290,8 @@ public final class Jayo {
     private static @NonNull RawSink sink(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
         Objects.requireNonNull(path);
         try {
-            return new OutputStreamRawSink(Files.newOutputStream(path, options.toArray(new OpenOption[0])));
+            final var bc = Files.newByteChannel(path, options.toArray(new OpenOption[0]));
+            return new OutputStreamRawSink(Channels.newOutputStream(bc), bc);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }

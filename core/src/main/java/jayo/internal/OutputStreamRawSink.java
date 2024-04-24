@@ -27,19 +27,28 @@ import jayo.exceptions.JayoException;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
 import java.util.Objects;
 
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 public final class OutputStreamRawSink implements RawSink {
     private final @NonNull OutputStream out;
+    private final @Nullable SeekableByteChannel bc;
 
     public OutputStreamRawSink(final @NonNull OutputStream out) {
+        this(out, null);
+    }
+
+    public OutputStreamRawSink(final @NonNull OutputStream out, final @Nullable SeekableByteChannel bc) {
         this.out = Objects.requireNonNull(out);
+        this.bc = bc;
     }
 
     @Override
@@ -87,6 +96,8 @@ public final class OutputStreamRawSink implements RawSink {
             // rawSink.flush()
             if (out instanceof FileOutputStream fileOutputStream) {
                 fileOutputStream.getFD().sync();
+            } else if (bc instanceof FileChannel fileChannel) {
+                fileChannel.force(false);
             }
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
