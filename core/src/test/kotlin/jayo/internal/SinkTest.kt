@@ -36,6 +36,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 
 class BufferSinkTest : AbstractSinkTest(SinkFactory.BUFFER)
 class RealSinkTest : AbstractSinkTest(SinkFactory.REAL_BUFFERED_SINK)
@@ -559,5 +560,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeString(LATIN1, Charsets.ISO_8859_1)
         sink.flush()
         assertArrayEquals(LATIN1.toByteArray(Charsets.ISO_8859_1), data.readByteArray())
+    }
+
+    @Test
+    fun bufferRealSinkReturnsSameObject() {
+        val sink1 = (Buffer() as RawSink).buffered()
+        val sink2 = sink1.buffered()
+        assertSame(sink1, sink2)
     }
 }

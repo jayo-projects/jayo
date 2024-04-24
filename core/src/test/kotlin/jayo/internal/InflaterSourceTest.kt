@@ -25,6 +25,7 @@ import jayo.*
 import jayo.exceptions.JayoEOFException
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.assertThrows
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.Inflater
 import kotlin.test.Test
@@ -65,11 +66,7 @@ abstract class AbstractInflaterSourceTest internal constructor(private val buffe
     @Test
     fun inflateTruncated() {
         decodeBase64("eJxzz09RyEjNKVAoLdZRKE9VL0pVyMxTKMlIVchIzEspVshPU0jNS8/MS00tKtYDAF6CDw==")
-        try {
-            inflate(deflatedSource)
-            fail()
-        } catch (expected: JayoEOFException) {
-        }
+        assertThrows<JayoEOFException> { inflate(deflatedSource) }
     }
 
     @Test
@@ -194,7 +191,7 @@ abstract class AbstractInflaterSourceTest internal constructor(private val buffe
     /** Returns a new buffer containing the inflated contents of `deflated`.  */
     private fun inflate(deflated: Source?): Buffer {
         val result = Buffer()
-        val source = RealInflaterRawSource(deflated!!, Inflater())
+        val source = Jayo.inflate(deflated!!)
         while (source.readAtMostTo(result, Int.MAX_VALUE.toLong()) != -1L) {
         }
         return result

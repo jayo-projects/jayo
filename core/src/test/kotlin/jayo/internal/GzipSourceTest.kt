@@ -25,8 +25,12 @@ import jayo.*
 import jayo.ByteString.of
 import jayo.decodeHex
 import jayo.exceptions.JayoException
+import org.junit.jupiter.api.assertThrows
 import java.util.zip.CRC32
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.fail
 
 class GzipSourceTest {
     @Test
@@ -40,48 +44,48 @@ class GzipSourceTest {
 
     @Test
     fun gunzip_withHCRC() {
-      val hcrc = CRC32()
-      val gzipHeader = gzipHeaderWithFlags(0x02.toByte())
-      hcrc.update(gzipHeader.toByteArray())
-      val gzipped = Buffer()
-      gzipped.write(gzipHeader)
-      gzipped.writeShort(java.lang.Short.reverseBytes(hcrc.value.toShort())) // little endian
-      gzipped.write(deflated)
-      gzipped.write(gzipTrailer)
-      assertGzipped(gzipped)
+        val hcrc = CRC32()
+        val gzipHeader = gzipHeaderWithFlags(0x02.toByte())
+        hcrc.update(gzipHeader.toByteArray())
+        val gzipped = Buffer()
+        gzipped.write(gzipHeader)
+        gzipped.writeShort(java.lang.Short.reverseBytes(hcrc.value.toShort())) // little endian
+        gzipped.write(deflated)
+        gzipped.write(gzipTrailer)
+        assertGzipped(gzipped)
     }
 
     @Test
     fun gunzip_withExtra() {
-      val gzipped = Buffer()
-      gzipped.write(gzipHeaderWithFlags(0x04.toByte()))
-      gzipped.writeShort(java.lang.Short.reverseBytes(7.toShort())) // little endian extra length
-      gzipped.write("blubber".encodeToByteString().toByteArray(), 0, 7)
-      gzipped.write(deflated)
-      gzipped.write(gzipTrailer)
-      assertGzipped(gzipped)
+        val gzipped = Buffer()
+        gzipped.write(gzipHeaderWithFlags(0x04.toByte()))
+        gzipped.writeShort(java.lang.Short.reverseBytes(7.toShort())) // little endian extra length
+        gzipped.write("blubber".encodeToByteString().toByteArray(), 0, 7)
+        gzipped.write(deflated)
+        gzipped.write(gzipTrailer)
+        assertGzipped(gzipped)
     }
 
     @Test
     fun gunzip_withName() {
-      val gzipped = Buffer()
-      gzipped.write(gzipHeaderWithFlags(0x08.toByte()))
-      gzipped.write("foo.txt".encodeToByteString().toByteArray(), 0, 7)
-      gzipped.writeByte(0) // zero-terminated
-      gzipped.write(deflated)
-      gzipped.write(gzipTrailer)
-      assertGzipped(gzipped)
+        val gzipped = Buffer()
+        gzipped.write(gzipHeaderWithFlags(0x08.toByte()))
+        gzipped.write("foo.txt".encodeToByteString().toByteArray(), 0, 7)
+        gzipped.writeByte(0) // zero-terminated
+        gzipped.write(deflated)
+        gzipped.write(gzipTrailer)
+        assertGzipped(gzipped)
     }
 
     @Test
     fun gunzip_withComment() {
-      val gzipped = Buffer()
-      gzipped.write(gzipHeaderWithFlags(0x10.toByte()))
-      gzipped.write("rubbish".encodeToByteString().toByteArray(), 0, 7)
-      gzipped.writeByte(0) // zero-terminated
-      gzipped.write(deflated)
-      gzipped.write(gzipTrailer)
-      assertGzipped(gzipped)
+        val gzipped = Buffer()
+        gzipped.write(gzipHeaderWithFlags(0x10.toByte()))
+        gzipped.write("rubbish".encodeToByteString().toByteArray(), 0, 7)
+        gzipped.writeByte(0) // zero-terminated
+        gzipped.write(deflated)
+        gzipped.write(gzipTrailer)
+        assertGzipped(gzipped)
     }
 
     /**
@@ -90,17 +94,17 @@ class GzipSourceTest {
      */
     @Test
     fun gunzip_withAll() {
-      val gzipped = Buffer()
-      gzipped.write(gzipHeaderWithFlags(0x1c.toByte()))
-      gzipped.writeShort(java.lang.Short.reverseBytes(7.toShort())) // little endian extra length
-      gzipped.write("blubber".encodeToByteString().toByteArray(), 0, 7)
-      gzipped.write("foo.txt".encodeToByteString().toByteArray(), 0, 7)
-      gzipped.writeByte(0) // zero-terminated
-      gzipped.write("rubbish".encodeToByteString().toByteArray(), 0, 7)
-      gzipped.writeByte(0) // zero-terminated
-      gzipped.write(deflated)
-      gzipped.write(gzipTrailer)
-      assertGzipped(gzipped)
+        val gzipped = Buffer()
+        gzipped.write(gzipHeaderWithFlags(0x1c.toByte()))
+        gzipped.writeShort(java.lang.Short.reverseBytes(7.toShort())) // little endian extra length
+        gzipped.write("blubber".encodeToByteString().toByteArray(), 0, 7)
+        gzipped.write("foo.txt".encodeToByteString().toByteArray(), 0, 7)
+        gzipped.writeByte(0) // zero-terminated
+        gzipped.write("rubbish".encodeToByteString().toByteArray(), 0, 7)
+        gzipped.writeByte(0) // zero-terminated
+        gzipped.write(deflated)
+        gzipped.write(gzipTrailer)
+        assertGzipped(gzipped)
     }
 
     /**
@@ -109,77 +113,73 @@ class GzipSourceTest {
      */
     @Test
     fun gunzipWhenHeaderCRCIncorrect() {
-      val gzipped = Buffer()
-      gzipped.write(gzipHeaderWithFlags(0x02.toByte()))
-      gzipped.writeShort(0.toShort()) // wrong HCRC!
-      gzipped.write(deflated)
-      gzipped.write(gzipTrailer)
-      try {
-        gunzip(gzipped)
-        fail()
-      } catch (e: JayoException) {
-        assertEquals("FHCRC: actual 0x261d != expected 0x0", e.message)
-      }
+        val gzipped = Buffer()
+        gzipped.write(gzipHeaderWithFlags(0x02.toByte()))
+        gzipped.writeShort(0.toShort()) // wrong HCRC!
+        gzipped.write(deflated)
+        gzipped.write(gzipTrailer)
+        try {
+            gunzip(gzipped)
+            fail()
+        } catch (e: JayoException) {
+            assertEquals("FHCRC: actual 0x261d != expected 0x0", e.message)
+        }
     }
 
     @Test
     fun gunzipWhenCRCIncorrect() {
-      val gzipped = Buffer()
-      gzipped.write(gzipHeader)
-      gzipped.write(deflated)
-      gzipped.writeInt(Integer.reverseBytes(0x1234567)) // wrong CRC
-      gzipped.write(gzipTrailer.toByteArray(), 3, 4)
-      try {
-        gunzip(gzipped)
-        fail()
-      } catch (e: JayoException) {
-        assertEquals("CRC: actual 0x37ad8f8d != expected 0x1234567", e.message)
-      }
+        val gzipped = Buffer()
+        gzipped.write(gzipHeader)
+        gzipped.write(deflated)
+        gzipped.writeInt(Integer.reverseBytes(0x1234567)) // wrong CRC
+        gzipped.write(gzipTrailer.toByteArray(), 3, 4)
+        try {
+            gunzip(gzipped)
+            fail()
+        } catch (e: JayoException) {
+            assertEquals("CRC: actual 0x37ad8f8d != expected 0x1234567", e.message)
+        }
     }
 
     @Test
     fun gunzipWhenLengthIncorrect() {
-      val gzipped = Buffer()
-      gzipped.write(gzipHeader)
-      gzipped.write(deflated)
-      gzipped.write(gzipTrailer.toByteArray(), 0, 4)
-      gzipped.writeInt(Integer.reverseBytes(0x123456)) // wrong length
-      try {
-        gunzip(gzipped)
-        fail()
-      } catch (e: JayoException) {
-        assertEquals("ISIZE: actual 0x20 != expected 0x123456", e.message)
-      }
+        val gzipped = Buffer()
+        gzipped.write(gzipHeader)
+        gzipped.write(deflated)
+        gzipped.write(gzipTrailer.toByteArray(), 0, 4)
+        gzipped.writeInt(Integer.reverseBytes(0x123456)) // wrong length
+        try {
+            gunzip(gzipped)
+            fail()
+        } catch (e: JayoException) {
+            assertEquals("ISIZE: actual 0x20 != expected 0x123456", e.message)
+        }
     }
 
     @Test
     fun gunzipExhaustsSource() {
-      val gzippedSource = Buffer()
-        .write("1f8b08000000000000004b4c4a0600c241243503000000".decodeHex()) // 'abc'
-      val exhaustableSource = ExhaustableSource(gzippedSource)
-      val gunzippedSource = GzipRawSource(exhaustableSource).buffered()
-      assertEquals('a'.code.toLong(), gunzippedSource.readByte().toLong())
-      assertEquals('b'.code.toLong(), gunzippedSource.readByte().toLong())
-      assertEquals('c'.code.toLong(), gunzippedSource.readByte().toLong())
-      //assertFalse(exhaustableSource.exhausted)
-      assertEquals(-1, gunzippedSource.readAtMostTo(Buffer(), 1))
-      assertTrue(exhaustableSource.exhausted)
+        val gzippedSource = Buffer()
+            .write("1f8b08000000000000004b4c4a0600c241243503000000".decodeHex()) // 'abc'
+        val exhaustableSource = ExhaustableSource(gzippedSource)
+        val gunzippedSource = GzipRawSource(exhaustableSource).buffered()
+        assertEquals('a'.code.toLong(), gunzippedSource.readByte().toLong())
+        assertEquals('b'.code.toLong(), gunzippedSource.readByte().toLong())
+        assertEquals('c'.code.toLong(), gunzippedSource.readByte().toLong())
+        //assertFalse(exhaustableSource.exhausted)
+        assertEquals(-1, gunzippedSource.readAtMostTo(Buffer(), 1))
+        assertTrue(exhaustableSource.exhausted)
     }
 
     @Test
     fun gunzipThrowsIfSourceIsNotExhausted() {
-      val gzippedSource = Buffer()
-        .write("1f8b08000000000000004b4c4a0600c241243503000000".decodeHex()) // 'abc'
-      gzippedSource.writeByte('d'.code.toByte()) // This byte shouldn't be here!
-      val gunzippedSource = GzipRawSource(gzippedSource).buffered()
-      assertEquals('a'.code.toLong(), gunzippedSource.readByte().toLong())
-      assertEquals('b'.code.toLong(), gunzippedSource.readByte().toLong())
-      assertEquals('c'.code.toLong(), gunzippedSource.readByte().toLong())
-      try {
-        gunzippedSource.readByte()
-        fail()
-      } catch (expected: JayoException) {
-      }
+        val gzippedSource = Buffer()
+            .write("1f8b08000000000000004b4c4a0600c241243503000000".decodeHex()) // 'abc'
+        gzippedSource.writeByte('d'.code.toByte()) // This byte shouldn't be here!
+        val gunzippedSource = GzipRawSource(gzippedSource).buffered()
+        assertEquals('a'.code.toLong(), gunzippedSource.readByte().toLong())
+        assertEquals('b'.code.toLong(), gunzippedSource.readByte().toLong())
+        assertEquals('c'.code.toLong(), gunzippedSource.readByte().toLong())
+        assertThrows<JayoException> { gunzippedSource.readByte() }
     }
 
     private fun assertGzipped(gzipped: Buffer) {
@@ -206,7 +206,7 @@ class GzipSourceTest {
 
     private fun gunzip(gzipped: Buffer): Buffer {
         val result = Buffer()
-        val source = GzipRawSource(gzipped)
+        val source = gzipped.gzip()
         while (source.readAtMostTo(result, Int.MAX_VALUE.toLong()) != -1L) {
         }
         return result
