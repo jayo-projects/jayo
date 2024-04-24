@@ -21,8 +21,6 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.Buffer;
 import jayo.CancelScope;
 import jayo.RawSink;
@@ -32,6 +30,8 @@ import jayo.exceptions.JayoException;
 import jayo.exceptions.JayoTimeoutException;
 import jayo.external.AsyncTimeout;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +40,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
-import static jayo.internal.Utils.checkOffsetAndCount;
+import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 /**
  * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to

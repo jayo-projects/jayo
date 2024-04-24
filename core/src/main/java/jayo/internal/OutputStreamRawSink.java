@@ -21,19 +21,19 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.Buffer;
 import jayo.RawSink;
 import jayo.exceptions.JayoException;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Objects;
 
-import static jayo.internal.Utils.checkOffsetAndCount;
+import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 public final class OutputStreamRawSink implements RawSink {
     private final @NonNull OutputStream out;

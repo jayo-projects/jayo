@@ -21,14 +21,14 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.*;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
@@ -46,6 +46,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
+import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.UnsafeUtils.*;
 import static jayo.internal.Utils.*;
 
@@ -831,7 +832,8 @@ public final class RealBuffer implements Buffer {
     public void readTo(final byte @NonNull [] sink,
                        final @NonNegative int offset,
                        final @NonNegative int byteCount) {
-        checkOffsetAndCount(Objects.requireNonNull(sink).length, offset, byteCount);
+        Objects.requireNonNull(sink);
+        checkOffsetAndCount(sink.length, offset, byteCount);
         var _offset = offset;
         var remaining = byteCount;
         while (remaining > 0) {
@@ -998,7 +1000,6 @@ public final class RealBuffer implements Buffer {
 
                 // Emit a 7-bit character with 1 byte.
                 data[segmentOffset + i++] = (byte) c; // 0xxxxxxx
-                tail.limit = currentLimit + 1;
 
                 // Fast-path contiguous runs of ASCII characters. This is ugly, but yields a ~4x performance
                 // improvement over independent calls to writeByte().
@@ -2475,7 +2476,7 @@ public final class RealBuffer implements Buffer {
             start = -1;
             end = -1;
         }
-        
+
         private void checkHasBuffer() {
             if (buffer == null) {
                 throw new IllegalStateException("not attached to a buffer");

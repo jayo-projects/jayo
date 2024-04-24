@@ -21,13 +21,13 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
@@ -41,8 +41,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Utils.arrayRangeEquals;
-import static jayo.internal.Utils.checkOffsetAndCount;
 
 /**
  * An immutable byte string composed of segments. This class exists to implement

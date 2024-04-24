@@ -37,7 +37,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
-import static jayo.internal.Utils.checkOffsetAndCount;
+import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 public final class RealSource implements Source {
     private static final long INTEGER_MAX_PLUS_1 = (long) Integer.MAX_VALUE + 1;

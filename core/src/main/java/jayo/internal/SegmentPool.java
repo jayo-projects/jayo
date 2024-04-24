@@ -85,7 +85,7 @@ public final class SegmentPool {
     static {
         hashBuckets = new AtomicReference[HASH_BUCKET_COUNT];
         // null value implies an empty bucket
-        Arrays.setAll(hashBuckets, _i -> new AtomicReference<Segment>());
+        Arrays.setAll(hashBuckets, _unused -> new AtomicReference<Segment>());
     }
 
     /**

@@ -21,11 +21,11 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.Buffer;
 import jayo.Source;
-import java.lang.Thread.Builder;
+import org.jspecify.annotations.NonNull;
 
+import java.lang.Thread.Builder;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -42,12 +42,6 @@ final class Utils {
     static final byte[] HEX_DIGIT_BYTES = "0123456789abcdef".getBytes(StandardCharsets.UTF_8);
     static final char[] HEX_DIGIT_CHARS =
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-
-    static void checkOffsetAndCount(final long size, final long offset, final long byteCount) {
-        if ((offset | byteCount) < 0 || offset > size || size - offset < byteCount) {
-            throw new IndexOutOfBoundsException("size=" + size + " offset=" + offset + " byteCount=" + byteCount);
-        }
-    }
 
     /**
      * Returns the index of a final value in options that is a prefix of this buffer. Returns -1 if no final value is

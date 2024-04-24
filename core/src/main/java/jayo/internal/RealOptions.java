@@ -55,7 +55,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
 
         // Sort the byte strings which is required when recursively building the trie. Map the sorted indexes to the
         // caller's indexes.
-        final var list = new ArrayList<>(Arrays.asList(byteStrings));
+        final var list = new ArrayList<>(List.of(byteStrings));
         Collections.sort(list);
         final var indexes = new ArrayList<>(Collections.nCopies(list.size(), -1));
         for (var callerIndex = 0; callerIndex < byteStrings.length; callerIndex++) {
@@ -96,7 +96,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
         buildTrieRecursive(0L, trieBytes, 0, list, 0, list.size(), indexes);
 
         final var trie = new int[(int) intCount(trieBytes)];
-        Arrays.setAll(trie, (_unused) -> trieBytes.readInt());
+        Arrays.setAll(trie, _unused -> trieBytes.readInt());
 
         return new RealOptions(byteStrings.clone() /* Defensive copy. */, trie);
     }

@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.zip.Deflater;
 
-import static jayo.internal.Utils.checkOffsetAndCount;
+import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 public final class DeflaterRawSink implements RawSink {
     private final @NonNull RealSink sink;

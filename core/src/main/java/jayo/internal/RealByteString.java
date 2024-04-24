@@ -21,13 +21,13 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
@@ -41,7 +41,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static jayo.internal.Utils.*;
+import static jayo.external.JayoUtils.checkOffsetAndCount;
+import static jayo.internal.Utils.HEX_DIGIT_CHARS;
+import static jayo.internal.Utils.arrayRangeEquals;
 
 public sealed class RealByteString implements ByteString permits SegmentedByteString {
     @Serial
