@@ -72,7 +72,7 @@ object TestUtil {
         assertEquals(b1.toString(), b2.toString())
 
         // Content.
-        assertEquals(b1.size, b2.size)
+        assertEquals(b1.byteSize(), b2.byteSize())
         val b2Bytes = b2.toByteArray()
         for (i in b2Bytes.indices) {
             val b = b2Bytes[i]
@@ -108,9 +108,9 @@ object TestUtil {
 //        assertEquals(b1.toString(), b2.toString())
 
         // Content.
-        assertEquals(b1.size, b2.size)
+        assertEquals(b1.byteSize(), b2.byteSize())
         val buffer = RealBuffer()
-        b2.copyTo(buffer, 0, b2.size)
+        b2.copyTo(buffer, 0, b2.byteSize())
         val b2Bytes = b2.readByteArray()
         for (i in b2Bytes.indices) {
             val b = b2Bytes[i]
@@ -148,7 +148,7 @@ object TestUtil {
     @JvmStatic
     fun deepCopy(original: Buffer): Buffer {
         val result = RealBuffer()
-        if (original.size == 0L) {
+        if (original.byteSize() == 0L) {
             return result
         }
         if (original !is RealBuffer) {
@@ -160,7 +160,7 @@ object TestUtil {
             result.segmentQueue.addTail(s!!.unsharedCopy())
             s = s.next
         }
-        result.segmentQueue.incrementSize(original.size)
+        result.segmentQueue.incrementSize(original.byteSize())
 
         return result
     }

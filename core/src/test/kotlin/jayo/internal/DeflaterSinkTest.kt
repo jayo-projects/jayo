@@ -37,7 +37,7 @@ class DeflaterSinkTest {
         data.writeUtf8(original)
         val sink = Buffer()
         val deflaterSink = DeflaterRawSink(sink, Deflater())
-        deflaterSink.write(data, data.size)
+        deflaterSink.write(data, data.byteSize())
         deflaterSink.close()
         val inflated = inflate(sink)
         assertEquals(original, inflated.readUtf8())
@@ -50,7 +50,7 @@ class DeflaterSinkTest {
         data.writeUtf8(original)
         val sink = Buffer()
         val deflaterSink = DeflaterRawSink(sink, Deflater())
-        deflaterSink.write(data, data.size)
+        deflaterSink.write(data, data.byteSize())
         deflaterSink.flush()
         val inflated = inflate(sink)
         assertEquals(original, inflated.readUtf8())
@@ -63,7 +63,7 @@ class DeflaterSinkTest {
         data.writeUtf8(original)
         val sink = Buffer()
         val deflaterSink = DeflaterRawSink(sink, Deflater())
-        deflaterSink.write(data, data.size)
+        deflaterSink.write(data, data.byteSize())
         deflaterSink.close()
         val inflated = inflate(sink)
         assertEquals(original, inflated.readUtf8())
@@ -76,7 +76,7 @@ class DeflaterSinkTest {
         data.write(original)
         val sink = Buffer()
         val deflaterSink = DeflaterRawSink(sink, Deflater())
-        deflaterSink.write(data, data.size)
+        deflaterSink.write(data, data.byteSize())
         deflaterSink.close()
         val inflated = inflate(sink)
         assertEquals(original, inflated.readByteString())
@@ -103,7 +103,7 @@ class DeflaterSinkTest {
             val data = Buffer().writeUtf8(original)
             val sink = Buffer().writeUtf8("a".repeat(i))
             val deflaterSink = DeflaterRawSink(sink, Deflater())
-            deflaterSink.write(data, data.size)
+            deflaterSink.write(data, data.byteSize())
             deflaterSink.close()
             sink.skip(i.toLong())
             val inflated = inflate(sink)
@@ -150,7 +150,7 @@ class DeflaterSinkTest {
         val deflaterSink = DeflaterRawSink(Buffer(), deflater)
 
         val ioe = assertThrows(JayoException::class.java) {
-            deflaterSink.write(data, data.size)
+            deflaterSink.write(data, data.byteSize())
         }
 
         assertTrue(ioe.cause!!.cause is NullPointerException)
@@ -166,7 +166,7 @@ class DeflaterSinkTest {
         val inflatedIn = InflaterInputStream(deflatedIn, inflater)
         val result = Buffer()
         val buffer = ByteArray(8192)
-        while (!inflater.needsInput() || deflated.size > 0 || deflatedIn.available() > 0) {
+        while (!inflater.needsInput() || deflated.byteSize() > 0 || deflatedIn.available() > 0) {
             val count = inflatedIn.read(buffer, 0, buffer.size)
             if (count != -1) {
                 result.write(buffer, 0, count)

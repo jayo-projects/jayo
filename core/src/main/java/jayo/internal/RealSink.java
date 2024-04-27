@@ -339,8 +339,8 @@ public final class RealSink implements Sink {
         }
 
         try {
-            if (buffer.getSize() > 0) {
-                sink.write(buffer, buffer.getSize());
+            if (buffer.byteSize() > 0) {
+                sink.write(buffer, buffer.byteSize());
             }
         } catch (JayoCancelledException _cancelled) {
             // cancellation lead to closing, ignore

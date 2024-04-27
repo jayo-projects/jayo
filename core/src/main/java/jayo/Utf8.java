@@ -47,7 +47,7 @@ import java.util.Objects;
  * </tr>
  * <tr>
  * <td>Decode a string</td>
- * <td>{@link ByteString#decodeToString()}</td>
+ * <td>{@link ByteString#decodeToUtf8()}</td>
  * <td>{@link Source#readUtf8()}, {@link Source#readUtf8(long)}</td>
  * </tr>
  * <tr>

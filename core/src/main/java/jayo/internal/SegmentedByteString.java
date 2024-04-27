@@ -148,13 +148,13 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
         if (startIndex < 0) {
             throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
         }
-        if (endIndex > getSize()) {
+        if (endIndex > byteSize()) {
             throw new IllegalArgumentException("endIndex > length(" + data.length + ")");
         }
         if (endIndex < startIndex) {
             throw new IllegalArgumentException("endIndex < beginIndex");
         }
-        if (startIndex == 0 && endIndex == getSize()) {
+        if (startIndex == 0 && endIndex == byteSize()) {
             return this;
         } else if (startIndex == endIndex) {
             return ByteString.EMPTY;
@@ -189,13 +189,13 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public @NonNegative int getSize() {
+    public @NonNegative int byteSize() {
         return directory[segments.length - 1];
     }
 
     @Override
     public byte @NonNull [] toByteArray() {
-        final var result = new byte[getSize()];
+        final var result = new byte[byteSize()];
         final var resultPos = new AtomicInteger();
         forEachSegment((s, offset, byteCount) -> {
             System.arraycopy(s.data, offset, result, resultPos.get(), byteCount);
@@ -237,7 +237,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
                                final @NonNegative int otherOffset,
                                final @NonNegative int byteCount) {
         Objects.requireNonNull(other);
-        if (offset < 0 || offset > getSize() - byteCount) {
+        if (offset < 0 || offset > byteSize() - byteCount) {
             return false;
         }
         // Go segment-by-segment through this, passing arrays to other's rangeEquals().
@@ -257,7 +257,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
                                final @NonNegative int otherOffset,
                                final @NonNegative int byteCount) {
         Objects.requireNonNull(other);
-        if (offset < 0 || offset > getSize() - byteCount ||
+        if (offset < 0 || offset > byteSize() - byteCount ||
                 otherOffset < 0 || otherOffset > other.length - byteCount
         ) {
             return false;
@@ -279,7 +279,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
                          final @NonNegative int targetOffset,
                          final @NonNegative int byteCount) {
         Objects.requireNonNull(target);
-        checkOffsetAndCount(getSize(), offset, byteCount);
+        checkOffsetAndCount(byteSize(), offset, byteCount);
         checkOffsetAndCount(target.length, targetOffset, byteCount);
         // Go segment-by-segment through this, copying ranges of arrays.
         var _targetOffset = new AtomicInteger(targetOffset);
@@ -325,7 +325,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
         if (!(other instanceof ByteString _other)) {
             return false;
         }
-        return _other.getSize() == getSize() && rangeEquals(0, _other, 0, getSize());
+        return _other.byteSize() == byteSize() && rangeEquals(0, _other, 0, byteSize());
     }
 
     @Override

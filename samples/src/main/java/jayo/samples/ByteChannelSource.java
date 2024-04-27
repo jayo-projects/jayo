@@ -55,7 +55,7 @@ final class ByteChannelSource implements RawSource {
 
         try (Buffer.UnsafeCursor ignored = sink.readAndWriteUnsafe(cursor)) {
             CancelToken.throwIfReached(cancelToken);
-            long oldSize = sink.getSize();
+            long oldSize = sink.byteSize();
             int length = (int) Math.min(8192, byteCount);
 
             cursor.expandBuffer(length);

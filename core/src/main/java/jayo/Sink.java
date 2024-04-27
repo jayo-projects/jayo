@@ -275,12 +275,12 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * buffer.writeShort(32767);
      * buffer.writeShort(15);
      *
-     * assertThat(buffer.getSize()).isEqualTo(4);
+     * assertThat(buffer.byteSize()).isEqualTo(4);
      * assertThat(buffer.readByte()).isEqualTo(0x7f);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x0f);
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -298,7 +298,7 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * buffer.writeInt(2147483647);
      * buffer.writeInt(15);
      *
-     * assertThat(buffer.getSize()).isEqualTo(8);
+     * assertThat(buffer.byteSize()).isEqualTo(8);
      * assertThat(buffer.readByte()).isEqualTo(0x7f);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
@@ -307,7 +307,7 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x0f);
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -325,7 +325,7 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * buffer.writeLong(9223372036854775807L);
      * buffer.writeLong(15);
      *
-     * assertThat(buffer.getSize()).isEqualTo(16);
+     * assertThat(buffer.byteSize()).isEqualTo(16);
      * assertThat(buffer.readByte()).isEqualTo(0x7f);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
@@ -342,7 +342,7 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x0f);
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -409,14 +409,14 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * Sink b2 = Jayo.buffer(b1);
      *
      * b2.writeString("hello");
-     * assertThat(b2.buffer().getSize()).isEqualTo(5);
-     * assertThat(b1.buffer().getSize()).isEqualTo(0);
-     * assertThat(b0.buffer().getSize()).isEqualTo(0);
+     * assertThat(b2.buffer().byteSize()).isEqualTo(5);
+     * assertThat(b1.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b0.buffer().byteSize()).isEqualTo(0);
      *
      * b2.flush();
-     * assertThat(b2.buffer().getSize()).isEqualTo(0);
-     * assertThat(b1.buffer().getSize()).isEqualTo(0);
-     * assertThat(b0.buffer().getSize()).isEqualTo(5);
+     * assertThat(b2.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b1.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b0.buffer().byteSize()).isEqualTo(5);
      * }
      * </pre>
      *
@@ -442,19 +442,19 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * Sink b2 = Jayo.buffer(b1);
      *
      * b2.writeString("hello");
-     * assertThat(b2.buffer().getSize()).isEqualTo(5);
-     * assertThat(b1.buffer().getSize()).isEqualTo(0);
-     * assertThat(b0.buffer().getSize()).isEqualTo(0);
+     * assertThat(b2.buffer().byteSize()).isEqualTo(5);
+     * assertThat(b1.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b0.buffer().byteSize()).isEqualTo(0);
      *
      * b2.emit();
-     * assertThat(b2.buffer().getSize()).isEqualTo(0);
-     * assertThat(b1.buffer().getSize()).isEqualTo(5);
-     * assertThat(b0.buffer().getSize()).isEqualTo(0);
+     * assertThat(b2.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b1.buffer().byteSize()).isEqualTo(5);
+     * assertThat(b0.buffer().byteSize()).isEqualTo(0);
      *
      * b1.emit();
-     * assertThat(b2.buffer().getSize()).isEqualTo(0);
-     * assertThat(b1.buffer().getSize()).isEqualTo(0);
-     * assertThat(b0.buffer().getSize()).isEqualTo(5);
+     * assertThat(b2.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b1.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b0.buffer().byteSize()).isEqualTo(5);
      * }
      * </pre>
      *
@@ -481,14 +481,14 @@ public sealed interface Sink extends RawSink permits Buffer, RealSink {
      * Sink b2 = Jayo.buffer(b1);
      *
      * b2.buffer().write(new byte[20_000]);
-     * assertThat(b2.buffer().getSize()).isEqualTo(20_000);
-     * assertThat(b1.buffer().getSize()).isEqualTo(0);
-     * assertThat(b0.buffer().getSize()).isEqualTo(0);
+     * assertThat(b2.buffer().byteSize()).isEqualTo(20_000);
+     * assertThat(b1.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b0.buffer().byteSize()).isEqualTo(0);
      *
      * b2.emitCompleteSegments();
-     * assertThat(b2.buffer().getSize()).isEqualTo(3_616);
-     * assertThat(b1.buffer().getSize()).isEqualTo(0);
-     * assertThat(b0.buffer().getSize()).isEqualTo(16_384); // This example assumes 16_384 byte segments.
+     * assertThat(b2.buffer().byteSize()).isEqualTo(3_616);
+     * assertThat(b1.buffer().byteSize()).isEqualTo(0);
+     * assertThat(b0.buffer().byteSize()).isEqualTo(16_384); // This example assumes 16_384 byte segments.
      * }
      * </pre>
      *

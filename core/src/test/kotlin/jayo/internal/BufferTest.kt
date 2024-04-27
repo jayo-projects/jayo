@@ -45,8 +45,8 @@ class BufferTest {
 
         val target = RealBuffer()
         source.copyTo(target)
-        assertThat(target.readByteString().decodeToString()).isEqualTo("party")
-        assertThat(source.readByteString().decodeToString()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("party")
+        assertThat(source.readByteString().decodeToUtf8()).isEqualTo("party")
     }
 
     @Test
@@ -56,8 +56,8 @@ class BufferTest {
 
         val target = RealBuffer()
         source.copyTo(target, 2L)
-        assertThat(target.readByteString().decodeToString()).isEqualTo("rty")
-        assertThat(source.readByteString().decodeToString()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("rty")
+        assertThat(source.readByteString().decodeToUtf8()).isEqualTo("party")
     }
 
     @Test
@@ -67,8 +67,8 @@ class BufferTest {
 
         val target = RealBuffer()
         source.copyTo(target, 0L, 3L)
-        assertThat(target.readByteString().decodeToString()).isEqualTo("par")
-        assertThat(source.readByteString().decodeToString()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("par")
+        assertThat(source.readByteString().decodeToUtf8()).isEqualTo("party")
     }
 
     @Test
@@ -78,8 +78,8 @@ class BufferTest {
 
         val target = RealBuffer()
         source.copyTo(target, 1L, 3L)
-        assertThat(target.readByteString().decodeToString()).isEqualTo("art")
-        assertThat(source.readByteString().decodeToString()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("art")
+        assertThat(source.readByteString().decodeToUtf8()).isEqualTo("party")
     }
 
     @Test
@@ -290,13 +290,13 @@ class BufferTest {
     fun readAndWriteUtf8() {
         val buffer = RealBuffer()
         buffer.writeUtf8("ab")
-        assertEquals(2, buffer.size)
+        assertEquals(2, buffer.byteSize())
         buffer.writeUtf8("cdef")
-        assertEquals(6, buffer.size)
+        assertEquals(6, buffer.byteSize())
         assertEquals("abcd", buffer.readUtf8(4))
-        assertEquals(2, buffer.size)
+        assertEquals(2, buffer.byteSize())
         assertEquals("ef", buffer.readUtf8(2))
-        assertEquals(0, buffer.size)
+        assertEquals(0, buffer.byteSize())
         assertFailsWith<JayoEOFException> {
             buffer.readUtf8(1)
         }
@@ -350,7 +350,7 @@ class BufferTest {
         assertEquals("c" + 'd'.repeat(10000) + "e", buffer.readUtf8(10002)) // cd...de
         assertEquals('e'.repeat(24998), buffer.readUtf8(24998)) // e...e
         assertEquals("e" + 'f'.repeat(50000), buffer.readUtf8(50001)) // ef...f
-        assertEquals(0, buffer.size)
+        assertEquals(0, buffer.byteSize())
     }
 
     @Test
@@ -437,8 +437,8 @@ class BufferTest {
 
         assertEquals(listOf(30), segmentSizes(sink))
         assertEquals(listOf(Segment.SIZE - 20, Segment.SIZE), segmentSizes(source))
-        assertEquals(30, sink.size)
-        assertEquals((Segment.SIZE * 2 - 20).toLong(), source.size)
+        assertEquals(30, sink.byteSize())
+        assertEquals((Segment.SIZE * 2 - 20).toLong(), source.byteSize())
     }
 
     @Test
@@ -453,8 +453,8 @@ class BufferTest {
 
         assertEquals(listOf(30), segmentSizes(sink))
         assertEquals(listOf(Segment.SIZE - 20, Segment.SIZE), segmentSizes(source))
-        assertEquals(30, sink.size)
-        assertEquals((Segment.SIZE * 2 - 20).toLong(), source.size)
+        assertEquals(30, sink.byteSize())
+        assertEquals((Segment.SIZE * 2 - 20).toLong(), source.byteSize())
     }
 
     @Test
@@ -474,8 +474,8 @@ class BufferTest {
         source.writeUtf8('b'.repeat(15))
 
         assertEquals(10, source.readAtMostTo(sink, 10))
-        assertEquals(20, sink.size)
-        assertEquals(5, source.size)
+        assertEquals(20, sink.byteSize())
+        assertEquals(5, source.byteSize())
         assertEquals('a'.repeat(10) + 'b'.repeat(10), sink.readUtf8(20))
     }
 
@@ -488,8 +488,8 @@ class BufferTest {
         source.writeUtf8('b'.repeat(20))
 
         assertEquals(20, source.readAtMostTo(sink, 25))
-        assertEquals(30, sink.size)
-        assertEquals(0, source.size)
+        assertEquals(30, sink.byteSize())
+        assertEquals(0, source.byteSize())
         assertEquals('a'.repeat(10) + 'b'.repeat(20), sink.readUtf8(30))
     }
 
@@ -519,9 +519,9 @@ class BufferTest {
         buffer.writeUtf8("c")
         assertEquals('a'.code.toLong(), buffer[0].toLong())
         assertEquals('a'.code.toLong(), buffer[0].toLong()) // getByte doesn't mutate!
-        assertEquals('c'.code.toLong(), buffer[buffer.size - 1].toLong())
-        assertEquals('b'.code.toLong(), buffer[buffer.size - 2].toLong())
-        assertEquals('b'.code.toLong(), buffer[buffer.size - 3].toLong())
+        assertEquals('c'.code.toLong(), buffer[buffer.byteSize() - 1].toLong())
+        assertEquals('b'.code.toLong(), buffer[buffer.byteSize() - 2].toLong())
+        assertEquals('b'.code.toLong(), buffer[buffer.byteSize() - 3].toLong())
     }
 
     @Test
@@ -537,7 +537,7 @@ class BufferTest {
         val buffer = RealBuffer().also { it.write(ByteArray(10)) }
 
         assertFailsWith<IndexOutOfBoundsException> { buffer[-1] }
-        assertFailsWith<IndexOutOfBoundsException> { buffer[buffer.size] }
+        assertFailsWith<IndexOutOfBoundsException> { buffer[buffer.byteSize()] }
     }
 
     @Test
@@ -585,8 +585,8 @@ class BufferTest {
         val mockSink = MockSink()
 
         assertEquals((Segment.SIZE * 3).toLong(), source.transferTo(mockSink))
-        assertEquals(0, source.size)
-        mockSink.assertLog("write($write1, ${write1.size})")
+        assertEquals(0, source.byteSize())
+        mockSink.assertLog("write($write1, ${write1.byteSize()})")
     }
 
     @Test
@@ -595,7 +595,7 @@ class BufferTest {
         val sink = RealBuffer()
 
         assertEquals((Segment.SIZE * 3).toLong(), sink.transferFrom(source))
-        assertEquals(0, source.size)
+        assertEquals(0, source.byteSize())
         assertEquals('a'.repeat(Segment.SIZE * 3), sink.readUtf8())
     }
 
@@ -629,7 +629,7 @@ class BufferTest {
         source.writeUtf8("hello")
 
         val target = RealBuffer()
-        source.copyTo(target, 1, source.getSize() - 1)
+        source.copyTo(target, 1, source.byteSize() - 1)
 
         assertEquals("hello", source.readUtf8())
         assertEquals("ello", target.readUtf8())
@@ -693,7 +693,7 @@ class BufferTest {
         source.writeUtf8(aStr)
         source.writeUtf8(bs)
 
-        source.copyTo(source, 0, source.size)
+        source.copyTo(source, 0, source.byteSize())
         assertEquals(aStr + bs + aStr + bs, source.readUtf8())
     }
 
@@ -720,7 +720,7 @@ class BufferTest {
         val original = RealBuffer()
         val clone: Buffer = original.copy()
         original.writeUtf8("abc")
-        assertEquals(0, clone.size)
+        assertEquals(0, clone.byteSize())
     }
 
     @Test
@@ -729,7 +729,7 @@ class BufferTest {
         original.writeUtf8("abc")
         val clone: Buffer = original.copy()
         assertEquals("abc", original.readUtf8(3))
-        assertEquals(3, clone.size)
+        assertEquals(3, clone.byteSize())
         assertEquals("ab", clone.readUtf8(2))
     }
 
@@ -738,7 +738,7 @@ class BufferTest {
         val original = RealBuffer()
         val clone: Buffer = original.copy()
         clone.writeUtf8("abc")
-        assertEquals(0, original.size)
+        assertEquals(0, original.byteSize())
     }
 
     @Test
@@ -747,7 +747,7 @@ class BufferTest {
         original.writeUtf8("abc")
         val clone: Buffer = original.copy()
         assertEquals("abc", clone.readUtf8(3))
-        assertEquals(3, original.size)
+        assertEquals(3, original.byteSize())
         assertEquals("ab", original.readUtf8(2))
     }
 
@@ -834,7 +834,7 @@ class BufferTest {
         buffer.skip(10)
         buffer.readTo(out, SEGMENT_SIZE * 3L)
         assertEquals("a".repeat(SEGMENT_SIZE * 2 - 10) + "b".repeat(SEGMENT_SIZE + 10), out.toString())
-        assertEquals("b".repeat(SEGMENT_SIZE - 10), buffer.readUtf8(buffer.size))
+        assertEquals("b".repeat(SEGMENT_SIZE - 10), buffer.readUtf8(buffer.byteSize()))
     }
 
     @Test
@@ -844,7 +844,7 @@ class BufferTest {
         buffer.readTo(out)
         val outString = String(out.toByteArray(), Charsets.UTF_8)
         assertEquals("hello, world!", outString)
-        assertEquals(0, buffer.size)
+        assertEquals(0, buffer.byteSize())
     }
 
     @Test

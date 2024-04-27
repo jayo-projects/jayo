@@ -54,7 +54,7 @@ public final class DeflaterRawSink implements RawSink {
     @Override
     public void write(final @NonNull Buffer source, final @NonNegative long byteCount) {
         Objects.requireNonNull(source);
-        checkOffsetAndCount(source.getSize(), 0, byteCount);
+        checkOffsetAndCount(source.byteSize(), 0, byteCount);
         if (!(source instanceof RealBuffer _source)) {
             throw new IllegalArgumentException("source must be an instance of RealBuffer");
         }

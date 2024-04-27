@@ -53,7 +53,7 @@ public final class OutputStreamRawSink implements RawSink {
 
     @Override
     public void write(final @NonNull Buffer source, final @NonNegative long byteCount) {
-        checkOffsetAndCount(Objects.requireNonNull(source).getSize(), 0L, byteCount);
+        checkOffsetAndCount(Objects.requireNonNull(source).byteSize(), 0L, byteCount);
         if (!(source instanceof RealBuffer _source)) {
             throw new IllegalArgumentException("source must be an instance of RealBuffer");
         }

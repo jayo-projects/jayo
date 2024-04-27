@@ -79,7 +79,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * @return the number of bytes accessible for read from this buffer.
      */
     @NonNegative
-    long getSize();
+    long byteSize();
 
     /**
      * This method does not affect this buffer's content as there is no upstream to write data to.
@@ -115,7 +115,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * @param offset the start offset (inclusive) in this buffer of the first byte to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} is out of this buffer bounds
-     *                                   ({@code [0..buffer.getSize())}).
+     *                                   ({@code [0..buffer.byteSize())}).
      */
     @NonNull Buffer copyTo(final @NonNull OutputStream out, final @NonNegative long offset);
 
@@ -128,7 +128,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * @param byteCount the number of bytes to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of this buffer bounds
-     *                                   ({@code [0..buffer.getSize())}).
+     *                                   ({@code [0..buffer.byteSize())}).
      */
     @NonNull Buffer copyTo(final @NonNull OutputStream out,
                            final @NonNegative long offset, final @NonNegative long byteCount);
@@ -149,7 +149,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * @param offset the start offset (inclusive) in this buffer of the first byte to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} is out of this buffer bounds
-     *                                   ({@code [0..buffer.getSize())}).
+     *                                   ({@code [0..buffer.byteSize())}).
      */
     @NonNull Buffer copyTo(final @NonNull Buffer out, final @NonNegative long offset);
 
@@ -162,7 +162,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * @param byteCount the number of bytes to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of this buffer bounds
-     *                                   ({@code [0..buffer.getSize())}).
+     *                                   ({@code [0..buffer.byteSize())}).
      */
     @NonNull Buffer copyTo(final @NonNull Buffer out,
                            final @NonNegative long offset, final @NonNegative long byteCount);
@@ -218,7 +218,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * <p>
      * Use of this method may expose significant performance penalties, and it's not recommended to use it
      * for sequential access to a range of bytes within the buffer.
-     * @throws IndexOutOfBoundsException if {@code position} is negative or greater or equal to {@link #getSize()}.
+     * @throws IndexOutOfBoundsException if {@code position} is negative or greater or equal to {@link #byteSize()}.
      */
     byte get(final @NonNegative long pos);
 
@@ -358,7 +358,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
     /**
      * @return a byte string containing a copy of the first {@code byteCount} bytes of this buffer. This method does not
      * consume data from this buffer.
-     * @throws IndexOutOfBoundsException if {@code byteCount > buffer.getSize()}.
+     * @throws IndexOutOfBoundsException if {@code byteCount > buffer.byteSize()}.
      * @apiNote A {@link ByteString} is immutable
      */
     @NonNull ByteString snapshot(final @NonNegative int byteCount);
@@ -520,7 +520,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * <h2>Unsafe Cursor API</h2>
      * This class exposes privileged access to the internal memory segments of a buffer. A cursor either references the
      * data of a single segment, it is before the first segment ({@code offset == -1}), or it is after the last segment
-     * ({@code offset == buffer.getSize()}).
+     * ({@code offset == buffer.byteSize()}).
      * <p>
      * Call {@link UnsafeCursor#seek} to move the cursor to the segment that contains a specified offset.
      * After seeking, {@link UnsafeCursor#data} references the segment's internal memory, {@link UnsafeCursor#start} is
