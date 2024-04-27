@@ -166,7 +166,7 @@ public final class Jayo {
      * @implNote We always add the {@code StandardOpenOption.READ} option to the options Set, so we ensure we can read
      * from this {@code path}.
      */
-    public static @NonNull RawSource source(@NonNull Path path, @NonNull OpenOption @NonNull ... options) {
+    public static @NonNull RawSource source(final @NonNull Path path, final @NonNull OpenOption @NonNull ... options) {
         Objects.requireNonNull(path);
         final Set<OpenOption> optionsSet = new HashSet<>();
         for (final var option : options) {
@@ -190,7 +190,7 @@ public final class Jayo {
      * <p>
      * If you need specific options, please use {@link #sink(Path, OpenOption...)} instead.
      */
-    public static @NonNull RawSink sink(@NonNull File file) {
+    public static @NonNull RawSink sink(final @NonNull File file) {
         Objects.requireNonNull(file);
         try {
             return new OutputStreamRawSink(new FileOutputStream(file));
@@ -297,7 +297,7 @@ public final class Jayo {
         }
     }
 
-    private static RawSource source(@NonNull Path path, @NonNull Set<OpenOption> options) {
+    private static RawSource source(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
         Objects.requireNonNull(path);
         try {
             return new InputStreamRawSource(Files.newInputStream(path, options.toArray(new OpenOption[0])));
@@ -308,7 +308,7 @@ public final class Jayo {
 
     private static final class DiscardingSink implements RawSink {
         @Override
-        public void write(@NonNull Buffer source, @NonNegative long byteCount) {
+        public void write(final @NonNull Buffer source, final @NonNegative long byteCount) {
             Objects.requireNonNull(source);
             source.skip(byteCount);
         }
