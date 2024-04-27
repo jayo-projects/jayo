@@ -79,7 +79,7 @@ class SegmentSharingTest {
     fun snapshotSegmentsAreNotRecycled() {
         val buffer = bufferWithSegments(xs, ys, zs)
         val snapshot = buffer.snapshot()
-        assertEquals(xs + ys + zs, snapshot.decodeToString())
+        assertEquals(xs + ys + zs, snapshot.decodeToUtf8())
 
         // Confirm that clearing the buffer doesn't release its segments.
         val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
@@ -156,7 +156,7 @@ class SegmentSharingTest {
         val bufferB = RealBuffer()
         bufferB.write(bufferA, 2) // Split the shared segment in two.
         bufferB.writeUtf8("yy") // Append to the first half of the shared segment.
-        assertEquals("xxxx", snapshot.decodeToString())
+        assertEquals("xxxx", snapshot.decodeToUtf8())
     }
 
     @Test

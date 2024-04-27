@@ -538,7 +538,7 @@ public final class RealSource implements Source {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
         }
 
-        final var minSearchSize = startIndex + byteString.getSize();
+        final var minSearchSize = startIndex + byteString.byteSize();
         final var expected = Math.max(1L, minSearchSize);
         var lastBufferSize = segmentQueue.expectSize(expected);
         if (lastBufferSize < minSearchSize) {
@@ -557,7 +557,7 @@ public final class RealSource implements Source {
                 return -1L;
             }
             // Keep searching, picking up from where we left off.
-            _startIndex = Math.max(_startIndex, lastBufferSize - byteString.getSize() + 1);
+            _startIndex = Math.max(_startIndex, lastBufferSize - byteString.byteSize() + 1);
 
             lastBufferSize = newBufferSize;
         }
@@ -606,7 +606,7 @@ public final class RealSource implements Source {
 
     @Override
     public boolean rangeEquals(final @NonNegative long offset, final @NonNull ByteString byteString) {
-        return rangeEquals(offset, byteString, 0, byteString.getSize());
+        return rangeEquals(offset, byteString, 0, byteString.byteSize());
     }
 
     @Override
@@ -622,7 +622,7 @@ public final class RealSource implements Source {
         if (offset < 0L ||
                 bytesOffset < 0 ||
                 byteCount < 0 ||
-                byteString.getSize() - bytesOffset < byteCount
+                byteString.byteSize() - bytesOffset < byteCount
         ) {
             return false;
         }

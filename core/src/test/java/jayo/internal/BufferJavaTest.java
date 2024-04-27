@@ -50,13 +50,13 @@ public class BufferJavaTest {
     void readAndWriteUtf8() {
         Buffer buffer = new RealBuffer();
         buffer.writeUtf8("ab");
-        assertEquals(2, buffer.getSize());
+        assertEquals(2, buffer.byteSize());
         buffer.writeUtf8("cdëf");
-        assertEquals(7, buffer.getSize());
+        assertEquals(7, buffer.byteSize());
         assertEquals("abcd", buffer.readUtf8(4));
-        assertEquals(3, buffer.getSize());
+        assertEquals(3, buffer.byteSize());
         assertEquals("ëf", buffer.readUtf8(3));
-        assertEquals(0, buffer.getSize());
+        assertEquals(0, buffer.byteSize());
         assertThrows(JayoEOFException.class, () -> buffer.readUtf8(1));
     }
 
@@ -97,7 +97,7 @@ public class BufferJavaTest {
         assertEquals("c" + repeat("d", 10000) + "e", buffer.readUtf8(10002)); // cd...de
         assertEquals(repeat("e", 24998), buffer.readUtf8(24998)); // e...e
         assertEquals("e" + repeat("f", 50000), buffer.readUtf8(50001)); // ef...f
-        assertEquals(0, buffer.getSize());
+        assertEquals(0, buffer.byteSize());
     }
 
     @Test
@@ -183,8 +183,8 @@ public class BufferJavaTest {
 
         assertEquals(List.of(30), JayoTestingKt.segmentSizes(sink));
         assertEquals(asList(Segment.SIZE - 20, Segment.SIZE), JayoTestingKt.segmentSizes(source));
-        assertEquals(30, sink.getSize());
-        assertEquals(Segment.SIZE * 2L - 20, source.getSize());
+        assertEquals(30, sink.byteSize());
+        assertEquals(Segment.SIZE * 2L - 20, source.byteSize());
     }
 
     @Test
@@ -199,8 +199,8 @@ public class BufferJavaTest {
 
         assertEquals(List.of(30), JayoTestingKt.segmentSizes(sink));
         assertEquals(asList(Segment.SIZE - 20, Segment.SIZE), JayoTestingKt.segmentSizes(source));
-        assertEquals(30L, sink.getSize());
-        assertEquals(Segment.SIZE * 2L - 20, source.getSize());
+        assertEquals(30L, sink.byteSize());
+        assertEquals(Segment.SIZE * 2L - 20, source.byteSize());
     }
 
     @Test
@@ -241,7 +241,7 @@ public class BufferJavaTest {
 
         assertEquals(repeat("a", Segment.SIZE * 2 - 10) + repeat("b", Segment.SIZE + 10),
                 out.toString());
-        assertEquals(repeat("b", Segment.SIZE - 10), buffer.readUtf8(buffer.getSize()));
+        assertEquals(repeat("b", Segment.SIZE - 10), buffer.readUtf8(buffer.byteSize()));
     }
 
     @Test
@@ -251,7 +251,7 @@ public class BufferJavaTest {
         buffer.readTo(out);
         String outString = out.toString(UTF_8);
         assertEquals("hello, world!", outString);
-        assertEquals(0L, buffer.getSize());
+        assertEquals(0L, buffer.byteSize());
     }
 
     @Test
@@ -297,8 +297,8 @@ public class BufferJavaTest {
         source.writeUtf8(repeat("b", 15));
 
         assertEquals(10, source.readAtMostTo(sink, 10));
-        assertEquals(20, sink.getSize());
-        assertEquals(5, source.getSize());
+        assertEquals(20, sink.byteSize());
+        assertEquals(5, source.byteSize());
         assertEquals(repeat("a", 10) + repeat("b", 10), sink.readUtf8(20));
     }
 
@@ -311,8 +311,8 @@ public class BufferJavaTest {
         source.writeUtf8(repeat("b", 20));
 
         assertEquals(20, source.readAtMostTo(sink, 25));
-        assertEquals(30, sink.getSize());
-        assertEquals(0, source.getSize());
+        assertEquals(30, sink.byteSize());
+        assertEquals(0, source.byteSize());
         assertEquals(repeat("a", 10) + repeat("b", 20), sink.readUtf8(30));
     }
 
@@ -342,9 +342,9 @@ public class BufferJavaTest {
         buffer.writeUtf8("c");
         assertEquals('a', buffer.get(0));
         assertEquals('a', buffer.get(0)); // getByte doesn't mutate!
-        assertEquals('c', buffer.get(buffer.getSize() - 1));
-        assertEquals('b', buffer.get(buffer.getSize() - 2));
-        assertEquals('b', buffer.get(buffer.getSize() - 3));
+        assertEquals('c', buffer.get(buffer.byteSize() - 1));
+        assertEquals('b', buffer.get(buffer.byteSize() - 2));
+        assertEquals('b', buffer.get(buffer.byteSize() - 3));
     }
 
     @Test
@@ -370,7 +370,7 @@ public class BufferJavaTest {
         Buffer original = new RealBuffer();
         Buffer clone = original.clone();
         original.writeUtf8("abc");
-        assertEquals(0, clone.getSize());
+        assertEquals(0, clone.byteSize());
     }
 
     @Test
@@ -379,7 +379,7 @@ public class BufferJavaTest {
         original.writeUtf8("abc");
         Buffer clone = original.clone();
         assertEquals("abc", original.readUtf8(3));
-        assertEquals(3, clone.getSize());
+        assertEquals(3, clone.byteSize());
         assertEquals("ab", clone.readUtf8(2));
     }
 
@@ -388,7 +388,7 @@ public class BufferJavaTest {
         Buffer original = new RealBuffer();
         Buffer clone = original.clone();
         clone.writeUtf8("abc");
-        assertEquals(0, original.getSize());
+        assertEquals(0, original.byteSize());
     }
 
     @Test
@@ -397,7 +397,7 @@ public class BufferJavaTest {
         original.writeUtf8("abc");
         Buffer clone = original.clone();
         assertEquals("abc", clone.readUtf8(3));
-        assertEquals(3, original.getSize());
+        assertEquals(3, original.byteSize());
         assertEquals("ab", original.readUtf8(2));
     }
 
@@ -465,8 +465,8 @@ public class BufferJavaTest {
         MockSink mockSink = new MockSink();
 
         assertEquals(Segment.SIZE * 3L, source.transferTo(mockSink));
-        assertEquals(0, source.getSize());
-        mockSink.assertLog("write(" + write1 + ", " + write1.getSize() + ")");
+        assertEquals(0, source.byteSize());
+        mockSink.assertLog("write(" + write1 + ", " + write1.byteSize() + ")");
     }
 
     @Test
@@ -475,7 +475,7 @@ public class BufferJavaTest {
         Buffer sink = new RealBuffer();
 
         assertEquals(Segment.SIZE * 3L, sink.transferFrom(source));
-        assertEquals(0, source.getSize());
+        assertEquals(0, source.byteSize());
         assertEquals(repeat("a", Segment.SIZE * 3), sink.readUtf8());
     }
 
@@ -538,7 +538,7 @@ public class BufferJavaTest {
         source.writeUtf8(as);
         source.writeUtf8(bs);
 
-        source.copyTo(source, 0, source.getSize());
+        source.copyTo(source, 0, source.byteSize());
         assertEquals(as + bs + as + bs, source.readUtf8());
     }
 
@@ -563,7 +563,7 @@ public class BufferJavaTest {
     @Test
     void snapshotReportsAccurateSize() {
         Buffer buf = new RealBuffer().write(new byte[]{0, 1, 2, 3});
-        assertEquals(1, buf.snapshot(1).getSize());
+        assertEquals(1, buf.snapshot(1).byteSize());
     }
 
     @Test

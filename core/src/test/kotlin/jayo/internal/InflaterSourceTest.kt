@@ -125,7 +125,7 @@ abstract class AbstractInflaterSourceTest internal constructor(private val buffe
         source.readOrInflateAtMostTo(inflated, 1)
         source.close()
         assertEquals("G", inflated.readUtf8())
-        assertEquals(0, inflated.size)
+        assertEquals(0, inflated.byteSize())
     }
 
     @Test
@@ -136,7 +136,7 @@ abstract class AbstractInflaterSourceTest internal constructor(private val buffe
         source.readAtMostTo(inflated, 11)
         source.close()
         assertEquals("God help us", inflated.readUtf8())
-        assertEquals(0, inflated.size)
+        assertEquals(0, inflated.byteSize())
     }
 
     @Test
@@ -184,7 +184,7 @@ abstract class AbstractInflaterSourceTest internal constructor(private val buffe
     /** Use DeflaterOutputStream to deflate source.  */
     private fun deflate(source: ByteString) {
         val sink = DeflaterOutputStream(deflatedSink.asOutputStream()).sink()
-        sink.write(Buffer().write(source), source.size.toLong())
+        sink.write(Buffer().write(source), source.byteSize().toLong())
         sink.close()
     }
 

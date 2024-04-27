@@ -170,7 +170,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * available.
      */
     @NonNull
-    String decodeToString();
+    String decodeToUtf8();
 
     /**
      * Constructs a new String by decoding all the bytes from this byte string using {@code charset}.
@@ -275,7 +275,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @return the number of bytes in this ByteString.
      */
     @NonNegative
-    int getSize();
+    int byteSize();
 
     /**
      * @return {@code true} if this byte string is empty.

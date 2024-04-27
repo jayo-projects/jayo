@@ -98,8 +98,8 @@ class BufferCursorTest {
     fun accessByteByByte(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
         buffer.readUnsafe().use { cursor ->
-            val actual = ByteArray(buffer.size.toInt())
-            for (i in 0 until buffer.size) {
+            val actual = ByteArray(buffer.byteSize().toInt())
+            for (i in 0 until buffer.byteSize()) {
                 cursor.seek(i)
                 actual[i.toInt()] = cursor.data!![cursor.start]
             }
@@ -112,8 +112,8 @@ class BufferCursorTest {
     fun accessByteByByteReverse(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
         buffer.readUnsafe().use { cursor ->
-            val actual = ByteArray(buffer.size.toInt())
-            for (i in (buffer.size - 1).toInt() downTo 0) {
+            val actual = ByteArray(buffer.byteSize().toInt())
+            for (i in (buffer.byteSize() - 1).toInt() downTo 0) {
                 cursor.seek(i.toLong())
                 actual[i] = cursor.data!![cursor.start]
             }
@@ -126,8 +126,8 @@ class BufferCursorTest {
     fun accessByteByByteAlwaysResettingToZero(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
         buffer.readUnsafe().use { cursor ->
-            val actual = ByteArray(buffer.size.toInt())
-            for (i in 0 until buffer.size) {
+            val actual = ByteArray(buffer.byteSize().toInt())
+            for (i in 0 until buffer.byteSize()) {
                 cursor.seek(i)
                 actual[i.toInt()] = cursor.data!![cursor.start]
                 cursor.seek(0L)
@@ -148,7 +148,7 @@ class BufferCursorTest {
                 assertTrue(cursor.offset > lastOffset)
                 lastOffset = cursor.offset
             }
-            assertEquals(buffer.size, cursor.offset)
+            assertEquals(buffer.byteSize(), cursor.offset)
             assertNull(cursor.data)
             assertEquals(-1, cursor.start.toLong())
             assertEquals(-1, cursor.end.toLong())
@@ -235,7 +235,7 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun enlarge(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
         expected.writeUtf8("abc")
         buffer.readAndWriteUnsafe().use { cursor ->
@@ -254,7 +254,7 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun enlargeByManySegments(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
         expected.writeUtf8("x".repeat(1000000))
         buffer.readAndWriteUnsafe().use { cursor ->
@@ -310,8 +310,8 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun shrink(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        assumeTrue(buffer.size > 3)
-        val originalSize = buffer.size
+        assumeTrue(buffer.byteSize() > 3)
+        val originalSize = buffer.byteSize()
         val expected = Buffer()
         deepCopy(buffer).copyTo(expected, 0, originalSize - 3)
         buffer.readAndWriteUnsafe().use { cursor ->
@@ -324,8 +324,8 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun shrinkByManySegments(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        assertTrue(buffer.size <= 1000000)
-        val originalSize = buffer.size
+        assertTrue(buffer.byteSize() <= 1000000)
+        val originalSize = buffer.byteSize()
         val toShrink = Buffer()
         toShrink.writeUtf8("x".repeat(1000000))
         deepCopy(buffer).copyTo(toShrink, 0, originalSize)
@@ -345,9 +345,9 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun shrinkAdjustOffset(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        assumeTrue(buffer.size > 4)
+        assumeTrue(buffer.byteSize() > 4)
         buffer.readAndWriteUnsafe().use { cursor ->
-            cursor.seek(buffer.size - 1)
+            cursor.seek(buffer.byteSize() - 1)
             cursor.resizeBuffer(3)
             assertEquals(3, cursor.offset)
             assertNull(cursor.data)
@@ -360,12 +360,12 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun resizeToSameSizeSeeksToEnd(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         buffer.readAndWriteUnsafe().use { cursor ->
-            cursor.seek(buffer.size / 2)
-            assertEquals(originalSize, buffer.size)
+            cursor.seek(buffer.byteSize() / 2)
+            assertEquals(originalSize, buffer.byteSize())
             cursor.resizeBuffer(originalSize)
-            assertEquals(originalSize, buffer.size)
+            assertEquals(originalSize, buffer.byteSize())
             assertEquals(originalSize, cursor.offset)
             assertNull(cursor.data)
             assertEquals(-1, cursor.start.toLong())
@@ -377,12 +377,12 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun resizeEnlargeMovesCursorToOldSize(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
         expected.writeUtf8("a")
         buffer.readAndWriteUnsafe().use { cursor ->
-            cursor.seek(buffer.size / 2)
-            assertEquals(originalSize, buffer.size)
+            cursor.seek(buffer.byteSize() / 2)
+            assertEquals(originalSize, buffer.byteSize())
             cursor.resizeBuffer(originalSize + 1)
             assertEquals(originalSize, cursor.offset)
             assertNotNull(cursor.data)
@@ -397,11 +397,11 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun resizeShrinkMovesCursorToEnd(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        assumeTrue(buffer.size > 0)
-        val originalSize = buffer.size
+        assumeTrue(buffer.byteSize() > 0)
+        val originalSize = buffer.byteSize()
         buffer.readAndWriteUnsafe().use { cursor ->
-            cursor.seek(buffer.size / 2)
-            assertEquals(originalSize, buffer.size)
+            cursor.seek(buffer.byteSize() / 2)
+            assertEquals(originalSize, buffer.byteSize())
             cursor.resizeBuffer(originalSize - 1)
             assertEquals(originalSize - 1, cursor.offset)
             assertNull(cursor.data)
@@ -414,7 +414,7 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun expand(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
         expected.writeUtf8("abcde")
         buffer.readAndWriteUnsafe().use { cursor ->
@@ -431,7 +431,7 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun expandSameSegment(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         assumeTrue(originalSize > 0)
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.seek(originalSize - 1)
@@ -439,7 +439,7 @@ class BufferCursorTest {
             assumeTrue(originalEnd < SEGMENT_SIZE)
             val addedByteCount = cursor.expandBuffer(1)
             assertEquals((SEGMENT_SIZE - originalEnd).toLong(), addedByteCount)
-            assertEquals(originalSize + addedByteCount, buffer.size)
+            assertEquals(originalSize + addedByteCount, buffer.byteSize())
             assertEquals(originalSize, cursor.offset)
             assertEquals(originalEnd.toLong(), cursor.start.toLong())
             assertEquals(SEGMENT_SIZE.toLong(), cursor.end.toLong())
@@ -450,7 +450,7 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun expandNewSegment(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         buffer.readAndWriteUnsafe().use { cursor ->
             val addedByteCount = cursor.expandBuffer(SEGMENT_SIZE)
             assertEquals(SEGMENT_SIZE.toLong(), addedByteCount)
@@ -464,12 +464,12 @@ class BufferCursorTest {
     @MethodSource("parameters")
     fun expandMovesOffsetToOldSize(bufferFactory: BufferFactory) {
         val buffer = bufferFactory.newBuffer()
-        val originalSize = buffer.size
+        val originalSize = buffer.byteSize()
         buffer.readAndWriteUnsafe().use { cursor ->
-            cursor.seek(buffer.size / 2)
-            assertEquals(originalSize, buffer.size)
+            cursor.seek(buffer.byteSize() / 2)
+            assertEquals(originalSize, buffer.byteSize())
             val addedByteCount = cursor.expandBuffer(5)
-            assertEquals(originalSize + addedByteCount, buffer.size)
+            assertEquals(originalSize + addedByteCount, buffer.byteSize())
             assertEquals(originalSize, cursor.offset)
         }
     }

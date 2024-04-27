@@ -372,7 +372,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         val sink = RealBuffer()
         sink.writeUtf8("a".repeat(10))
         assertEquals(-1, source.readAtMostTo(sink, 10))
-        assertEquals(10, sink.size)
+        assertEquals(10, sink.byteSize())
         assertTrue(source.exhausted())
     }
 
@@ -384,7 +384,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         // Either 0 or -1 is reasonable here. For consistency with Android's
         // ByteArrayInputStream we return 0.
         assertEquals(-1, source.readAtMostTo(sink, 0))
-        assertEquals(10, sink.size)
+        assertEquals(10, sink.byteSize())
         assertTrue(source.exhausted())
     }
 
@@ -483,7 +483,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         sink.flush()
         val sink = RealBuffer()
         source.readTo(sink, 0)
-        assertEquals(0, sink.size)
+        assertEquals(0, sink.byteSize())
         assertEquals("test", source.readUtf8())
     }
 
@@ -494,7 +494,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         data.writeUtf8("e".repeat(Segment.SIZE))
 
         val expected = data.copy().readByteArray()
-        sink.write(data, data.size)
+        sink.write(data, data.byteSize())
         sink.emit()
 
         val sink = ByteArray(Segment.SIZE + 5)
@@ -1243,7 +1243,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
 
         // Skip the rest of the buffered data
         assertFailsWith<RuntimeException> {
-            peek.skip(getBufferFromSource(peek).size)
+            peek.skip(getBufferFromSource(peek).byteSize())
         }
     }
 
@@ -1260,20 +1260,20 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
 
         // Read 3 bytes. This reads some of the buffered data.
         assertTrue(peek.request(3))
-        assertThat(getBufferFromSource(source).size).isGreaterThanOrEqualTo(6L)
-        assertThat(getBufferFromSource(source).size).isGreaterThanOrEqualTo(6L)
+        assertThat(getBufferFromSource(source).byteSize()).isGreaterThanOrEqualTo(6L)
+        assertThat(getBufferFromSource(source).byteSize()).isGreaterThanOrEqualTo(6L)
         assertEquals("abc", peek.readUtf8(3L))
 
         // Read 3 more bytes. This exhausts the buffered data.
         assertTrue(peek.request(3))
-        assertThat(getBufferFromSource(source).size).isGreaterThanOrEqualTo(6L)
-        assertThat(getBufferFromSource(peek).size).isGreaterThanOrEqualTo(3L)
+        assertThat(getBufferFromSource(source).byteSize()).isGreaterThanOrEqualTo(6L)
+        assertThat(getBufferFromSource(peek).byteSize()).isGreaterThanOrEqualTo(3L)
         assertEquals("def", peek.readUtf8(3L))
 
         // Read 3 more bytes. This draws new bytes.
         assertTrue(peek.request(3))
-        assertEquals(9, getBufferFromSource(source).size)
-        assertEquals(3, getBufferFromSource(peek).size)
+        assertEquals(9, getBufferFromSource(source).byteSize())
+        assertEquals(3, getBufferFromSource(peek).byteSize())
         assertEquals("ghi", peek.readUtf8(3L))
     }
 
@@ -1528,7 +1528,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
             writeUtf8("e".repeat(Segment.SIZE))
             emit()
         }
-        assertEquals("abcd" + "e".repeat(Segment.SIZE), source.readByteString().decodeToString())
+        assertEquals("abcd" + "e".repeat(Segment.SIZE), source.readByteString().decodeToUtf8())
     }
 
     @Test
@@ -1538,7 +1538,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
             writeUtf8("e".repeat(Segment.SIZE))
             emit()
         }
-        assertEquals("abc", source.readByteString(3).decodeToString())
+        assertEquals("abc", source.readByteString(3).decodeToUtf8())
         assertEquals("d", source.readUtf8(1))
     }
 

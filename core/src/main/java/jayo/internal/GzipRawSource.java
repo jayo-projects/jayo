@@ -92,7 +92,7 @@ public final class GzipRawSource implements RawSource {
 
         // Attempt to read at least a byte of the body. If we do, we're done.
         if (section == SECTION_BODY) {
-            final var offset = _sink.getSize();
+            final var offset = _sink.byteSize();
             final var result = inflaterSource.readAtMostTo(_sink, byteCount);
             if (result != -1L) {
                 updateCrc(_sink, offset, result);

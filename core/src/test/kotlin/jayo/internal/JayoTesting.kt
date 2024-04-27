@@ -46,14 +46,14 @@ fun bufferWithSegments(vararg segments: String): Buffer {
         buffer.writeUtf8('_'.repeat(offsetInSegment))
         buffer.writeUtf8(s)
         buffer.skip(offsetInSegment.toLong())
-        result.write(buffer.clone(), buffer.size)
+        result.write(buffer.clone(), buffer.byteSize())
     }
     return result
 }
 
 fun makeSegments(source: ByteString): ByteString {
     val buffer = RealBuffer()
-    for (i in 0 until source.size) {
+    for (i in 0 until source.byteSize()) {
         val tail = buffer.segmentQueue.writableSegment(Segment.SIZE)
         tail.data[tail.pos] = source[i]
         val limit = tail.limit

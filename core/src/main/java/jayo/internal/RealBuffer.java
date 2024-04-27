@@ -62,7 +62,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative long getSize() {
+    public @NonNegative long byteSize() {
         return segmentQueue.size();
     }
 
@@ -615,7 +615,7 @@ public final class RealBuffer implements Buffer {
         }
 
         // If the prefix match actually matched a full byte string, consume it and return it.
-        final var selectedSize = _options.byteStrings[index].getSize();
+        final var selectedSize = _options.byteStrings[index].byteSize();
         skip(selectedSize);
         return index;
     }
@@ -952,7 +952,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer write(final @NonNull ByteString byteString) {
-        return write(byteString, 0, byteString.getSize());
+        return write(byteString, 0, byteString.byteSize());
     }
 
     @Override
@@ -1510,7 +1510,7 @@ public final class RealBuffer implements Buffer {
         if (Objects.requireNonNull(source) == this) {
             throw new IllegalArgumentException("source == this, cannot write in itself");
         }
-        checkOffsetAndCount(source.getSize(), 0, byteCount);
+        checkOffsetAndCount(source.byteSize(), 0, byteCount);
         if (!(source instanceof RealBuffer _source)) {
             throw new IllegalArgumentException("source must be an instance of RealBuffer");
         }
@@ -1701,7 +1701,7 @@ public final class RealBuffer implements Buffer {
             // rangeEquals() to check for a complete match.
             final var targetByteArray = _bytes.internalArray();
             final var b0 = targetByteArray[0];
-            final var bytesSize = byteString.getSize();
+            final var bytesSize = byteString.byteSize();
             final var resultLimit = segmentQueue.size() - bytesSize + 1L;
             while (offset < resultLimit) {
                 // Scan through the current segment.
@@ -1751,7 +1751,7 @@ public final class RealBuffer implements Buffer {
             // Special case searching for one of two bytes. This is a common case for tools like Moshi,
             // which search for pairs of chars like `\r` and `\n` or {@code `"` and `\`. The impact of this
             // optimization is a ~5x speedup for this case without a substantial cost to other cases.
-            if (_targetBytes.getSize() == 2) {
+            if (_targetBytes.byteSize() == 2) {
                 // Scan through the segments, searching for either of the two bytes.
                 final var b0 = _targetBytes.get(0);
                 final var b1 = _targetBytes.get(1);
@@ -1804,7 +1804,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public boolean rangeEquals(final @NonNegative long offset, final @NonNull ByteString byteString) {
-        return rangeEquals(offset, byteString, 0, byteString.getSize());
+        return rangeEquals(offset, byteString, 0, byteString.byteSize());
     }
 
     @Override
@@ -1817,7 +1817,7 @@ public final class RealBuffer implements Buffer {
                 bytesOffset < 0 ||
                 byteCount < 0 ||
                 segmentQueue.size() - offset < byteCount ||
-                byteString.getSize() - bytesOffset < byteCount
+                byteString.byteSize() - bytesOffset < byteCount
         ) {
             return false;
         }
@@ -2273,7 +2273,7 @@ public final class RealBuffer implements Buffer {
         public int next() {
             checkHasBuffer();
             assert buffer != null;
-            if (offset == buffer.getSize()) {
+            if (offset == buffer.byteSize()) {
                 throw new IllegalStateException("no more bytes");
             }
             return (offset == -1L) ? seek(0L) : seek(offset + (end - start));

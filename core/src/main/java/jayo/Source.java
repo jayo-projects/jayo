@@ -141,13 +141,13 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeByte(0xff)
      * .writeByte(0x00)
      * .writeByte(0x0f);
-     * assertThat(buffer.getSize()).isEqualTo(4);
+     * assertThat(buffer.byteSize()).isEqualTo(4);
      *
      * assertThat(buffer.readShort()).isEqualTo(32767);
-     * assertThat(buffer.getSize()).isEqualTo(2);
+     * assertThat(buffer.byteSize()).isEqualTo(2);
      *
      * assertThat(buffer.readShort()).isEqualTo(15);
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -170,13 +170,13 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeByte(0x00)
      * .writeByte(0x00)
      * .writeByte(0x0f);
-     * assertThat(buffer.getSize()).isEqualTo(8);
+     * assertThat(buffer.byteSize()).isEqualTo(8);
      *
      * assertThat(buffer.readInt()).isEqualTo(2147483647);
-     * assertThat(buffer.getSize()).isEqualTo(4);
+     * assertThat(buffer.byteSize()).isEqualTo(4);
      *
      * assertThat(buffer.readInt()).isEqualTo(15);
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -207,13 +207,13 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeByte(0x00)
      * .writeByte(0x00)
      * .writeByte(0x0f);
-     * assertThat(buffer.getSize()).isEqualTo(16);
+     * assertThat(buffer.byteSize()).isEqualTo(16);
      *
      * assertThat(buffer.readLong()).isEqualTo(9223372036854775807L);
-     * assertThat(buffer.getSize()).isEqualTo(8);
+     * assertThat(buffer.byteSize()).isEqualTo(8);
      *
      * assertThat(buffer.readLong()).isEqualTo(15);
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -415,10 +415,10 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeUtf8("Uh uh uh!")
      * .writeByte(' ')
      * .writeUtf8("You didn't say the magic word!");
-     * assertThat(buffer.getSize()).isEqualTo(40);
+     * assertThat(buffer.byteSize()).isEqualTo(40);
      *
      * assertThat(buffer.readUtf8()).isEqualTo("Uh uh uh! You didn't say the magic word!");
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      *
      * assertThat(buffer.readUtf8()).isEqualTo("");
      * }
@@ -436,16 +436,16 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeUtf8("Uh uh uh!")
      * .writeByte(' ')
      * .writeUtf8("You didn't say the magic word!");
-     * assertThat(buffer.getSize()).isEqualTo(40);
+     * assertThat(buffer.byteSize()).isEqualTo(40);
      *
      * assertThat(buffer.readUtf8(14)).isEqualTo("Uh uh uh! You ");
-     * assertThat(buffer.getSize()).isEqualTo(26);
+     * assertThat(buffer.byteSize()).isEqualTo(26);
      *
      * assertThat(buffer.readUtf8(14)).isEqualTo("didn't say the");
-     * assertThat(buffer.getSize()).isEqualTo(12);
+     * assertThat(buffer.byteSize()).isEqualTo(12);
      *
      * assertThat(buffer.readUtf8(12)).isEqualTo(" magic word!");
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -468,19 +468,19 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeUtf8("I'm a hacker!\n")
      * .writeUtf8("That's what I said: you're a nerd.\n")
      * .writeUtf8("I prefer to be called a hacker!\n");
-     * assertThat(buffer.getSize()).isEqualTo(81);
+     * assertThat(buffer.byteSize()).isEqualTo(81);
      *
      * assertThat(buffer.readLine()).isEqualTo("I'm a hacker!");
-     * assertThat(buffer.getSize()).isEqualTo(67);
+     * assertThat(buffer.byteSize()).isEqualTo(67);
      *
      * assertThat(buffer.readLine()).isEqualTo("That's what I said: you're a nerd.");
-     * assertThat(buffer.getSize()).isEqualTo(32);
+     * assertThat(buffer.byteSize()).isEqualTo(32);
      *
      * assertThat(buffer.readLine()).isEqualTo("I prefer to be called a hacker!");
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      *
      * assertThat(buffer.readLine()).isNull();
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -557,10 +557,10 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeString("Uh uh uh¡", StandardCharsets.ISO_8859_1)
      * .writeByte(' ')
      * .writeString("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
-     * assertThat(buffer.getSize()).isEqualTo(40);
+     * assertThat(buffer.byteSize()).isEqualTo(40);
      *
      * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You didn't say the magic word¡");
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      *
      * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("");
      * }
@@ -578,16 +578,16 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * .writeString("Uh uh uh¡", StandardCharsets.ISO_8859_1)
      * .writeByte(' ')
      * .writeString("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
-     * assertThat(buffer.getSize()).isEqualTo(40);
+     * assertThat(buffer.byteSize()).isEqualTo(40);
      *
      * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You ");
-     * assertThat(buffer.getSize()).isEqualTo(26);
+     * assertThat(buffer.byteSize()).isEqualTo(26);
      *
      * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("didn't say the");
-     * assertThat(buffer.getSize()).isEqualTo(12);
+     * assertThat(buffer.byteSize()).isEqualTo(12);
      *
      * assertThat(buffer.readString(12, StandardCharsets.ISO_8859_1)).isEqualTo(" magic word¡");
-     * assertThat(buffer.getSize()).isEqualTo(0);
+     * assertThat(buffer.byteSize()).isEqualTo(0);
      * }
      * </pre>
      *

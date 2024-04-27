@@ -96,7 +96,7 @@ final class PeekRawSource implements RawSource {
             expectedPos = bufferHead.pos;
         }
 
-        final var toCopy = Math.min(byteCount, buffer.getSize() - pos);
+        final var toCopy = Math.min(byteCount, buffer.byteSize() - pos);
         if ((pos | toCopy) < 0) {
             throw new IllegalStateException("Peek source is invalid because upstream source was used");
         }

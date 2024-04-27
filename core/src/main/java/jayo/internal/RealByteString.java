@@ -74,7 +74,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public final @NonNull String decodeToString() {
+    public final @NonNull String decodeToUtf8() {
         var result = utf8;
         if (result == null) {
             // We don't care if we double-allocate in racy code.
@@ -88,7 +88,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     public @NonNull String decodeToString(final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
         if (charset == StandardCharsets.UTF_8) {
-            return decodeToString();
+            return decodeToUtf8();
         }
         return new String(data, charset);
     }
@@ -204,7 +204,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
 
     @Override
     public final @NonNull ByteString substring(final @NonNegative int startIndex) {
-        return substring(startIndex, getSize());
+        return substring(startIndex, byteSize());
     }
 
     @Override
@@ -231,13 +231,13 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public @NonNegative int getSize() {
+    public @NonNegative int byteSize() {
         return data.length;
     }
 
     @Override
     public boolean isEmpty() {
-        return getSize() == 0;
+        return byteSize() == 0;
     }
 
     @Override
@@ -300,7 +300,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
 
     @Override
     public final boolean startsWith(final @NonNull ByteString prefix) {
-        return rangeEquals(0, prefix, 0, prefix.getSize());
+        return rangeEquals(0, prefix, 0, prefix.byteSize());
     }
 
     @Override
@@ -310,12 +310,12 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
 
     @Override
     public final boolean endsWith(final @NonNull ByteString suffix) {
-        return rangeEquals(getSize() - suffix.getSize(), suffix, 0, suffix.getSize());
+        return rangeEquals(byteSize() - suffix.byteSize(), suffix, 0, suffix.byteSize());
     }
 
     @Override
     public final boolean endsWith(final byte @NonNull [] suffix) {
-        return rangeEquals(getSize() - suffix.length, suffix, 0, suffix.length);
+        return rangeEquals(byteSize() - suffix.length, suffix, 0, suffix.length);
     }
 
     @Override
@@ -350,7 +350,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
 
     @Override
     public final int lastIndexOf(final @NonNull ByteString other) {
-        return lastIndexOf(other, getSize());
+        return lastIndexOf(other, byteSize());
     }
 
     @Override
@@ -363,7 +363,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
 
     @Override
     public final int lastIndexOf(final byte @NonNull [] other) {
-        return lastIndexOf(other, getSize());
+        return lastIndexOf(other, byteSize());
     }
 
     @Override
@@ -389,7 +389,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
         if (!(other instanceof ByteString _other)) {
             return false;
         }
-        return _other.getSize() == data.length && _other.rangeEquals(0, data, 0, data.length);
+        return _other.byteSize() == data.length && _other.rangeEquals(0, data, 0, data.length);
     }
 
     @Override
@@ -405,8 +405,8 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     @Override
     public final int compareTo(final @NonNull ByteString other) {
         Objects.requireNonNull(other);
-        final var sizeA = getSize();
-        final var sizeB = other.getSize();
+        final var sizeA = byteSize();
+        final var sizeB = other.byteSize();
         var i = 0;
         final var size = Math.min(sizeA, sizeB);
         while (i < size) {
@@ -431,7 +431,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
             return "ByteString(size=0)";
         }
         // format: "ByteString(size=XXX hex=YYYY)"
-        final var size = getSize();
+        final var size = byteSize();
         final var sizeStr = String.valueOf(size);
         final var len = 22 + sizeStr.length() + size * 2;
         final StringBuilder sb = new StringBuilder(len);

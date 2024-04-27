@@ -266,6 +266,6 @@ class Utf8Test {
         assertEquals(expectedUtf8, bufferUtf8.readByteString())
 
         // Confirm we are consistent when measuring lengths.
-        assertEquals(expectedUtf8.size.toLong(), string.utf8Size())
+        assertEquals(expectedUtf8.byteSize().toLong(), string.utf8Size())
     }
 }

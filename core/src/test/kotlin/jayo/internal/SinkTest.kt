@@ -76,19 +76,19 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         assertFailsWith<IndexOutOfBoundsException> {
             sink.write(source, -1, 1)
         }
-        assertEquals(0, data.size)
+        assertEquals(0, data.byteSize())
 
         assertFailsWith<IndexOutOfBoundsException> {
             sink.write(source, 1, source.size + 1)
         }
-        assertEquals(0, data.size)
+        assertEquals(0, data.byteSize())
     }
 
     @Test
     fun writeNothing() {
         sink.writeUtf8("")
         sink.flush()
-        assertEquals(0, data.size)
+        assertEquals(0, data.byteSize())
     }
 
     @Test
@@ -214,7 +214,7 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         source.writeUtf8("abcdef")
 
         assertEquals(6, sink.transferFrom(source))
-        assertEquals(0, source.size)
+        assertEquals(0, source.byteSize())
         sink.flush()
         assertEquals("abcdef", data.readUtf8())
     }
@@ -223,7 +223,7 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
     fun writeAllExhausted() {
         val source = RealBuffer()
         assertEquals(0, sink.transferFrom(source))
-        assertEquals(0, source.size)
+        assertEquals(0, source.byteSize())
     }
 
     @Test
@@ -307,7 +307,7 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
             }
         }
         sink.write(source, 0)
-        assertEquals(0, data.size)
+        assertEquals(0, data.byteSize())
     }
 
     @Test

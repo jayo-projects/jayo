@@ -63,7 +63,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             final var sortedIndex = Collections.binarySearch(list, byteString);
             indexes.set(sortedIndex, callerIndex);
         }
-        if (list.getFirst().getSize() <= 0) {
+        if (list.getFirst().byteSize() <= 0) {
             throw new IllegalArgumentException("the empty byte string is not a supported option");
         }
 
@@ -79,7 +79,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
                 if (!byteString.startsWith(prefix)) {
                     break;
                 }
-                if (byteString.getSize() == prefix.getSize()) {
+                if (byteString.byteSize() == prefix.byteSize()) {
                     throw new IllegalArgumentException("duplicate option: " + byteString);
                 }
                 if (indexes.get(b) > indexes.get(a)) {
@@ -138,7 +138,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             throw new IllegalArgumentException("startIndex >= endIndex");
         }
         for (var i = startIndex; i < endIndex; i++) {
-            if (byteStrings.get(i).getSize() < byteStringOffset) {
+            if (byteStrings.get(i).byteSize() < byteStringOffset) {
                 throw new IllegalArgumentException();
             }
         }
@@ -149,7 +149,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
 
         var _startIndex = startIndex;
         // If the first element is already matched, that's our prefix.
-        if (byteStringOffset == from.getSize()) {
+        if (byteStringOffset == from.byteSize()) {
             prefixIndex = indexes.get(_startIndex);
             _startIndex++;
             from = byteStrings.get(_startIndex);
@@ -190,7 +190,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
                 }
 
                 if (rangeStart + 1 == rangeEnd &&
-                        byteStringOffset + 1 == byteStrings.get(rangeStart).getSize()
+                        byteStringOffset + 1 == byteStrings.get(rangeStart).byteSize()
                 ) {
                     // The result is a single index.
                     node.writeInt(indexes.get(rangeStart));
@@ -215,7 +215,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
         } else {
             // If all the bytes are the same, encode a SCAN node.
             var scanByteCount = 0;
-            for (var i = byteStringOffset; i < Math.min(from.getSize(), to.getSize()); i++) {
+            for (var i = byteStringOffset; i < Math.min(from.byteSize(), to.byteSize()); i++) {
                 if (from.get(i) == to.get(i)) {
                     scanByteCount++;
                 } else {
@@ -235,7 +235,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
 
             if (_startIndex + 1 == endIndex) {
                 // The result is a single index.
-                if (byteStringOffset + scanByteCount != byteStrings.get(_startIndex).getSize()) {
+                if (byteStringOffset + scanByteCount != byteStrings.get(_startIndex).byteSize()) {
                     throw new IllegalStateException();
                 }
                 node.writeInt(indexes.get(_startIndex));
@@ -258,6 +258,6 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
     }
 
     private static long intCount(final @NonNull Buffer buffer) {
-        return buffer.getSize() / 4;
+        return buffer.byteSize() / 4;
     }
 }
