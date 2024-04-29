@@ -46,9 +46,9 @@ class Utf8Test {
     @Test
     fun twoByteCharacters() {
         assertEncoded("c280", 0x0080) // Smallest 2-byte character.
-//        assertEncoded("c3bf", 0x00ff)
-//        assertEncoded("c480", 0x0100)
-//        assertEncoded("dfbf", 0x07ff) // Largest 2-byte character.
+        assertEncoded("c3bf", 0x00ff)
+        assertEncoded("c480", 0x0100)
+        assertEncoded("dfbf", 0x07ff) // Largest 2-byte character.
     }
 
     @Test
