@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2024-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
- * 
+ *
  * Inspired by Netty (https://github.com/netty/netty) and Chronicle-Bytes (https://github.com/OpenHFT/Chronicle-Bytes)
  */
 
@@ -15,7 +15,8 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.Objects;
 
-import static java.lang.System.Logger.Level.*;
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.TRACE;
 
 /**
  * This class exposes unsafe operations
@@ -26,18 +27,19 @@ final class UnsafeUtils {
     }
 
     static final boolean UNSAFE_AVAILABLE;
-    
+    static final boolean SUPPORT_COMPACT_STRING;
+
     private static final System.Logger LOGGER = System.getLogger("jayo.UnsafeUtils");
-    
-    private static @Nullable final Unsafe UNSAFE;
+
+    private static final @Nullable Unsafe UNSAFE;
     private static final String VALUE_FIELD_NAME = "value";
     private static final String CODER_FIELD_NAME = "coder";
 
+    // Manipulate String
     private static final Field S_VALUE;
     private static final Field S_CODER;
     private static final long S_VALUE_OFFSET;
     private static final long S_CODER_OFFSET;
-    private static final boolean HAS_ONE_BYTE_PER_CHAR;
 
     static {
         // attempt to access field Unsafe#theUnsafe
@@ -64,11 +66,11 @@ final class UnsafeUtils {
         if (UNSAFE_AVAILABLE) {
             try {
                 S_VALUE = String.class.getDeclaredField(VALUE_FIELD_NAME);
-                S_VALUE_OFFSET = UnsafeUtils.getFieldOffset(S_VALUE);
+                S_VALUE_OFFSET = getFieldOffset(S_VALUE);
                 S_CODER = String.class.getDeclaredField(CODER_FIELD_NAME);
-                S_CODER_OFFSET = UnsafeUtils.getFieldOffset(S_CODER);
-                final var a = UnsafeUtils.getObject("A", S_VALUE_OFFSET);
-                HAS_ONE_BYTE_PER_CHAR = Array.getLength(a) == 1;
+                S_CODER_OFFSET = getFieldOffset(S_CODER);
+                final var a = getObject("A", S_VALUE_OFFSET);
+                SUPPORT_COMPACT_STRING = Array.getLength(a) == 1;
             } catch (Exception e) {
                 throw new AssertionError(e);
             }
@@ -77,16 +79,8 @@ final class UnsafeUtils {
             S_VALUE_OFFSET = -1L;
             S_CODER = null;
             S_CODER_OFFSET = -1L;
-            HAS_ONE_BYTE_PER_CHAR = false;
+            SUPPORT_COMPACT_STRING = false;
         }
-    }
-
-    static byte[] bytes(final @NonNull String string) {
-        return getObject(string, S_VALUE_OFFSET);
-    }
-
-    static boolean isLatin1(final @NonNull String string) {
-        return HAS_ONE_BYTE_PER_CHAR && getByte(string, S_CODER_OFFSET) == ((byte) 0);
     }
 
     /**
@@ -105,6 +99,22 @@ final class UnsafeUtils {
                  | NoClassDefFoundError e) {
             return e;
         }
+    }
+
+    static byte @NonNull [] getBytes(final @NonNull String string) {
+        return getObject(string, S_VALUE_OFFSET);
+    }
+
+    static boolean isLatin1(final @NonNull String string) {
+        return SUPPORT_COMPACT_STRING && getByte(string, S_CODER_OFFSET) == ((byte) 0);
+    }
+
+    static @NonNull String noCopyStringFromLatin1Bytes(final byte @NonNull [] bytes) {
+        @SuppressWarnings("StringOperationCanBeSimplified") final var string = new String();
+        assert UNSAFE != null;
+        UNSAFE.putObject(string, S_VALUE_OFFSET, bytes);
+        UNSAFE.putByte(string, S_CODER_OFFSET, (byte) 0);
+        return string;
     }
 
     /**

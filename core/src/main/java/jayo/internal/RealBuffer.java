@@ -48,6 +48,7 @@ import java.util.function.BiFunction;
 
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.UnsafeUtils.*;
+import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 import static jayo.internal.Utils.*;
 
 public final class RealBuffer implements Buffer {
@@ -74,29 +75,6 @@ public final class RealBuffer implements Buffer {
     @Override
     public @NonNull Buffer emit() {
         return this; // Nowhere to emit to!
-    }
-
-    @Override
-    public boolean exhausted() {
-        return segmentQueue.size() == 0L;
-    }
-
-    @Override
-    public void require(final @NonNegative long byteCount) {
-        if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
-        }
-        if (segmentQueue.size() < byteCount) {
-            throw new JayoEOFException();
-        }
-    }
-
-    @Override
-    public boolean request(final @NonNegative long byteCount) {
-        if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
-        }
-        return segmentQueue.size() >= byteCount;
     }
 
     @Override
@@ -319,6 +297,30 @@ public final class RealBuffer implements Buffer {
     public byte get(final @NonNegative long pos) {
         checkOffsetAndCount(segmentQueue.size(), pos, 1L);
         return seek(pos, (s, offset) -> s.data[(int) (s.pos + pos - offset)]);
+    }
+
+    @Override
+    public boolean exhausted() {
+        return segmentQueue.size() == 0L;
+    }
+
+
+    @Override
+    public boolean request(final @NonNegative long byteCount) {
+        if (byteCount < 0L) {
+            throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
+        }
+        return segmentQueue.size() >= byteCount;
+    }
+
+    @Override
+    public void require(final @NonNegative long byteCount) {
+        if (byteCount < 0L) {
+            throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
+        }
+        if (segmentQueue.size() < byteCount) {
+            throw new JayoEOFException();
+        }
     }
 
     @Override
@@ -605,6 +607,29 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
+    public @NonNull Utf8String readUtf8String() {
+        return readUtf8String(segmentQueue.size());
+    }
+
+    @Override
+    public @NonNull Utf8String readUtf8String(long byteCount) {
+        if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("invalid byteCount: " + byteCount);
+        }
+        if (segmentQueue.size() < byteCount) {
+            throw new JayoEOFException();
+        }
+
+        if (byteCount >= SEGMENTING_THRESHOLD) {
+            final var utf8Snapshot = utf8Snapshot((int) byteCount);
+            skip(byteCount);
+            return utf8Snapshot;
+        } else {
+            return new RealUtf8String(readByteArray(byteCount), false);
+        }
+    }
+
+    @Override
     public int select(final @NonNull Options options) {
         if (!(Objects.requireNonNull(options) instanceof RealOptions _options)) {
             throw new IllegalArgumentException("options must be an instance of JayoOptions");
@@ -699,7 +724,7 @@ public final class RealBuffer implements Buffer {
         final var newline = indexOf((byte) ((int) '\n'));
 
         if (newline != -1L) {
-            return Utils.readUtf8Line(this, newline);
+            return Utf8Utils.readUtf8Line(this, newline);
         }
         if (segmentQueue.size() != 0L) {
             return readUtf8(segmentQueue.size());
@@ -721,13 +746,13 @@ public final class RealBuffer implements Buffer {
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1L;
         final var newline = indexOf((byte) ((int) '\n'), 0L, scanLength);
         if (newline != -1L) {
-            return Utils.readUtf8Line(this, newline);
+            return Utf8Utils.readUtf8Line(this, newline);
         }
         if (scanLength < segmentQueue.size() &&
                 get(scanLength - 1) == (byte) ((int) '\r') &&
                 get(scanLength) == (byte) ((int) '\n')) {
             // The line was 'limit' UTF-8 bytes followed by \r\n.
-            return Utils.readUtf8Line(this, scanLength);
+            return Utf8Utils.readUtf8Line(this, scanLength);
         }
         final var data = new RealBuffer();
         copyTo(data, 0, Math.min(32, segmentQueue.size()));
@@ -779,9 +804,9 @@ public final class RealBuffer implements Buffer {
                             + toHexString(b0) + ")");
         }
 
-        // Read the continuation bytes. If we encounter a non-continuation byte, the sequence consumed
-        // thus far is truncated and is decoded as the replacement character. That non-continuation byte
-        // is left in the stream for processing by the next call to readUtf8CodePoint().
+        // Read the continuation bytes. If we encounter a non-continuation byte, the sequence consumed thus far is
+        // truncated and is decoded as the replacement character. That non-continuation byte is left in the stream for
+        // processing by the next call to readUtf8CodePoint().
         for (var i = 1; i < byteCount; i++) {
             final var b = get(i);
             if ((b & 0xc0) == 0x80) {
@@ -1167,7 +1192,7 @@ public final class RealBuffer implements Buffer {
 
         // fast-path#2 for ISO_8859_1 encoding
         if (charset == StandardCharsets.ISO_8859_1 && UNSAFE_AVAILABLE && isLatin1(string)) {
-            final var stringBytes = bytes(string);
+            final var stringBytes = getBytes(string);
             return write(stringBytes, startIndex, endIndex - startIndex);
         }
 
@@ -1753,8 +1778,8 @@ public final class RealBuffer implements Buffer {
             // optimization is a ~5x speedup for this case without a substantial cost to other cases.
             if (_targetBytes.byteSize() == 2) {
                 // Scan through the segments, searching for either of the two bytes.
-                final var b0 = _targetBytes.get(0);
-                final var b1 = _targetBytes.get(1);
+                final var b0 = _targetBytes.getByte(0);
+                final var b1 = _targetBytes.getByte(1);
                 while (offset < segmentQueue.size()) {
                     final var data = segment.data;
                     final var currentPos = segment.pos;
@@ -1822,7 +1847,7 @@ public final class RealBuffer implements Buffer {
             return false;
         }
         for (var i = 0; i < byteCount; i++) {
-            if (get(offset + i) != byteString.get(bytesOffset + i)) {
+            if (get(offset + i) != byteString.getByte(bytesOffset + i)) {
                 return false;
             }
         }
@@ -2015,9 +2040,20 @@ public final class RealBuffer implements Buffer {
         if (byteCount == 0) {
             return ByteString.EMPTY;
         }
+        // Walk through the buffer to count how many segments we'll need.
+        final var segmentCount = checkAndCountSegments(byteCount);
+
+        // Walk through the buffer again to assign segments and build the directory.
+        final var segments = new Segment[segmentCount];
+        final var directory = new int[segmentCount * 2];
+        fillSegmentsAndDirectory(segments, directory, byteCount);
+
+        return new SegmentedByteString(segments, directory);
+    }
+
+    private @NonNegative int checkAndCountSegments(final @NonNegative int byteCount) {
         checkOffsetAndCount(segmentQueue.size(), 0L, byteCount);
 
-        // Walk through the buffer to count how many segments we'll need.
         var offset = 0;
         var segmentCount = 0;
         var s = segmentQueue.head();
@@ -2033,13 +2069,13 @@ public final class RealBuffer implements Buffer {
             segmentCount++;
             s = s.next;
         }
+        return segmentCount;
+    }
 
-        // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new Segment[segmentCount];
-        final var directory = new int[segmentCount * 2];
-        offset = 0;
-        segmentCount = 0;
-        s = segmentQueue.head();
+    private void fillSegmentsAndDirectory(Segment[] segments, int[] directory, int byteCount) {
+        var offset = 0;
+        var segmentCount = 0;
+        var s = segmentQueue.head();
         while (offset < byteCount) {
             assert s != null;
             final var copy = s.sharedCopy();
@@ -2052,7 +2088,31 @@ public final class RealBuffer implements Buffer {
             segmentCount++;
             s = s.next;
         }
-        return new SegmentedByteString(segments, directory);
+    }
+
+    @Override
+    public @NonNull Utf8String utf8Snapshot() {
+        final var size = segmentQueue.size();
+        if (size > Integer.MAX_VALUE) {
+            throw new IllegalStateException("size > Integer.MAX_VALUE: " + segmentQueue.size());
+        }
+        return utf8Snapshot((int) size);
+    }
+
+    @Override
+    public @NonNull Utf8String utf8Snapshot(final @NonNegative int byteCount) {
+        if (byteCount == 0) {
+            return Utf8String.EMPTY;
+        }
+        // Walk through the buffer to count how many segments we'll need.
+        final var segmentCount = checkAndCountSegments(byteCount);
+
+        // Walk through the buffer again to assign segments and build the directory.
+        final var segments = new Segment[segmentCount];
+        final var directory = new int[segmentCount * 2];
+        fillSegmentsAndDirectory(segments, directory, byteCount);
+
+        return new SegmentedUtf8String(segments, directory);
     }
 
     @Override

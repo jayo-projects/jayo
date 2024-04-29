@@ -45,17 +45,21 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Utils.HEX_DIGIT_CHARS;
 import static jayo.internal.Utils.arrayRangeEquals;
 
-public sealed class RealByteString implements ByteString permits SegmentedByteString {
+public sealed class RealByteString implements ByteString permits RealUtf8String, SegmentedByteString {
     @Serial
     private static final long serialVersionUID = 42L;
 
     final byte @NonNull [] data;
-    transient protected int hashCode = 0; // Lazily computed; 0 if unknown.
-    @Nullable
-    transient private String utf8 = null; // Lazily computed.
+    transient int hashCode = 0; // Lazily computed; 0 if unknown.
+    transient @Nullable String utf8; // Lazily computed.
+
+    // these 2 fields are only used in UTF-8 byte strings.
+    boolean isAscii = false; // Lazily computed, false can mean non-ascii or unknown (=not yet scanned).
+    transient @NonNegative int length = -1; // Lazily computed.
 
     public RealByteString(final byte @NonNull [] data) {
         this.data = Objects.requireNonNull(data);
+        utf8 = null;
     }
 
     public RealByteString(final byte @NonNull [] data,
@@ -63,6 +67,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
                           final @NonNegative int byteCount) {
         checkOffsetAndCount(Objects.requireNonNull(data).length, offset, byteCount);
         this.data = Arrays.copyOfRange(data, offset, offset + byteCount);
+        utf8 = null;
     }
 
     /**
@@ -74,14 +79,14 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public final @NonNull String decodeToUtf8() {
-        var result = utf8;
-        if (result == null) {
+    public @NonNull String decodeToUtf8() {
+        var utf8String = utf8;
+        if (utf8String == null) {
             // We don't care if we double-allocate in racy code.
-            result = new String(internalArray(), StandardCharsets.UTF_8);
-            utf8 = result;
+            utf8String = new String(internalArray(), StandardCharsets.UTF_8);
+            utf8 = utf8String;
         }
-        return result;
+        return utf8String;
     }
 
     @Override
@@ -148,6 +153,11 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
 
     @Override
     public @NonNull ByteString toAsciiLowercase() {
+        final byte[] lowercase = toAsciiLowercaseBytes();
+        return (lowercase != null) ? new RealByteString(lowercase) : this;
+    }
+
+    final byte @Nullable [] toAsciiLowercaseBytes() {
         // Search for an uppercase character. If we don't find one, return this.
         var i = 0;
         while (i < data.length) {
@@ -169,13 +179,18 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
                 lowercase[i] = (byte) (c - ('A' - 'a'));
                 i++;
             }
-            return new RealByteString(lowercase);
+            return lowercase;
         }
-        return this;
+        return null;
     }
 
     @Override
     public @NonNull ByteString toAsciiUppercase() {
+        final byte[] uppercase = toAsciiUppercaseBytes();
+        return (uppercase != null) ? new RealByteString(uppercase) : this;
+    }
+
+    final byte @Nullable [] toAsciiUppercaseBytes() {
         // Search for a lowercase character. If we don't find one, return this.
         var i = 0;
         while (i < data.length) {
@@ -186,47 +201,50 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
             }
 
             // This string needs to be uppercased. Create and return a new byte string.
-            final var lowercase = data.clone();
-            lowercase[i++] = (byte) (c - ('a' - 'A'));
-            while (i < lowercase.length) {
-                c = lowercase[i];
+            final var uppercase = data.clone();
+            uppercase[i++] = (byte) (c - ('a' - 'A'));
+            while (i < uppercase.length) {
+                c = uppercase[i];
                 if (c < (byte) ((int) 'a') || c > (byte) ((int) 'z')) {
                     i++;
                     continue;
                 }
-                lowercase[i] = (byte) (c - ('a' - 'A'));
+                uppercase[i] = (byte) (c - ('a' - 'A'));
                 i++;
             }
-            return new RealByteString(lowercase);
+            return uppercase;
         }
-        return this;
+        return null;
     }
 
     @Override
-    public final @NonNull ByteString substring(final @NonNegative int startIndex) {
+    public @NonNull ByteString substring(final @NonNegative int startIndex) {
         return substring(startIndex, byteSize());
     }
 
     @Override
     public @NonNull ByteString substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
-        if (startIndex < 0) {
-            throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
-        }
-        if (endIndex > data.length) {
-            throw new IllegalArgumentException("endIndex > length(" + data.length + ")");
-        }
-        if (endIndex < startIndex) {
-            throw new IllegalArgumentException("endIndex < beginIndex");
-        }
-
+        checkSubstringParameters(startIndex, endIndex);
         if (startIndex == 0 && endIndex == data.length) {
             return this;
         }
         return new RealByteString(Arrays.copyOfRange(data, startIndex, endIndex));
     }
 
+    final void checkSubstringParameters(final @NonNegative int startIndex, final @NonNegative int endIndex) {
+        if (startIndex < 0) {
+            throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
+        }
+        if (endIndex > byteSize()) {
+            throw new IllegalArgumentException("endIndex > length(" + byteSize() + ")");
+        }
+        if (endIndex < startIndex) {
+            throw new IllegalArgumentException("endIndex < beginIndex");
+        }
+    }
+
     @Override
-    public byte get(final @NonNegative int index) {
+    public byte getByte(final @NonNegative int index) {
         return data[index];
     }
 
@@ -236,7 +254,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public boolean isEmpty() {
+    public final boolean isEmpty() {
         return byteSize() == 0;
     }
 
@@ -410,8 +428,8 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
         var i = 0;
         final var size = Math.min(sizeA, sizeB);
         while (i < size) {
-            final var byteA = get(i) & 0xff;
-            final var byteB = other.get(i) & 0xff;
+            final var byteA = getByte(i) & 0xff;
+            final var byteB = other.getByte(i) & 0xff;
             if (byteA == byteB) {
                 i++;
                 continue;
@@ -431,7 +449,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
             return "ByteString(size=0)";
         }
         // format: "ByteString(size=XXX hex=YYYY)"
-        final var size = byteSize();
+        final var size = data.length;
         final var sizeStr = String.valueOf(size);
         final var len = 22 + sizeStr.length() + size * 2;
         final StringBuilder sb = new StringBuilder(len);
@@ -447,31 +465,48 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
         return sb.toString();
     }
 
-    protected byte @NonNull [] internalArray() {
+    byte @NonNull [] internalArray() {
         return data;
     }
 
+    // region native-jvm-serialization
+
     @Serial
-    private void readObject(final @NonNull ObjectInputStream in) throws IOException { // For Java Serialization.
+    private void readObject(final @NonNull ObjectInputStream in) throws IOException {
         final var dataLength = in.readInt();
-        final var byteString = (RealByteString) ByteString.read(in, dataLength);
-        final Field field;
+        final var bytes = in.readNBytes(dataLength);
+        final var isAscii = in.readBoolean();
+        final var length = in.readInt();
+        final Field dataField;
+        final Field isAsciiField;
+        final Field lengthField;
         try {
-            field = RealByteString.class.getDeclaredField("data");
+            dataField = RealByteString.class.getDeclaredField("data");
+            isAsciiField = RealByteString.class.getDeclaredField("isAscii");
+            lengthField = RealByteString.class.getDeclaredField("length");
         } catch (NoSuchFieldException e) {
-            throw new IllegalStateException("JayoByteString should contain a 'data' field", e);
+            throw new IllegalStateException("RealByteString should contain 'data', 'isAscii' and 'length' fields", e);
         }
-        field.setAccessible(true);
+        dataField.setAccessible(true);
+        isAsciiField.setAccessible(true);
+        lengthField.setAccessible(true);
         try {
-            field.set(this, byteString.data);
+            dataField.set(this, bytes);
+            isAsciiField.set(this, isAscii);
+            lengthField.set(this, length);
         } catch (IllegalAccessException e) {
-            throw new IllegalStateException("It should be possible to set JayoByteString's 'data' field", e);
+            throw new IllegalStateException("It should be possible to set RealUtf8String's 'data', 'isAscii' and " +
+                    "'length' fields", e);
         }
     }
 
     @Serial
-    private void writeObject(final @NonNull ObjectOutputStream out) throws IOException { // For Java Serialization.
+    private void writeObject(final @NonNull ObjectOutputStream out) throws IOException {
         out.writeInt(data.length);
         out.write(data);
+        out.writeBoolean(isAscii);
+        out.writeInt(length);
     }
+
+    // endregion
 }

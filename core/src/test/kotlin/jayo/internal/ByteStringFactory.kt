@@ -24,6 +24,7 @@ package jayo.internal
 import jayo.ByteString
 import jayo.decodeHex
 import jayo.encodeToByteString
+import jayo.encodeToUtf8String
 
 interface ByteStringFactory {
     fun decodeHex(hex: String): ByteString
@@ -31,35 +32,40 @@ interface ByteStringFactory {
     fun encodeUtf8(s: String): ByteString
 
     companion object {
-
         @JvmStatic
         val BYTE_STRING: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = hex.decodeHex()
-            override fun encodeUtf8(s: String) = s.encodeToByteString()
+            override fun encodeUtf8(s: String) = s.encodeToByteString(Charsets.UTF_8)
         }
 
         @JvmStatic
-        val HEAP_SEGMENTED_BYTE_STRING: ByteStringFactory = object : ByteStringFactory {
+        val UTF8_STRING: ByteStringFactory = object : ByteStringFactory {
+            override fun decodeHex(hex: String) = hex.decodeHex()
+            override fun encodeUtf8(s: String) = s.encodeToUtf8String()
+        }
+
+        @JvmStatic
+        val SEGMENTED_BYTE_STRING: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = RealBuffer().apply { write(hex.decodeHex()) }.snapshot()
             override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.snapshot()
         }
 
         @JvmStatic
-        val NATIVE_SEGMENTED_BYTE_STRING: ByteStringFactory = object : ByteStringFactory {
+        val ONE_BYTE_PER_SEGMENT: ByteStringFactory = object : ByteStringFactory {
+            override fun decodeHex(hex: String) = makeSegments(hex.decodeHex())
+            override fun encodeUtf8(s: String) = makeSegments(s.encodeToByteString(Charsets.UTF_8))
+        }
+
+        @JvmStatic
+        val SEGMENTED_UTF8_STRING: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = RealBuffer().apply { write(hex.decodeHex()) }.snapshot()
-            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.snapshot()
+            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.utf8Snapshot()
         }
 
         @JvmStatic
-        val HEAP_ONE_BYTE_PER_SEGMENT: ByteStringFactory = object : ByteStringFactory {
+        val UTF8_ONE_BYTE_PER_SEGMENT: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = makeSegments(hex.decodeHex())
-            override fun encodeUtf8(s: String) = makeSegments(s.encodeToByteString())
-        }
-
-        @JvmStatic
-        val NATIVE_ONE_BYTE_PER_SEGMENT: ByteStringFactory = object : ByteStringFactory {
-            override fun decodeHex(hex: String) = makeSegments(hex.decodeHex())
-            override fun encodeUtf8(s: String) = makeSegments(s.encodeToByteString())
+            override fun encodeUtf8(s: String) = makeUtf8Segments(s.encodeToUtf8String())
         }
     }
 }
