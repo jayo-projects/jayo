@@ -37,7 +37,7 @@ import java.util.Objects;
  * </tr>
  * <tr>
  * <td>Encode a string</td>
- * <td>{@link ByteString#encodeUtf8(String)}</td>
+ * <td>{@link Utf8String#encodeUtf8(String)}</td>
  * <td>{@link Sink#writeUtf8(CharSequence)}, {@link Sink#writeUtf8(CharSequence, int, int)}</td>
  * </tr>
  * <tr>
@@ -66,7 +66,7 @@ import java.util.Objects;
  * <td>{@link Source#readUtf8Line()}</td>
  * </tr>
  * <tr>
- * <td>Measure the bytes in a UTF-8 char sequence</td>
+ * <td>Measure the number of bytes required to encode a char sequence using the UTF-8 encoding</td>
  * <td colspan="2">{@link Utf8#size(CharSequence)}</td>
  * </tr>
  * </table>

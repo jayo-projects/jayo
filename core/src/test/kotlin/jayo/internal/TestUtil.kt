@@ -36,7 +36,7 @@ object TestUtil {
     // Necessary to make an internal member visible to Java.
     @JvmField
     val SEGMENT_POOL_MAX_SIZE = SegmentPool.MAX_SIZE
-    const val REPLACEMENT_CODE_POINT: Int = Utils.UTF8_REPLACEMENT_CODE_POINT
+    const val REPLACEMENT_CODE_POINT: Int = Utf8Utils.UTF8_REPLACEMENT_CODE_POINT
 
     @JvmStatic
     fun segmentPoolByteCount() = SegmentPool.getByteCount()
@@ -76,7 +76,7 @@ object TestUtil {
         val b2Bytes = b2.toByteArray()
         for (i in b2Bytes.indices) {
             val b = b2Bytes[i]
-            assertEquals(b.toLong(), b1[i].toLong())
+            assertEquals(b.toLong(), b1.getByte(i).toLong())
         }
         assertByteArraysEquals(b1.toByteArray(), b2Bytes)
 
@@ -154,7 +154,7 @@ object TestUtil {
         if (original !is RealBuffer) {
             throw IllegalArgumentException()
         }
-        
+
         var s = original.segmentQueue.next
         while (s !== original.segmentQueue) {
             result.segmentQueue.addTail(s!!.unsharedCopy())

@@ -21,14 +21,14 @@
 
 package jayo.internal
 
-import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import jayo.ByteString
 import jayo.encodeToByteString
 import jayo.internal.TestUtil.assertEquivalent
 import jayo.internal.TestUtil.takeAllPoolSegments
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 /** Tests behavior optimized by sharing segments between buffers and byte strings.  */
 class SegmentSharingTest {
@@ -49,16 +49,16 @@ class SegmentSharingTest {
     @Test
     fun snapshotGetByte() {
         val byteString = bufferWithSegments(xs, ys, zs).snapshot()
-        assertEquals('x', byteString[0].toInt().toChar())
-        assertEquals('x', byteString[xs.length - 1].toInt().toChar())
-        assertEquals('y', byteString[xs.length].toInt().toChar())
-        assertEquals('y', byteString[xs.length + ys.length - 1].toInt().toChar())
-        assertEquals('z', byteString[xs.length + ys.length].toInt().toChar())
-        assertEquals('z', byteString[xs.length + ys.length + zs.length - 1].toInt().toChar())
-        assertThatThrownBy { byteString[-1] }
+        assertEquals('x', byteString.getByte(0).toInt().toChar())
+        assertEquals('x', byteString.getByte(xs.length - 1).toInt().toChar())
+        assertEquals('y', byteString.getByte(xs.length).toInt().toChar())
+        assertEquals('y', byteString.getByte(xs.length + ys.length - 1).toInt().toChar())
+        assertEquals('z', byteString.getByte(xs.length + ys.length).toInt().toChar())
+        assertEquals('z', byteString.getByte(xs.length + ys.length + zs.length - 1).toInt().toChar())
+        assertThatThrownBy { byteString.getByte(-1) }
             .isInstanceOf(IndexOutOfBoundsException::class.java)
 
-        assertThatThrownBy { byteString[xs.length + ys.length + zs.length] }
+        assertThatThrownBy { byteString.getByte(xs.length + ys.length + zs.length) }
             .isInstanceOf(IndexOutOfBoundsException::class.java)
 
     }

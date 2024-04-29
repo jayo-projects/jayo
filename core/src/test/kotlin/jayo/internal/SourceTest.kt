@@ -1539,7 +1539,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
             emit()
         }
         assertEquals("abc", source.readByteString(3).decodeToUtf8())
-        assertEquals("d", source.readUtf8(1))
+        assertEquals("d", source.readByteString(1).decodeToUtf8())
     }
 
     @Test
@@ -1549,6 +1549,40 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertFailsWith<JayoEOFException> { source.readByteString(4) }
 
         assertEquals("abc", source.readUtf8()) // The read shouldn't consume any data.
+    }
+
+    @Test
+    fun readUtf8String() {
+        with(sink) {
+            writeUtf8("abcd")
+            writeUtf8("e".repeat(Segment.SIZE))
+            emit()
+        }
+        assertThat(source.readUtf8String().codePoints())
+            .containsExactly('a'.code, 'b'.code, 'c'.code, 'd'.code, *IntArray(Segment.SIZE) { 'e'.code }.toTypedArray())
+    }
+
+    @Test
+    fun readUtf8StringPartial() {
+        with(sink) {
+            writeUtf8("abcd")
+            writeUtf8("e".repeat(Segment.SIZE))
+            emit()
+        }
+        assertThat(source.readUtf8String(3).codePoints())
+            .containsExactly('a'.code, 'b'.code, 'c'.code)
+        assertThat(source.readUtf8String(1).codePoints())
+            .containsExactly('d'.code)
+    }
+
+    @Test
+    fun readUtf8StringTooShortThrows() {
+        sink.writeUtf8("abc")
+        sink.emit()
+        assertFailsWith<JayoEOFException> { source.readUtf8String(4) }
+
+        assertThat(source.readUtf8String().codePoints())
+            .containsExactly('a'.code, 'b'.code, 'c'.code) // The read shouldn't consume any data.
     }
 
     @Test

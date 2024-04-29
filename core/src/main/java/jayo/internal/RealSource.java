@@ -78,41 +78,6 @@ public final class RealSource implements Source {
     }
 
     @Override
-    public boolean exhausted() {
-        if (closed) {
-            throw new IllegalStateException("closed");
-        }
-        return segmentQueue.expectSize(1L) == 0L;
-    }
-
-    @Override
-    public void require(final @NonNegative long byteCount) {
-        if (!request(byteCount)) {
-            throw new JayoEOFException("could not read " + byteCount + " bytes from source, had " + segmentQueue.size());
-        }
-    }
-
-    @Override
-    public boolean request(final @NonNegative long byteCount) {
-        if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
-        }
-        if (closed) {
-            throw new IllegalStateException("closed");
-        }
-        if (byteCount == 0) {
-            return true;
-        }
-        return segmentQueue.expectSize(byteCount) >= byteCount;
-    }
-
-    @Override
-    public byte readByte() {
-        require(1);
-        return buffer.readByte();
-    }
-
-    @Override
     public @NonNull ByteString readByteString() {
         if (closed) {
             throw new IllegalStateException("closed");
@@ -125,6 +90,21 @@ public final class RealSource implements Source {
     public @NonNull ByteString readByteString(final @NonNegative long byteCount) {
         require(byteCount);
         return buffer.readByteString(byteCount);
+    }
+
+    @Override
+    public @NonNull Utf8String readUtf8String() {
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
+        segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
+        return buffer.readUtf8String();
+    }
+
+    @Override
+    public @NonNull Utf8String readUtf8String(long byteCount) {
+        require(byteCount);
+        return buffer.readUtf8String(byteCount);
     }
 
     @Override
@@ -337,7 +317,7 @@ public final class RealSource implements Source {
             }
         }
 
-        return Utils.readUtf8Line(buffer, newline);
+        return Utf8Utils.readUtf8Line(buffer, newline);
     }
 
     @Override
@@ -353,13 +333,13 @@ public final class RealSource implements Source {
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1;
         final var newline = indexOf((byte) ((int) '\n'), 0, scanLength);
         if (newline != -1L) {
-            return Utils.readUtf8Line(buffer, newline);
+            return Utf8Utils.readUtf8Line(buffer, newline);
         }
         if (scanLength < Long.MAX_VALUE &&
                 request(scanLength) && buffer.get(scanLength - 1) == (byte) ((int) '\r') &&
                 request(scanLength + 1) && buffer.get(scanLength) == (byte) ((int) '\n')
         ) {
-            return Utils.readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
+            return Utf8Utils.readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
         }
         final var data = new RealBuffer();
         final var size = segmentQueue.size();
@@ -384,6 +364,41 @@ public final class RealSource implements Source {
         }
 
         return buffer.readUtf8CodePoint();
+    }
+
+    @Override
+    public boolean exhausted() {
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
+        return segmentQueue.expectSize(1L) == 0L;
+    }
+
+    @Override
+    public boolean request(final @NonNegative long byteCount) {
+        if (byteCount < 0L) {
+            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
+        }
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
+        if (byteCount == 0) {
+            return true;
+        }
+        return segmentQueue.expectSize(byteCount) >= byteCount;
+    }
+
+    @Override
+    public void require(final @NonNegative long byteCount) {
+        if (!request(byteCount)) {
+            throw new JayoEOFException("could not read " + byteCount + " bytes from source, had " + segmentQueue.size());
+        }
+    }
+
+    @Override
+    public byte readByte() {
+        require(1);
+        return buffer.readByte();
     }
 
     @Override
@@ -631,7 +646,7 @@ public final class RealSource implements Source {
             if (!request(bufferOffset + 1)) {
                 return false;
             }
-            if (buffer.get(bufferOffset) != byteString.get(bytesOffset + i)) {
+            if (buffer.get(bufferOffset) != byteString.getByte(bytesOffset + i)) {
                 return false;
             }
         }

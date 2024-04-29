@@ -25,13 +25,13 @@
 
 package jayo;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import jayo.internal.RealBuffer;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -364,6 +364,23 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
     @NonNull ByteString snapshot(final @NonNegative int byteCount);
 
     /**
+     * @return a UTF-8 byte string containing a copy of all the bytes of this buffer. This method does not consume data
+     * from this buffer.
+     * @apiNote A {@link Utf8String} is immutable
+     */
+    @NonNull
+    Utf8String utf8Snapshot();
+
+    /**
+     * @return a UTF-8 byte string containing a copy of the first {@code byteCount} bytes of this buffer. This method
+     * does not consume data from this buffer.
+     * @throws IndexOutOfBoundsException if {@code byteCount > buffer.byteSize()}.
+     * @apiNote A {@link Utf8String} is immutable
+     */
+    @NonNull
+    Utf8String utf8Snapshot(final @NonNegative int byteCount);
+
+    /**
      * @return an unsafe cursor to only read this buffer's data. Always call {@link UnsafeCursor#close} when done with
      * the cursor. This is convenient with Java try-with-resource and Kotlin's {@code use} extension function.
      * @apiNote {@link UnsafeCursor} exposes privileged access to the internal memory segments of a buffer. This handle
@@ -579,7 +596,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
         public static @NonNull UnsafeCursor create() {
             return new RealBuffer.RealUnsafeCursor();
         }
-        
+
         public @Nullable Buffer buffer = null;
         public boolean readWrite = false;
         public @NonNegative long offset = -1L;

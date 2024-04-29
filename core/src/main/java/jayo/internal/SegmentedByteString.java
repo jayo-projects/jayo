@@ -69,34 +69,34 @@ import static jayo.internal.Utils.arrayRangeEquals;
  * This structure is chosen so that the segment holding a particular offset can be found by
  * binary search. We use one array rather than two for the directory as a micro-optimization.
  */
-public final class SegmentedByteString extends RealByteString implements ByteString {
-    transient private final @NonNull Segment[] segments;
-    transient private final int[] directory;
+public sealed class SegmentedByteString extends RealByteString implements ByteString permits SegmentedUtf8String {
+    transient final @NonNull Segment @NonNull [] segments;
+    transient final int @NonNull [] directory;
 
-    SegmentedByteString(final @NonNull Segment[] segments, int[] directory) {
+    SegmentedByteString(final @NonNull Segment @NonNull [] segments, final int @NonNull [] directory) {
         super(((RealByteString) EMPTY).data);
         this.segments = Objects.requireNonNull(segments);
         this.directory = Objects.requireNonNull(directory);
     }
 
     @Override
-    public @NonNull String decodeToString(final @NonNull Charset charset) {
+    public final @NonNull String decodeToString(final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
         return toByteString().decodeToString(charset);
     }
 
     @Override
-    public @NonNull String base64() {
+    public final @NonNull String base64() {
         return toByteString().base64();
     }
 
     @Override
-    public @NonNull String base64Url() {
+    public final @NonNull String base64Url() {
         return toByteString().base64Url();
     }
 
     @Override
-    public @NonNull String hex() {
+    public final @NonNull String hex() {
         return toByteString().hex();
     }
 
@@ -111,7 +111,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public @NonNull ByteString hash(final @NonNull Digest digest) {
+    public final @NonNull ByteString hash(final @NonNull Digest digest) {
         final MessageDigest messageDigest;
         try {
             messageDigest = MessageDigest.getInstance(digest.algorithm());
@@ -123,7 +123,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
+    public final @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
         Objects.requireNonNull(key);
         final javax.crypto.Mac javaMac;
         try {
@@ -149,7 +149,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
             throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
         }
         if (endIndex > byteSize()) {
-            throw new IllegalArgumentException("endIndex > length(" + data.length + ")");
+            throw new IllegalArgumentException("endIndex > length(" + byteSize() + ")");
         }
         if (endIndex < startIndex) {
             throw new IllegalArgumentException("endIndex < beginIndex");
@@ -180,7 +180,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public byte get(final @NonNegative int index) {
+    public final byte getByte(final @NonNegative int index) {
         checkOffsetAndCount(directory[segments.length - 1], index, 1);
         final var segment = segment(index);
         final var segmentOffset = (segment == 0) ? 0 : directory[segment - 1];
@@ -189,12 +189,12 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public @NonNegative int byteSize() {
+    public final @NonNegative int byteSize() {
         return directory[segments.length - 1];
     }
 
     @Override
-    public byte @NonNull [] toByteArray() {
+    public final byte @NonNull [] toByteArray() {
         final var result = new byte[byteSize()];
         final var resultPos = new AtomicInteger();
         forEachSegment((s, offset, byteCount) -> {
@@ -205,7 +205,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public void write(final @NonNull OutputStream out) {
+    public final void write(final @NonNull OutputStream out) {
         Objects.requireNonNull(out);
         forEachSegment((s, offset, byteCount) -> {
             try {
@@ -217,9 +217,9 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    void write(final @NonNull RealBuffer buffer,
-               final @NonNegative int offset,
-               final @NonNegative int byteCount) {
+    final void write(final @NonNull RealBuffer buffer,
+                     final @NonNegative int offset,
+                     final @NonNegative int byteCount) {
         Objects.requireNonNull(buffer);
         forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
             s.pos = _offset;
@@ -232,10 +232,10 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative int offset,
-                               final @NonNull ByteString other,
-                               final @NonNegative int otherOffset,
-                               final @NonNegative int byteCount) {
+    public final boolean rangeEquals(final @NonNegative int offset,
+                                     final @NonNull ByteString other,
+                                     final @NonNegative int otherOffset,
+                                     final @NonNegative int byteCount) {
         Objects.requireNonNull(other);
         if (offset < 0 || offset > byteSize() - byteCount) {
             return false;
@@ -252,10 +252,10 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative int offset,
-                               final byte @NonNull [] other,
-                               final @NonNegative int otherOffset,
-                               final @NonNegative int byteCount) {
+    public final boolean rangeEquals(final @NonNegative int offset,
+                                     final byte @NonNull [] other,
+                                     final @NonNegative int otherOffset,
+                                     final @NonNegative int byteCount) {
         Objects.requireNonNull(other);
         if (offset < 0 || offset > byteSize() - byteCount ||
                 otherOffset < 0 || otherOffset > other.length - byteCount
@@ -274,10 +274,10 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public void copyInto(final @NonNegative int offset,
-                         final byte @NonNull [] target,
-                         final @NonNegative int targetOffset,
-                         final @NonNegative int byteCount) {
+    public final void copyInto(final @NonNegative int offset,
+                               final byte @NonNull [] target,
+                               final @NonNegative int targetOffset,
+                               final @NonNegative int byteCount) {
         Objects.requireNonNull(target);
         checkOffsetAndCount(byteSize(), offset, byteCount);
         checkOffsetAndCount(target.length, targetOffset, byteCount);
@@ -291,13 +291,13 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public int indexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public final int indexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
         Objects.requireNonNull(other);
         return toByteString().indexOf(other, startIndex);
     }
 
     @Override
-    public int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public final int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
         Objects.requireNonNull(other);
         return toByteString().lastIndexOf(other, startIndex);
     }
@@ -305,17 +305,17 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     /**
      * Returns a copy as a non-segmented byte string.
      */
-    private RealByteString toByteString() {
+    RealByteString toByteString() {
         return new RealByteString(toByteArray());
     }
 
     @Override
-    protected byte @NonNull [] internalArray() {
+    final byte @NonNull [] internalArray() {
         return toByteArray();
     }
 
     @Override
-    public boolean equals(final @Nullable Object other) {
+    public final boolean equals(final @Nullable Object other) {
         if (other == null) {
             return false;
         }
@@ -329,7 +329,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         if (hashCode != 0) {
             return hashCode;
         }
@@ -349,26 +349,64 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public @NonNull String toString() {
+    public final @NonNull String toString() {
         return toByteString().toString();
     }
 
-    @Serial
-    private @NonNull Object writeReplace() { // For Java Serialization.
-        return toByteString();
+    /**
+     * Processes the segments between `beginIndex` and `endIndex`, invoking `action` with the ByteArray
+     * and range of the valid data.
+     */
+    final boolean forEachSegment(final @NonNegative int beginIndex,
+                                 final @NonNegative int endIndex,
+                                 final @NonNull TriPredicate<Segment, Integer, Integer> action) {
+        Objects.requireNonNull(action);
+        var segmentIndex = segment(beginIndex);
+        var pos = beginIndex;
+        while (pos < endIndex) {
+            final var segmentOffset = (segmentIndex == 0) ? 0 : directory[segmentIndex - 1];
+            final var segmentSize = directory[segmentIndex] - segmentOffset;
+            final var segmentPos = directory[segments.length + segmentIndex];
+
+            final var byteCount = Math.min(endIndex, segmentOffset + segmentSize) - pos;
+            final var offset = segmentPos + (pos - segmentOffset);
+            if (!action.test(segments[segmentIndex], offset, byteCount)) {
+                return false;
+            }
+            pos += byteCount;
+            segmentIndex++;
+        }
+        return true;
+    }
+
+    /**
+     * Processes all segments, invoking `action` with the ByteArray and range of valid data.
+     */
+    private void forEachSegment(final @NonNull TriConsumer<Segment, Integer, Integer> action) {
+        Objects.requireNonNull(action);
+        var segmentIndex = 0;
+        var pos = 0;
+        while (segmentIndex < segments.length) {
+            final var segmentPos = directory[segments.length + segmentIndex];
+            final var nextSegmentOffset = directory[segmentIndex];
+
+            action.accept(segments[segmentIndex], segmentPos, nextSegmentOffset - pos);
+            pos = nextSegmentOffset;
+            segmentIndex++;
+        }
     }
 
     /**
      * Returns the index of the segment that contains the byte at `pos`.
      */
-    private int segment(final @NonNegative int pos) {
+    final int segment(final @NonNegative int pos) {
         // Search for (pos + 1) instead of (pos) because the directory holds sizes, not indexes.
         final var i = binarySearch(pos + 1, segments.length);
-        return (i >= 0) ? i : ~i; // If i is negative, bitflip to get the insert position.
+        return (i >= 0) ? i : ~i; // If i is negative, bitflip to get the invert position.
     }
 
-    private int binarySearch(final int value/*, final int startIndex*/, final int endIndex) {
-        var left = 0 /*startIndex*/;
+    private int binarySearch(final int value, final int endIndex) {
+        var left = 0;
         var right = endIndex - 1;
 
         while (left <= right) {
@@ -388,57 +426,22 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
         return -left - 1;
     }
 
-    /**
-     * Processes all segments, invoking `action` with the ByteArray and range of valid data.
-     */
-    private void forEachSegment(final @NonNull TriConsumer<Segment, Integer, Integer> action) {
-        Objects.requireNonNull(action);
-        final var segmentCount = segments.length;
-        var s = 0;
-        var pos = 0;
-        while (s < segmentCount) {
-            final var segmentPos = directory[segmentCount + s];
-            final var nextSegmentOffset = directory[s];
-
-            action.accept(segments[s], segmentPos, nextSegmentOffset - pos);
-            pos = nextSegmentOffset;
-            s++;
-        }
-    }
-
-    /**
-     * Processes the segments between `beginIndex` and `endIndex`, invoking `action` with the ByteArray
-     * and range of the valid data.
-     */
-    private boolean forEachSegment(final @NonNegative int beginIndex,
-                                   final @NonNegative int endIndex,
-                                   final @NonNull TriPredicate<Segment, Integer, Integer> action) {
-        Objects.requireNonNull(action);
-        var s = segment(beginIndex);
-        var pos = beginIndex;
-        while (pos < endIndex) {
-            final var segmentOffset = (s == 0) ? 0 : directory[s - 1];
-            final var segmentSize = directory[s] - segmentOffset;
-            final var segmentPos = directory[segments.length + s];
-
-            final var byteCount = Math.min(endIndex, segmentOffset + segmentSize) - pos;
-            final var offset = segmentPos + (pos - segmentOffset);
-            if (!action.test(segments[s], offset, byteCount)) {
-                return false;
-            }
-            pos += byteCount;
-            s++;
-        }
-        return true;
-    }
-
     @FunctionalInterface
     private interface TriConsumer<T, U, V> {
         void accept(T t, U u, V v);
     }
 
     @FunctionalInterface
-    private interface TriPredicate<T, U, V> {
+    interface TriPredicate<T, U, V> {
         boolean test(T t, U u, V v);
     }
+
+    // region native-jvm-serialization
+
+    @Serial
+    private @NonNull Object writeReplace() { // For Java Serialization.
+        return toByteString();
+    }
+
+    // endregion
 }
