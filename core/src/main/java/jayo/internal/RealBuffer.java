@@ -48,6 +48,7 @@ import java.util.function.BiFunction;
 
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.UnsafeUtils.*;
+import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 import static jayo.internal.Utils.*;
 
 public final class RealBuffer implements Buffer {
@@ -605,6 +606,23 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
+    public @NonNull Utf8ByteString readUtf8ByteString() {
+        return readUtf8ByteString(segmentQueue.size());
+    }
+
+    @Override
+    public @NonNull Utf8ByteString readUtf8ByteString(long byteCount) {
+        if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("invalid byteCount: " + byteCount);
+        }
+        if (segmentQueue.size() < byteCount) {
+            throw new JayoEOFException();
+        }
+
+        return new RealUtf8ByteString(readByteArray(byteCount), false);
+    }
+
+    @Override
     public int select(final @NonNull Options options) {
         if (!(Objects.requireNonNull(options) instanceof RealOptions _options)) {
             throw new IllegalArgumentException("options must be an instance of JayoOptions");
@@ -699,7 +717,7 @@ public final class RealBuffer implements Buffer {
         final var newline = indexOf((byte) ((int) '\n'));
 
         if (newline != -1L) {
-            return Utils.readUtf8Line(this, newline);
+            return Utf8Utils.readUtf8Line(this, newline);
         }
         if (segmentQueue.size() != 0L) {
             return readUtf8(segmentQueue.size());
@@ -721,13 +739,13 @@ public final class RealBuffer implements Buffer {
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1L;
         final var newline = indexOf((byte) ((int) '\n'), 0L, scanLength);
         if (newline != -1L) {
-            return Utils.readUtf8Line(this, newline);
+            return Utf8Utils.readUtf8Line(this, newline);
         }
         if (scanLength < segmentQueue.size() &&
                 get(scanLength - 1) == (byte) ((int) '\r') &&
                 get(scanLength) == (byte) ((int) '\n')) {
             // The line was 'limit' UTF-8 bytes followed by \r\n.
-            return Utils.readUtf8Line(this, scanLength);
+            return Utf8Utils.readUtf8Line(this, scanLength);
         }
         final var data = new RealBuffer();
         copyTo(data, 0, Math.min(32, segmentQueue.size()));
@@ -1167,7 +1185,7 @@ public final class RealBuffer implements Buffer {
 
         // fast-path#2 for ISO_8859_1 encoding
         if (charset == StandardCharsets.ISO_8859_1 && UNSAFE_AVAILABLE && isLatin1(string)) {
-            final var stringBytes = bytes(string);
+            final var stringBytes = getBytes(string);
             return write(stringBytes, startIndex, endIndex - startIndex);
         }
 
@@ -1753,8 +1771,8 @@ public final class RealBuffer implements Buffer {
             // optimization is a ~5x speedup for this case without a substantial cost to other cases.
             if (_targetBytes.byteSize() == 2) {
                 // Scan through the segments, searching for either of the two bytes.
-                final var b0 = _targetBytes.get(0);
-                final var b1 = _targetBytes.get(1);
+                final var b0 = _targetBytes.getByte(0);
+                final var b1 = _targetBytes.getByte(1);
                 while (offset < segmentQueue.size()) {
                     final var data = segment.data;
                     final var currentPos = segment.pos;
@@ -1822,7 +1840,7 @@ public final class RealBuffer implements Buffer {
             return false;
         }
         for (var i = 0; i < byteCount; i++) {
-            if (get(offset + i) != byteString.get(bytesOffset + i)) {
+            if (get(offset + i) != byteString.getByte(bytesOffset + i)) {
                 return false;
             }
         }

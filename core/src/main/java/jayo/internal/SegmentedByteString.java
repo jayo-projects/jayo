@@ -149,7 +149,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
             throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
         }
         if (endIndex > byteSize()) {
-            throw new IllegalArgumentException("endIndex > length(" + data.length + ")");
+            throw new IllegalArgumentException("endIndex > length(" + byteSize() + ")");
         }
         if (endIndex < startIndex) {
             throw new IllegalArgumentException("endIndex < beginIndex");
@@ -180,7 +180,7 @@ public final class SegmentedByteString extends RealByteString implements ByteStr
     }
 
     @Override
-    public byte get(final @NonNegative int index) {
+    public byte getByte(final @NonNegative int index) {
         checkOffsetAndCount(directory[segments.length - 1], index, 1);
         final var segment = segment(index);
         final var segmentOffset = (segment == 0) ? 0 : directory[segment - 1];

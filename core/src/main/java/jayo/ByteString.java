@@ -30,10 +30,10 @@ import jayo.crypto.Hmac;
 import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.internal.RealByteString;
 import jayo.internal.SegmentedByteString;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,7 +60,7 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * {@link #toByteArray()} won't mutate the byte string itself.
  */
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
-        permits RealByteString, SegmentedByteString {
+        permits RealByteString, SegmentedByteString, Utf8ByteString {
     /**
      * The empty byte string
      */
@@ -98,18 +98,11 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     }
 
     /**
-     * Encodes {@code string} using UTF-8 and wraps these bytes into a byte string.
-     */
-    static @NonNull ByteString encodeUtf8(final @NonNull String string) {
-        return new RealByteString(string);
-    }
-
-    /**
      * Encodes {@code string} using the provided {@code charset} and wraps these bytes into a byte string.
      */
     static @NonNull ByteString encode(final @NonNull String string, final @NonNull Charset charset) {
         if (charset == StandardCharsets.UTF_8) {
-            return encodeUtf8(string);
+            return new RealByteString(string);
         }
         return new RealByteString(string.getBytes(charset));
     }
@@ -217,7 +210,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
 
     /**
      * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
-     * @param key the key to use for this MAC operation.
+     * @param key  the key to use for this MAC operation.
      * @return the MAC result of this byte string.
      * @throws IllegalArgumentException if the {@code key} is invalid
      */
@@ -269,7 +262,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @return the byte at {@code index}.
      * @throws IndexOutOfBoundsException if {@code index} is out of range of byte string indices.
      */
-    byte get(final @NonNegative int index);
+    byte getByte(final @NonNegative int index);
 
     /**
      * @return the number of bytes in this ByteString.
@@ -430,15 +423,14 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex);
 
     /**
-     * Returns a string representation of this byte string. A string representation consists of {@code size} and
-     * a hexadecimal-encoded string of the bytes wrapped by this byte string.
+     * Returns a string representation of this byte string. A string representation consists of {@code size} and a
+     * hexadecimal-encoded string of the bytes wrapped by this byte string.
      * <p>
-     * The string representation has the following format {@code ByteString(size=3 hex=ABCDEF)},
-     * for empty strings it's always {@code ByteString(size=0)}.
+     * The string representation has the following format {@code ByteString(size=3 hex=ABCDEF)}, for empty strings it's
+     * always {@code ByteString(size=0)}.
      * <p>
-     * Note that a string representation includes the whole byte string content encoded.
-     * Due to limitations exposed for the maximum string length, an attempt to return a string representation
-     * of too long byte string may fail.
+     * Note that a string representation includes the whole byte string content encoded. Due to limitations exposed for
+     * the maximum string length, an attempt to return a string representation of too long byte string may fail.
      */
     @Override
     @NonNull

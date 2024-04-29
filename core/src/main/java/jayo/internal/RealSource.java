@@ -128,6 +128,21 @@ public final class RealSource implements Source {
     }
 
     @Override
+    public @NonNull Utf8ByteString readUtf8ByteString() {
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
+        segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
+        return buffer.readUtf8ByteString();
+    }
+
+    @Override
+    public @NonNull Utf8ByteString readUtf8ByteString(long byteCount) {
+        require(byteCount);
+        return buffer.readUtf8ByteString(byteCount);
+    }
+
+    @Override
     public int select(final @NonNull Options options) {
         Objects.requireNonNull(options);
         if (closed) {
@@ -337,7 +352,7 @@ public final class RealSource implements Source {
             }
         }
 
-        return Utils.readUtf8Line(buffer, newline);
+        return Utf8Utils.readUtf8Line(buffer, newline);
     }
 
     @Override
@@ -353,13 +368,13 @@ public final class RealSource implements Source {
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1;
         final var newline = indexOf((byte) ((int) '\n'), 0, scanLength);
         if (newline != -1L) {
-            return Utils.readUtf8Line(buffer, newline);
+            return Utf8Utils.readUtf8Line(buffer, newline);
         }
         if (scanLength < Long.MAX_VALUE &&
                 request(scanLength) && buffer.get(scanLength - 1) == (byte) ((int) '\r') &&
                 request(scanLength + 1) && buffer.get(scanLength) == (byte) ((int) '\n')
         ) {
-            return Utils.readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
+            return Utf8Utils.readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
         }
         final var data = new RealBuffer();
         final var size = segmentQueue.size();
@@ -631,7 +646,7 @@ public final class RealSource implements Source {
             if (!request(bufferOffset + 1)) {
                 return false;
             }
-            if (buffer.get(bufferOffset) != byteString.get(bytesOffset + i)) {
+            if (buffer.get(bufferOffset) != byteString.getByte(bytesOffset + i)) {
                 return false;
             }
         }

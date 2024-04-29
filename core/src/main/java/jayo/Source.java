@@ -25,11 +25,11 @@
 
 package jayo;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.exceptions.JayoEOFException;
 import jayo.external.NonNegative;
 import jayo.internal.RealSource;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -292,6 +292,25 @@ public sealed interface Source extends RawSource permits Buffer, RealSource {
      * @throws IllegalStateException    if this source is closed.
      */
     @NonNull ByteString readByteString(final @NonNegative long byteCount);
+
+    /**
+     * Removes all bytes from this source and returns them as a UTF-8 byte string.
+     *
+     * @return the UTF-8 byte string containing all bytes from this source.
+     * @throws IllegalStateException if this source is closed.
+     */
+    @NonNull Utf8ByteString readUtf8ByteString();
+
+    /**
+     * Removes {@code byteCount} bytes from this and returns them as a UTF-8 byte string.
+     *
+     * @param byteCount the number of bytes to read from the source.
+     * @return the UTF-8 byte string containing {@code byteCount} bytes from this source.
+     * @throws JayoEOFException         if the source is exhausted before reading {@code byteCount} bytes from it.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this source is closed.
+     */
+    @NonNull Utf8ByteString readUtf8ByteString(final @NonNegative long byteCount);
 
     /**
      * Finds the first string in {@code options} that is a prefix of this source, consumes it from this

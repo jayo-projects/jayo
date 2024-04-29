@@ -55,7 +55,7 @@ fun makeSegments(source: ByteString): ByteString {
     val buffer = RealBuffer()
     for (i in 0 until source.byteSize()) {
         val tail = buffer.segmentQueue.writableSegment(Segment.SIZE)
-        tail.data[tail.pos] = source[i]
+        tail.data[tail.pos] = source.getByte(i)
         val limit = tail.limit
         tail.limit = limit + 1
         buffer.segmentQueue.addTail(tail)
