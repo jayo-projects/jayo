@@ -21,8 +21,8 @@
 
 package jayo.samples;
 
-import jayo.ByteString;
 import jayo.Utf8;
+import jayo.Utf8ByteString;
 
 public final class ExploreCharsets {
     public void run() {
@@ -35,7 +35,7 @@ public final class ExploreCharsets {
         System.out.println("        String.length: " + s.length());
         System.out.println("String.codePointCount: " + s.codePointCount(0, s.length()));
         System.out.println("            Utf8.size: " + Utf8.size(s));
-        System.out.println("          UTF-8 bytes: " + ByteString.encodeUtf8(s).hex());
+        System.out.println("          UTF-8 bytes: " + Utf8ByteString.encodeUtf8(s).hex());
         System.out.println();
     }
 

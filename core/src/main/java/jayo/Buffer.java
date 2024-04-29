@@ -25,13 +25,13 @@
 
 package jayo;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import jayo.internal.RealBuffer;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -579,7 +579,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
         public static @NonNull UnsafeCursor create() {
             return new RealBuffer.RealUnsafeCursor();
         }
-        
+
         public @Nullable Buffer buffer = null;
         public boolean readWrite = false;
         public @NonNegative long offset = -1L;

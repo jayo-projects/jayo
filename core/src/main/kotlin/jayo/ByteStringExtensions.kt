@@ -40,6 +40,13 @@ public fun ByteArray.toByteString(
 /** Returns a [ByteString] containing a copy of the content of this [ByteBuffer]. */
 public fun ByteBuffer.toByteString(): ByteString = ByteString.of(this)
 
+/**
+ * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
+ *
+ * @throws jayo.exceptions.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ */
+public fun InputStream.readByteString(byteCount: Int): ByteString = ByteString.read(this, byteCount)
+
 /** Returns a new [ByteString] containing the `charset`-encoded bytes of this [String]. */
 public fun String.encodeToByteString(charset: Charset = Charsets.UTF_8): ByteString =
     ByteString.encode(this, charset)
@@ -52,11 +59,4 @@ public fun CharSequence.decodeBase64(): ByteString? = ByteString.decodeBase64(th
 
 /** Decodes the hex-encoded bytes and returns the result as a [ByteString]. */
 public fun CharSequence.decodeHex(): ByteString = ByteString.decodeHex(this)
-
-/**
- * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
- *
- * @throws jayo.exceptions.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
- */
-public fun InputStream.readByteString(byteCount: Int): ByteString = ByteString.read(this, byteCount)
     

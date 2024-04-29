@@ -22,9 +22,9 @@
 
 package jayo.internal;
 
+import jayo.ByteString;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import jayo.ByteString;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -39,10 +39,12 @@ public final class Base64Utils {
     }
 
     private static final byte @NonNull [] BASE64 = ((RealByteString) ByteString
-            .encodeUtf8("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")).data;
+            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", StandardCharsets.UTF_8))
+            .data;
 
     private static final byte @NonNull [] BASE64_URL_SAFE = ((RealByteString) ByteString
-            .encodeUtf8("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")).data;
+            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", StandardCharsets.UTF_8))
+            .data;
 
     public static byte @Nullable [] decodeBase64ToArray(final @NonNull CharSequence source) {
         // Ignore trailing '=' padding and whitespace from the input.

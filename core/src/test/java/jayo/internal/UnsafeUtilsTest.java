@@ -8,7 +8,7 @@ package jayo.internal;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static jayo.internal.UnsafeUtils.bytes;
+import static jayo.internal.UnsafeUtils.getBytes;
 import static jayo.internal.UnsafeUtils.isLatin1;
 import static jayo.internal.UtilKt.LATIN1;
 
@@ -18,14 +18,14 @@ public class UnsafeUtilsTest {
 
     @Test
     void extractBytesAscii() {
-        assertThat(bytes(ASCII))
+        assertThat(getBytes(ASCII))
                 .hasSize(3)
                 .containsExactly((byte) 'a', (byte) 'b', (byte) 'c');
     }
 
     @Test
     void extractBytesUtf16() {
-        assertThat(bytes(UTF_16))
+        assertThat(getBytes(UTF_16))
                 .hasSize(8);
     }
 

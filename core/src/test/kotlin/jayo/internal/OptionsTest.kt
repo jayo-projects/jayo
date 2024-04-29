@@ -21,10 +21,10 @@
 
 package jayo.internal
 
-import org.junit.jupiter.api.Test
 import jayo.Buffer
 import jayo.Options
-import jayo.encodeToByteString
+import jayo.encodeToUtf8ByteString
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.fail
@@ -219,7 +219,7 @@ class OptionsTest {
             utf8Options("abc", "abc")
             fail()
         } catch (expected: IllegalArgumentException) {
-            assertEquals(expected.message, "duplicate option: ByteString(size=3 hex=616263)")
+            assertEquals(expected.message, "duplicate option: abc")
         }
     }
 
@@ -407,7 +407,7 @@ class OptionsTest {
     }
 
     private fun utf8Options(vararg options: String): Options {
-        return Options.of(*options.map { it.encodeToByteString() }.toTypedArray())
+        return Options.of(*options.map { it.encodeToUtf8ByteString() }.toTypedArray())
     }
 
     private fun assertSelect(data: String, expected: Int, options: Options) {

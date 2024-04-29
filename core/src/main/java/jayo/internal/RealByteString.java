@@ -45,17 +45,17 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Utils.HEX_DIGIT_CHARS;
 import static jayo.internal.Utils.arrayRangeEquals;
 
-public sealed class RealByteString implements ByteString permits SegmentedByteString {
+public sealed class RealByteString implements ByteString permits RealUtf8ByteString, SegmentedByteString {
     @Serial
     private static final long serialVersionUID = 42L;
 
     final byte @NonNull [] data;
-    transient protected int hashCode = 0; // Lazily computed; 0 if unknown.
-    @Nullable
-    transient private String utf8 = null; // Lazily computed.
+    transient int hashCode = 0; // Lazily computed; 0 if unknown.
+    transient @Nullable String utf8; // Lazily computed.
 
     public RealByteString(final byte @NonNull [] data) {
         this.data = Objects.requireNonNull(data);
+        utf8 = null;
     }
 
     public RealByteString(final byte @NonNull [] data,
@@ -63,6 +63,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
                           final @NonNegative int byteCount) {
         checkOffsetAndCount(Objects.requireNonNull(data).length, offset, byteCount);
         this.data = Arrays.copyOfRange(data, offset, offset + byteCount);
+        utf8 = null;
     }
 
     /**
@@ -74,14 +75,14 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public final @NonNull String decodeToUtf8() {
-        var result = utf8;
-        if (result == null) {
+    public @NonNull String decodeToUtf8() {
+        var utf8String = utf8;
+        if (utf8String == null) {
             // We don't care if we double-allocate in racy code.
-            result = new String(internalArray(), StandardCharsets.UTF_8);
-            utf8 = result;
+            utf8String = new String(internalArray(), StandardCharsets.UTF_8);
+            utf8 = utf8String;
         }
-        return result;
+        return utf8String;
     }
 
     @Override
@@ -226,7 +227,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public byte get(final @NonNegative int index) {
+    public byte getByte(final @NonNegative int index) {
         return data[index];
     }
 
@@ -236,7 +237,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
     }
 
     @Override
-    public boolean isEmpty() {
+    public final boolean isEmpty() {
         return byteSize() == 0;
     }
 
@@ -410,8 +411,8 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
         var i = 0;
         final var size = Math.min(sizeA, sizeB);
         while (i < size) {
-            final var byteA = get(i) & 0xff;
-            final var byteB = other.get(i) & 0xff;
+            final var byteA = getByte(i) & 0xff;
+            final var byteB = other.getByte(i) & 0xff;
             if (byteA == byteB) {
                 i++;
                 continue;
@@ -431,7 +432,7 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
             return "ByteString(size=0)";
         }
         // format: "ByteString(size=XXX hex=YYYY)"
-        final var size = byteSize();
+        final var size = data.length;
         final var sizeStr = String.valueOf(size);
         final var len = 22 + sizeStr.length() + size * 2;
         final StringBuilder sb = new StringBuilder(len);
@@ -447,31 +448,35 @@ public sealed class RealByteString implements ByteString permits SegmentedByteSt
         return sb.toString();
     }
 
-    protected byte @NonNull [] internalArray() {
+    byte @NonNull [] internalArray() {
         return data;
     }
 
+    // region native-jvm-serialization
+
     @Serial
-    private void readObject(final @NonNull ObjectInputStream in) throws IOException { // For Java Serialization.
+    private void readObject(final @NonNull ObjectInputStream in) throws IOException {
         final var dataLength = in.readInt();
         final var byteString = (RealByteString) ByteString.read(in, dataLength);
         final Field field;
         try {
             field = RealByteString.class.getDeclaredField("data");
         } catch (NoSuchFieldException e) {
-            throw new IllegalStateException("JayoByteString should contain a 'data' field", e);
+            throw new IllegalStateException("RealByteString should contain a 'data' field", e);
         }
         field.setAccessible(true);
         try {
             field.set(this, byteString.data);
         } catch (IllegalAccessException e) {
-            throw new IllegalStateException("It should be possible to set JayoByteString's 'data' field", e);
+            throw new IllegalStateException("It should be possible to set RealByteString's 'data' field", e);
         }
     }
 
     @Serial
-    private void writeObject(final @NonNull ObjectOutputStream out) throws IOException { // For Java Serialization.
+    private void writeObject(final @NonNull ObjectOutputStream out) throws IOException {
         out.writeInt(data.length);
         out.write(data);
     }
+
+    // endregion
 }

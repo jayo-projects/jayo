@@ -21,7 +21,6 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
 import jayo.Source;
 import org.jspecify.annotations.NonNull;
 
@@ -33,9 +32,6 @@ final class Utils {
     // un-instantiable
     private Utils() {
     }
-
-    static final char UTF8_REPLACEMENT_CHARACTER = '\ufffd';
-    static final int UTF8_REPLACEMENT_CODE_POINT = UTF8_REPLACEMENT_CHARACTER;
 
     static final long OVERFLOW_ZONE = Long.MIN_VALUE / 10L;
     static final long OVERFLOW_DIGIT_START = Long.MIN_VALUE % 10L + 1;
@@ -144,20 +140,6 @@ final class Utils {
         }
 
         return prefixIndex; // Return any matches we encountered while searching for a deeper match.
-    }
-
-    static String readUtf8Line(final Buffer buffer, final long newline) {
-        if (newline > 0L && buffer.get(newline - 1) == (byte) ((int) '\r')) {
-            // Read everything until '\r\n', then skip the '\r\n'.
-            final var result = buffer.readUtf8(newline - 1L);
-            buffer.skip(2L);
-            return result;
-        }
-
-        // Read everything until '\n', then skip the '\n'.
-        final var result = buffer.readUtf8(newline);
-        buffer.skip(1L);
-        return result;
     }
 
     static RealBuffer getBufferFromSource(final Source source) {

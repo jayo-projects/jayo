@@ -155,11 +155,11 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             from = byteStrings.get(_startIndex);
         }
 
-        if (from.get(byteStringOffset) != to.get(byteStringOffset)) {
+        if (from.getByte(byteStringOffset) != to.getByte(byteStringOffset)) {
             // If we have multiple bytes to choose from, encode a SELECT node.
             var selectChoiceCount = 1;
             for (var i = _startIndex + 1; i < endIndex; i++) {
-                if (byteStrings.get(i - 1).get(byteStringOffset) != byteStrings.get(i).get(byteStringOffset)) {
+                if (byteStrings.get(i - 1).getByte(byteStringOffset) != byteStrings.get(i).getByte(byteStringOffset)) {
                     selectChoiceCount++;
                 }
             }
@@ -171,8 +171,8 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             node.writeInt(prefixIndex);
 
             for (var i = _startIndex; i < endIndex; i++) {
-                final var rangeByte = byteStrings.get(i).get(byteStringOffset);
-                if (i == _startIndex || rangeByte != byteStrings.get(i - 1).get(byteStringOffset)) {
+                final var rangeByte = byteStrings.get(i).getByte(byteStringOffset);
+                if (i == _startIndex || rangeByte != byteStrings.get(i - 1).getByte(byteStringOffset)) {
                     node.writeInt(rangeByte & 0xff);
                 }
             }
@@ -180,10 +180,10 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             final var childNodes = new RealBuffer();
             var rangeStart = _startIndex;
             while (rangeStart < endIndex) {
-                final var rangeByte = byteStrings.get(rangeStart).get(byteStringOffset);
+                final var rangeByte = byteStrings.get(rangeStart).getByte(byteStringOffset);
                 var rangeEnd = endIndex;
                 for (var i = rangeStart + 1; i < endIndex; i++) {
-                    if (rangeByte != byteStrings.get(i).get(byteStringOffset)) {
+                    if (rangeByte != byteStrings.get(i).getByte(byteStringOffset)) {
                         rangeEnd = i;
                         break;
                     }
@@ -216,7 +216,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             // If all the bytes are the same, encode a SCAN node.
             var scanByteCount = 0;
             for (var i = byteStringOffset; i < Math.min(from.byteSize(), to.byteSize()); i++) {
-                if (from.get(i) == to.get(i)) {
+                if (from.getByte(i) == to.getByte(i)) {
                     scanByteCount++;
                 } else {
                     break;
@@ -230,7 +230,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             node.writeInt(prefixIndex);
 
             for (var i = byteStringOffset; i < byteStringOffset + scanByteCount; i++) {
-                node.writeInt(from.get(i) & 0xff);
+                node.writeInt(from.getByte(i) & 0xff);
             }
 
             if (_startIndex + 1 == endIndex) {

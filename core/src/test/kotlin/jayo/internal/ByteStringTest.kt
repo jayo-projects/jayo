@@ -21,6 +21,12 @@
 
 package jayo.internal
 
+import jayo.ByteString
+import jayo.crypto.Digests
+import jayo.crypto.Hmacs
+import jayo.encodeToByteString
+import jayo.readByteString
+import jayo.toByteString
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -28,12 +34,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import jayo.ByteString
-import jayo.crypto.Digests
-import jayo.crypto.Hmacs
-import jayo.encodeToByteString
-import jayo.readByteString
-import jayo.toByteString
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.util.stream.Stream
@@ -45,10 +45,9 @@ class ByteStringTest {
         fun parameters(): Stream<Arguments>? {
             return Stream.of(
                 Arguments.of(ByteStringFactory.BYTE_STRING, "ByteString"),
-                Arguments.of(ByteStringFactory.HEAP_SEGMENTED_BYTE_STRING, "HeapSegmentedByteString"),
-                Arguments.of(ByteStringFactory.NATIVE_SEGMENTED_BYTE_STRING, "NativeSegmentedByteString"),
-                Arguments.of(ByteStringFactory.HEAP_ONE_BYTE_PER_SEGMENT, "HeapSegmentedByteString (one-at-a-time)"),
-                Arguments.of(ByteStringFactory.NATIVE_ONE_BYTE_PER_SEGMENT, "NativeSegmentedByteString (one-at-a-time)")
+                Arguments.of(ByteStringFactory.UTF8_BYTE_STRING, "Utf8ByteString"),
+                Arguments.of(ByteStringFactory.SEGMENTED_BYTE_STRING, "SegmentedByteString"),
+                Arguments.of(ByteStringFactory.ONE_BYTE_PER_SEGMENT, "SegmentedByteString (one-byte-at-a-time)"),
             )
         }
     }
