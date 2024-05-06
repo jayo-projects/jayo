@@ -340,18 +340,18 @@ public class BufferJavaTest {
         buffer.writeUtf8("a");
         buffer.writeUtf8(repeat("b", Segment.SIZE));
         buffer.writeUtf8("c");
-        assertEquals('a', buffer.get(0));
-        assertEquals('a', buffer.get(0)); // getByte doesn't mutate!
-        assertEquals('c', buffer.get(buffer.byteSize() - 1));
-        assertEquals('b', buffer.get(buffer.byteSize() - 2));
-        assertEquals('b', buffer.get(buffer.byteSize() - 3));
+        assertEquals('a', buffer.getByte(0));
+        assertEquals('a', buffer.getByte(0)); // getByte doesn't mutate!
+        assertEquals('c', buffer.getByte(buffer.byteSize() - 1));
+        assertEquals('b', buffer.getByte(buffer.byteSize() - 2));
+        assertEquals('b', buffer.getByte(buffer.byteSize() - 3));
     }
 
     @Test
     void getByteOfEmptyBuffer() {
         Buffer buffer = new RealBuffer();
         assertThatThrownBy(() -> {
-            buffer.get(0);
+            buffer.getByte(0);
             Assertions.fail();
         }).isInstanceOf(IndexOutOfBoundsException.class);
     }

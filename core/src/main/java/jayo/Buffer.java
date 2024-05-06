@@ -220,7 +220,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * for sequential access to a range of bytes within the buffer.
      * @throws IndexOutOfBoundsException if {@code position} is negative or greater or equal to {@link #byteSize()}.
      */
-    byte get(final @NonNegative long pos);
+    byte getByte(final @NonNegative long pos);
 
     /**
      * Discards all bytes in this buffer.
