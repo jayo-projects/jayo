@@ -317,7 +317,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public byte get(final @NonNegative long pos) {
+    public byte getByte(final @NonNegative long pos) {
         checkOffsetAndCount(segmentQueue.size(), pos, 1L);
         return seek(pos, (s, offset) -> s.data[(int) (s.pos + pos - offset)]);
     }
@@ -508,7 +508,7 @@ public final class RealBuffer implements Buffer {
                 throw new JayoEOFException();
             }
             final var expected = (negative) ? "Expected a digit" : "Expected a digit or '-'";
-            throw new NumberFormatException(expected + " but was 0x" + toHexString(get(0)));
+            throw new NumberFormatException(expected + " but was 0x" + toHexString(getByte(0)));
         }
 
         return (negative) ? value : -value;
@@ -742,8 +742,8 @@ public final class RealBuffer implements Buffer {
             return Utf8Utils.readUtf8Line(this, newline);
         }
         if (scanLength < segmentQueue.size() &&
-                get(scanLength - 1) == (byte) ((int) '\r') &&
-                get(scanLength) == (byte) ((int) '\n')) {
+                getByte(scanLength - 1) == (byte) ((int) '\r') &&
+                getByte(scanLength) == (byte) ((int) '\n')) {
             // The line was 'limit' UTF-8 bytes followed by \r\n.
             return Utf8Utils.readUtf8Line(this, scanLength);
         }
@@ -760,7 +760,7 @@ public final class RealBuffer implements Buffer {
             throw new JayoEOFException();
         }
 
-        final var b0 = get(0);
+        final var b0 = getByte(0);
         int codePoint;
         final int byteCount;
         final int min;
@@ -801,7 +801,7 @@ public final class RealBuffer implements Buffer {
         // thus far is truncated and is decoded as the replacement character. That non-continuation byte
         // is left in the stream for processing by the next call to readUtf8CodePoint().
         for (var i = 1; i < byteCount; i++) {
-            final var b = get(i);
+            final var b = getByte(i);
             if ((b & 0xc0) == 0x80) {
                 // 0x10xxxxxx
                 codePoint = codePoint << 6;
@@ -1840,7 +1840,7 @@ public final class RealBuffer implements Buffer {
             return false;
         }
         for (var i = 0; i < byteCount; i++) {
-            if (get(offset + i) != byteString.getByte(bytesOffset + i)) {
+            if (getByte(offset + i) != byteString.getByte(bytesOffset + i)) {
                 return false;
             }
         }

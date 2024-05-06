@@ -371,8 +371,8 @@ public final class RealSource implements Source {
             return Utf8Utils.readUtf8Line(buffer, newline);
         }
         if (scanLength < Long.MAX_VALUE &&
-                request(scanLength) && buffer.get(scanLength - 1) == (byte) ((int) '\r') &&
-                request(scanLength + 1) && buffer.get(scanLength) == (byte) ((int) '\n')
+                request(scanLength) && buffer.getByte(scanLength - 1) == (byte) ((int) '\r') &&
+                request(scanLength + 1) && buffer.getByte(scanLength) == (byte) ((int) '\n')
         ) {
             return Utf8Utils.readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
         }
@@ -389,7 +389,7 @@ public final class RealSource implements Source {
     public @NonNegative int readUtf8CodePoint() {
         require(1L);
 
-        final var b0 = (int) buffer.get(0);
+        final var b0 = (int) buffer.getByte(0);
         if ((b0 & 0xe0) == 0xc0) {
             require(2L);
         } else if ((b0 & 0xf0) == 0xe0) {
@@ -423,7 +423,7 @@ public final class RealSource implements Source {
     public long readDecimalLong() {
         var pos = 0L;
         while (request(pos + 1)) {
-            final var b = buffer.get(pos);
+            final var b = buffer.getByte(pos);
             if ((b < (byte) ((int) '0') || b > (byte) ((int) '9')) && (pos != 0L || b != (byte) ((int) '-'))) {
                 // Non-digit, or non-leading negative sign.
                 if (pos == 0L) {
@@ -442,7 +442,7 @@ public final class RealSource implements Source {
     public long readHexadecimalUnsignedLong() {
         var pos = 0L;
         while (request(pos + 1)) {
-            final var b = buffer.get(pos);
+            final var b = buffer.getByte(pos);
             if ((b < (byte) ((int) '0') || b > (byte) ((int) '9')) &&
                     (b < (byte) ((int) 'a') || b > (byte) ((int) 'f')) &&
                     (b < (byte) ((int) 'A') || b > (byte) ((int) 'F'))
@@ -646,7 +646,7 @@ public final class RealSource implements Source {
             if (!request(bufferOffset + 1)) {
                 return false;
             }
-            if (buffer.get(bufferOffset) != byteString.getByte(bytesOffset + i)) {
+            if (buffer.getByte(bufferOffset) != byteString.getByte(bytesOffset + i)) {
                 return false;
             }
         }

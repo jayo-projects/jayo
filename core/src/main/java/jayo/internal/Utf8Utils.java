@@ -40,7 +40,7 @@ final class Utf8Utils {
 
     static String readUtf8Line(final @NonNull Buffer buffer, final long newline) {
         Objects.requireNonNull(buffer);
-        if (newline > 0L && buffer.get(newline - 1) == (byte) ((int) '\r')) {
+        if (newline > 0L && buffer.getByte(newline - 1) == (byte) ((int) '\r')) {
             // Read everything until '\r\n', then skip the '\r\n'.
             final var result = buffer.readUtf8(newline - 1L);
             buffer.skip(2L);
