@@ -114,7 +114,7 @@ object TestUtil {
         val b2Bytes = b2.readByteArray()
         for (i in b2Bytes.indices) {
             val b = b2Bytes[i]
-            assertEquals(b.toLong(), b1[i.toLong()].toLong())
+            assertEquals(b.toLong(), b1.getByte(i.toLong()).toLong())
         }
 
         // Doesn't equal a different buffer.

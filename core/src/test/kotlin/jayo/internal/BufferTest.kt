@@ -178,14 +178,14 @@ class BufferTest {
     }
 
     @Test
-    fun get() {
+    fun getByte() {
         val actual = RealBuffer().writeUtf8("abc")
-        assertThat(actual[0]).isEqualTo('a'.code.toByte())
-        assertThat(actual[1]).isEqualTo('b'.code.toByte())
-        assertThat(actual[2]).isEqualTo('c'.code.toByte())
-        assertThatThrownBy { actual[-1] }
+        assertThat(actual.getByte(0)).isEqualTo('a'.code.toByte())
+        assertThat(actual.getByte(1)).isEqualTo('b'.code.toByte())
+        assertThat(actual.getByte(2)).isEqualTo('c'.code.toByte())
+        assertThatThrownBy { actual.getByte(-1) }
             .isInstanceOf(IndexOutOfBoundsException::class.java)
-        assertThatThrownBy { actual[3] }
+        assertThatThrownBy { actual.getByte(3) }
             .isInstanceOf(IndexOutOfBoundsException::class.java)
     }
 
@@ -517,18 +517,18 @@ class BufferTest {
         buffer.writeUtf8("a")
         buffer.writeUtf8('b'.repeat(Segment.SIZE))
         buffer.writeUtf8("c")
-        assertEquals('a'.code.toLong(), buffer[0].toLong())
-        assertEquals('a'.code.toLong(), buffer[0].toLong()) // getByte doesn't mutate!
-        assertEquals('c'.code.toLong(), buffer[buffer.byteSize() - 1].toLong())
-        assertEquals('b'.code.toLong(), buffer[buffer.byteSize() - 2].toLong())
-        assertEquals('b'.code.toLong(), buffer[buffer.byteSize() - 3].toLong())
+        assertEquals('a'.code.toLong(), buffer.getByte(0).toLong())
+        assertEquals('a'.code.toLong(), buffer.getByte(0).toLong()) // getByte doesn't mutate!
+        assertEquals('c'.code.toLong(), buffer.getByte(buffer.byteSize() - 1).toLong())
+        assertEquals('b'.code.toLong(), buffer.getByte(buffer.byteSize() - 2).toLong())
+        assertEquals('b'.code.toLong(), buffer.getByte(buffer.byteSize() - 3).toLong())
     }
 
     @Test
     fun getByteOfEmptyBuffer() {
         val buffer = RealBuffer()
         assertFailsWith<IndexOutOfBoundsException> {
-            buffer[0]
+            buffer.getByte(0)
         }
     }
 
@@ -536,8 +536,8 @@ class BufferTest {
     fun getByteByInvalidIndex() {
         val buffer = RealBuffer().also { it.write(ByteArray(10)) }
 
-        assertFailsWith<IndexOutOfBoundsException> { buffer[-1] }
-        assertFailsWith<IndexOutOfBoundsException> { buffer[buffer.byteSize()] }
+        assertFailsWith<IndexOutOfBoundsException> { buffer.getByte(-1) }
+        assertFailsWith<IndexOutOfBoundsException> { buffer.getByte(buffer.byteSize()) }
     }
 
     @Test
