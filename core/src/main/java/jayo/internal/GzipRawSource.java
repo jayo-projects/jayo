@@ -131,7 +131,7 @@ public final class GzipRawSource implements RawSource {
         // |ID1|ID2|CM |FLG|     MTIME     |XFL|OS | (more-->)
         // +---+---+---+---+---+---+---+---+---+---+
         source.require(10);
-        final var flags = (int) source.buffer.get(3);
+        final var flags = (int) source.buffer.getByte(3);
         final var fhcrc = getBit(flags, FHCRC);
         if (fhcrc) {
             updateCrc(source.buffer, 0, 10);
