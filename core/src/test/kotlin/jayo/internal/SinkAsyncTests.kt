@@ -65,8 +65,8 @@ class SinkAsyncTests {
     }
 
     companion object {
-        private const val CHUNKS = 256
-        const val CHUNKS_BYTE_SIZE = 8 * 1024
+        private const val CHUNKS = 32
+        const val CHUNKS_BYTE_SIZE = 64 * 1024
         const val EXPECTED_SIZE = CHUNKS * CHUNKS_BYTE_SIZE
         val ARRAY = ByteArray(EXPECTED_SIZE) { 0x61 }
     }
