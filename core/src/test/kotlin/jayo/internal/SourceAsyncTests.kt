@@ -59,8 +59,8 @@ class SourceAsyncTests {
     }
 
     companion object {
-        private const val CHUNKS = 512
-        const val CHUNKS_BYTE_SIZE = 1024
+        private const val CHUNKS = 16
+        const val CHUNKS_BYTE_SIZE = 32 * 1024
         const val EXPECTED_SIZE = CHUNKS * CHUNKS_BYTE_SIZE
         val ARRAY = ByteArray(CHUNKS_BYTE_SIZE) { 0x61 }
     }
