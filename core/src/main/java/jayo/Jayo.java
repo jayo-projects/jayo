@@ -81,7 +81,7 @@ public final class Jayo {
         if (source instanceof RealSource realSource) {
             return realSource;
         }
-        return new RealSource(source);
+        return new RealSource(source, true);
     }
 
     /**

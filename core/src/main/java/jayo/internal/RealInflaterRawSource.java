@@ -90,41 +90,32 @@ public final class RealInflaterRawSource implements InflaterRawSource {
             return 0L;
         }
 
-        try {
-            // Prepare the destination that we'll write into.
-            final var tail = _sink.segmentQueue.writableSegment(1);
-            final var currentLimit = tail.limit;
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - currentLimit);
-            final var isNewTail = currentLimit == 0;
+        final var bytesInflated = new Wrapper.Int();
+        // Prepare the destination that we'll write into.
+        _sink.segmentQueue.withWritableTail(1, tail -> {
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
 
             // Prepare the source that we'll read from.
             refill();
-
-            // Decompress the inflater's compressed data into the sink.
-            final var bytesInflated = inflater.inflate(tail.data, currentLimit, toRead);
-
+            try {
+                // Decompress the inflater's compressed data into the sink.
+                bytesInflated.value = inflater.inflate(tail.data, tail.limit, toRead);
+            } catch (DataFormatException e) {
+                throw new JayoException(new IOException(e));
+            }
             // Release consumed bytes from the source.
             releaseBytesAfterInflate();
 
             // Track produced bytes in the destination.
-            if (bytesInflated > 0) {
-                tail.limit = currentLimit + bytesInflated;
-                if (isNewTail) {
-                    _sink.segmentQueue.addTail(tail);
-                }
-                _sink.segmentQueue.incrementSize(bytesInflated);
-                return bytesInflated;
+            if (bytesInflated.value > 0) {
+                tail.limit += bytesInflated.value;
+            } else {
+                bytesInflated.value = 0;
             }
+            return true;
+        });
 
-            // We allocated a tail segment, but didn't end up needing it. Recycle!
-            if (isNewTail) {
-                SegmentPool.recycle(tail);
-            }
-
-            return 0L;
-        } catch (DataFormatException e) {
-            throw new JayoException(new IOException(e));
-        }
+        return bytesInflated.value;
     }
 
     @Override
@@ -141,9 +132,8 @@ public final class RealInflaterRawSource implements InflaterRawSource {
         // Assign buffer bytes to the inflater.
         final var head = source.buffer.segmentQueue.head();
         assert head != null;
-        final var currentPos = head.pos;
-        bufferBytesHeldByInflater = head.limit - currentPos;
-        inflater.setInput(head.data, currentPos, bufferBytesHeldByInflater);
+        bufferBytesHeldByInflater = head.segment().limit() - head.segment().pos();
+        inflater.setInput(head.segment().data(), head.segment().pos(), bufferBytesHeldByInflater);
         return false;
     }
 

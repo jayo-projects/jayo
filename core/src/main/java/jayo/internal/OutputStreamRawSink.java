@@ -69,22 +69,24 @@ public final class OutputStreamRawSink implements RawSink {
         var remaining = byteCount;
         while (remaining > 0L) {
             CancelToken.throwIfReached(cancelToken);
-            final var head = _source.segmentQueue.head();
-            assert head != null;
-            var pos = head.pos;
-            final var toWrite = (int) Math.min(remaining, head.limit - pos);
+            final var headNode = _source.segmentQueue.lockedReadableHead();
             try {
-                out.write(head.data, pos, toWrite);
-            } catch (IOException e) {
-                throw JayoException.buildJayoException(e);
+                final var head = (Segment) headNode.segment();
+                final var toWrite = (int) Math.min(remaining, head.limit - head.pos);
+                try {
+                    out.write(head.data, head.pos, toWrite);
+                } catch (IOException e) {
+                    throw JayoException.buildJayoException(e);
+                }
+                _source.segmentQueue.decrementSize(toWrite);
+                head.pos += toWrite;
+                if (head.pos == head.limit) {
+                    SegmentPool.recycle(_source.segmentQueue.removeHead());
+                }
+                remaining -= toWrite;
+            } finally {
+                headNode.unlock();
             }
-            _source.segmentQueue.decrementSize(toWrite);
-            pos += toWrite;
-            head.pos = pos;
-            if (pos == head.limit) {
-                SegmentPool.recycle(_source.segmentQueue.removeHead());
-            }
-            remaining -= toWrite;
         }
     }
 

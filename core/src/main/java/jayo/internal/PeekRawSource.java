@@ -21,12 +21,12 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.Buffer;
 import jayo.RawSource;
 import jayo.Source;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -42,9 +42,11 @@ import static jayo.internal.Utils.getBufferFromSource;
  * {@link IllegalStateException} on any future reads.
  */
 final class PeekRawSource implements RawSource {
-    private @NonNull final Source upstream;
-    private @NonNull final RealBuffer buffer;
-    private @Nullable Segment expectedSegment;
+    private @NonNull
+    final Source upstream;
+    private @NonNull
+    final RealBuffer buffer;
+    private @Nullable SafeSegment expectedSegment;
     private int expectedPos;
     private boolean closed = false;
     private @NonNegative long pos = 0L;
@@ -54,8 +56,8 @@ final class PeekRawSource implements RawSource {
         buffer = getBufferFromSource(upstream);
         final var bufferHead = buffer.segmentQueue.head();
         if (bufferHead != null) {
-            this.expectedSegment = bufferHead;
-            this.expectedPos = bufferHead.pos;
+            this.expectedSegment = bufferHead.segment();
+            this.expectedPos = bufferHead.segment().pos();
         } else {
             this.expectedSegment = null;
             this.expectedPos = -1;
@@ -77,8 +79,8 @@ final class PeekRawSource implements RawSource {
         // current head and head position of the upstream buffer
         if (expectedSegment != null &&
                 (bufferHead == null
-                        || (expectedSegment != bufferHead
-                        || expectedPos != bufferHead.pos))) {
+                        || expectedSegment != bufferHead.segment()
+                        || expectedPos != bufferHead.segment().pos())) {
             throw new IllegalStateException("Peek source is invalid because upstream source was used");
         }
         if (byteCount == 0L) {
@@ -92,8 +94,8 @@ final class PeekRawSource implements RawSource {
             // Only once the buffer actually holds data should an expected Segment and position be recorded.
             // This allows reads from the peek source to repeatedly return -1 and for data to be added later.
             // Unit tests depend on this behavior.
-            expectedSegment = bufferHead;
-            expectedPos = bufferHead.pos;
+            expectedSegment = bufferHead.segment();
+            expectedPos = bufferHead.segment().pos();
         }
 
         final var toCopy = Math.min(byteCount, buffer.byteSize() - pos);

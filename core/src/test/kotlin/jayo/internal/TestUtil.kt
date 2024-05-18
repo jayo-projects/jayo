@@ -35,7 +35,7 @@ val SEGMENT_SIZE = Segment.SIZE
 object TestUtil {
     // Necessary to make an internal member visible to Java.
     @JvmField
-    val SEGMENT_POOL_MAX_SIZE = SegmentPool.MAX_SIZE
+    val SEGMENT_POOL_MAX_SIZE = SegmentPool.SEGMENTS_POOL_MAX_BYTE_SIZE
     const val REPLACEMENT_CODE_POINT: Int = Utf8Utils.UTF8_REPLACEMENT_CODE_POINT
 
     @JvmStatic
@@ -155,10 +155,13 @@ object TestUtil {
             throw IllegalArgumentException()
         }
 
-        var s = original.segmentQueue.next
-        while (s !== original.segmentQueue) {
-            result.segmentQueue.addTail(s!!.unsharedCopy())
-            s = s.next
+        original.segmentQueue.forEach { s ->
+            val bufferTailNode = result.segmentQueue.lockedNonRemovedTailOrNull()
+            try {
+                result.segmentQueue.addTail((s as Segment).unsharedCopy())
+            } finally {
+                bufferTailNode?.unlock()
+            }
         }
         result.segmentQueue.incrementSize(original.byteSize())
 
@@ -191,16 +194,6 @@ object TestUtil {
             pos += byteCount
         }
 
-        return result
-    }
-
-    /** Remove all segments from the pool and return them as a list. */
-    @JvmStatic
-    fun takeAllPoolSegments(): List<Segment> {
-        val result = mutableListOf<Segment>()
-        while (SegmentPool.getByteCount() > 0) {
-            result += SegmentPool.take()
-        }
         return result
     }
 

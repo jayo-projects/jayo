@@ -5,86 +5,39 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.RawSink;
 import jayo.exceptions.JayoCancelledException;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
-final class SinkSegmentQueue extends SegmentQueue {
+final class AsyncSinkSegmentQueue extends AsyncSegmentQueue {
     private static final System.Logger LOGGER = System.getLogger("jayo.SinkSegmentQueue");
-    private final static Thread.Builder SINK_EMITTER_THREAD_BUILDER =
-            Utils.threadBuilder("JayoSinkEmitter#");
+    private final static Thread.Builder SINK_EMITTER_THREAD_BUILDER = Utils.threadBuilder("JayoSinkEmitter#");
 
     private final @NonNull RawSink sink;
-    private final @NonNull RealBuffer buffer;
     private final @NonNull Thread sinkEmitterThread;
 
-    private final @NonNull LongAdder size = new LongAdder();
-    private boolean closed = false;
     private volatile boolean sinkEmitterTerminated = false;
-    private volatile @Nullable RuntimeException exception = null;
     private final @NonNull BlockingQueue<EmitEvent> emitEvents = new LinkedBlockingQueue<>();
     private @Nullable Segment lastEmittedCompleteSegment = null;
+    private boolean lastEmittedIncluding = false;
 
-    private final Lock lock = new ReentrantLock();
     private volatile boolean isSegmentQueueFull = false;
     private final Condition segmentQueueNotFull = lock.newCondition();
     private final Condition pausedForFlush = lock.newCondition();
 
-    SinkSegmentQueue(final @NonNull RawSink sink) {
+    AsyncSinkSegmentQueue(final @NonNull RawSink sink) {
+        super();
         this.sink = Objects.requireNonNull(sink);
-        this.buffer = new RealBuffer(this);
         sinkEmitterThread = SINK_EMITTER_THREAD_BUILDER.start(new SinkEmitter());
-    }
-
-    @Override
-    @Nullable Segment head() {
-        return cleanupAndGetHead(false);
-    }
-
-    private @Nullable Segment cleanupAndGetHead(final boolean remove) {
-        var currentNext = next;
-        while (currentNext != this) {
-            if (currentNext.pos != currentNext.limit) {
-                return currentNext;
-            }
-            if (remove) {
-                SegmentPool.recycle(forceRemoveHead());
-                currentNext = next;
-            } else {
-                // no remove head, attempt with the next node
-                currentNext = currentNext.next;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    @Nullable Segment removeHead() {
-        if (closed) {
-            return super.removeHead();
-        }
-        return null; // will be recycled later, by the next forceRemoveHead() call or when closing the Sink
-    }
-
-    // @SuppressWarnings("RedundantMethodOverride")
-    @Override
-    @NonNull Segment forceRemoveHead() {
-        final var removedHead = super.removeHead();
-        assert removedHead != null;
-        return removedHead;
     }
 
     void pauseIfFull() {
@@ -111,39 +64,32 @@ final class SinkSegmentQueue extends SegmentQueue {
     }
 
     void emitCompleteSegments() {
-        var s = tail();
-        if (s == null) {
+        var currentTail = tail();
+        if (currentTail == null) {
             // can happen when we write nothing, like sink.writeUtf8("")
             return;
         }
 
-        // 1) scan tail
-        if (!s.owner || s.limit == Segment.SIZE) {
-            emitEventIfRequired(s);
-            return;
-        }
-        // 2) scan tail's previous
-        s = s.prev;
-        if (s != this && s != null) {
-            emitEventIfRequired(s);
-        }
+        final var includingTail = !currentTail.segment.owner || currentTail.segment.limit == Segment.SIZE;
+        emitEventIfRequired(currentTail.segment, includingTail);
     }
 
-    private void emitEventIfRequired(Segment s) {
-        if (lastEmittedCompleteSegment == null || lastEmittedCompleteSegment != s) {
-            emitEvents.add(new EmitEvent(s, s.limit, false));
+    private void emitEventIfRequired(Segment s, boolean includingTail) {
+        if (lastEmittedCompleteSegment == null || lastEmittedCompleteSegment != s || (includingTail && !lastEmittedIncluding)) {
+            emitEvents.add(new EmitEvent(s, includingTail, s.limit, false));
             lastEmittedCompleteSegment = s;
+            lastEmittedIncluding = includingTail;
         }
     }
 
     void emit(final boolean flush) {
         throwIfNeeded();
-        final var tail = tail();
-        if (tail == null) {
+        final var currentTail = tail();
+        if (currentTail == null) {
             LOGGER.log(DEBUG, "You should not emit or flush without writing data first. We do nothing");
             return;
         }
-        final var emitEvent = new EmitEvent(tail, tail.limit, flush);
+        final var emitEvent = new EmitEvent(currentTail.segment, true, currentTail.segment.limit, flush);
         if (!flush) {
             emitEvents.add(emitEvent);
             return;
@@ -169,33 +115,6 @@ final class SinkSegmentQueue extends SegmentQueue {
     }
 
     @Override
-    long size() {
-        return size.longValue();
-    }
-
-    /**
-     * Increment the byte size by {@code increment}.
-     *
-     * @param increment the value to add.
-     * @throws IllegalArgumentException If {@code increment < 1L}
-     */
-    @Override
-    void incrementSize(long increment) {
-        size.add(increment);
-    }
-
-    /**
-     * Decrement the byte size by {@code decrement}.
-     *
-     * @param decrement the value to subtract.
-     * @throws IllegalArgumentException If {@code decrement < 1L}
-     */
-    @Override
-    void decrementSize(long decrement) {
-        size.add(-decrement);
-    }
-
-    @Override
     public void close() {
         throwIfNeeded();
         if (closed) {
@@ -212,63 +131,35 @@ final class SinkSegmentQueue extends SegmentQueue {
         }
     }
 
-    @NonNull RealBuffer getBuffer() {
-        return buffer;
-    }
-
-//    private void recycleDeletingHeads() {
-//        var currentNext = next;
-//        while (currentNext != this && (currentNext.pos == currentNext.limit)) {
-//            final var newNext = currentNext.next;
-//            next = newNext;
-//            newNext.prev = this;
-//            // clean head for recycling
-//            currentNext.prev = null;
-//            currentNext.next = null;
-//            SegmentPool.recycle(currentNext);
-//            currentNext = newNext;
-//        }
-//    }
-
-    private void throwIfNeeded() {
-        final var currentException = exception;
-        if (currentException != null && !closed) {
-            // remove exception, then throw it
-            exception = null;
-            throw currentException;
-        }
-    }
-
     private final class SinkEmitter implements Runnable {
         @Override
         public void run() {
             try {
-                Segment lastHead = null;
+                mainLoop:
                 while (!Thread.interrupted()) {
                     try {
                         final var emitEvent = emitEvents.take();
-                        var s = cleanupAndGetHead(true);
-                        if (s == null) {
-                            if (lastHead == null || emitEvent.segment != lastHead) {
-                                throw new IllegalStateException("EmitEvent must target the head segment, head = " + s
-                                        + " lastHead = " + lastHead + " emitEvent = " + emitEvent);
-                            }
-                        } else {
+                        var node = head();
+                        if (node != null && (emitEvent.including || node.next() != null)) {
                             var toWrite = 0L;
                             while (true) {
-                                if (s == emitEvent.segment) {
-                                    toWrite += emitEvent.limit - s.pos;
+                                final var nextNode = node.next();
+                                if (!emitEvent.including && nextNode != null && emitEvent.segment == nextNode.segment) {
+                                    toWrite += node.segment.limit - node.segment.pos;
                                     break;
-                                } else if (s == SinkSegmentQueue.this) {
-                                    throw new IllegalStateException("EmitEvent must target the head segment, head = " + s
-                                            + " lastHead = " + lastHead + " emitEvent = " + emitEvent);
-                                } else {
-                                    toWrite += s.limit - s.pos;
-                                    s = s.next;
                                 }
+                                if (emitEvent.including && emitEvent.segment == node.segment) {
+                                    toWrite += emitEvent.limit - node.segment.pos;
+                                    break;
+                                }
+                                node = nextNode;
+                                if (node == null) {
+                                    continue mainLoop;
+                                }
+                                toWrite += node.segment.limit - node.segment.pos;
                             }
                             if (toWrite > 0) {
-                                sink.write(buffer, toWrite);
+                                sink.write(getBuffer(), toWrite);
                             }
                         }
 
@@ -297,8 +188,6 @@ final class SinkSegmentQueue extends SegmentQueue {
                                 lock.unlock();
                             }
                         }
-
-                        lastHead = s;
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt(); // Will stop looping just after
                     }
@@ -323,18 +212,10 @@ final class SinkSegmentQueue extends SegmentQueue {
         }
     }
 
-    @Override
-    @NonNull Segment removeTail() {
-        throw new IllegalStateException("removeTail is only needed for UnsafeCursor in Buffer mode, " +
-                "it must not be used for Sink mode");
+    long expectSize(long expectedSize) {
+        throw new IllegalStateException("expectSize is only needed for Source mode, it must not be used for Sink mode");
     }
 
-    @Override
-    void forEach(@NonNull Consumer<Segment> action) {
-        throw new IllegalStateException("forEach is only needed for hash in Buffer mode, " +
-                "it must not be used for Sink mode");
-    }
-
-    private record EmitEvent(@NonNull Segment segment, @NonNegative int limit, boolean flush) {
+    private record EmitEvent(@NonNull Segment segment, boolean including, @NonNegative int limit, boolean flush) {
     }
 }

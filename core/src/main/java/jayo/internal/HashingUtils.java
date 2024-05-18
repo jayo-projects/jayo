@@ -31,17 +31,18 @@ public final class HashingUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Algorithm is not available : " + digest.algorithm(), e);
         }
-        try (rawSource;
-             final var segmentQueue = new SynchronousSourceSegmentQueue(rawSource)) {
-            var head = segmentQueue.head();
-            while (head != null) {
-                final var pos = head.pos;
-                final var toRead = head.limit - pos;
-                messageDigest.update(head.data, pos, toRead);
-                segmentQueue.decrementSize(toRead);
-                head.pos = head.limit;
-                SegmentPool.recycle(segmentQueue.removeHead());
-                head = segmentQueue.head();
+        try (rawSource; final var segmentQueue = new SyncSourceSegmentQueue(rawSource)) {
+            while (segmentQueue.expectSize(1L) != 0L) {
+                final var headNode = segmentQueue.lockedReadableHead();
+                try {
+                    final var head = headNode.segment();
+                    final var toRead = head.limit() - head.pos();
+                    messageDigest.update(head.data(), head.pos(), toRead);
+                    segmentQueue.decrementSize(toRead);
+                    SegmentPool.recycle(segmentQueue.removeHead());
+                } finally {
+                    headNode.unlock();
+                }
             }
         }
         return new RealByteString(messageDigest.digest());
@@ -67,17 +68,18 @@ public final class HashingUtils {
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
-        try (rawSource;
-             final var segmentQueue = new SynchronousSourceSegmentQueue(rawSource)) {
-            var head = segmentQueue.head();
-            while (head != null) {
-                final var pos = head.pos;
-                final var toRead = head.limit - pos;
-                javaMac.update(head.data, pos, toRead);
-                segmentQueue.decrementSize(toRead);
-                head.pos = head.limit;
-                SegmentPool.recycle(segmentQueue.removeHead());
-                head = segmentQueue.head();
+        try (rawSource; final var segmentQueue = new SyncSourceSegmentQueue(rawSource)) {
+            while (segmentQueue.expectSize(1L) != 0L) {
+                final var headNode = segmentQueue.lockedReadableHead();
+                try {
+                    final var head = headNode.segment();
+                    final var toRead = head.limit() - head.pos();
+                    javaMac.update(head.data(), head.pos(), toRead);
+                    segmentQueue.decrementSize(toRead);
+                    SegmentPool.recycle(segmentQueue.removeHead());
+                } finally {
+                    headNode.unlock();
+                }
             }
         }
         return new RealByteString(javaMac.doFinal());

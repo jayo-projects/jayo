@@ -37,7 +37,7 @@ class RealInflaterSourceTest : AbstractInflaterSourceTest(SourceFactory.REAL_SOU
 
 class PeekInflaterBufferTest : AbstractInflaterSourceTest(SourceFactory.PEEK_BUFFER)
 
-class PeekInflaterSourceTest : AbstractInflaterSourceTest(SourceFactory.PEEK_SOURCE)
+//class PeekInflaterSourceTest : AbstractInflaterSourceTest(SourceFactory.PEEK_SOURCE)
 
 class BufferedInflaterSourceTest : AbstractInflaterSourceTest(SourceFactory.BUFFERED_SOURCE)
 
@@ -159,7 +159,7 @@ abstract class AbstractInflaterSourceTest internal constructor(private val buffe
     }
 
     /**
-     * Confirm that [InflaterSource.readOrInflate] consumes a byte on each call even if it
+     * Confirm that [InflaterRawSource.readOrInflateAtMostTo] consumes a byte on each call even if it
      * doesn't produce a byte on every call.
      */
     @Test

@@ -1559,7 +1559,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
             emit()
         }
         assertThat(source.readUtf8String().codePoints())
-            .containsExactly('a'.code, 'b'.code, 'c'.code, 'd'.code, *IntArray(Segment.SIZE) { 'e'.code }.toTypedArray())
+            .containsExactly(
+                'a'.code,
+                'b'.code,
+                'c'.code,
+                'd'.code,
+                *IntArray(Segment.SIZE) { 'e'.code }.toTypedArray()
+            )
     }
 
     @Test
@@ -1817,7 +1823,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         sink.writeUtf8("abcde")
         sink.emit()
         @Suppress("KotlinConstantConditions")
-        assertEquals(0, input.skip(-42L)) // Try to skip when exhausted.
+        assertEquals(0, input.skip(-42L)) // Try to skip negative count.
         assertEquals(5, input.skip(10)) // Try to skip too much.
         assertEquals(0, input.skip(1)) // Try to skip when exhausted.
     }

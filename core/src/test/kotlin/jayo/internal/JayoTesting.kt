@@ -27,13 +27,13 @@ import jayo.Utf8String
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)
-    var segment = buffer.segmentQueue.head() ?: return emptyList()
+    var node: SegmentQueue.Node<*>? = buffer.segmentQueue.head() ?: return emptyList()
 
-    val sizes = mutableListOf(segment.limit - segment.pos)
-    segment = segment.next
-    while (segment !== buffer.segmentQueue) {
-        sizes.add(segment.limit - segment.pos)
-        segment = segment.next
+    val sizes = mutableListOf(node!!.segment().limit() - node.segment().pos())
+    node = node.next()
+    while (node != null) {
+        sizes.add(node.segment().limit() - node.segment().pos())
+        node = node.next()
     }
     return sizes
 }
@@ -55,12 +55,12 @@ fun bufferWithSegments(vararg segments: String): Buffer {
 fun makeSegments(source: ByteString): ByteString {
     val buffer = RealBuffer()
     for (i in 0 until source.byteSize()) {
-        val tail = buffer.segmentQueue.writableSegment(Segment.SIZE)
-        tail.data[tail.pos] = source.getByte(i)
-        val limit = tail.limit
-        tail.limit = limit + 1
-        buffer.segmentQueue.addTail(tail)
-        buffer.segmentQueue.incrementSize(1)
+        buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
+            tail.data[tail.pos] = source.getByte(i)
+            val limit = tail.limit
+            tail.limit = limit + 1
+            true
+        }
     }
     return buffer.snapshot()
 }
@@ -68,12 +68,12 @@ fun makeSegments(source: ByteString): ByteString {
 fun makeUtf8Segments(source: Utf8String): Utf8String {
     val buffer = RealBuffer()
     for (i in 0 until source.byteSize()) {
-        val tail = buffer.segmentQueue.writableSegment(Segment.SIZE)
-        tail.data[tail.pos] = source.getByte(i)
-        val limit = tail.limit
-        tail.limit = limit + 1
-        buffer.segmentQueue.addTail(tail)
-        buffer.segmentQueue.incrementSize(1)
+        buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
+            tail.data[tail.pos] = source.getByte(i)
+            val limit = tail.limit
+            tail.limit = limit + 1
+            true
+        }
     }
     return buffer.utf8Snapshot()
 }

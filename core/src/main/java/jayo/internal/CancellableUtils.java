@@ -21,7 +21,7 @@ public final class CancellableUtils {
 
     /**
      * We use {@code InheritableThreadLocal} so it is propagated to child threads
-     * @see SourceSegmentQueue
+     * @see AsyncSourceSegmentQueue
      */
     private static final ThreadLocal<Deque<RealCancelToken>> CANCEL_TOKENS = new InheritableThreadLocal<>() {
         @Override
