@@ -40,7 +40,7 @@ public final class DeflaterRawSink implements RawSink {
     private boolean closed = false;
 
     public DeflaterRawSink(final @NonNull RawSink sink, final @NonNull Deflater deflater) {
-        this(new RealSink(Objects.requireNonNull(sink)), deflater);
+        this(new RealSink(Objects.requireNonNull(sink), false), deflater);
     }
 
     /**
@@ -60,27 +60,37 @@ public final class DeflaterRawSink implements RawSink {
         }
 
         var remaining = byteCount;
-        while (remaining > 0) {
-            // Share bytes from the head segment of 'source' with the deflater.
-            final var head = _source.segmentQueue.head();
+        var head = _source.segmentQueue.headVolatile();
+        var finished = false;
+        while (!finished) {
             assert head != null;
-            var pos = head.pos;
-            final var currentLimit = head.limit;
-            final var toDeflate = (int) Math.min(remaining, currentLimit - pos);
-            deflater.setInput(head.data, pos, toDeflate);
+            final var currentLimit = head.limitVolatile();
+            // Share bytes from the head segment of 'source' with the deflater.
+            final var toDeflate = (int) Math.min(remaining, currentLimit - head.pos);
+            deflater.setInput(head.data, head.pos, toDeflate);
 
             // Deflate those bytes into sink.
             deflate(false);
 
             // Mark those bytes as read.
+            head.pos += toDeflate;
             _source.segmentQueue.decrementSize(toDeflate);
-            pos += toDeflate;
-            head.pos = pos;
-            if (pos == currentLimit) {
-                SegmentPool.recycle(_source.segmentQueue.removeHead());
-            }
-
             remaining -= toDeflate;
+            finished = remaining == 0L;
+            if (head.pos == currentLimit) {
+                final var oldHead = head;
+                if (finished) {
+                    if (head.tryRemove() && head.validateRemove()) {
+                        _source.segmentQueue.removeHead(head);
+                    }
+                } else {
+                    if (!head.tryRemove()) {
+                        throw new IllegalStateException("Non tail segment should be removable");
+                    }
+                    head = _source.segmentQueue.removeHead(head);
+                }
+                SegmentPool.recycle(oldHead);
+            }
         }
     }
 
@@ -142,38 +152,27 @@ public final class DeflaterRawSink implements RawSink {
     }
 
     private void deflate(final boolean syncFlush) {
-        final var buffer = sink.buffer;
-        while (true) {
-            final var tail = buffer.segmentQueue.writableSegment(1);
-            final var currentLimit = tail.limit;
-            final var isNewTail = currentLimit == 0;
+        final var segmentQueue = sink.buffer.segmentQueue;
 
-            final int deflated;
-            try {
-                if (syncFlush) {
-                    deflated = deflater.deflate(tail.data, currentLimit, Segment.SIZE - currentLimit,
-                            Deflater.SYNC_FLUSH);
+        var continueLoop = true;
+        while (continueLoop) {
+            continueLoop = segmentQueue.withWritableTail(1, tail -> {
+                final int deflated;
+                try {
+                    deflated = deflater.deflate(tail.data, tail.limit(), Segment.SIZE - tail.limit(),
+                            syncFlush ? Deflater.SYNC_FLUSH : Deflater.NO_FLUSH);
+                } catch (NullPointerException npe) {
+                    throw new JayoException("Deflater already closed", new IOException(npe));
+                }
+
+                if (deflated > 0) {
+                    tail.incrementLimitVolatile(deflated);
+                    sink.emitCompleteSegments();
+                    return true;
                 } else {
-                    deflated = deflater.deflate(tail.data, currentLimit, Segment.SIZE - currentLimit);
+                    return !deflater.needsInput();
                 }
-            } catch (NullPointerException npe) {
-                throw new JayoException("Deflater already closed", new IOException(npe));
-            }
-
-            if (deflated > 0) {
-                tail.limit = currentLimit + deflated;
-                if (isNewTail) {
-                    buffer.segmentQueue.addTail(tail);
-                }
-                buffer.segmentQueue.incrementSize(deflated);
-                sink.emitCompleteSegments();
-            } else if (deflater.needsInput()) {
-                // We allocated a tail segment, but didn't end up needing it. Recycle!
-                if (isNewTail) {
-                    SegmentPool.recycle(tail);
-                }
-                return;
-            }
+            });
         }
     }
 }

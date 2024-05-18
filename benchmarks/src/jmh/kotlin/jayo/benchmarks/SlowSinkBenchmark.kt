@@ -55,7 +55,7 @@ open class SlowSinkBenchmark {
 
         when (type) {
             "jayo" -> {
-                jayoSink = delayedOutputStream.sink().buffered()
+                jayoSink = delayedOutputStream.sink().buffered(true)
             }
 
             "okio" -> {

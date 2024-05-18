@@ -25,12 +25,6 @@ public final class RealCancellable implements Cancellable {
     }
 
     public RealCancellable(final @NonNegative long timeoutNanos, final @NonNegative long deadlineNanos) {
-        if (timeoutNanos < 0L) {
-            throw new IllegalArgumentException("timeoutNanos < 0L: " + timeoutNanos);
-        }
-        if (deadlineNanos < 0L) {
-            throw new IllegalArgumentException("deadlineNanos < 0L: " + deadlineNanos);
-        }
         this.timeoutNanos = timeoutNanos;
         this.deadlineNanos = deadlineNanos;
     }

@@ -142,16 +142,16 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 while (remaining > 0L) {
                     // Count how many bytes to write. This loop guarantees we split on a segment boundary.
                     var _toWrite = 0L;
-                    var s = _source.segmentQueue.head();
+                    var segment = _source.segmentQueue.headVolatile();
                     while (_toWrite < TIMEOUT_WRITE_SIZE) {
-                        assert s != null;
-                        final var segmentSize = s.limit - s.pos;
+                        assert segment != null;
+                        final var segmentSize = segment.limitVolatile() - segment.pos;
                         _toWrite += segmentSize;
                         if (_toWrite >= remaining) {
                             _toWrite = remaining;
                             break;
                         }
-                        s = s.next;
+                        segment = segment.nextVolatile();
                     }
 
                     final var toWrite = _toWrite;

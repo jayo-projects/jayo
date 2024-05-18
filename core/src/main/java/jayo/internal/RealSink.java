@@ -43,11 +43,28 @@ public final class RealSink implements Sink {
     final @NonNull RealBuffer buffer;
     private boolean closed = false;
 
-    public RealSink(final @NonNull RawSink sink) {
-        this.sink = Objects.requireNonNull(sink);
-        final var sinkSegmentQueue = new SinkSegmentQueue(sink);
-        segmentQueue = sinkSegmentQueue;
-        buffer = sinkSegmentQueue.getBuffer();
+    public static @NonNull Sink buffer(final @NonNull RawSink sink, final boolean async) {
+        Objects.requireNonNull(sink);
+        if (sink instanceof RealSink realSink) {
+            final var isAsync = realSink.segmentQueue instanceof SinkSegmentQueue.Async;
+            if (isAsync == async) {
+                return realSink;
+            }
+        }
+        return new RealSink(sink, async);
+    }
+
+    RealSink(final @NonNull RawSink sink, final boolean async) {
+        this.sink = sink;
+        if (async) {
+            final var asyncSinkSegmentQueue = new SinkSegmentQueue.Async(sink);
+            segmentQueue = asyncSinkSegmentQueue;
+            buffer = asyncSinkSegmentQueue.getBuffer();
+        } else {
+            final var syncSinkSegmentQueue = new SinkSegmentQueue(sink);
+            segmentQueue = syncSinkSegmentQueue;
+            buffer = syncSinkSegmentQueue.getBuffer();
+        }
     }
 
     @Override

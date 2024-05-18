@@ -55,10 +55,10 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * ByteString is a good fit for untyped binary data that could not be represented as {@link String}, like hashes,
  * payload of network packets, encrypted data, etc.
  * <p>
- * <b>Immutability is guaranteed:</b> ByteString copies data on creation as well as on conversion back to
- * {@code byte[]}, thus guaranteeing that subsequent modification of source data or data returned from
- * {@link #toByteArray()} won't mutate the byte string itself.
- * @see Utf8String a UTF-8 specific implementation of {@code ByteString}
+ * <b>Immutability is guaranteed:</b> ByteString copies data on creation as well as on conversion back to {@code byte[]}
+ * , thus guaranteeing that subsequent modification of source data or data returned from {@link #toByteArray()} won't
+ * mutate the byte string itself.
+ * @see Utf8String a UTF-8 specific implementation of {@code ByteString}.
  */
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
         permits RealByteString, SegmentedByteString, Utf8String {

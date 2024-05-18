@@ -43,5 +43,11 @@ internal interface SinkFactory {
                 return (data as RawSink).buffered()
             }
         }
+
+        val REAL_ASYNC_BUFFERED_SINK: SinkFactory = object : SinkFactory {
+            override fun create(data: Buffer): Sink {
+                return (data as RawSink).buffered(true)
+            }
+        }
     }
 }

@@ -21,9 +21,12 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.ERROR;
@@ -32,18 +35,17 @@ import static java.lang.System.Logger.Level.INFO;
 /**
  * A segment of a buffer.
  * <p>
- * Each segment in a buffer is a circularly-linked list node referencing the following and preceding segments in the
- * buffer.
+ * Each segment in a buffer is a singly-linked queue node referencing the following segments in the buffer.
  * <p>
- * Each segment in the pool is a singly-linked list node referencing the rest of segments in the pool.
+ * Each segment in the pool is a singly-linked queue node referencing the rest of segments in the pool.
  * <p>
  * The underlying byte array of segments may be shared between buffers and byte strings. When a segment's byte array
  * is shared the segment may not be recycled, nor may its byte data be changed.
- * The lone exception is that the owner segment is allowed to append to the segment, meaning writing data at `limit` and
- * beyond. There is a single owning segment for each byte array. Positions, limits, prev, and next references are not
- * shared.
+ * The lone exception is that the owner segment is allowed to append to the segment, meaning writing data at
+ * {@code limit} and beyond. There is a single owning segment for each byte array. Positions, limits, and next
+ * references are not shared.
  */
-public sealed class Segment permits SegmentQueue {
+final class Segment {
     private static final System.Logger LOGGER = System.getLogger("jayo.Segment");
 
     /**
@@ -60,7 +62,63 @@ public sealed class Segment permits SegmentQueue {
      */
     private static final int SHARE_MINIMUM = 1024;
 
+    /**
+     * The binary data.
+     */
+    final byte @NonNull [] data;
+    /**
+     * The next byte of application data byte to read in this segment. This field will be exclusively modified and read
+     * by the reader.
+     */
+    int pos = 0;
+    /**
+     * The first byte of available data ready to be written to. This field will be exclusively modified by the writer,
+     * and will be read by the reader.
+     * <p>
+     * <b>In the segment pool:</b> if the segment is free and linked, the field contains total byte count of this and
+     * next segments.
+     */
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile int limit = 0;
+    /**
+     * True if other buffer segments or byte strings use the same byte array.
+     */
+    boolean shared;
+    /**
+     * True if this segment owns the byte array and can append to it, extending `limit`.
+     */
+    final boolean owner;
+    /**
+     * Next segment in the queue.
+     */
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile @Nullable Segment next = null;
+
+    // status
+    static final byte AVAILABLE = 1;
+    static final byte WRITING = 2;
+    static final byte TRANSFERRING = 3;
+    static final byte REMOVING = 4; // final state, cannot go back
+
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile byte status;
+
+    // VarHandle mechanics
+    private static final VarHandle LIMIT;
+    static final VarHandle NEXT;
+    static final VarHandle STATUS;
+
     static {
+        try {
+            final var l = MethodHandles.lookup();
+            LIMIT = l.findVarHandle(Segment.class, "limit", int.class);
+            NEXT = l.findVarHandle(Segment.class, "next", Segment.class);
+            STATUS = l.findVarHandle(Segment.class, "status", byte.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+
+        // Segment.SIZE System property overriding.
         String systemSegmentSize = null;
         try {
             systemSegmentSize = System.getProperty("jayo.segmentSize");
@@ -68,66 +126,117 @@ public sealed class Segment permits SegmentQueue {
             LOGGER.log(ERROR, "Exception when resolving the provided segment size, fallback to default " +
                     "segment's SIZE = {0}", DEFAULT_SIZE);
         } finally {
+            var segmentSize = 0;
             if (systemSegmentSize != null && !systemSegmentSize.isBlank()) {
-                SIZE = Integer.parseInt(systemSegmentSize);
-            } else {
-                SIZE = DEFAULT_SIZE;
+                try {
+                    segmentSize = Integer.parseInt(systemSegmentSize);
+                } catch (NumberFormatException _unused) {
+                    LOGGER.log(ERROR, "{0} is not a valid size, fallback to default segment's SIZE = {1}",
+                            systemSegmentSize, DEFAULT_SIZE);
+                }
             }
+            SIZE = (segmentSize > 0) ? segmentSize : DEFAULT_SIZE;
             LOGGER.log(INFO, "Jayo will use segments of SIZE = {0} bytes", SIZE);
         }
     }
-
-    /**
-     * The binary data.
-     */
-    final byte @NonNull [] data;
-    /**
-     * The next byte of application data byte to read in this segment.
-     */
-    int pos = 0;
-    /**
-     * The first byte of available data ready to be written to.
-     * <p>
-     * If the segment is free and linked in the segment pool, the field contains total
-     * byte count of this and next segments.
-     */
-    int limit = 0;
-    /**
-     * True if other segments or byte strings use the same byte array.
-     */
-    boolean shared;
-    /**
-     * True if this segment owns the byte array and can append to it, extending `limit`.
-     */
-    boolean owner;
-    /**
-     * Next segment in a queue.
-     */
-    Segment next = null;
-    /**
-     * Previous segment in a queue.
-     */
-    Segment prev = null;
-    // status
-    static final byte AVAILABLE = 1;
-    static final byte WRITING = 2;
-    static final byte TRANSFERRING = 3;
-    static final byte DELETING = 4; // final state, cannot go back
-    static final byte SENTINEL = 5; // specific state for the segment queue sentinel node, cannot change
-    volatile byte status = AVAILABLE;
 
     Segment() {
         this.data = new byte[SIZE];
         this.owner = true;
         this.shared = false;
+        this.status = WRITING;
     }
 
     Segment(final byte @NonNull [] data, final int pos, final int limit, final boolean shared, final boolean owner) {
+        this(data, pos, limit, shared, owner, WRITING);
+    }
+
+    Segment(final byte @NonNull [] data, final int pos, final int limit, final boolean shared, final boolean owner, final byte status) {
         this.data = Objects.requireNonNull(data);
         this.pos = pos;
         this.limit = limit;
         this.shared = shared;
         this.owner = owner;
+        this.status = status;
+    }
+
+    @Nullable
+    Segment nextVolatile() {
+        return (@Nullable Segment) NEXT.getVolatile(this);
+    }
+
+    @NonNegative
+    int limit() {
+        return (int) LIMIT.get(this);
+    }
+
+    @NonNegative
+    int limitVolatile() {
+        return (int) LIMIT.getVolatile(this);
+    }
+
+    // Use only this non-volatile set from SegmentPool or Buffer.UnsafeCursor !
+    void limit(final @NonNegative int limit) {
+        LIMIT.set(this, limit);
+    }
+
+    void limitVolatile(final @NonNegative int limit) {
+        LIMIT.setVolatile(this, limit); // test less strict than volatile
+    }
+
+    void incrementLimitVolatile(final @NonNegative int increment) {
+        LIMIT.getAndAdd(this, increment); // test less strict than volatile
+    }
+
+    boolean tryWrite() {
+        return STATUS.compareAndSet(this, AVAILABLE, WRITING);
+    }
+
+    void finishWrite() {
+        if (!STATUS.compareAndSet(this, WRITING, AVAILABLE)) {
+            throw new IllegalStateException("Could not finish write operation");
+        }
+    }
+
+    boolean tryRemove() {
+        final var previousState = (byte) STATUS.compareAndExchange(this, AVAILABLE, REMOVING);
+        return switch (previousState) {
+            case AVAILABLE, REMOVING -> true;
+            default -> false;
+        };
+    }
+
+    boolean validateRemove() {
+        assert (byte) STATUS.get(this) == REMOVING;
+
+        if (pos == limitVolatile()) {
+            return true;
+        }
+
+        finishRemove();
+        return false;
+    }
+
+    void finishRemove() {
+        if (!STATUS.compareAndSet(this, REMOVING, AVAILABLE)) {
+            throw new IllegalStateException("Could not finish remove operation");
+        }
+    }
+
+    public boolean startTransfer() {
+        final var previousState = (byte) STATUS.compareAndExchange(this, AVAILABLE, TRANSFERRING);
+        return switch (previousState) {
+            case AVAILABLE -> false;
+            case WRITING -> true;
+            default -> throw new IllegalStateException("Unexpected state " + previousState + ". The head queue " +
+                    "node should be in 'AVAILABLE' or 'WRITING' state before transferring.");
+        };
+    }
+
+    void finishTransfer(final boolean wasWriting) {
+        if (!wasWriting) {
+            STATUS.compareAndSet(this, TRANSFERRING, AVAILABLE);
+        }
     }
 
     /**
@@ -135,32 +244,28 @@ public sealed class Segment permits SegmentQueue {
      * writes are forbidden. This also marks the current segment as shared, which prevents it from being pooled.
      */
     @NonNull
-    final Segment sharedCopy() {
+    Segment sharedCopy() {
         shared = true;
-        return new Segment(data, pos, limit, true, false);
+        return new Segment(data, pos, limitVolatile(), true, false);
     }
 
     /**
      * Returns a new segment with its own private copy of the underlying byte array.
      */
     @NonNull
-    final Segment unsharedCopy() {
-        return new Segment(data.clone(), pos, limit, false, true);
+    Segment unsharedCopy() {
+        return new Segment(data.clone(), pos, limitVolatile(), false, true, AVAILABLE);
     }
 
     /**
      * Splits this segment into two segments. The first segment contains the data in {@code [pos..pos+byteCount)}.
      * The second segment contains the data in {@code [pos+byteCount..limit)}.
-     * This can be useful when moving partial segments from one buffer to another.
+     * This is useful when moving partial segments from one buffer to another.
      *
-     * @return the first part of this split segment.
+     * @return the new head of the queue.
      */
     @NonNull
-    final Segment split(final @NonNegative int byteCount) {
-        final var currentPos = pos;
-        if (byteCount <= 0 || byteCount > limit - currentPos) {
-            throw new IllegalArgumentException("byteCount out of range: " + byteCount);
-        }
+    Segment splitHead(final @NonNegative int byteCount, final boolean wasWriting) {
         final Segment prefix;
 
         // We have two competing performance goals:
@@ -172,42 +277,71 @@ public sealed class Segment permits SegmentQueue {
             prefix = sharedCopy();
         } else {
             prefix = SegmentPool.take();
-            System.arraycopy(data, currentPos, prefix.data, 0, byteCount);
+            System.arraycopy(data, pos, prefix.data, 0, byteCount);
         }
+        STATUS.set(prefix, TRANSFERRING);
 
-        prefix.limit = prefix.pos + byteCount;
-        pos = currentPos + byteCount;
+        prefix.limitVolatile(prefix.pos + byteCount);
+        pos += byteCount;
+
+        if (!NEXT.compareAndSet(prefix, null, this)) {
+            throw new IllegalStateException("Could set next segment of prefix");
+        }
+        // stop transferring suffix
+        finishTransfer(wasWriting);
+
         return prefix;
     }
 
     /**
-     * Moves `byteCount` bytes from this segment to `sink`.
+     * Moves {@code byteCount} bytes from this segment to {@code targetSegment}.
      */
-    final void writeTo(final @NonNull Segment sink, final int byteCount) {
-        Objects.requireNonNull(sink);
-        if (!sink.owner) {
+    void writeTo(final @NonNull Segment targetSegment, final @NonNegative int byteCount) {
+        Objects.requireNonNull(targetSegment);
+        if (!targetSegment.owner) {
             throw new IllegalStateException("only owner can write");
         }
-        var sinkCurrentLimit = sink.limit;
+        var sinkCurrentLimit = targetSegment.limit();
         if (sinkCurrentLimit + byteCount > SIZE) {
             // We can't fit byteCount bytes at the sink's current position. Shift sink first.
-            if (sink.shared) {
+            if (targetSegment.shared) {
                 throw new IllegalArgumentException("cannot write in a shared Segment");
             }
-            final var sinkCurrentPos = sink.pos;
+            final var sinkCurrentPos = targetSegment.pos;
             if (sinkCurrentLimit + byteCount - sinkCurrentPos > SIZE) {
                 throw new IllegalArgumentException("not enough space in sink segment to write " + byteCount + " bytes");
             }
             final var sinkSize = sinkCurrentLimit - sinkCurrentPos;
-            System.arraycopy(sink.data, sinkCurrentPos, sink.data, 0, sinkSize);
-            sink.limit = sinkSize;
-            sink.pos = 0;
+            System.arraycopy(targetSegment.data, sinkCurrentPos, targetSegment.data, 0, sinkSize);
+            targetSegment.limitVolatile(sinkSize);
+            targetSegment.pos = 0;
         }
 
-        sinkCurrentLimit = sink.limit;
+        sinkCurrentLimit = targetSegment.limit();
         final var currentPos = pos;
-        System.arraycopy(data, currentPos, sink.data, sinkCurrentLimit, byteCount);
-        sink.limit = sinkCurrentLimit + byteCount;
+        System.arraycopy(data, currentPos, targetSegment.data, sinkCurrentLimit, byteCount);
+        targetSegment.limitVolatile(sinkCurrentLimit + byteCount);
         pos = currentPos + byteCount;
+    }
+
+    @Override
+    public String toString() {
+        final var next = this.next;
+        return "Segment#" + hashCode() + "{" + System.lineSeparator() +
+                "data=[" + data.length + "]" +
+                ", pos=" + pos +
+                ", limit=" + limit + System.lineSeparator() +
+                ", shared=" + shared +
+                ", owner=" + owner +
+                ", status=" +
+                switch (status) {
+                    case 1 -> "AVAILABLE";
+                    case 2 -> "WRITING";
+                    case 3 -> "TRANSFERRING";
+                    case 4 -> "REMOVING";
+                    default -> throw new IllegalStateException("Unexpected status: " + status);
+                } + System.lineSeparator() +
+                ", next=" + ((next != null) ? "Segment#" + next.hashCode() : "null") + System.lineSeparator() +
+                '}';
     }
 }

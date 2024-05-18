@@ -23,13 +23,18 @@
 
 package jayo
 
+import jayo.internal.RealSink
 import java.util.zip.Deflater
 
 /**
- * @return a new sink that buffers writes to `sink`. The returned sink will batch writes to `sink`.
+ * @return a new sink that buffers writes to the raw `sink`. The returned sink will batch writes to `sink`.
+ *
+ * If you choose the [async] option, actual write operations to the raw `sink` are seamlessly processed
+ * **asynchronously** by a virtual thread.
+ *
  * Use this wherever you write to a sink to get an ergonomic and efficient access to data.
  */
-public fun RawSink.buffered(): Sink = Jayo.buffer(this)
+public fun RawSink.buffered(async: Boolean = false): Sink = RealSink.buffer(this, async)
 
 /**
  * Returns a [RawSink] that DEFLATE-compresses data to this [RawSink] while writing.

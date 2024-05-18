@@ -21,12 +21,12 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import jayo.Buffer;
 import jayo.RawSource;
 import jayo.Source;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -42,8 +42,8 @@ import static jayo.internal.Utils.getBufferFromSource;
  * {@link IllegalStateException} on any future reads.
  */
 final class PeekRawSource implements RawSource {
-    private @NonNull final Source upstream;
-    private @NonNull final RealBuffer buffer;
+    private final @NonNull Source upstream;
+    private final @NonNull RealBuffer buffer;
     private @Nullable Segment expectedSegment;
     private int expectedPos;
     private boolean closed = false;
@@ -52,7 +52,8 @@ final class PeekRawSource implements RawSource {
     public PeekRawSource(final @NonNull Source upstream) {
         this.upstream = Objects.requireNonNull(upstream);
         buffer = getBufferFromSource(upstream);
-        final var bufferHead = buffer.segmentQueue.head();
+        buffer.segmentQueue.expectSize(1L);
+        final var bufferHead = buffer.segmentQueue.headVolatile();
         if (bufferHead != null) {
             this.expectedSegment = bufferHead;
             this.expectedPos = bufferHead.pos;
@@ -72,13 +73,13 @@ final class PeekRawSource implements RawSource {
             throw new IllegalStateException("this peek source is closed");
         }
 
-        final var bufferHead = buffer.segmentQueue.head();
+        final var bufferHead = buffer.segmentQueue.headVolatile();
         // Source becomes invalid if there is an expected Segment and it and the expected position does not match the
         // current head and head position of the upstream buffer
         if (expectedSegment != null &&
                 (bufferHead == null
-                        || (expectedSegment != bufferHead
-                        || expectedPos != bufferHead.pos))) {
+                        || expectedSegment != bufferHead
+                        || expectedPos != bufferHead.pos)) {
             throw new IllegalStateException("Peek source is invalid because upstream source was used");
         }
         if (byteCount == 0L) {

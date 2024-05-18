@@ -11,190 +11,43 @@ import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.TRACE;
 
-final class SourceSegmentQueue extends SegmentQueue {
-    private final static Thread.Builder SOURCE_CONSUMER_THREAD_BUILDER =
-            Utils.threadBuilder("JayoSourceConsumer#");
-
-    private final @NonNull RawSource source;
-    private final @NonNull RealBuffer buffer;
-    private final @NonNull Thread sourceConsumerThread;
-
-    private final @NonNull LongAdder size = new LongAdder();
-    private volatile @NonNegative long expectedSize = 0;
-    private volatile boolean sourceConsumerTerminated = false;
-    private volatile @Nullable RuntimeException exception = null;
-    private boolean closed = false;
-
-    private final Lock lock = new ReentrantLock();
-    private final Condition expectingSize = lock.newCondition();
-    // when source is temporarily exhausted or the segment queue is full
-    private final Condition sourceConsumerPaused = lock.newCondition();
+sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.Async {
+    final @NonNull RawSource source;
+    final @NonNull RealBuffer buffer;
+    boolean closed = false;
 
     SourceSegmentQueue(final @NonNull RawSource source) {
         this.source = Objects.requireNonNull(source);
-        buffer = new RealBuffer(this);
-        sourceConsumerThread = SOURCE_CONSUMER_THREAD_BUILDER.start(new SourceConsumer());
-    }
-
-    /**
-     * Retrieves the first segment of this queue.
-     * <p>
-     * If this queue is currently empty or if head is exhausted ({@code head.pos == head.limit}) block until a segment
-     * node becomes available or head is not exhausted anymore after a read operation.
-     *
-     * @return the first segment of this queue, or {@code null} if this queue is empty and there is no read
-     * operation left to do.
-     */
-    @Override
-    @Nullable Segment head() {
-        // fast-path
-        final var currentHead = cleanupAndGetHead();
-        if (currentHead != null) {
-            return currentHead;
-        }
-        // read from source once and return head
-        expectSize(1L);
-        return cleanupAndGetHead();
-    }
-
-    private @Nullable Segment cleanupAndGetHead() {
-        var currentNext = next;
-        while (currentNext != this) {
-            if (currentNext.pos != currentNext.limit) {
-                return currentNext;
-            }
-            // try to remove current head
-            final var removed = removeHead(true);
-            if (removed != null) {
-                SegmentPool.recycle(removed);
-                currentNext = next;
-            } else {
-                // remove head failed, attempt with the next node
-                currentNext = currentNext.next;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    @NonNull Segment forceRemoveHead() {
-        final var removedHead = removeHead(false);
-        assert removedHead != null;
-        return removedHead;
-    }
-
-    @Override
-    @Nullable Segment removeHead() {
-        return null; // will be recycled later, by the next head() call or when closing the Source
-    }
-
-    private @Nullable Segment removeHead(final boolean mustBeEmpty) {
-        final var currentNext = next;
-        if (currentNext == this) {
-            throw new NoSuchElementException("queue must not be empty to call removeHead");
-        }
-
-        final var previousState = (byte) STATUS.compareAndExchange(currentNext, AVAILABLE, DELETING);
-
-        if (previousState != AVAILABLE && previousState != TRANSFERRING) {
-            return null;
-        }
-        final var currentPos = currentNext.pos;
-        if (mustBeEmpty && currentPos != currentNext.limit) {
-            // reset status and return, must not delete because limit changed
-            STATUS.compareAndSet(currentNext, DELETING, AVAILABLE);
-            return null;
-        }
-
-        final var newNext = currentNext.next;
-        next = newNext;
-        newNext.prev = this;
-
-        // clean head for recycling
-        currentNext.prev = null;
-        currentNext.next = null;
-
-        if (!sourceConsumerTerminated) {
-            lock.lock();
-            try {
-                sourceConsumerPaused.signal();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        return currentNext;
-    }
-
-    @Override
-    long size() {
-        throwIfNeeded();
-        return size.longValue();
-    }
-
-    /**
-     * Increment the byte size by {@code increment}.
-     *
-     * @param increment the value to add.
-     * @throws IllegalArgumentException If {@code increment < 1L}
-     */
-    @Override
-    void incrementSize(long increment) {
-        size.add(increment);
-    }
-
-    /**
-     * Decrement the byte size by {@code decrement}.
-     *
-     * @param decrement the value to subtract.
-     * @throws IllegalArgumentException If {@code decrement < 1L}
-     */
-    @Override
-    void decrementSize(long decrement) {
-        size.add(-decrement);
+        this.buffer = new RealBuffer(this);
     }
 
     @Override
     @NonNegative
     long expectSize(final long expectedSize) {
-        if (expectedSize < 1L) {
-            throw new IllegalArgumentException("expectedSize < 1 : " + expectedSize);
-        }
+        assert expectedSize > 0L;
         // fast-path : current size is enough
-        var currentSize = size();
+        final var currentSize = size();
         if (currentSize >= expectedSize || closed) {
             return currentSize;
         }
-        // else lock
-        lock.lock();
-        try {
-            // try again after acquiring the lock
-            currentSize = size();
-            if (currentSize >= expectedSize || sourceConsumerTerminated) {
-                return currentSize;
+        // else read from source until expected size is reached or source is exhausted
+        var remaining = expectedSize - currentSize;
+        while (remaining > 0L) {
+            final var toRead = Math.max(remaining, Segment.SIZE);
+            final var read = source.readAtMostTo(buffer, toRead);
+            if (read == -1) {
+                break;
             }
-            // we must wait until expected size is reached, or no more write operation
-            this.expectedSize = expectedSize;
-            // resume source consumer thread if needed, then await on expected size
-            sourceConsumerPaused.signal();
-            expectingSize.await();
-            return size();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Retain interrupted status.
-            close();
-            throw new JayoCancelledException("current thread is interrupted");
-        } finally {
-            lock.unlock();
+            remaining -= read;
         }
+        return size();
     }
 
     @Override
@@ -203,112 +56,219 @@ final class SourceSegmentQueue extends SegmentQueue {
             return;
         }
         closed = true;
-        if (!sourceConsumerTerminated) {
-            sourceConsumerThread.interrupt();
-            try {
-                sourceConsumerThread.join();
-            } catch (InterruptedException e) {
-                // ignore
-            }
-        }
     }
 
-    @NonNull RealBuffer getBuffer() {
+    @NonNull
+    final RealBuffer getBuffer() {
         return buffer;
     }
 
-    private void throwIfNeeded() {
-        final var currentException = exception;
-        if (currentException != null && !closed) {
-            // remove exception, then throw it
-            exception = null;
-            throw currentException;
+    final static class Async extends SourceSegmentQueue {
+        private final static Thread.Builder SOURCE_CONSUMER_THREAD_BUILDER =
+                Utils.threadBuilder("JayoSourceConsumer#");
+
+        private static final System.Logger LOGGER = System.getLogger("jayo.AsyncSourceSegmentQueue");
+
+        private final @NonNull Thread sourceConsumerThread;
+
+        private volatile @Nullable RuntimeException exception = null;
+
+        private @NonNegative long expectedSize = 0;
+        private final ReentrantLock lock = new ReentrantLock();
+        private final Condition expectingSize = lock.newCondition();
+        // when source is temporarily exhausted or the segment queue is full
+        private final Condition sourceConsumerPaused = lock.newCondition();
+        private volatile boolean sourceConsumerTerminated = false;
+
+        Async(final @NonNull RawSource source) {
+            super(source);
+            sourceConsumerThread = SOURCE_CONSUMER_THREAD_BUILDER.start(new SourceConsumer());
         }
-    }
 
-    private final class SourceConsumer implements Runnable {
-        @Override
-        public void run() {
-            try {
-                while (!Thread.interrupted()) {
-                    try {
-                        var expectedS = 0L;
-                        var size = 0L;
-                        // signal expectedSize if byte size fulfilled the expectation
-                        lock.lockInterruptibly();
-                        try {
-                            expectedS = expectedSize;
-                            size = size();
-                            if (expectedS != 0L && size >= expectedS) {
-                                // byte size fulfilled the expectation
-                                expectedSize = 0L; // reset the expectation
-                                expectedS = 0L;
-                                expectingSize.signal();
-                            }
-                        } finally {
-                            lock.unlock();
-                        }
+        @NonNegative
+        long size() {
+            throwIfNeeded();
+            return super.size();
+        }
 
-                        final var toRead = Math.max(expectedS, Segment.SIZE);
-                        // read from source
-                        final var read = source.readAtMostTo(buffer, toRead);
-                        size = size();
-                        if (read > 0 && expectedS != 0L && size < expectedS) {
-                            continue; // when expecting a given byte size we must not stop reading from source
-                        }
-
-                        lock.lockInterruptibly();
-                        try {
-                            var mustSignalExpectingSize = false;
-                            expectedS = expectedSize;
-                            if (expectedS != 0L && size >= expectedS) {
-                                // signal expectedSize if byte size fulfilled the expectation
-                                expectedSize = 0L; // reset the expectation
-                                mustSignalExpectingSize = true;
-                            }
-                            if (read <= 0 || size >= MAX_BYTE_SIZE) {
-                                // if read did not return any result or buffer reached max capacity,
-                                // resume expected size, then pause consumer thread
-                                expectingSize.signal();
-                                sourceConsumerPaused.await();
-                            } else if (mustSignalExpectingSize) {
-                                expectingSize.signal();
-                            }
-                        } finally {
-                            lock.unlock();
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt(); // Will stop looping just after
-                    }
-                }
-            } catch (Throwable t) {
-                if (t instanceof RuntimeException runtimeException) {
-                    exception = runtimeException;
-                } else {
-                    exception = new RuntimeException(t);
-                }
-            } finally {
-                // end of source consumer thread : we mark it as terminated, and we signal (= resume) the main thread
-                sourceConsumerTerminated = true;
-                lock.lock();
-                try {
-                    expectingSize.signal();
-                } finally {
-                    lock.unlock();
-                }
+        private void throwIfNeeded() {
+            final var currentException = exception;
+            if (currentException != null && !closed) {
+                // remove exception, then throw it
+                exception = null;
+                throw currentException;
             }
         }
-    }
 
-    @Override
-    @NonNull Segment removeTail() {
-        throw new IllegalStateException("removeTail is only needed for UnsafeCursor in Buffer mode, " +
-                "it must not be used for Source mode");
-    }
+        @NonNegative
+        long expectSize(final long expectedSize) {
+            if (expectedSize < 1L) {
+                throw new IllegalArgumentException("expectedSize < 1 : " + expectedSize);
+            }
+            // fast-path : current size is enough
+            var currentSize = size();
+            if (currentSize >= expectedSize || closed) {
+                return currentSize;
+            }
 
-    @Override
-    void forEach(@NonNull Consumer<Segment> action) {
-        throw new IllegalStateException("forEach is only needed for hash in Buffer mode, " +
-                "it must not be used for Source mode");
+            // else read from source until expected size is reached or source is exhausted
+            lock.lock();
+            try {
+                // try again after acquiring the lock
+                currentSize = size();
+                if (currentSize >= expectedSize || sourceConsumerTerminated) {
+                    return currentSize;
+                }
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, """
+                                    AsyncSourceSegmentQueue#{0}: expectSize({1}) pausing expecting more bytes
+                                    , current size = {2}
+                                    segment queue =
+                                    {3}{4}""",
+                            hashCode(), expectedSize, currentSize, this, System.lineSeparator());
+                }
+                // we must wait until expected size is reached, or no more write operation
+                this.expectedSize = expectedSize;
+                // resume source consumer thread if needed, then await on expected size
+                sourceConsumerPaused.signal();
+                expectingSize.await();
+                currentSize = size();
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "AsyncSourceSegmentQueue#{0}: expectSize({1}) resumed expecting more " +
+                                    "bytes, current size = {2}{3}",
+                            hashCode(), expectedSize, currentSize, System.lineSeparator());
+                }
+                return currentSize;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Retain interrupted status.
+                close();
+                throw new JayoCancelledException("current thread is interrupted");
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void close() {
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "AsyncSourceSegmentQueue#{0}: Start close{1}",
+                        hashCode(), System.lineSeparator());
+            }
+            if (closed) {
+                return;
+            }
+            closed = true;
+            if (!sourceConsumerTerminated) {
+                sourceConsumerThread.interrupt();
+                try {
+                    sourceConsumerThread.join();
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "AsyncSourceSegmentQueue#{0}: Finished close{1}",
+                        hashCode(), System.lineSeparator());
+            }
+        }
+
+        private final class SourceConsumer implements Runnable {
+            @Override
+            public void run() {
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task: start",
+                            hashCode());
+                }
+                try {
+                    var currentExpectedSize = 0L;
+                    while (!Thread.interrupted()) {
+                        try {
+                            var readSuccess = true;
+                            if (currentExpectedSize != 0L) {
+                                final var currentSize = size();
+                                if (currentSize < currentExpectedSize) {
+                                    var remaining = currentExpectedSize - currentSize;
+                                    while (remaining > 0L) {
+                                        final var toRead = Math.max(remaining, Segment.SIZE);
+                                        final var read = source.readAtMostTo(buffer, toRead);
+                                        if (read == -1) {
+                                            break;
+                                        }
+                                        remaining -= read;
+                                    }
+                                }
+                            } else {
+                                readSuccess = source.readAtMostTo(buffer, Segment.SIZE) > 0L;
+                            }
+
+                            lock.lockInterruptibly();
+                            try {
+                                final var currentSize = size();
+                                if (!readSuccess || currentSize >= MAX_BYTE_SIZE) {
+                                    if (LOGGER.isLoggable(DEBUG)) {
+                                        if (!readSuccess) {
+                                            LOGGER.log(DEBUG,
+                                                    "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task:" +
+                                                            " source is exhausted, expected size = {1}, pausing" +
+                                                            " consumer thread{2}",
+                                                    hashCode(), currentExpectedSize, System.lineSeparator());
+                                        } else {
+                                            LOGGER.log(DEBUG,
+                                                    "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task:" +
+                                                            " buffer reached or exceeded max capacity: {1}/{2}," +
+                                                            " pausing consumer thread{3}",
+                                                    hashCode(), currentSize, MAX_BYTE_SIZE, System.lineSeparator());
+                                        }
+                                    }
+                                    // if read did not return any result or buffer reached max capacity,
+                                    // resume expecting size, then pause consumer thread
+                                    currentExpectedSize = 0L;
+                                    resumeExpectingSize();
+                                    sourceConsumerPaused.await();
+                                }
+
+                                if (currentExpectedSize == 0L) {
+                                    currentExpectedSize = expectedSize;
+                                    expectedSize = 0L;
+                                } else {
+                                    currentExpectedSize = 0L;
+                                    resumeExpectingSize();
+                                }
+                            } finally {
+                                lock.unlock();
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt(); // Will stop looping just after
+                        }
+                    }
+                } catch (Throwable t) {
+                    if (t instanceof RuntimeException runtimeException) {
+                        exception = runtimeException;
+                    } else {
+                        exception = new RuntimeException(t);
+                    }
+                } finally {
+                    // end of source consumer thread : we mark it as terminated, and we signal (= resume) the main thread
+                    sourceConsumerTerminated = true;
+                    lock.lock();
+                    try {
+                        resumeExpectingSize();
+                    } finally {
+                        lock.unlock();
+                    }
+                }
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task: end",
+                            hashCode());
+                }
+            }
+
+            private void resumeExpectingSize() {
+                assert lock.isHeldByCurrentThread();
+                expectedSize = 0L;
+                LOGGER.log(DEBUG, "resumeExpectingSize()");
+                expectingSize.signal();
+            }
+        }
     }
 }

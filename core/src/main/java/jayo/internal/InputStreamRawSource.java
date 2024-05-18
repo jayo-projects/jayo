@@ -21,12 +21,12 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.Buffer;
 import jayo.RawSource;
 import jayo.exceptions.JayoException;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,34 +61,20 @@ public final class InputStreamRawSource implements RawSource {
             return 0L;
         }
 
-        final var tail = _sink.segmentQueue.writableSegmentWithState();
-        var bytesRead = 0;
-        try {
-            final var currentLimit = tail.limit;
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - currentLimit);
-
-            bytesRead = in.read(tail.data, currentLimit, toRead);
-            final var isNewTail = currentLimit == 0;
-            if (bytesRead == -1) {
-                if (isNewTail) {
-                    // We allocated a tail segment, but didn't end up needing it. Recycle!
-                    SegmentPool.recycle(tail);
-                }
-                return -1L;
+        final var bytesRead = new Wrapper.Int();
+        _sink.segmentQueue.withWritableTail(1, tail -> {
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
+            try {
+                bytesRead.value = in.read(tail.data, tail.limit(), toRead);
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
             }
-            tail.limit = currentLimit + bytesRead;
-            if (isNewTail) {
-                _sink.segmentQueue.addTail(tail);
+            if (bytesRead.value > 0) {
+                tail.incrementLimitVolatile(bytesRead.value);
             }
-            return bytesRead;
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        } finally {
-            _sink.segmentQueue.finishWrite(tail);
-            if (bytesRead > 0) {
-                _sink.segmentQueue.incrementSize(bytesRead);
-            }
-        }
+            return true;
+        });
+        return bytesRead.value;
     }
 
     @Override

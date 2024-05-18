@@ -46,7 +46,9 @@ final class FileChannelRawSource implements RawSource {
 
     @Override
     public long readAtMostTo(final @NonNull Buffer sink, final long byteCount) {
-        if (!channel.isOpen()) throw new IllegalStateException("closed");
+        if (!channel.isOpen()) {
+            throw new IllegalStateException("closed");
+        }
         try {
             if (position == channel.size()) {
                 return -1L;

@@ -60,8 +60,8 @@ final class ByteChannelSink implements RawSink {
 
             try (Buffer.UnsafeCursor ignored = source.readUnsafe(cursor)) {
                 cursor.seek(0);
-                int length = (int) Math.min(cursor.end - cursor.start, remaining);
-                int written = channel.write(ByteBuffer.wrap(cursor.data, cursor.start, length));
+                int length = (int) Math.min(cursor.limit - cursor.pos, remaining);
+                int written = channel.write(ByteBuffer.wrap(cursor.data, cursor.pos, length));
                 remaining -= written;
                 source.skip(written);
             } catch (IOException e) {

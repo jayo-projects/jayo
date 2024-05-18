@@ -25,13 +25,19 @@ package jayo
 
 import jayo.crypto.Digest
 import jayo.crypto.Hmac
+import jayo.internal.RealSource
 import java.util.zip.Inflater
 
 /**
- * @return a new source that buffers reads from `source`. The returned source will perform bulk reads into its
- * underlying buffer. Use this wherever you read a source to get an ergonomic and efficient access to data.
+ * @return a new source that buffers reads from the raw `source`. The returned source will perform bulk reads into its
+ * underlying buffer.
+ *
+ * If you choose the [async] option, actual read operations from the raw `source` are seamlessly processed
+ * **asynchronously** by a virtual thread.
+ *
+ * Use this wherever you read a source to get an ergonomic and efficient access to data.
  */
-public fun RawSource.buffered(): Source = Jayo.buffer(this)
+public fun RawSource.buffered(async: Boolean = false): Source = RealSource.buffer(this, async)
 
 /**
  * Consumes all this source and return its hash.

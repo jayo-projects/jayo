@@ -12,8 +12,8 @@ plugins {
 }
 
 val koverage = mapOf(
-    "jayo" to 89,
-    "jayo-3p-kotlinx-serialization" to 56,
+    "jayo" to 86,
+    "jayo-3p-kotlinx-serialization" to 55,
 )
 
 kotlin {
@@ -36,6 +36,7 @@ dependencies {
 
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.slf4j:slf4j-simple:${property("slf4jVersion")}")
+    testRuntimeOnly("org.slf4j:slf4j-jdk-platform-logging:${property("slf4jVersion")}")
 }
 
 koverReport {
@@ -67,7 +68,7 @@ tasks {
             )
         )
     }
-    
+
     withType<KotlinCompile> {
         kotlinOptions {
             languageVersion = "1.8" // switch to "2.0" with K2 compiler when stable

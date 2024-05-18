@@ -31,17 +31,37 @@ public final class HashingUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Algorithm is not available : " + digest.algorithm(), e);
         }
-        try (rawSource;
-             final var segmentQueue = new SynchronousSourceSegmentQueue(rawSource)) {
-            var head = segmentQueue.head();
-            while (head != null) {
-                final var pos = head.pos;
-                final var toRead = head.limit - pos;
-                messageDigest.update(head.data, pos, toRead);
-                segmentQueue.decrementSize(toRead);
-                head.pos = head.limit;
-                SegmentPool.recycle(segmentQueue.removeHead());
-                head = segmentQueue.head();
+        // todo should we use SourceSegmentQueue.Async here because hash is a slow operation ?
+        try (rawSource; final var segmentQueue = new SourceSegmentQueue(rawSource)) {
+            var toProcess = segmentQueue.expectSize(1L);
+            while (toProcess != 0L) {
+                var head = segmentQueue.headVolatile();
+                var finished = false;
+                while (!finished) {
+                    assert head != null;
+                    final var currentLimit = head.limitVolatile();
+                    final var toRead = (int) Math.min(toProcess, currentLimit - head.pos);
+                    messageDigest.update(head.data, head.pos, toRead);
+                    head.pos += toRead;
+                    segmentQueue.decrementSize(toRead);
+                    toProcess -= toRead;
+                    finished = toProcess == 0L;
+                    if (head.pos == currentLimit) {
+                        final var oldHead = head;
+                        if (finished) {
+                            if (head.tryRemove() && head.validateRemove()) {
+                                segmentQueue.removeHead(head);
+                            }
+                        } else {
+                            if (!head.tryRemove()) {
+                                throw new IllegalStateException("Non tail segment should be removable");
+                            }
+                            head = segmentQueue.removeHead(head);
+                        }
+                        SegmentPool.recycle(oldHead);
+                    }
+                }
+                toProcess = segmentQueue.expectSize(1L);
             }
         }
         return new RealByteString(messageDigest.digest());
@@ -67,17 +87,37 @@ public final class HashingUtils {
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
-        try (rawSource;
-             final var segmentQueue = new SynchronousSourceSegmentQueue(rawSource)) {
-            var head = segmentQueue.head();
-            while (head != null) {
-                final var pos = head.pos;
-                final var toRead = head.limit - pos;
-                javaMac.update(head.data, pos, toRead);
-                segmentQueue.decrementSize(toRead);
-                head.pos = head.limit;
-                SegmentPool.recycle(segmentQueue.removeHead());
-                head = segmentQueue.head();
+        // todo should we use SourceSegmentQueue.Async here because hmac is a slow operation ?
+        try (rawSource; final var segmentQueue = new SourceSegmentQueue(rawSource)) {
+            var toProcess = segmentQueue.expectSize(1L);
+            while (toProcess != 0L) {
+                var head = segmentQueue.headVolatile();
+                var finished = false;
+                while (!finished) {
+                    assert head != null;
+                    final var currentLimit = head.limitVolatile();
+                    final var toRead = (int) Math.min(toProcess, currentLimit - head.pos);
+                    javaMac.update(head.data, head.pos, toRead);
+                    head.pos += toRead;
+                    segmentQueue.decrementSize(toRead);
+                    toProcess -= toRead;
+                    finished = toProcess == 0L;
+                    if (head.pos == currentLimit) {
+                        final var oldHead = head;
+                        if (finished) {
+                            if (head.tryRemove() && head.validateRemove()) {
+                                segmentQueue.removeHead(head);
+                            }
+                        } else {
+                            if (!head.tryRemove()) {
+                                throw new IllegalStateException("Non tail segment should be removable");
+                            }
+                            head = segmentQueue.removeHead(head);
+                        }
+                        SegmentPool.recycle(oldHead);
+                    }
+                }
+                toProcess = segmentQueue.expectSize(1L);
             }
         }
         return new RealByteString(javaMac.doFinal());

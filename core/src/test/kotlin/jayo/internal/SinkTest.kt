@@ -39,7 +39,10 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 
 class BufferSinkTest : AbstractSinkTest(SinkFactory.BUFFER)
+
 class RealSinkTest : AbstractSinkTest(SinkFactory.REAL_BUFFERED_SINK)
+
+class RealAsyncSinkTest : AbstractSinkTest(SinkFactory.REAL_ASYNC_BUFFERED_SINK)
 
 abstract class AbstractSinkTest internal constructor(private val factory: SinkFactory) {
     private val data: Buffer = RealBuffer()
@@ -82,6 +85,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
             sink.write(source, 1, source.size + 1)
         }
         assertEquals(0, data.byteSize())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.write(source, 1, 1)
+            }
+        }
     }
 
     @Test
@@ -89,6 +98,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeUtf8("")
         sink.flush()
         assertEquals(0, data.byteSize())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeUtf8("")
+            }
+        }
     }
 
     @Test
@@ -96,6 +111,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeByte(0xba.toByte())
         sink.flush()
         assertEquals("Buffer(size=1 hex=ba)", data.toString())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeByte(0xba.toByte())
+            }
+        }
     }
 
     @Test
@@ -122,6 +143,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeShort(0xab01.toShort())
         sink.flush()
         assertEquals("Buffer(size=2 hex=ab01)", data.toString())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeShort(0xab01.toShort())
+            }
+        }
     }
 
     @Test
@@ -145,6 +172,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeInt(0x197760)
         sink.flush()
         assertEquals("Buffer(size=4 hex=00197760)", data.toString())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeInt(0x197760)
+            }
+        }
     }
 
     @Test
@@ -190,6 +223,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeLong(0x123456789abcdef0L)
         sink.flush()
         assertEquals("Buffer(size=8 hex=123456789abcdef0)", data.toString())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeLong(0x123456789abcdef0L)
+            }
+        }
     }
 
     @Test
@@ -224,6 +263,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         val source = RealBuffer()
         assertEquals(0, sink.transferFrom(source))
         assertEquals(0, source.byteSize())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.transferFrom(source)
+            }
+        }
     }
 
     @Test
@@ -236,6 +281,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.flush()
         assertEquals("abcd", data.readUtf8())
         assertEquals("ef", source.readUtf8())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.write(source as RawSource, 4)
+            }
+        }
     }
 
     @Test
@@ -250,6 +301,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.write(source, 8)
         sink.flush()
         assertEquals("abcdabcd", data.readUtf8())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.write(source, 8)
+            }
+        }
     }
 
     @Test
@@ -276,6 +333,13 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
 
         sink.flush()
         assertEquals("", data.readUtf8())
+
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.write(source, 8)
+            }
+        }
     }
 
     @Test
@@ -362,6 +426,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         assertLongDecimalString("10000000000000000", 10000000000000000L)
         assertLongDecimalString("100000000000000000", 100000000000000000L)
         assertLongDecimalString("1000000000000000000", 1000000000000000000L)
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeDecimalLong(0L)
+            }
+        }
     }
 
     private fun assertLongDecimalString(string: String, value: Long) {
@@ -380,6 +450,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeUtf8("0123456789", 4, 7)
         sink.flush()
         assertEquals("456", data.readUtf8())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeUtf8("0123456789", 4, 7)
+            }
+        }
     }
 
     @Test
@@ -387,6 +463,19 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         assertFailsWith<IndexOutOfBoundsException> { sink.writeUtf8("hello", -1, 2) }
         assertFailsWith<IndexOutOfBoundsException> { sink.writeUtf8("hello", 0, 6) }
         assertFailsWith<IllegalArgumentException> { sink.writeUtf8("hello", 6, 5) }
+    }
+
+    @Test
+    fun writeUtf8CodePoint() {
+        sink.writeUtf8CodePoint(0x10ffff)
+        sink.flush()
+        assertEquals(0x10ffff, data.readUtf8CodePoint())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeUtf8CodePoint(1)
+            }
+        }
     }
 
     @Test
@@ -443,6 +532,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.write("təˈranəˌsôr".encodeToByteString())
         sink.flush()
         assertEquals(ByteString.of(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readByteString())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.write("təˈranəˌsôr".encodeToByteString())
+            }
+        }
     }
 
     @Test
@@ -450,6 +545,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.write("təˈranəˌsôr".encodeToByteString(), 5, 5)
         sink.flush()
         assertEquals(ByteString.of(*"72616ec999".decodeHex()), data.readByteString())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.write("təˈranəˌsôr".encodeToByteString(), 5, 5)
+            }
+        }
     }
 
     @Test
@@ -539,6 +640,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.flush()
         val expected = "0000007400000259000002c800000072000000610000006e00000259000002cc00000073000000f400000072"
         assertArrayEquals(expected.decodeHex(), data.readByteArray())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeString("təˈranəˌsôr", Charset.forName("utf-32be"))
+            }
+        }
     }
 
     @Test
@@ -546,6 +653,12 @@ abstract class AbstractSinkTest internal constructor(private val factory: SinkFa
         sink.writeString("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
         sink.flush()
         assertArrayEquals("00000072000000610000006e00000259".decodeHex(), data.readByteArray())
+        if (sink is RealSink) {
+            sink.close()
+            assertFailsWith<IllegalStateException> {
+                sink.writeString("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
+            }
+        }
     }
 
     @Test
