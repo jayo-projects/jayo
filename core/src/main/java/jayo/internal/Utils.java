@@ -45,14 +45,14 @@ final class Utils {
      * returns when it reaches a result in the trie, when it mismatches in the trie, and when the buffer is exhausted.
      */
     static int selectPrefix(final RealBuffer buffer, final RealOptions options) {
-        var s = buffer.segmentQueue.head();
-        if (s == null) {
+        var segment = buffer.segmentQueue.headVolatile();
+        if (segment == null) {
             return -1;
         }
 
-        var data = s.data;
-        var pos = s.pos;
-        var limit = s.limit;
+        var data = segment.data;
+        var pos = segment.pos;
+        var limit = segment.limit();
 
         final var trie = options.trie;
         var triePos = 0;
@@ -70,7 +70,7 @@ final class Utils {
 
             final int nextStep;
 
-            if (s == null) {
+            if (segment == null) {
                 break;
             } else if (scanOrSelect < 0) {
                 // Scan: take multiple bytes from the buffer and the trie, looking for any mismatch.
@@ -85,16 +85,16 @@ final class Utils {
 
                     // Advance to the next buffer segment if this one is exhausted.
                     if (pos == limit) {
-                        s = s.next;
-                        if (s != buffer.segmentQueue) {
-                            pos = s.pos;
-                            data = s.data;
-                            limit = s.limit;
+                        segment = segment.nextVolatile();
+                        if (segment != null) {
+                            pos = segment.pos;
+                            data = segment.data;
+                            limit = segment.limit();
                         } else {
                             if (!scanComplete) {
                                 break navigateTrie; // We were exhausted before the scan completed.
                             }
-                            s = null; // We were exhausted at the end of the scan.
+                            // We were exhausted at the end of the scan.
                         }
                     }
 
@@ -122,14 +122,13 @@ final class Utils {
 
                 // Advance to the next buffer segment if this one is exhausted.
                 if (pos == limit) {
-                    s = s.next;
-                    if (s != buffer.segmentQueue) {
-                        pos = s.pos;
-                        data = s.data;
-                        limit = s.limit;
-                    } else {
-                        s = null; // No more segments! The next trie node will be our last.
+                    segment = segment.nextVolatile();
+                    if (segment != null) {
+                        pos = segment.pos;
+                        data = segment.data;
+                        limit = segment.limit();
                     }
+                    // else : no more segments! The next trie node will be our last.
                 }
             }
 

@@ -29,6 +29,7 @@ import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -43,10 +44,11 @@ public final class RealInflaterRawSource implements InflaterRawSource {
      * This tracks how many bytes the inflater is currently holding on to.
      */
     private int bufferBytesHeldByInflater = 0;
+    private @Nullable Segment currentSegment = null;
     private boolean closed = false;
 
     public RealInflaterRawSource(final @NonNull RawSource source, final @NonNull Inflater inflater) {
-        this(new RealSource(Objects.requireNonNull(source)), inflater);
+        this(new RealSource(Objects.requireNonNull(source), false), inflater);
     }
 
     /**
@@ -90,41 +92,32 @@ public final class RealInflaterRawSource implements InflaterRawSource {
             return 0L;
         }
 
-        try {
-            // Prepare the destination that we'll write into.
-            final var tail = _sink.segmentQueue.writableSegment(1);
-            final var currentLimit = tail.limit;
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - currentLimit);
-            final var isNewTail = currentLimit == 0;
+        final var bytesInflated = new Wrapper.Int();
+        // Prepare the destination that we'll write into.
+        _sink.segmentQueue.withWritableTail(1, tail -> {
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
 
             // Prepare the source that we'll read from.
             refill();
-
-            // Decompress the inflater's compressed data into the sink.
-            final var bytesInflated = inflater.inflate(tail.data, currentLimit, toRead);
-
+            try {
+                // Decompress the inflater's compressed data into the sink.
+                bytesInflated.value = inflater.inflate(tail.data, tail.limit(), toRead);
+            } catch (DataFormatException e) {
+                throw new JayoException(new IOException(e));
+            }
             // Release consumed bytes from the source.
             releaseBytesAfterInflate();
 
             // Track produced bytes in the destination.
-            if (bytesInflated > 0) {
-                tail.limit = currentLimit + bytesInflated;
-                if (isNewTail) {
-                    _sink.segmentQueue.addTail(tail);
-                }
-                _sink.segmentQueue.incrementSize(bytesInflated);
-                return bytesInflated;
+            if (bytesInflated.value > 0) {
+                tail.incrementLimitVolatile(bytesInflated.value);
+            } else {
+                bytesInflated.value = 0;
             }
+            return true;
+        });
 
-            // We allocated a tail segment, but didn't end up needing it. Recycle!
-            if (isNewTail) {
-                SegmentPool.recycle(tail);
-            }
-
-            return 0L;
-        } catch (DataFormatException e) {
-            throw new JayoException(new IOException(e));
-        }
+        return bytesInflated.value;
     }
 
     @Override
@@ -138,17 +131,19 @@ public final class RealInflaterRawSource implements InflaterRawSource {
             return true;
         }
 
+        resetCurrentSegmentIfPresent();
         // Assign buffer bytes to the inflater.
-        final var head = source.buffer.segmentQueue.head();
+        final var head = source.buffer.segmentQueue.headVolatile();
         assert head != null;
-        final var currentPos = head.pos;
-        bufferBytesHeldByInflater = head.limit - currentPos;
-        inflater.setInput(head.data, currentPos, bufferBytesHeldByInflater);
+        currentSegment = head;
+        bufferBytesHeldByInflater = head.limitVolatile() - head.pos;
+        inflater.setInput(head.data, head.pos, bufferBytesHeldByInflater);
         return false;
     }
 
     @Override
     public void close() {
+        resetCurrentSegmentIfPresent();
         if (closed) {
             return;
         }
@@ -166,11 +161,37 @@ public final class RealInflaterRawSource implements InflaterRawSource {
      * When the inflater has processed compressed data, remove it from the buffer.
      */
     private void releaseBytesAfterInflate() {
-        if (bufferBytesHeldByInflater == 0) {
-            return;
+        try {
+            if (bufferBytesHeldByInflater == 0) {
+                return;
+            }
+
+            final var toRelease = bufferBytesHeldByInflater - inflater.getRemaining();
+            if (currentSegment != null) {
+                currentSegment.pos += toRelease;
+                if (currentSegment.pos < 0) {
+                    throw new RuntimeException();
+                }
+                source.buffer.segmentQueue.decrementSize(toRelease);
+
+                if (currentSegment.pos == currentSegment.limitVolatile() && currentSegment.tryRemove()
+                        && currentSegment.validateRemove()) {
+                    source.buffer.segmentQueue.removeHead(currentSegment);
+                    SegmentPool.recycle(currentSegment);
+                    currentSegment = null;
+                }
+            } else {
+                source.skip(toRelease);
+            }
+            bufferBytesHeldByInflater -= toRelease;
+        } finally {
+            resetCurrentSegmentIfPresent();
         }
-        final var toRelease = bufferBytesHeldByInflater - inflater.getRemaining();
-        bufferBytesHeldByInflater -= toRelease;
-        source.skip(toRelease);
+    }
+
+    private void resetCurrentSegmentIfPresent() {
+        if (currentSegment != null) {
+            currentSegment = null;
+        }
     }
 }

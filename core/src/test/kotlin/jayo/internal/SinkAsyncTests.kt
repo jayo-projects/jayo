@@ -5,63 +5,125 @@
 
 package jayo.internal
 
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
 import jayo.buffered
 import jayo.sink
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 import java.io.OutputStream
 import java.time.Duration
 import kotlin.random.Random
 import kotlin.test.fail
 
+// these tests are a good race-condition test, do them several times !
 class SinkAsyncTests {
     @Test
     fun sinkFastProducerSlowEmitter() {
-        val outputStream = outputStream(true)
+        repeat(10) {
+            val outputStream = outputStream(true)
 
-        outputStream.sink().buffered().use { sink ->
-            sink.writeUtf8('a'.repeat(EXPECTED_SIZE))
+            outputStream.sink().buffered().use { sink ->
+                sink.writeUtf8('a'.repeat(EXPECTED_SIZE))
+            }
+            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+            assertThat(outputStream.bytes).isEqualTo(ARRAY)
         }
-        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-        assertThat(outputStream.bytes).isEqualTo(ARRAY)
+    }
+
+    @Test
+    fun asyncSinkFastProducerSlowEmitter() {
+        repeat(10) {
+            val outputStream = outputStream(true)
+
+            outputStream.sink().buffered(true).use { sink ->
+                sink.writeUtf8('a'.repeat(EXPECTED_SIZE))
+            }
+            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+            assertThat(outputStream.bytes).isEqualTo(ARRAY)
+        }
     }
 
     @Test
     fun sinkSlowProducerFastEmitter() {
-        val outputStream = outputStream(false)
+        repeat(10) {
+            val outputStream = outputStream(false)
 
-        var written = 0
-        outputStream.sink().buffered().use { sink ->
-            val toWrite = CHUNKS_BYTE_SIZE
-            val bytes = ByteArray(toWrite)
-            while (written < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                ARRAY.copyInto(bytes, 0, 0, toWrite)
-                sink.write(bytes)
-                written += toWrite
+            var written = 0
+            outputStream.sink().buffered().use { sink ->
+                val toWrite = CHUNKS_BYTE_SIZE
+                val bytes = ByteArray(toWrite)
+                while (written < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    ARRAY.copyInto(bytes, 0, 0, toWrite)
+                    sink.write(bytes)
+                    written += toWrite
+                }
             }
+            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+            assertThat(outputStream.bytes).isEqualTo(ARRAY)
         }
-        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-        assertThat(outputStream.bytes).isEqualTo(ARRAY)
+    }
+
+    @Test
+    fun asyncSinkSlowProducerFastEmitter() {
+        repeat(10) {
+            val outputStream = outputStream(false)
+
+            var written = 0
+            outputStream.sink().buffered().use { sink ->
+                val toWrite = CHUNKS_BYTE_SIZE
+                val bytes = ByteArray(toWrite)
+                while (written < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    ARRAY.copyInto(bytes, 0, 0, toWrite)
+                    sink.write(bytes)
+                    written += toWrite
+                }
+            }
+            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+            assertThat(outputStream.bytes).isEqualTo(ARRAY)
+        }
     }
 
     @Test
     fun sinkSlowProducerSlowEmitter() {
-        val outputStream = outputStream(true)
+        repeat(10) {
+            val outputStream = outputStream(true)
 
-        var written = 0
-        outputStream.sink().buffered().use { sink ->
-            val toWrite = CHUNKS_BYTE_SIZE
-            val bytes = ByteArray(toWrite)
-            while (written < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                ARRAY.copyInto(bytes, 0, 0, toWrite)
-                sink.write(bytes)
-                written += toWrite
+            var written = 0
+            outputStream.sink().buffered().use { sink ->
+                val toWrite = CHUNKS_BYTE_SIZE
+                val bytes = ByteArray(toWrite)
+                while (written < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    ARRAY.copyInto(bytes, 0, 0, toWrite)
+                    sink.write(bytes)
+                    written += toWrite
+                }
             }
+            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+            assertThat(outputStream.bytes).isEqualTo(ARRAY)
         }
-        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-        assertThat(outputStream.bytes).isEqualTo(ARRAY)
+    }
+
+    @Test
+    fun asyncSinkSlowProducerSlowEmitter() {
+        repeat(10) {
+            val outputStream = outputStream(true)
+
+            var written = 0
+            outputStream.sink().buffered().use { sink ->
+                val toWrite = CHUNKS_BYTE_SIZE
+                val bytes = ByteArray(toWrite)
+                while (written < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    ARRAY.copyInto(bytes, 0, 0, toWrite)
+                    sink.write(bytes)
+                    written += toWrite
+                }
+            }
+            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+            assertThat(outputStream.bytes).isEqualTo(ARRAY)
+        }
     }
 
     companion object {

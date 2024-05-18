@@ -49,7 +49,7 @@ open class SlowSourceBenchmark {
 
         when (type) {
             "jayo" -> {
-                jayoSource = delayedInputStream.source().buffered()
+                jayoSource = delayedInputStream.source().buffered(true)
             }
 
             "okio" -> {

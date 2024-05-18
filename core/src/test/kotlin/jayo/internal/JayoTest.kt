@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import jayo.sink
 import jayo.source
+import org.junit.jupiter.api.assertThrows
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -120,6 +121,8 @@ class JayoTest {
         val buffer = RealBuffer()
         source.readAtMostTo(buffer, 1)
         assertThat(buffer.readUtf8()).isEqualTo("a")
+
+        assertThrows<IllegalArgumentException> { source.readAtMostTo(buffer, -42)}
     }
 
     @Test

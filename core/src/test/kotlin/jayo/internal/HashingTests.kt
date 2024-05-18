@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test
 class HashingTests {
     @Test
     fun hashTest() {
-        val bytes = ByteArray(SEGMENT_SIZE + 1) { 'a'.code.toByte() }
-        val expectedMd5 = "b7652d9bca37038c342cc0c492dd70f9"
+        val bytes = ByteArray(SEGMENT_SIZE * 2 + 1) { 'a'.code.toByte() }
+        val expectedMd5 = "8d075f723556e776f6f5dcf28e6889a7"
 
         // ByteString
         val byteString = bytes.toByteString()
@@ -32,9 +32,9 @@ class HashingTests {
 
     @Test
     fun hMacTest() {
-        val bytes = ByteArray(SEGMENT_SIZE + 1) { 'a'.code.toByte() }
+        val bytes = ByteArray(SEGMENT_SIZE *  2 + 1) { 'a'.code.toByte() }
         val key = "abc".encodeToByteString()
-        val expectedMd5 = "ce0e17dc73c5261dc55e9f8884f49474"
+        val expectedMd5 = "0f2bbeb05b2327ec9b7cfb777cba1d75"
 
         // ByteString
         val byteString = bytes.toByteString()

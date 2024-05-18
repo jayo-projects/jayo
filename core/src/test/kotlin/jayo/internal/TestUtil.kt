@@ -155,10 +155,9 @@ object TestUtil {
             throw IllegalArgumentException()
         }
 
-        var s = original.segmentQueue.next
-        while (s !== original.segmentQueue) {
-            result.segmentQueue.addTail(s!!.unsharedCopy())
-            s = s.next
+        original.segmentQueue.forEach { segment ->
+            val bufferTailNode = result.segmentQueue.tailVolatile()
+            result.segmentQueue.addWritableTail(bufferTailNode, segment.unsharedCopy(), false)
         }
         result.segmentQueue.incrementSize(original.byteSize())
 
@@ -191,16 +190,6 @@ object TestUtil {
             pos += byteCount
         }
 
-        return result
-    }
-
-    /** Remove all segments from the pool and return them as a list. */
-    @JvmStatic
-    fun takeAllPoolSegments(): List<Segment> {
-        val result = mutableListOf<Segment>()
-        while (SegmentPool.getByteCount() > 0) {
-            result += SegmentPool.take()
-        }
         return result
     }
 

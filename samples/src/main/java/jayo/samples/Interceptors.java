@@ -117,7 +117,7 @@ public final class Interceptors {
                      remaining > 0 && length > 0;
                      length = cursor.next()) {
                     int toIntercept = (int) Math.min(length, remaining);
-                    intercept(cursor.data, cursor.start, toIntercept);
+                    intercept(cursor.data, cursor.pos, toIntercept);
                     remaining -= toIntercept;
                 }
             } finally {
@@ -159,7 +159,7 @@ public final class Interceptors {
                      remaining > 0 && length > 0;
                      length = cursor.next()) {
                     int toIntercept = (int) Math.min(length, remaining);
-                    intercept(cursor.data, cursor.start, toIntercept);
+                    intercept(cursor.data, cursor.pos, toIntercept);
                     remaining -= toIntercept;
                 }
             } finally {

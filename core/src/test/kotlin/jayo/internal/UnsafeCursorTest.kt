@@ -36,7 +36,7 @@ class UnsafeCursorTest {
         try {
             val copy = RealBuffer()
             while (cursor.next() != -1) {
-                copy.write(cursor.data, cursor.start, cursor.end - cursor.start)
+                copy.write(cursor.data, cursor.pos, cursor.limit - cursor.pos)
             }
         } finally {
             cursor.close()
@@ -52,7 +52,7 @@ class UnsafeCursorTest {
 
         buffer.readAndWriteUnsafe().use { cursor ->
             while (cursor.next() != -1) {
-                cursor.data.fill('z'.code.toByte(), cursor.start, cursor.end)
+                cursor.data.fill('z'.code.toByte(), cursor.pos, cursor.limit)
             }
         }
 
@@ -66,7 +66,7 @@ class UnsafeCursorTest {
 
         buffer.readAndWriteUnsafe().use { cursor ->
             while (cursor.next() != -1) {
-                cursor.data.fill('z'.code.toByte(), cursor.start, cursor.end)
+                cursor.data.fill('z'.code.toByte(), cursor.pos, cursor.limit)
             }
         }
 
@@ -81,8 +81,8 @@ class UnsafeCursorTest {
             cursor.expandBuffer(100)
             cursor.data.fill(
                 'z'.code.toByte(),
-                cursor.start,
-                cursor.start + 100
+                cursor.pos,
+                cursor.pos + 100
             )
             cursor.resizeBuffer(100L)
         }
@@ -98,7 +98,7 @@ class UnsafeCursorTest {
 
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.resizeBuffer(100L)
-            cursor.data.fill('z'.code.toByte(), cursor.start, cursor.end)
+            cursor.data.fill('z'.code.toByte(), cursor.pos, cursor.limit)
         }
 
         assertEquals("z".repeat(100), buffer.readUtf8())

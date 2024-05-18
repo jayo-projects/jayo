@@ -14,10 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SegmentPoolTest {
     @Test
     void singleThreadRecycle() {
-        TestUtil.takeAllPoolSegments();
-        final var initialSegment = new SegmentQueue();
-        initialSegment.prev = null;
-        initialSegment.next = null;
+        JavaTestUtil.takeAllPoolSegments();
+        final var initialSegment = new Segment();
         SegmentPool.recycle(initialSegment);
         final var newSegment = SegmentPool.take();
 
@@ -26,10 +24,8 @@ public class SegmentPoolTest {
 
     @Test
     void twoThreads() throws InterruptedException {
-        TestUtil.takeAllPoolSegments();
-        final var initialSegment = new SegmentQueue();
-        initialSegment.prev = null;
-        initialSegment.next = null;
+        JavaTestUtil.takeAllPoolSegments();
+        final var initialSegment = new Segment();
         SegmentPool.recycle(initialSegment);
 
         final var initialThreadHashBucketIndex = SegmentPool.getHashBucketIndex(Thread.currentThread());
@@ -41,10 +37,8 @@ public class SegmentPoolTest {
 
     @Test
     void thread1RecycleThread2Take() throws InterruptedException {
-        TestUtil.takeAllPoolSegments();
-        final var initialSegment = new SegmentQueue();
-        initialSegment.prev = null;
-        initialSegment.next = null;
+        JavaTestUtil.takeAllPoolSegments();
+        final var initialSegment = new Segment();
         SegmentPool.recycle(initialSegment);
 
         final var initialThreadHashBucketIndex = SegmentPool.getHashBucketIndex(Thread.currentThread());

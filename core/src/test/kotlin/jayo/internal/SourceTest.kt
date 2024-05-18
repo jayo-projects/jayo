@@ -49,11 +49,17 @@ class BufferSourceTest : AbstractSourceTest(SourceFactory.BUFFER)
 
 class RealSourceTest : AbstractSourceTest(SourceFactory.REAL_SOURCE)
 
+class RealAsyncSourceTest : AbstractSourceTest(SourceFactory.REAL_ASYNC_SOURCE)
+
 class PeekBufferTest : AbstractSourceTest(SourceFactory.PEEK_BUFFER)
 
 class PeekSourceTest : AbstractSourceTest(SourceFactory.PEEK_SOURCE)
 
+class PeekAsyncSourceTest : AbstractSourceTest(SourceFactory.PEEK_ASYNC_SOURCE)
+
 class BufferedSourceTest : AbstractSourceTest(SourceFactory.BUFFERED_SOURCE)
+
+class BufferedDoublyAsyncSourceTest : AbstractSourceTest(SourceFactory.BUFFERED_DOUBLY_ASYNC_SOURCE)
 
 abstract class AbstractSourceTest internal constructor(private val factory: SourceFactory) {
     companion object {
@@ -98,7 +104,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
     @AfterEach
     fun after() {
         try {
-            originSource?.close()
+            //originSource?.close()
             source.close()
             sink.close()
         } catch (_: Exception) { /*ignored*/
@@ -108,6 +114,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
     @Test
     fun exhausted() {
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.exhausted()
+            }
+        }
     }
 
     @Test
@@ -117,6 +130,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals(0xab, (source.readByte() and 0xff).toLong())
         assertEquals(0xcd, (source.readByte() and 0xff).toLong())
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readByte()
+            }
+        }
     }
 
     @Test
@@ -133,6 +153,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals(0xabcd.toShort().toLong(), source.readShort().toLong())
         assertEquals(0xef01.toShort().toLong(), source.readShort().toLong())
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readShort()
+            }
+        }
     }
 
     @Test
@@ -194,6 +221,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals(-0x543210ff, source.readInt().toLong())
         assertEquals(-0x789abcdf, source.readInt().toLong())
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readInt()
+            }
+        }
     }
 
     @Test
@@ -274,6 +308,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals(-0x543210ef789abcdfL, source.readLong())
         assertEquals(0x3647586912233445L, source.readLong())
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readLong()
+            }
+        }
     }
 
     @Test
@@ -357,6 +398,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals(6, source.transferTo(sink))
         assertEquals("abcdef", sink.readUtf8())
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.transferTo(sink)
+            }
+        }
     }
 
     @Test
@@ -374,6 +422,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals(-1, source.readAtMostTo(sink, 10))
         assertEquals(10, sink.byteSize())
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readAtMostTo(sink, 10)
+            }
+        }
     }
 
     @Test
@@ -453,6 +508,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         source.readTo(sink, 9999)
         assertEquals("a".repeat(9999), sink.readUtf8())
         assertEquals("a", source.readUtf8())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readTo(sink, 9999)
+            }
+        }
     }
 
     @Test
@@ -500,6 +562,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         val sink = ByteArray(Segment.SIZE + 5)
         source.readTo(sink)
         assertArrayEquals(expected, sink)
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readTo(sink)
+            }
+        }
     }
 
     @Test
@@ -565,6 +634,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
             ),
             array
         )
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readTo(array)
+            }
+        }
     }
 
     @Test
@@ -577,6 +653,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals(3, read.toLong())
         val expected = byteArrayOf('a'.code.toByte(), 'b'.code.toByte(), 'c'.code.toByte())
         assertArrayEquals(expected, sink)
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readAtMostTo(sink)
+            }
+        }
     }
 
     @Test
@@ -604,6 +687,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         val expected =
             byteArrayOf(0, 0, 'a'.code.toByte(), 'b'.code.toByte(), 'c'.code.toByte(), 0, 0)
         assertArrayEquals(expected, sink)
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readAtMostTo(sink, 2, bytesToRead)
+            }
+        }
     }
 
     @Test
@@ -645,6 +735,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         sink.writeUtf8(string)
         sink.emit()
         assertArrayEquals(string.toByteArray(), source.readByteArray())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readByteArray()
+            }
+        }
     }
 
     @Test
@@ -653,6 +750,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         sink.emit()
         assertEquals("[97, 98, 99]", source.readByteArray(3).contentToString())
         assertEquals("d", source.readUtf8(1))
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readByteArray(3)
+            }
+        }
     }
 
     @Test
@@ -677,6 +781,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         sink.emit()
         source.skip((Segment.SIZE - 1).toLong())
         assertEquals("aa", source.readUtf8(2))
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readUtf8(2)
+            }
+        }
     }
 
     @Test
@@ -698,6 +809,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         sink.writeUtf8("a".repeat(Segment.SIZE * 2))
         sink.emit()
         assertEquals("a".repeat(Segment.SIZE * 2), source.readUtf8())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.readUtf8()
+            }
+        }
     }
 
     @Test
@@ -723,6 +841,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         assertEquals('b'.code.toLong(), (source.readByte() and 0xff).toLong())
         source.skip(1)
         assertTrue(source.exhausted())
+
+        if (source is RealSource) {
+            source.close()
+            assertFailsWith<IllegalStateException> {
+                source.skip(1)
+            }
+        }
     }
 
     @Test
@@ -1533,13 +1658,16 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
 
     @Test
     fun readByteStringPartial() {
+        val eeee = "e".repeat(Segment.SIZE)
         with(sink) {
             writeUtf8("abcd")
-            writeUtf8("e".repeat(Segment.SIZE))
+            writeUtf8(eeee)
+            writeUtf8("abcd")
             emit()
         }
         assertEquals("abc", source.readByteString(3).decodeToUtf8())
         assertEquals("d", source.readByteString(1).decodeToUtf8())
+        assertEquals(eeee, source.readByteString(Segment.SIZE.toLong()).decodeToUtf8())
     }
 
     @Test
@@ -1559,7 +1687,13 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
             emit()
         }
         assertThat(source.readUtf8String().codePoints())
-            .containsExactly('a'.code, 'b'.code, 'c'.code, 'd'.code, *IntArray(Segment.SIZE) { 'e'.code }.toTypedArray())
+            .containsExactly(
+                'a'.code,
+                'b'.code,
+                'c'.code,
+                'd'.code,
+                *IntArray(Segment.SIZE) { 'e'.code }.toTypedArray()
+            )
     }
 
     @Test
@@ -1817,7 +1951,7 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
         sink.writeUtf8("abcde")
         sink.emit()
         @Suppress("KotlinConstantConditions")
-        assertEquals(0, input.skip(-42L)) // Try to skip when exhausted.
+        assertEquals(0, input.skip(-42L)) // Try to skip negative count.
         assertEquals(5, input.skip(10)) // Try to skip too much.
         assertEquals(0, input.skip(1)) // Try to skip when exhausted.
     }

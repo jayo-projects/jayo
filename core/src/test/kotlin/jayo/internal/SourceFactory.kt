@@ -58,6 +58,17 @@ interface SourceFactory {
             }
         }
 
+        val REAL_ASYNC_SOURCE: SourceFactory = object :
+            SourceFactory {
+            override fun pipe(): Pipe {
+                val buffer = RealBuffer()
+                return Pipe(
+                    buffer,
+                    (buffer as RawSource).buffered(true)
+                )
+            }
+        }
+
         val PEEK_BUFFER: SourceFactory = object : SourceFactory {
             override fun pipe(): Pipe {
                 val buffer = RealBuffer()
@@ -81,6 +92,19 @@ interface SourceFactory {
             }
         }
 
+        val PEEK_ASYNC_SOURCE: SourceFactory = object :
+            SourceFactory {
+            override fun pipe(): Pipe {
+                val buffer = RealBuffer()
+                val origin = (buffer as RawSource).buffered(true)
+                return Pipe(
+                    buffer,
+                    origin.peek(),
+                    origin
+                )
+            }
+        }
+
         val BUFFERED_SOURCE: SourceFactory = object :
             SourceFactory {
             override fun pipe(): Pipe {
@@ -89,6 +113,19 @@ interface SourceFactory {
                 return Pipe(
                     buffer,
                     origin.buffered(),
+                    origin
+                )
+            }
+        }
+
+        val BUFFERED_DOUBLY_ASYNC_SOURCE: SourceFactory = object :
+            SourceFactory {
+            override fun pipe(): Pipe {
+                val buffer = RealBuffer()
+                val origin = (buffer as RawSource).buffered(true)
+                return Pipe(
+                    buffer,
+                    origin.buffered(true),
                     origin
                 )
             }

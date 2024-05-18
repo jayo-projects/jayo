@@ -39,7 +39,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Utils.arrayRangeEquals;
@@ -196,10 +195,10 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
     @Override
     public final byte @NonNull [] toByteArray() {
         final var result = new byte[byteSize()];
-        final var resultPos = new AtomicInteger();
+        final var resultPos = new Wrapper.Int();
         forEachSegment((s, offset, byteCount) -> {
-            System.arraycopy(s.data, offset, result, resultPos.get(), byteCount);
-            resultPos.addAndGet(byteCount);
+            System.arraycopy(s.data, offset, result, resultPos.value, byteCount);
+            resultPos.value += byteCount;
         });
         return result;
     }
@@ -223,9 +222,10 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
         Objects.requireNonNull(buffer);
         forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
             s.pos = _offset;
-            s.limit = _offset + _byteCount;
+            s.limit(_offset + _byteCount);
             final var copy = s.sharedCopy();
-            buffer.segmentQueue.addTail(copy);
+            final var bufferTail = buffer.segmentQueue.nonRemovedTailOrNull();
+            buffer.segmentQueue.addWritableTail(bufferTail, copy, true);
             buffer.segmentQueue.incrementSize(_byteCount);
             return true;
         });
@@ -241,12 +241,12 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
             return false;
         }
         // Go segment-by-segment through this, passing arrays to other's rangeEquals().
-        final var _otherOffset = new AtomicInteger(otherOffset);
+        final var _otherOffset = new Wrapper.Int(otherOffset);
         return forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
-            if (!other.rangeEquals(_otherOffset.get(), s.data, _offset, _byteCount)) {
+            if (!other.rangeEquals(_otherOffset.value, s.data, _offset, _byteCount)) {
                 return false;
             }
-            _otherOffset.addAndGet(_byteCount);
+            _otherOffset.value += _byteCount;
             return true;
         });
     }
@@ -263,12 +263,12 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
             return false;
         }
         // Go segment-by-segment through this, comparing ranges of arrays.
-        final var _otherOffset = new AtomicInteger(otherOffset);
+        final var _otherOffset = new Wrapper.Int(otherOffset);
         return forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
-            if (!arrayRangeEquals(s.data, _offset, other, _otherOffset.get(), _byteCount)) {
+            if (!arrayRangeEquals(s.data, _offset, other, _otherOffset.value, _byteCount)) {
                 return false;
             }
-            _otherOffset.addAndGet(_byteCount);
+            _otherOffset.value += _byteCount;
             return true;
         });
     }
@@ -282,10 +282,10 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
         checkOffsetAndCount(byteSize(), offset, byteCount);
         checkOffsetAndCount(target.length, targetOffset, byteCount);
         // Go segment-by-segment through this, copying ranges of arrays.
-        var _targetOffset = new AtomicInteger(targetOffset);
+        var _targetOffset = new Wrapper.Int(targetOffset);
         forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
-            System.arraycopy(s.data, _offset, target, _targetOffset.get(), _byteCount);
-            _targetOffset.addAndGet(_byteCount);
+            System.arraycopy(s.data, _offset, target, _targetOffset.value, _byteCount);
+            _targetOffset.value += _byteCount;
             return true;
         });
     }
@@ -335,16 +335,16 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
         }
 
         // Equivalent to Arrays.hashCode(toByteArray()).
-        final var result = new AtomicInteger(1);
+        final var result = new Wrapper.Int(1);
         forEachSegment((s, offset, byteCount) -> {
             var i = offset;
             final var limit = offset + byteCount;
             while (i < limit) {
-                result.set(31 * result.get() + s.data[i]);
+                result.value = (31 * result.value + s.data[i]);
                 i++;
             }
         });
-        hashCode = result.get();
+        hashCode = result.value;
         return hashCode;
     }
 

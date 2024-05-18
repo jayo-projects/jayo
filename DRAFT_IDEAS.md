@@ -65,6 +65,20 @@ can allocate, manipulate, and share off-heap memory with the same fluidity and s
 should balance the need for predictable deallocation with the need to prevent untimely deallocation that can lead to JVM
 crashes or, worse, to silent memory corruption.
 
+## Race condition
+
+Avoiding race conditions is an art, to avoid them when mutating a `Segment` (= a write, transfer or remove operation),
+we must follow a few steps in this exact order :
+1. switch the `Segment` state to the desired state
+2. modify `pos` or `limit`
+3. increase or decrease the byte size of the `SegmentQueue`
+4. atomically `compareAndSet` the **TAIL** or the **HEAD**
+5. (optional) atomically update the **NEXT** segment
+6. end the operation by resetting the `Segment` state to `AVAILABLE`
+
+We must battle test these potential race conditions with a lot of tests and benchmarks, sometimes with some `Random`
+involved to create all sorts of weird use cases !
+
 ## Some inspirations
 
 * Okio documentation and related articles

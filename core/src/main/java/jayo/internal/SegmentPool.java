@@ -28,26 +28,24 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static jayo.internal.Segment.AVAILABLE;
+import static jayo.internal.Segment.WRITING;
 
 /**
- * This class pools segments in a lock-free singly-linked queue. Though this code is lock-free it does use a sentinel
- * {@link #LOCK} to defend against races. On conflict, operations are not retried and succeed immediately, so there is
- * no chance of blocking despite the term "lock", but segments are not pushed into the queue.
+ * This class pools segments in a singly-linked queue of {@linkplain Segment segments}. Though this code is lock-free it
+ * does use a sentinel {@link #DOOR} value to defend against races. Conflicted operations are not retried, so there is
+ * no chance of blocking despite the term "lock".
  * <p>
- * On conflict, operations are not retried and succeed immediately, so there is no chance of blocking, but segments are
- * not pushed into the queue.
- * For example, a {@link #take()} that loses a race allocates a new segment regardless of the cache size. A
- * {@link #recycle(Segment)} call that loses a race will not increase the size of the cache.
+ * On {@link #take()}, a caller swaps the Thread's corresponding segment cache with the {@link #DOOR} sentinel. If the
+ * segment cache was not already locked, the caller pop the first segment from the cache.
  * <p>
- * Under significant contention, this cache will have fewer hits and the VM will do more GC and zero filling of memory
- * chunks.
+ * On {@link #recycle(Segment)} a caller swaps the Thread's corresponding segment cache with the {@link #DOOR} sentinel.
+ * If the segment cache was not already locked, the caller push the segment in the last position of the cache.
  * <p>
- * This pool is a thread-safe static singleton.
- * <ul>
- * <li>On {@link #take}, the caller polls the head of the queue.
- * <li>On {@link #recycle}, the caller offers the segment back to the pool.
- * </ul>
+ * On conflict, operations succeed, but segments are not pooled. For example, a {@link #take()} that loses a race
+ * allocates a new segment regardless of the pool size. A {@link #recycle(Segment)} call that loses a race will not
+ * increase the size of the pool.
+ * <p>
+ * Under significant contention, this pool will have fewer hits and the VM will do more GC and memory allocations.
  */
 @SuppressWarnings("unchecked")
 public final class SegmentPool {
@@ -56,10 +54,10 @@ public final class SegmentPool {
     }
 
     /**
-     * The maximum number of segments to pool per hash bucket.
+     * The maximum byte size in all segments per hash bucket in the pool.
      */
-    // TODO: Is this a good maximum size? Do we ever have that many idle segments?
-    static final int MAX_SIZE = 128 * 1024;
+    // TODO: Is this a good maximum size?
+    static final int MAX_SIZE = 256 * Segment.SIZE;
 
     /**
      * The number of hash buckets. This number needs to balance keeping the pool small and contention low. We use the
@@ -69,9 +67,9 @@ public final class SegmentPool {
     private static final int HASH_BUCKET_COUNT = Integer.highestOneBit(Runtime.getRuntime().availableProcessors() * 2 - 1);
 
     /**
-     * A sentinel segment to indicate that the linked list is currently being modified.
+     * A sentinel segment to indicate that the cache is currently being modified.
      */
-    private static final Segment LOCK = new Segment(new byte[0], 0, 0, false, false);
+    private static final Segment DOOR = new Segment(new byte[0], 0, 0, false, false);
 
     /**
      * Hash buckets each contain a singly-linked queue of segments. The index/key is a hash function of thread ID
@@ -80,75 +78,83 @@ public final class SegmentPool {
      * We don't use ThreadLocal because we don't know how many threads the host process has, and we don't want to leak
      * memory for the duration of a thread's life.
      */
-    private static final AtomicReference<Segment>[] hashBuckets;
+    private static final @NonNull AtomicReference<@Nullable Segment> @NonNull [] hashBuckets;
 
     static {
         hashBuckets = new AtomicReference[HASH_BUCKET_COUNT];
         // null value implies an empty bucket
-        Arrays.setAll(hashBuckets, _unused -> new AtomicReference<Segment>());
+        Arrays.setAll(hashBuckets, _unused -> new AtomicReference<@Nullable Segment>());
     }
 
     /**
-     * For testing only. Returns a snapshot of the number of bytes currently in the pool. If the pool
-     * is segmented such as by thread, this returns the byte count accessible to the calling thread.
+     * For testing only. Returns a snapshot of the number of bytes currently in the pool. If the pool is segmented such
+     * as by thread, this returns the byte count accessible to the calling thread.
      */
     static int getByteCount() {
         final var first = firstRef().get();
-        return (first != null) ? first.limit : 0;
+        return (first != null) ? first.limit() : 0;
     }
 
-    public static @NonNull Segment take() {
+    static @NonNull Segment take() {
         final var firstRef = firstRef();
-        final var first = firstRef.getAndSet(LOCK);
-        if (first == LOCK) {
-            // We didn't acquire the lock. Return a new segment.
+
+        // Hold the door !!!
+        final var first = firstRef.getAndSet(DOOR);
+        if (first == DOOR) {
+            // A take() or recycle() is currently in progress. Return a new segment.
             return new Segment();
         }
         if (first == null) {
-            // We acquired the lock but the pool was empty. Unlock and return a new segment.
+            // We acquired the lock but the cache was empty. Unlock and return a new segment.
             firstRef.set(null);
             return new Segment();
         }
 
-        // We acquired the lock and the pool was not empty. Pop the first element and return it.
-        firstRef.set(first.next);
-        first.next = null;
-        first.limit = 0;
+        // We acquired the lock and the cache was not empty. Pop the first element and return it.
+        firstRef.set((Segment) Segment.NEXT.get(first));
+
+        // cleanup segment to cache, must be done here because these are non-volatile fields. We ensure the thread that
+        // take this segment has these values
+        Segment.NEXT.set(first, null);
+        first.pos = 0;
+        first.limitVolatile(0);
+        Segment.STATUS.setVolatile(first, WRITING);
+
         return first;
     }
 
-    static void recycle(final @Nullable Segment segment) {
-        if (segment == null) {
-            return;
-        }
-        if (segment.next != null || segment.prev != null) {
-            throw new IllegalArgumentException("next and prev properties of the segment must be null");
-        }
+    static void recycle(final @NonNull Segment segment) {
+        Objects.requireNonNull(segment);
+
         if (segment.shared) {
+            Segment.NEXT.set(segment, null);
             return; // This segment cannot be recycled.
         }
         final var firstRef = firstRef();
 
-        final var first = firstRef.getAndSet(LOCK);
-        if (first == LOCK) {
+        // Hold the door !!!
+        var first = firstRef.getAndSet(DOOR);
+        if (first == DOOR) {
+            Segment.NEXT.set(segment, null);
             return; // A take() or recycle() is currently in progress.
         }
-        final var firstLimit = (first != null) ? first.limit : 0;
+
+
+        final var firstLimit = (first != null) ? first.limit() : 0;
         if (firstLimit >= MAX_SIZE) {
             firstRef.set(first); // Pool is full.
+            Segment.NEXT.set(segment, null);
             return;
         }
 
-        segment.next = first;
-        segment.pos = 0;
-        segment.limit = firstLimit + Segment.SIZE;
-        segment.status = AVAILABLE;
+        Segment.NEXT.set(segment, first);
+        segment.limit(firstLimit + Segment.SIZE);
 
         firstRef.set(segment);
     }
 
-    private static AtomicReference<Segment> firstRef() {
-        // Get a final varue in [0..HASH_BUCKET_COUNT) based on the current thread.
+    private static AtomicReference<@Nullable Segment> firstRef() {
+        // Get a final value in [0..HASH_BUCKET_COUNT) based on the current thread.
         final var hashBucketIndex = getHashBucketIndex(Thread.currentThread());
         return hashBuckets[hashBucketIndex];
     }

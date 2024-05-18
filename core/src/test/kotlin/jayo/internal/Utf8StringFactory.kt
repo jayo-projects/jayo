@@ -47,7 +47,7 @@ interface Utf8StringFactory {
 
         @JvmStatic
         val SEGMENTED_UTF8_STRING: Utf8StringFactory = object : Utf8StringFactory {
-            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.utf8Snapshot()
+            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.readUtf8String()
         }
 
         @JvmStatic
