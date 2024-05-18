@@ -215,19 +215,21 @@ public final class GzipRawSource implements RawSource {
         // Skip segments that we aren't checksumming.
         var s = buffer.segmentQueue.head();
         assert s != null;
-        while (_offset >= s.limit - s.pos) {
-            _offset -= (s.limit - s.pos);
-            s = s.next;
+        while (_offset >= s.segment().limit() - s.segment().pos()) {
+            _offset -= (s.segment().limit() - s.segment().pos());
+            s = s.next();
+            assert s != null;
         }
 
         // Checksum one segment at a time.
         while (_byteCount > 0) {
-            final var pos = (int) (s.pos + _offset);
-            final var toUpdate = (int) Math.min(s.limit - pos, _byteCount);
-            crc.update(s.data, pos, toUpdate);
+            assert s != null;
+            final var pos = (int) (s.segment().pos() + _offset);
+            final var toUpdate = (int) Math.min(s.segment().limit() - pos, _byteCount);
+            crc.update(s.segment().data(), pos, toUpdate);
             _byteCount -= toUpdate;
             _offset = 0;
-            s = s.next;
+            s = s.next();
         }
     }
 

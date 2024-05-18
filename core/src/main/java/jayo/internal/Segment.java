@@ -21,8 +21,8 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
@@ -43,7 +43,7 @@ import static java.lang.System.Logger.Level.INFO;
  * beyond. There is a single owning segment for each byte array. Positions, limits, prev, and next references are not
  * shared.
  */
-public sealed class Segment permits SegmentQueue {
+final class Segment extends SafeSegment {
     private static final System.Logger LOGGER = System.getLogger("jayo.Segment");
 
     /**
@@ -87,34 +87,16 @@ public sealed class Segment permits SegmentQueue {
     int pos = 0;
     /**
      * The first byte of available data ready to be written to.
-     * <p>
-     * If the segment is free and linked in the segment pool, the field contains total
-     * byte count of this and next segments.
      */
     int limit = 0;
     /**
-     * True if other segments or byte strings use the same byte array.
+     * True if other buffer segments or byte strings use the same byte array.
      */
     boolean shared;
     /**
      * True if this segment owns the byte array and can append to it, extending `limit`.
      */
-    boolean owner;
-    /**
-     * Next segment in a queue.
-     */
-    Segment next = null;
-    /**
-     * Previous segment in a queue.
-     */
-    Segment prev = null;
-    // status
-    static final byte AVAILABLE = 1;
-    static final byte WRITING = 2;
-    static final byte TRANSFERRING = 3;
-    static final byte DELETING = 4; // final state, cannot go back
-    static final byte SENTINEL = 5; // specific state for the segment queue sentinel node, cannot change
-    volatile byte status = AVAILABLE;
+    final boolean owner;
 
     Segment() {
         this.data = new byte[SIZE];
@@ -135,7 +117,7 @@ public sealed class Segment permits SegmentQueue {
      * writes are forbidden. This also marks the current segment as shared, which prevents it from being pooled.
      */
     @NonNull
-    final Segment sharedCopy() {
+    Segment sharedCopy() {
         shared = true;
         return new Segment(data, pos, limit, true, false);
     }
@@ -144,7 +126,7 @@ public sealed class Segment permits SegmentQueue {
      * Returns a new segment with its own private copy of the underlying byte array.
      */
     @NonNull
-    final Segment unsharedCopy() {
+    Segment unsharedCopy() {
         return new Segment(data.clone(), pos, limit, false, true);
     }
 
@@ -156,7 +138,7 @@ public sealed class Segment permits SegmentQueue {
      * @return the first part of this split segment.
      */
     @NonNull
-    final Segment split(final @NonNegative int byteCount) {
+    Segment split(final @NonNegative int byteCount) {
         final var currentPos = pos;
         if (byteCount <= 0 || byteCount > limit - currentPos) {
             throw new IllegalArgumentException("byteCount out of range: " + byteCount);
@@ -183,7 +165,7 @@ public sealed class Segment permits SegmentQueue {
     /**
      * Moves `byteCount` bytes from this segment to `sink`.
      */
-    final void writeTo(final @NonNull Segment sink, final int byteCount) {
+    void writeTo(final @NonNull Segment sink, final int byteCount) {
         Objects.requireNonNull(sink);
         if (!sink.owner) {
             throw new IllegalStateException("only owner can write");
@@ -209,5 +191,36 @@ public sealed class Segment permits SegmentQueue {
         System.arraycopy(data, currentPos, sink.data, sinkCurrentLimit, byteCount);
         sink.limit = sinkCurrentLimit + byteCount;
         pos = currentPos + byteCount;
+    }
+
+    @Override
+    byte @NonNull [] data() {
+        return data;
+    }
+
+    @Override
+    int pos() {
+        return pos;
+    }
+
+    @Override
+    int limit() {
+        return limit;
+    }
+
+    @Override
+    boolean shared() {
+        return shared;
+    }
+
+    @Override
+    public String toString() {
+        return "Segment#" + hashCode() + "{" +
+                "data=[" + data.length + "]" +
+                ", pos=" + pos +
+                ", limit=" + limit +
+                ", shared=" + shared +
+                ", owner=" + owner +
+                '}';
     }
 }

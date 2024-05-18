@@ -39,13 +39,13 @@ import java.util.Objects;
 @SuppressWarnings("resource")
 public final class RealSink implements Sink {
     private final @NonNull RawSink sink;
-    private final @NonNull SinkSegmentQueue segmentQueue;
+    private final @NonNull AsyncSinkSegmentQueue segmentQueue;
     final @NonNull RealBuffer buffer;
     private boolean closed = false;
 
     public RealSink(final @NonNull RawSink sink) {
         this.sink = Objects.requireNonNull(sink);
-        final var sinkSegmentQueue = new SinkSegmentQueue(sink);
+        final var sinkSegmentQueue = new AsyncSinkSegmentQueue(sink);
         segmentQueue = sinkSegmentQueue;
         buffer = sinkSegmentQueue.getBuffer();
     }

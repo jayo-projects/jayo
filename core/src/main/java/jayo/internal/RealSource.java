@@ -43,18 +43,25 @@ public final class RealSource implements Source {
     private static final long INTEGER_MAX_PLUS_1 = (long) Integer.MAX_VALUE + 1;
 
     private final @NonNull RawSource source;
-    private final @NonNull SegmentQueue segmentQueue;
+    private final @NonNull SegmentQueue<?> segmentQueue;
     final @NonNull RealBuffer buffer;
     private boolean closed = false;
 
     public RealSource(final @NonNull RawSource source) {
+        this(source, false);
+    }
+
+    public RealSource(final @NonNull RawSource source, final boolean async) {
         this.source = Objects.requireNonNull(source);
-        if (source instanceof InputStreamRawSource) {
-            final var asyncSourceSegmentQueue = new SourceSegmentQueue(source);
+        if (async) { // && source instanceof InputStreamRawSource
+            if (source instanceof PeekRawSource) {
+                throw new IllegalArgumentException("PeekRawSource does not support the 'async' option");
+            }
+            final var asyncSourceSegmentQueue = new AsyncSourceSegmentQueue(source);
             segmentQueue = asyncSourceSegmentQueue;
             buffer = asyncSourceSegmentQueue.getBuffer();
         } else {
-            final var syncSourceSegmentQueue = new SynchronousSourceSegmentQueue(source);
+            final var syncSourceSegmentQueue = new SyncSourceSegmentQueue(source);
             segmentQueue = syncSourceSegmentQueue;
             buffer = syncSourceSegmentQueue.getBuffer();
         }

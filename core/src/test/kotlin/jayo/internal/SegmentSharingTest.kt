@@ -23,8 +23,8 @@ package jayo.internal
 
 import jayo.ByteString
 import jayo.encodeToByteString
+import jayo.internal.JavaTestUtil.takeAllPoolSegments
 import jayo.internal.TestUtil.assertEquivalent
-import jayo.internal.TestUtil.takeAllPoolSegments
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -85,7 +85,7 @@ class SegmentSharingTest {
         val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
         takeAllPoolSegments() // Make room for new segments.
         buffer.clear()
-        assertTrue(bufferHead !in takeAllPoolSegments())
+        assertTrue(bufferHead.segment() !in takeAllPoolSegments())
     }
 
     /**
@@ -101,12 +101,12 @@ class SegmentSharingTest {
         val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
         takeAllPoolSegments() // Make room for new segments.
         buffer.clear()
-        assertTrue(bufferHead !in takeAllPoolSegments())
+        assertTrue(bufferHead.segment() !in takeAllPoolSegments())
 
         val cloneHead = (clone as RealBuffer).segmentQueue.head()!!
         takeAllPoolSegments() // Make room for new segments.
         clone.clear()
-        assertTrue(cloneHead !in takeAllPoolSegments())
+        assertTrue(cloneHead.segment() !in takeAllPoolSegments())
     }
 
     @Test

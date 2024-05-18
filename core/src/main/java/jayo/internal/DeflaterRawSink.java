@@ -62,25 +62,26 @@ public final class DeflaterRawSink implements RawSink {
         var remaining = byteCount;
         while (remaining > 0) {
             // Share bytes from the head segment of 'source' with the deflater.
-            final var head = _source.segmentQueue.head();
-            assert head != null;
-            var pos = head.pos;
-            final var currentLimit = head.limit;
-            final var toDeflate = (int) Math.min(remaining, currentLimit - pos);
-            deflater.setInput(head.data, pos, toDeflate);
+            final var headNode = _source.segmentQueue.lockedReadableHead();
+            try {
+                final var head = (Segment) headNode.segment();
+                final var toDeflate = (int) Math.min(remaining, head.limit - head.pos);
+                deflater.setInput(head.data, head.pos, toDeflate);
 
-            // Deflate those bytes into sink.
-            deflate(false);
+                // Deflate those bytes into sink.
+                deflate(false);
 
-            // Mark those bytes as read.
-            _source.segmentQueue.decrementSize(toDeflate);
-            pos += toDeflate;
-            head.pos = pos;
-            if (pos == currentLimit) {
-                SegmentPool.recycle(_source.segmentQueue.removeHead());
+                // Mark those bytes as read.
+                head.pos += toDeflate;
+                _source.segmentQueue.decrementSize(toDeflate);
+                if (head.pos == head.limit) {
+                    SegmentPool.recycle(_source.segmentQueue.removeHead());
+                }
+
+                remaining -= toDeflate;
+            } finally {
+                headNode.unlock();
             }
-
-            remaining -= toDeflate;
         }
     }
 
@@ -143,37 +144,25 @@ public final class DeflaterRawSink implements RawSink {
 
     private void deflate(final boolean syncFlush) {
         final var buffer = sink.buffer;
-        while (true) {
-            final var tail = buffer.segmentQueue.writableSegment(1);
-            final var currentLimit = tail.limit;
-            final var isNewTail = currentLimit == 0;
+        var continueLoop = true;
+        while (continueLoop) {
+            continueLoop = buffer.segmentQueue.withWritableTail(1, tail -> {
+                final int deflated;
+                try {
+                    deflated = deflater.deflate(tail.data, tail.limit, Segment.SIZE - tail.limit,
+                            syncFlush ? Deflater.SYNC_FLUSH : Deflater.NO_FLUSH);
+                } catch (NullPointerException npe) {
+                    throw new JayoException("Deflater already closed", new IOException(npe));
+                }
 
-            final int deflated;
-            try {
-                if (syncFlush) {
-                    deflated = deflater.deflate(tail.data, currentLimit, Segment.SIZE - currentLimit,
-                            Deflater.SYNC_FLUSH);
-                } else {
-                    deflated = deflater.deflate(tail.data, currentLimit, Segment.SIZE - currentLimit);
+                if (deflated > 0) {
+                    tail.limit += deflated;
+                    sink.emitCompleteSegments();
+                    return true;
                 }
-            } catch (NullPointerException npe) {
-                throw new JayoException("Deflater already closed", new IOException(npe));
-            }
 
-            if (deflated > 0) {
-                tail.limit = currentLimit + deflated;
-                if (isNewTail) {
-                    buffer.segmentQueue.addTail(tail);
-                }
-                buffer.segmentQueue.incrementSize(deflated);
-                sink.emitCompleteSegments();
-            } else if (deflater.needsInput()) {
-                // We allocated a tail segment, but didn't end up needing it. Recycle!
-                if (isNewTail) {
-                    SegmentPool.recycle(tail);
-                }
-                return;
-            }
+                return !deflater.needsInput();
+            });
         }
     }
 }

@@ -145,13 +145,13 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     var s = _source.segmentQueue.head();
                     while (_toWrite < TIMEOUT_WRITE_SIZE) {
                         assert s != null;
-                        final var segmentSize = s.limit - s.pos;
+                        final var segmentSize = s.segment().limit() - s.segment().pos();
                         _toWrite += segmentSize;
                         if (_toWrite >= remaining) {
                             _toWrite = remaining;
                             break;
                         }
-                        s = s.next;
+                        s = s.next();
                     }
 
                     final var toWrite = _toWrite;
