@@ -33,7 +33,7 @@ public final class Randoms {
     public void run() {
         Random random = new Random(3782615686L);
         Source source = Jayo.buffer(new RandomSource(random, 5));
-        System.out.println(source.readUtf8());
+        System.out.println("Secret random is: " + source.readUtf8());
     }
 
     static final class RandomSource implements RawSource {
