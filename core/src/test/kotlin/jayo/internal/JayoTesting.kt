@@ -27,13 +27,13 @@ import jayo.Utf8String
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)
-    var node: SegmentQueue.Node<*>? = buffer.segmentQueue.head() ?: return emptyList()
+    var segment: Segment? = buffer.segmentQueue.head() ?: return emptyList()
 
-    val sizes = mutableListOf(node!!.segment().limit() - node.segment().pos())
-    node = node.next()
-    while (node != null) {
-        sizes.add(node.segment().limit() - node.segment().pos())
-        node = node.next()
+    val sizes = mutableListOf(segment!!.limit - segment.pos)
+    segment = segment.next()
+    while (segment != null) {
+        sizes.add(segment.limit - segment.pos)
+        segment = segment.next()
     }
     return sizes
 }
@@ -75,7 +75,7 @@ fun makeUtf8Segments(source: Utf8String): Utf8String {
             true
         }
     }
-    return buffer.utf8Snapshot()
+    return buffer.readUtf8String()
 }
 
 fun Char.repeat(count: Int): String {

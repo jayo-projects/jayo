@@ -54,12 +54,12 @@ class BufferCursorTest {
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.resizeBuffer(1000000)
             do {
-                Arrays.fill(cursor.data, cursor.start, cursor.end, 'x'.code.toByte())
+                Arrays.fill(cursor.data, cursor.pos, cursor.limit, 'x'.code.toByte())
             } while (cursor.next() != -1)
             cursor.seek(3)
-            cursor.data!![cursor.start] = 'o'.code.toByte()
+            cursor.data!![cursor.pos] = 'o'.code.toByte()
             cursor.seek(1)
-            cursor.data!![cursor.start] = 'o'.code.toByte()
+            cursor.data!![cursor.pos] = 'o'.code.toByte()
             cursor.resizeBuffer(4)
         }
         assertEquals(Buffer().writeUtf8("xoxo").readByteString(), buffer.readByteString())
@@ -72,7 +72,7 @@ class BufferCursorTest {
         buffer.readUnsafe().use { cursor ->
             val actual = Buffer()
             while (cursor.next().toLong() != -1L) {
-                actual.write(cursor.data!!, cursor.start, cursor.end - cursor.start)
+                actual.write(cursor.data!!, cursor.pos, cursor.limit - cursor.pos)
             }
             assertEquals(buffer.readByteString(), actual.readByteString())
         }
@@ -86,8 +86,8 @@ class BufferCursorTest {
             cursor.seek(-1L)
             assertEquals(-1, cursor.offset)
             assertNull(cursor.data)
-            assertEquals(-1, cursor.start.toLong())
-            assertEquals(-1, cursor.end.toLong())
+            assertEquals(-1, cursor.pos.toLong())
+            assertEquals(-1, cursor.limit.toLong())
             cursor.next()
             assertEquals(0, cursor.offset)
         }
@@ -101,7 +101,7 @@ class BufferCursorTest {
             val actual = ByteArray(buffer.byteSize().toInt())
             for (i in 0 until buffer.byteSize()) {
                 cursor.seek(i)
-                actual[i.toInt()] = cursor.data!![cursor.start]
+                actual[i.toInt()] = cursor.data!![cursor.pos]
             }
             assertEquals(ByteString.of(*actual), buffer.snapshot())
         }
@@ -115,7 +115,7 @@ class BufferCursorTest {
             val actual = ByteArray(buffer.byteSize().toInt())
             for (i in (buffer.byteSize() - 1).toInt() downTo 0) {
                 cursor.seek(i.toLong())
-                actual[i] = cursor.data!![cursor.start]
+                actual[i] = cursor.data!![cursor.pos]
             }
             assertEquals(ByteString.of(*actual), buffer.snapshot())
         }
@@ -129,7 +129,7 @@ class BufferCursorTest {
             val actual = ByteArray(buffer.byteSize().toInt())
             for (i in 0 until buffer.byteSize()) {
                 cursor.seek(i)
-                actual[i.toInt()] = cursor.data!![cursor.start]
+                actual[i.toInt()] = cursor.data!![cursor.pos]
                 cursor.seek(0L)
             }
             assertEquals(ByteString.of(*actual), buffer.snapshot())
@@ -150,8 +150,8 @@ class BufferCursorTest {
             }
             assertEquals(buffer.byteSize(), cursor.offset)
             assertNull(cursor.data)
-            assertEquals(-1, cursor.start.toLong())
-            assertEquals(-1, cursor.end.toLong())
+            assertEquals(-1, cursor.pos.toLong())
+            assertEquals(-1, cursor.limit.toLong())
         } finally {
             cursor.close()
         }
@@ -166,17 +166,17 @@ class BufferCursorTest {
         buffer.readUnsafe().use { cursor ->
             assertEquals(2, cursor.seek(5).toLong()) // 2 for 2 bytes left in the segment: "fg".
             assertEquals(5, cursor.offset)
-            assertEquals(2, (cursor.end - cursor.start).toLong())
+            assertEquals(2, (cursor.limit - cursor.pos).toLong())
             assertEquals(
                 'd'.code.toLong(),
-                Char(cursor.data!![cursor.start - 2].toUShort()).code.toLong()
+                Char(cursor.data!![cursor.pos - 2].toUShort()).code.toLong()
             ) // Out of bounds!
             assertEquals(
                 'e'.code.toLong(),
-                Char(cursor.data!![cursor.start - 1].toUShort()).code.toLong()
+                Char(cursor.data!![cursor.pos - 1].toUShort()).code.toLong()
             ) // Out of bounds!
-            assertEquals('f'.code.toLong(), Char(cursor.data!![cursor.start].toUShort()).code.toLong())
-            assertEquals('g'.code.toLong(), Char(cursor.data!![cursor.start + 1].toUShort()).code.toLong())
+            assertEquals('f'.code.toLong(), Char(cursor.data!![cursor.pos].toUShort()).code.toLong())
+            assertEquals('g'.code.toLong(), Char(cursor.data!![cursor.pos + 1].toUShort()).code.toLong())
         }
     }
 
@@ -189,16 +189,16 @@ class BufferCursorTest {
         // Nothing initialized before acquire.
         assertEquals(-1, cursor.offset)
         assertNull(cursor.data)
-        assertEquals(-1, cursor.start.toLong())
-        assertEquals(-1, cursor.end.toLong())
+        assertEquals(-1, cursor.pos.toLong())
+        assertEquals(-1, cursor.limit.toLong())
         buffer.readUnsafe(cursor)
         cursor.close()
 
         // Nothing initialized after close.
         assertEquals(-1, cursor.offset)
         assertNull(cursor.data)
-        assertEquals(-1, cursor.start.toLong())
-        assertEquals(-1, cursor.end.toLong())
+        assertEquals(-1, cursor.pos.toLong())
+        assertEquals(-1, cursor.limit.toLong())
     }
 
     @ParameterizedTest
@@ -241,11 +241,11 @@ class BufferCursorTest {
         buffer.readAndWriteUnsafe().use { cursor ->
             assertEquals(originalSize, cursor.resizeBuffer(originalSize + 3))
             cursor.seek(originalSize)
-            cursor.data!![cursor.start] = 'a'.code.toByte()
+            cursor.data!![cursor.pos] = 'a'.code.toByte()
             cursor.seek(originalSize + 1)
-            cursor.data!![cursor.start] = 'b'.code.toByte()
+            cursor.data!![cursor.pos] = 'b'.code.toByte()
             cursor.seek(originalSize + 2)
-            cursor.data!![cursor.start] = 'c'.code.toByte()
+            cursor.data!![cursor.pos] = 'c'.code.toByte()
         }
         assertEquals(expected.readByteString(), buffer.readByteString())
     }
@@ -261,7 +261,7 @@ class BufferCursorTest {
             cursor.resizeBuffer(originalSize + 1000000)
             cursor.seek(originalSize)
             do {
-                Arrays.fill(cursor.data, cursor.start, cursor.end, 'x'.code.toByte())
+                Arrays.fill(cursor.data, cursor.pos, cursor.limit, 'x'.code.toByte())
             } while (cursor.next() != -1)
         }
         assertEquals(expected.readByteString(), buffer.readByteString())
@@ -351,8 +351,8 @@ class BufferCursorTest {
             cursor.resizeBuffer(3)
             assertEquals(3, cursor.offset)
             assertNull(cursor.data)
-            assertEquals(-1, cursor.start.toLong())
-            assertEquals(-1, cursor.end.toLong())
+            assertEquals(-1, cursor.pos.toLong())
+            assertEquals(-1, cursor.limit.toLong())
         }
     }
 
@@ -368,8 +368,8 @@ class BufferCursorTest {
             assertEquals(originalSize, buffer.byteSize())
             assertEquals(originalSize, cursor.offset)
             assertNull(cursor.data)
-            assertEquals(-1, cursor.start.toLong())
-            assertEquals(-1, cursor.end.toLong())
+            assertEquals(-1, cursor.pos.toLong())
+            assertEquals(-1, cursor.limit.toLong())
         }
     }
 
@@ -386,9 +386,9 @@ class BufferCursorTest {
             cursor.resizeBuffer(originalSize + 1)
             assertEquals(originalSize, cursor.offset)
             assertNotNull(cursor.data)
-            assertNotEquals(-1, cursor.start.toLong())
-            assertEquals((cursor.start + 1).toLong(), cursor.end.toLong())
-            cursor.data!![cursor.start] = 'a'.code.toByte()
+            assertNotEquals(-1, cursor.pos.toLong())
+            assertEquals((cursor.pos + 1).toLong(), cursor.limit.toLong())
+            cursor.data!![cursor.pos] = 'a'.code.toByte()
         }
         assertEquals(expected.readByteString(), buffer.readByteString())
     }
@@ -405,8 +405,8 @@ class BufferCursorTest {
             cursor.resizeBuffer(originalSize - 1)
             assertEquals(originalSize - 1, cursor.offset)
             assertNull(cursor.data)
-            assertEquals(-1, cursor.start.toLong())
-            assertEquals(-1, cursor.end.toLong())
+            assertEquals(-1, cursor.pos.toLong())
+            assertEquals(-1, cursor.limit.toLong())
         }
     }
 
@@ -420,7 +420,7 @@ class BufferCursorTest {
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.expandBuffer(5)
             for (i in 0..4) {
-                cursor.data!![cursor.start + i] = ('a'.code + i).toByte()
+                cursor.data!![cursor.pos + i] = ('a'.code + i).toByte()
             }
             cursor.resizeBuffer(originalSize + 5)
         }
@@ -435,14 +435,14 @@ class BufferCursorTest {
         assumeTrue(originalSize > 0)
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.seek(originalSize - 1)
-            val originalEnd = cursor.end
+            val originalEnd = cursor.limit
             assumeTrue(originalEnd < SEGMENT_SIZE)
             val addedByteCount = cursor.expandBuffer(1)
             assertEquals((SEGMENT_SIZE - originalEnd).toLong(), addedByteCount)
             assertEquals(originalSize + addedByteCount, buffer.byteSize())
             assertEquals(originalSize, cursor.offset)
-            assertEquals(originalEnd.toLong(), cursor.start.toLong())
-            assertEquals(SEGMENT_SIZE.toLong(), cursor.end.toLong())
+            assertEquals(originalEnd.toLong(), cursor.pos.toLong())
+            assertEquals(SEGMENT_SIZE.toLong(), cursor.limit.toLong())
         }
     }
 
@@ -455,8 +455,8 @@ class BufferCursorTest {
             val addedByteCount = cursor.expandBuffer(SEGMENT_SIZE)
             assertEquals(SEGMENT_SIZE.toLong(), addedByteCount)
             assertEquals(originalSize, cursor.offset)
-            assertEquals(0, cursor.start.toLong())
-            assertEquals(SEGMENT_SIZE.toLong(), cursor.end.toLong())
+            assertEquals(0, cursor.pos.toLong())
+            assertEquals(SEGMENT_SIZE.toLong(), cursor.limit.toLong())
         }
     }
 

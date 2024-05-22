@@ -29,6 +29,7 @@ import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -43,10 +44,11 @@ public final class RealInflaterRawSource implements InflaterRawSource {
      * This tracks how many bytes the inflater is currently holding on to.
      */
     private int bufferBytesHeldByInflater = 0;
+    private @Nullable Segment currentSegment = null;
     private boolean closed = false;
 
     public RealInflaterRawSource(final @NonNull RawSource source, final @NonNull Inflater inflater) {
-        this(new RealSource(Objects.requireNonNull(source)), inflater);
+        this(new RealSource(Objects.requireNonNull(source), false), inflater);
     }
 
     /**
@@ -129,16 +131,18 @@ public final class RealInflaterRawSource implements InflaterRawSource {
             return true;
         }
 
+        unlockCurrentSegmentIfPresent();
         // Assign buffer bytes to the inflater.
-        final var head = source.buffer.segmentQueue.head();
-        assert head != null;
-        bufferBytesHeldByInflater = head.segment().limit() - head.segment().pos();
-        inflater.setInput(head.segment().data(), head.segment().pos(), bufferBytesHeldByInflater);
+        final var head = source.buffer.segmentQueue.lockedReadableHead();
+        currentSegment = head;
+        bufferBytesHeldByInflater = head.limit - head.pos;
+        inflater.setInput(head.data, head.pos, bufferBytesHeldByInflater);
         return false;
     }
 
     @Override
     public void close() {
+        unlockCurrentSegmentIfPresent();
         if (closed) {
             return;
         }
@@ -156,11 +160,37 @@ public final class RealInflaterRawSource implements InflaterRawSource {
      * When the inflater has processed compressed data, remove it from the buffer.
      */
     private void releaseBytesAfterInflate() {
-        if (bufferBytesHeldByInflater == 0) {
-            return;
+        try {
+            if (bufferBytesHeldByInflater == 0) {
+                return;
+            }
+
+            final var toRelease = bufferBytesHeldByInflater - inflater.getRemaining();
+            if (currentSegment != null) {
+                currentSegment.pos += toRelease;
+                if (currentSegment.pos < 0) {
+                    throw new RuntimeException();
+                }
+                source.buffer.segmentQueue.decrementSize(toRelease);
+
+                if (currentSegment.pos == currentSegment.limit) {
+                    source.buffer.segmentQueue.removeLockedHead(currentSegment, false);
+                    SegmentPool.recycle(currentSegment);
+                    currentSegment = null;
+                }
+            } else {
+                source.skip(toRelease);
+            }
+            bufferBytesHeldByInflater -= toRelease;
+        } finally {
+            unlockCurrentSegmentIfPresent();
         }
-        final var toRelease = bufferBytesHeldByInflater - inflater.getRemaining();
-        bufferBytesHeldByInflater -= toRelease;
-        source.skip(toRelease);
+    }
+
+    private void unlockCurrentSegmentIfPresent() {
+        if (currentSegment != null) {
+            currentSegment.unlock();
+            currentSegment = null;
+        }
     }
 }

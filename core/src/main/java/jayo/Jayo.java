@@ -60,28 +60,51 @@ public final class Jayo {
      * {@code sink}. On each write operation, the underlying buffer will automatically emit all the complete segment(s),
      * if any.
      * <p>
-     * Use this wherever you write to a raw sink to get an ergonomic and efficient access to data.
+     * Actual write operations to the raw {@code sink} are processed <b>synchronously</b>.
+     * <p>
+     * Use this wherever you synchronously write to a raw sink to get an ergonomic and efficient access to data.
      */
     public static @NonNull Sink buffer(final @NonNull RawSink sink) {
-        Objects.requireNonNull(sink);
-        if (sink instanceof RealSink realSink) {
-            return realSink;
-        }
-        return new RealSink(sink);
+        return RealSink.buffer(sink, false);
+    }
+
+    /**
+     * @return a new sink that buffers writes to the raw {@code sink}. The returned sink will batch writes to
+     * {@code sink}. On each write operation, the underlying buffer will automatically emit all the complete segment(s),
+     * if any.
+     * <p>
+     * Actual write operations to the raw {@code sink} are seamlessly processed <b>asynchronously</b> by a virtual
+     * thread.
+     * <p>
+     * Use this wherever you asynchronously write to a raw sink to get an ergonomic and efficient access to data.
+     */
+    public static @NonNull Sink bufferAsync(final @NonNull RawSink sink) {
+        return RealSink.buffer(sink, true);
     }
 
     /**
      * @return a new source that buffers reads from the raw {@code source}. The returned source will perform bulk reads
      * into its underlying buffer.
      * <p>
-     * Use this wherever you read from a raw source to get an ergonomic and efficient access to data.
+     * Actual read operations from the raw {@code source} are processed <b>synchronously</b>.
+     * <p>
+     * Use this wherever you synchronously read from a raw source to get an ergonomic and efficient access to data.
      */
     public static @NonNull Source buffer(final @NonNull RawSource source) {
-        Objects.requireNonNull(source);
-        if (source instanceof RealSource realSource) {
-            return realSource;
-        }
-        return new RealSource(source, true);
+        return RealSource.buffer(source, false);
+    }
+
+    /**
+     * @return a new source that buffers reads from the raw {@code source}. The returned source will perform bulk reads
+     * into its underlying buffer.
+     * <p>
+     * Actual read operations from the raw {@code source} are seamlessly processed <b>asynchronously</b> by a virtual
+     * thread.
+     * <p>
+     * Use this wherever you asynchronously read from a raw source to get an ergonomic and efficient access to data.
+     */
+    public static @NonNull Source bufferAsync(final @NonNull RawSource source) {
+        return RealSource.buffer(source, true);
     }
 
     /**
@@ -215,9 +238,9 @@ public final class Jayo {
 
     /**
      * Consumes all this source and return its hash.
-     * 
+     *
      * @param rawSource the source
-     * @param digest the chosen message digest algorithm to use for hashing.
+     * @param digest    the chosen message digest algorithm to use for hashing.
      * @return the hash of this source.
      */
     public static @NonNull ByteString hash(final @NonNull RawSource rawSource, final @NonNull Digest digest) {
@@ -228,8 +251,8 @@ public final class Jayo {
      * Consumes all this source and return its MAC result.
      *
      * @param rawSource the source
-     * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
-     * @param key the key to use for this MAC operation.
+     * @param hMac      the chosen "Message Authentication Code" (MAC) algorithm to use.
+     * @param key       the key to use for this MAC operation.
      * @return the MAC result of this source.
      */
     public static @NonNull ByteString hmac(final @NonNull RawSource rawSource,
@@ -254,7 +277,6 @@ public final class Jayo {
 
     /**
      * @return an {@link InflaterRawSource} that DEFLATE-decompresses this {@code source} while reading.
-     *
      * @see InflaterRawSource
      */
     public static @NonNull InflaterRawSource inflate(final @NonNull RawSource source) {
@@ -263,7 +285,6 @@ public final class Jayo {
 
     /**
      * @return an {@link InflaterRawSource} that DEFLATE-decompresses this {@code source} while reading.
-     *
      * @see InflaterRawSource
      */
     public static @NonNull InflaterRawSource inflate(final @NonNull RawSource source,
@@ -273,7 +294,6 @@ public final class Jayo {
 
     /**
      * @return a {@link RawSource} that gzip-decompresses this {@code source} while reading.
-     *
      * @see GzipRawSource
      */
     public static @NonNull RawSource gzip(final @NonNull RawSource source) {

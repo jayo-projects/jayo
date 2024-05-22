@@ -129,7 +129,7 @@ class DeflaterSinkTest {
             deflaterSink.close()
             fail()
         } catch (expected: JayoException) {
-            assertEquals("second", expected.message)
+            assertEquals("first", expected.message)
         }
         mockSink.assertLogContains("close()")
     }

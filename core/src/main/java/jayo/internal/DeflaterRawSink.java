@@ -40,7 +40,7 @@ public final class DeflaterRawSink implements RawSink {
     private boolean closed = false;
 
     public DeflaterRawSink(final @NonNull RawSink sink, final @NonNull Deflater deflater) {
-        this(new RealSink(Objects.requireNonNull(sink)), deflater);
+        this(new RealSink(Objects.requireNonNull(sink), false), deflater);
     }
 
     /**
@@ -60,11 +60,12 @@ public final class DeflaterRawSink implements RawSink {
         }
 
         var remaining = byteCount;
-        while (remaining > 0) {
-            // Share bytes from the head segment of 'source' with the deflater.
-            final var headNode = _source.segmentQueue.lockedReadableHead();
-            try {
-                final var head = (Segment) headNode.segment();
+        var head = _source.segmentQueue.lockedReadableHead();
+        try {
+            var finished = false;
+            while (!finished) {
+                assert head != null;
+                // Share bytes from the head segment of 'source' with the deflater.
                 final var toDeflate = (int) Math.min(remaining, head.limit - head.pos);
                 deflater.setInput(head.data, head.pos, toDeflate);
 
@@ -74,13 +75,22 @@ public final class DeflaterRawSink implements RawSink {
                 // Mark those bytes as read.
                 head.pos += toDeflate;
                 _source.segmentQueue.decrementSize(toDeflate);
-                if (head.pos == head.limit) {
-                    SegmentPool.recycle(_source.segmentQueue.removeHead());
-                }
-
                 remaining -= toDeflate;
-            } finally {
-                headNode.unlock();
+                finished = remaining == 0L;
+                if (head.pos == head.limit) {
+                    final var oldHead = head;
+                    if (finished) {
+                        _source.segmentQueue.removeLockedHead(head, false);
+                        head = null;
+                    } else {
+                        head = _source.segmentQueue.removeLockedHead(head, true);
+                    }
+                    SegmentPool.recycle(oldHead);
+                }
+            }
+        } finally {
+            if (head != null) {
+                head.unlock();
             }
         }
     }
@@ -143,10 +153,23 @@ public final class DeflaterRawSink implements RawSink {
     }
 
     private void deflate(final boolean syncFlush) {
-        final var buffer = sink.buffer;
-        var continueLoop = true;
-        while (continueLoop) {
-            continueLoop = buffer.segmentQueue.withWritableTail(1, tail -> {
+        final var segmentQueue = sink.buffer.segmentQueue;
+
+        var tail = segmentQueue.lockedWritableTail(1);
+        try {
+            var limit = tail.limit;
+            while (true) {
+                if (limit == Segment.SIZE) {
+                    final var writtenInSegment = (limit - tail.limit);
+                    tail.limit = limit;
+                    final var newTail = SegmentPool.take();
+                    newTail.lock.lock();
+                    Segment.NEXT.setVolatile(tail, newTail);
+                    segmentQueue.incrementSize(writtenInSegment);
+                    tail.unlock();
+                    tail = newTail;
+                    limit = 0;
+                }
                 final int deflated;
                 try {
                     deflated = deflater.deflate(tail.data, tail.limit, Segment.SIZE - tail.limit,
@@ -156,13 +179,19 @@ public final class DeflaterRawSink implements RawSink {
                 }
 
                 if (deflated > 0) {
-                    tail.limit += deflated;
+                    limit += deflated;
                     sink.emitCompleteSegments();
-                    return true;
+                } else if (deflater.needsInput()) {
+                    break;
                 }
-
-                return !deflater.needsInput();
-            });
+            }
+            final var writtenInSegment = (limit - tail.limit);
+            tail.limit = limit;
+            // tail may be null or a removed segment
+            SegmentQueue.TAIL.setVolatile(segmentQueue, tail);
+            segmentQueue.incrementSize(writtenInSegment);
+        } finally {
+            tail.unlock();
         }
     }
 }

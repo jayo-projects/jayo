@@ -5,56 +5,112 @@
 
 package jayo.internal
 
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
 import jayo.buffered
 import jayo.encodeToByteString
 import jayo.source
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 import java.io.InputStream
 import java.time.Duration
 import kotlin.random.Random
 
+// these tests are a good race-condition test, do them several times !
 class SourceAsyncTests {
     @Test
     fun sourceSlowProducerFastConsumer() {
-        val inputStream: InputStream = inputStream(true)
+        repeat(10) {
+            val inputStream: InputStream = inputStream(true)
 
-        inputStream.source().buffered().use { source ->
-            assertThat(source.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
+            inputStream.source().buffered().use { source ->
+                assertThat(source.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
+            }
+        }
+    }
+
+    @Test
+    fun asyncSourceSlowProducerFastConsumer() {
+        repeat(10) {
+            val inputStream: InputStream = inputStream(true)
+
+            inputStream.source().buffered(true).use { source ->
+                assertThat(source.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
+            }
         }
     }
 
     @Test
     fun sourceFastProducerSlowConsumer() {
-        val inputStream: InputStream = inputStream(false)
+        repeat(10) {
+            val inputStream: InputStream = inputStream(false)
 
-        val bytes = ByteArray(EXPECTED_SIZE)
-        var offset = 0
-        inputStream.source().buffered().use { source ->
-            while (offset < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                source.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
-                offset += CHUNKS_BYTE_SIZE * 2
+            val bytes = ByteArray(EXPECTED_SIZE)
+            var offset = 0
+            inputStream.source().buffered().use { source ->
+                while (offset < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    source.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
+                    offset += CHUNKS_BYTE_SIZE * 2
+                }
+                assertThat(bytes).hasSize(EXPECTED_SIZE)
+                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
             }
-            assertThat(bytes).hasSize(EXPECTED_SIZE)
-            assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+        }
+    }
+
+    @Test
+    fun asyncSourceFastProducerSlowConsumer() {
+        repeat(10) {
+            val inputStream: InputStream = inputStream(false)
+
+            val bytes = ByteArray(EXPECTED_SIZE)
+            var offset = 0
+            inputStream.source().buffered(true).use { source ->
+                while (offset < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    source.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
+                    offset += CHUNKS_BYTE_SIZE * 2
+                }
+                assertThat(bytes).hasSize(EXPECTED_SIZE)
+                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+            }
         }
     }
 
     @Test
     fun sourceSlowProducerSlowConsumer() {
-        val inputStream: InputStream = inputStream(true)
+        repeat(10) {
+            val inputStream: InputStream = inputStream(true)
 
-        val bytes = ByteArray(EXPECTED_SIZE)
-        var offset = 0
-        inputStream.source().buffered().use { source ->
-            while (offset < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                source.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
-                offset += CHUNKS_BYTE_SIZE / 2
+            val bytes = ByteArray(EXPECTED_SIZE)
+            var offset = 0
+            inputStream.source().buffered().use { source ->
+                while (offset < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    source.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
+                    offset += CHUNKS_BYTE_SIZE / 2
+                }
+                assertThat(bytes).hasSize(EXPECTED_SIZE)
+                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
             }
-            assertThat(bytes).hasSize(EXPECTED_SIZE)
-            assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+        }
+    }
+
+    @Test
+    fun asyncSourceSlowProducerSlowConsumer() {
+        repeat(10) {
+            val inputStream: InputStream = inputStream(true)
+
+            val bytes = ByteArray(EXPECTED_SIZE)
+            var offset = 0
+            inputStream.source().buffered(true).use { source ->
+                while (offset < EXPECTED_SIZE) {
+                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                    source.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
+                    offset += CHUNKS_BYTE_SIZE / 2
+                }
+                assertThat(bytes).hasSize(EXPECTED_SIZE)
+                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+            }
         }
     }
 

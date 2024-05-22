@@ -67,7 +67,7 @@ public final class GzipRawSource implements RawSource {
 
     public GzipRawSource(final @NonNull RawSource source) {
         Objects.requireNonNull(source);
-        this.source = new RealSource(source);
+        this.source = new RealSource(source, false);
         inflaterSource = new RealInflaterRawSource(this.source, inflater);
     }
 
@@ -213,23 +213,23 @@ public final class GzipRawSource implements RawSource {
         var _offset = offset;
         var _byteCount = byteCount;
         // Skip segments that we aren't checksumming.
-        var s = buffer.segmentQueue.head();
-        assert s != null;
-        while (_offset >= s.segment().limit() - s.segment().pos()) {
-            _offset -= (s.segment().limit() - s.segment().pos());
-            s = s.next();
-            assert s != null;
+        var segment = buffer.segmentQueue.head();
+        assert segment != null;
+        while (_offset >= segment.limit - segment.pos) {
+            _offset -= (segment.limit - segment.pos);
+            segment = segment.next();
+            assert segment != null;
         }
 
         // Checksum one segment at a time.
         while (_byteCount > 0) {
-            assert s != null;
-            final var pos = (int) (s.segment().pos() + _offset);
-            final var toUpdate = (int) Math.min(s.segment().limit() - pos, _byteCount);
-            crc.update(s.segment().data(), pos, toUpdate);
+            assert segment != null;
+            final var pos = (int) (segment.pos + _offset);
+            final var toUpdate = (int) Math.min(segment.limit - pos, _byteCount);
+            crc.update(segment.data, pos, toUpdate);
             _byteCount -= toUpdate;
             _offset = 0;
-            s = s.next();
+            segment = segment.next();
         }
     }
 

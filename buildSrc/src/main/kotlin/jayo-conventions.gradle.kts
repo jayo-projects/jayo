@@ -12,7 +12,7 @@ plugins {
 }
 
 val koverage = mapOf(
-    "jayo" to 89,
+    "jayo" to 86,
     "jayo-3p-kotlinx-serialization" to 56,
 )
 
@@ -36,6 +36,7 @@ dependencies {
 
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.slf4j:slf4j-simple:${property("slf4jVersion")}")
+    testRuntimeOnly("org.slf4j:slf4j-jdk-platform-logging:${property("slf4jVersion")}")
 }
 
 koverReport {

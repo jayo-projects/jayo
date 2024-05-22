@@ -1,7 +1,7 @@
 package jayo.benchmarks
 
 import jayo.Buffer
-import jayo.Utf8String
+import jayo.ByteString
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
 
@@ -57,7 +57,7 @@ open class BufferUtf8Benchmark {
     private lateinit var encoding: String
 
     private lateinit var jayoBuffer: Buffer
-    private lateinit var jayoDecode: Utf8String
+    private lateinit var jayoDecode: ByteString
     private lateinit var okioBuffer: okio.Buffer
     private lateinit var okioDecode: okio.ByteString
     private lateinit var encode: String
@@ -78,7 +78,7 @@ open class BufferUtf8Benchmark {
         jayoBuffer = Buffer()
         val tempJayoIo = Buffer()
         tempJayoIo.writeUtf8(encode)
-        jayoDecode = tempJayoIo.utf8Snapshot()
+        jayoDecode = tempJayoIo.snapshot()
 
         okioBuffer = okio.Buffer()
         val tempOkio = okio.Buffer()

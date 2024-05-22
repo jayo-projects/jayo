@@ -43,22 +43,28 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
+import static java.lang.System.Logger.Level.TRACE;
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.UnsafeUtils.*;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 import static jayo.internal.Utils.*;
 
+
 public final class RealBuffer implements Buffer {
-    final @NonNull SegmentQueue<?> segmentQueue;
+    private static final System.Logger LOGGER = System.getLogger("jayo.Buffer");
+
+    final @NonNull SegmentQueue segmentQueue;
 
     public RealBuffer() {
-        this(new AsyncSegmentQueue());
+        this(new SegmentQueue());
     }
 
-    RealBuffer(final @NonNull SegmentQueue<?> segmentQueue) {
+    RealBuffer(final @NonNull SegmentQueue segmentQueue) {
         this.segmentQueue = Objects.requireNonNull(segmentQueue);
     }
 
@@ -79,7 +85,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Source peek() {
-        return new RealSource(new PeekRawSource(this));
+        return new RealSource(new PeekRawSource(this), false);
     }
 
     @Override
@@ -106,29 +112,29 @@ public final class RealBuffer implements Buffer {
         var _byteCount = byteCount;
 
         // Skip segments that we aren't copying from.
-        var node = segmentQueue.head();
-        assert node != null;
-        var segmentSize = node.segment().limit() - node.segment().pos();
+        var segment = segmentQueue.head();
+        assert segment != null;
+        var segmentSize = segment.limit - segment.pos;
         while (_offset >= segmentSize) {
             _offset -= segmentSize;
-            node = node.next();
-            assert node != null;
-            segmentSize = node.segment().limit() - node.segment().pos();
+            segment = segment.next();
+            assert segment != null;
+            segmentSize = segment.limit - segment.pos;
         }
 
         // Copy from one segment at a time.
         while (_byteCount > 0L) {
-            assert node != null;
-            final var pos = (int) (node.segment().pos() + _offset);
-            final var toCopy = (int) Math.min(node.segment().limit() - pos, _byteCount);
+            assert segment != null;
+            final var pos = (int) (segment.pos + _offset);
+            final var toCopy = (int) Math.min(segment.limit - pos, _byteCount);
             try {
-                out.write(node.segment().data(), pos, toCopy);
+                out.write(segment.data, pos, toCopy);
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }
             _byteCount -= toCopy;
             _offset = 0L;
-            node = node.next();
+            segment = segment.next();
         }
         return this;
     }
@@ -159,40 +165,34 @@ public final class RealBuffer implements Buffer {
         var _offset = offset;
 
         // Skip segment nodes that we aren't copying from.
-        var node = segmentQueue.head();
-        assert node != null;
-        var segmentSize = node.segment().limit() - node.segment().pos();
+        var segment = segmentQueue.head();
+        assert segment != null;
+        var segmentSize = segment.limit - segment.pos;
         while (_offset >= segmentSize) {
             _offset -= segmentSize;
-            node = node.next();
-            assert node != null;
-            segmentSize = node.segment().limit() - node.segment().pos();
+            segment = segment.next();
+            assert segment != null;
+            segmentSize = segment.limit - segment.pos;
         }
 
         var remaining = byteCount;
         // Copy from one segment at a time.
         while (remaining > 0L) {
-            assert node != null;
-            final var sCopy = node.segment().sharedCopy();
-            var pos = sCopy.pos;
+            assert segment != null;
+            final var segmentCopy = segment.sharedCopy();
+            var pos = segmentCopy.pos;
             pos += (int) _offset;
-            sCopy.pos = pos;
-            var limit = sCopy.limit;
+            segmentCopy.pos = pos;
+            var limit = segmentCopy.limit;
             limit = Math.min(pos + (int) remaining, limit);
-            sCopy.limit = limit;
+            segmentCopy.limit = limit;
             final var written = limit - pos;
-            final var outTailNode = _out.segmentQueue.lockedNonRemovedTailOrNull();
-            try {
-                _out.segmentQueue.addTail(sCopy);
-            } finally {
-                if (outTailNode != null) {
-                    outTailNode.unlock();
-                }
-            }
+            final var outTail = _out.segmentQueue.lockedNonRemovedTailOrNull();
+            _out.segmentQueue.addLockedTail(outTail, segmentCopy, true);
             _out.segmentQueue.incrementSize(written);
             remaining -= written;
             _offset = 0L;
-            node = node.next();
+            segment = segment.next();
         }
         return this;
     }
@@ -210,13 +210,13 @@ public final class RealBuffer implements Buffer {
             return this;
         }
 
-        var _byteCount = byteCount;
-
-        while (_byteCount > 0L) {
-            final var headNode = segmentQueue.lockedReadableHead();
-            try {
-                final var head = (Segment) headNode.segment();
-                final var toCopy = (int) Math.min(_byteCount, head.limit - head.pos);
+        var remaining = byteCount;
+        var head = segmentQueue.lockedReadableHead();
+        try {
+            var finished = false;
+            while (!finished) {
+                assert head != null;
+                final var toCopy = (int) Math.min(remaining, head.limit - head.pos);
                 try {
                     out.write(head.data, head.pos, toCopy);
                 } catch (IOException e) {
@@ -224,13 +224,23 @@ public final class RealBuffer implements Buffer {
                 }
                 head.pos += toCopy;
                 segmentQueue.decrementSize(toCopy);
+                remaining -= toCopy;
+                finished = remaining == 0L;
 
                 if (head.pos == head.limit) {
-                    SegmentPool.recycle(segmentQueue.removeHead());
+                    final var oldHead = head;
+                    if (finished) {
+                        segmentQueue.removeLockedHead(head, false);
+                        head = null;
+                    } else {
+                        head = segmentQueue.removeLockedHead(head, true);
+                    }
+                    SegmentPool.recycle(oldHead);
                 }
-                _byteCount -= toCopy;
-            } finally {
-                headNode.unlock();
+            }
+        } finally {
+            if (head != null) {
+                head.unlock();
             }
         }
 
@@ -285,31 +295,26 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNegative long completeSegmentByteCount() {
-        var result = segmentQueue.size();
-        if (result == 0L) {
+        // Omit the tail if it's still writable.
+        final var tail = segmentQueue.lockedNonRemovedTailOrNull();
+        if (tail == null) {
             return 0L;
         }
-
-        final var _result = new Wrapper.Long(result);
-        // Omit the tail if it's still writable.
-        final var tailNode = segmentQueue.lockedNonRemovedTailOrNull();
-        assert tailNode != null;
         try {
-            final var tail = (Segment) tailNode.segment();
+            var result = segmentQueue.size();
             if (tail.owner && tail.limit < Segment.SIZE) {
-                _result.value -= (tail.limit - tail.pos);
+                result -= (tail.limit - tail.pos);
             }
+            return result;
         } finally {
-            tailNode.unlock();
+            tail.unlock();
         }
-
-        return _result.value;
     }
 
     @Override
     public byte getByte(final @NonNegative long pos) {
         checkOffsetAndCount(segmentQueue.size(), pos, 1L);
-        return seek(pos, (node, offset) -> node.segment().data()[(int) (node.segment().pos() + pos - offset)]);
+        return seek(pos, (segment, offset) -> segment.data[(int) (segment.pos + pos - offset)]);
     }
 
     @Override
@@ -342,18 +347,25 @@ public final class RealBuffer implements Buffer {
             throw new JayoEOFException();
         }
 
-        final var headNode = segmentQueue.lockedReadableHead();
+        return readByte(segmentQueue.lockedReadableHead());
+    }
+
+    private byte readByte(final @NonNull Segment head) {
+        var _head = head;
         try {
-            final var head = (Segment) headNode.segment();
-            final var b = head.data[head.pos++];
+            final var b = _head.data[_head.pos++];
             segmentQueue.decrementSize(1L);
 
-            if (head.pos == head.limit) {
-                SegmentPool.recycle(segmentQueue.removeHead());
+            if (_head.pos == _head.limit) {
+                segmentQueue.removeLockedHead(_head, false);
+                SegmentPool.recycle(head);
+                _head = null;
             }
             return b;
         } finally {
-            headNode.unlock();
+            if (_head != null) {
+                _head.unlock();
+            }
         }
     }
 
@@ -363,23 +375,28 @@ public final class RealBuffer implements Buffer {
             throw new JayoEOFException();
         }
 
-        final var headNode = segmentQueue.lockedReadableHead();
+        var head = segmentQueue.lockedReadableHead();
         try {
-            final var head = (Segment) headNode.segment();
             // If the short is split across multiple segments, delegate to readByte().
             if (head.limit - head.pos < 2) {
-                return (short) (((readByte() & 0xff) << 8) | (readByte() & 0xff));
+                final var s = (short) (((readByte(head) & 0xff) << 8) | (readByte() & 0xff));
+                head = null;
+                return s;
             }
 
             final var s = (short) (((head.data[head.pos++] & 0xff) << 8) | (head.data[head.pos++] & 0xff));
             segmentQueue.decrementSize(2L);
 
             if (head.pos == head.limit) {
-                SegmentPool.recycle(segmentQueue.removeHead());
+                segmentQueue.removeLockedHead(head, false);
+                SegmentPool.recycle(head);
+                head = null;
             }
             return s;
         } finally {
-            headNode.unlock();
+            if (head != null) {
+                head.unlock();
+            }
         }
     }
 
@@ -389,29 +406,38 @@ public final class RealBuffer implements Buffer {
             throw new JayoEOFException();
         }
 
-        final var headNode = segmentQueue.lockedReadableHead();
+        return readInt(segmentQueue.lockedReadableHead());
+    }
+
+    private int readInt(final @NonNull Segment head) {
+        var _head = head;
         try {
-            final var head = (Segment) headNode.segment();
             // If the int is split across multiple segments, delegate to readByte().
-            if (head.limit - head.pos < 4L) {
-                return (((readByte() & 0xff) << 24)
+            if (_head.limit - _head.pos < 4L) {
+                final var i = (((readByte(_head) & 0xff) << 24)
                         | ((readByte() & 0xff) << 16)
                         | ((readByte() & 0xff) << 8)
                         | (readByte() & 0xff));
+                _head = null;
+                return i;
             }
 
-            final var i = (((head.data[head.pos++] & 0xff) << 24)
-                    | ((head.data[head.pos++] & 0xff) << 16)
-                    | ((head.data[head.pos++] & 0xff) << 8)
-                    | (head.data[head.pos++] & 0xff));
+            final var i = (((_head.data[_head.pos++] & 0xff) << 24)
+                    | ((_head.data[_head.pos++] & 0xff) << 16)
+                    | ((_head.data[_head.pos++] & 0xff) << 8)
+                    | (_head.data[_head.pos++] & 0xff));
             segmentQueue.decrementSize(4L);
 
-            if (head.pos == head.limit) {
-                SegmentPool.recycle(segmentQueue.removeHead());
+            if (_head.pos == _head.limit) {
+                segmentQueue.removeLockedHead(_head, false);
+                SegmentPool.recycle(_head);
+                _head = null;
             }
             return i;
         } finally {
-            headNode.unlock();
+            if (_head != null) {
+                _head.unlock();
+            }
         }
     }
 
@@ -421,19 +447,13 @@ public final class RealBuffer implements Buffer {
             throw new JayoEOFException();
         }
 
-        final var headNode = segmentQueue.lockedReadableHead();
+        var head = segmentQueue.lockedReadableHead();
         try {
-            final var head = (Segment) headNode.segment();
-            // If the long is split across multiple segments, delegate to readByte().
+            // If the long is split across multiple segments, delegate to readInt().
             if (head.limit - head.pos < 8L) {
-                return (((readByte() & 0xffL) << 56)
-                        | ((readByte() & 0xffL) << 48)
-                        | ((readByte() & 0xffL) << 40)
-                        | ((readByte() & 0xffL) << 32)
-                        | ((readByte() & 0xffL) << 24)
-                        | ((readByte() & 0xffL) << 16)
-                        | ((readByte() & 0xffL) << 8)
-                        | (readByte() & 0xffL));
+                final var l = (((readInt(head) & 0xffffffffL) << 32) | (readInt() & 0xffffffffL));
+                head = null;
+                return l;
             }
 
             final var l = (((head.data[head.pos++] & 0xffL) << 56)
@@ -447,11 +467,15 @@ public final class RealBuffer implements Buffer {
             segmentQueue.decrementSize(8L);
 
             if (head.pos == head.limit) {
-                SegmentPool.recycle(segmentQueue.removeHead());
+                segmentQueue.removeLockedHead(head, false);
+                SegmentPool.recycle(head);
+                head = null;
             }
             return l;
         } finally {
-            headNode.unlock();
+            if (head != null) {
+                head.unlock();
+            }
         }
     }
 
@@ -469,9 +493,13 @@ public final class RealBuffer implements Buffer {
 
         var overflowDigit = OVERFLOW_DIGIT_START;
         while (!done) {
-            final var headNode = segmentQueue.lockedReadableHead();
+            Segment head;
             try {
-                final var head = (Segment) headNode.segment();
+                head = segmentQueue.lockedReadableHead();
+            } catch (JayoEOFException _unused) {
+                break;
+            }
+            try {
                 final var data = head.data;
                 var pos = head.pos;
                 final var limit = head.limit;
@@ -511,10 +539,14 @@ public final class RealBuffer implements Buffer {
                 segmentQueue.decrementSize(read);
 
                 if (pos == limit) {
-                    SegmentPool.recycle(segmentQueue.removeHead());
+                    segmentQueue.removeLockedHead(head, false);
+                    SegmentPool.recycle(head);
+                    head = null;
                 }
             } finally {
-                headNode.unlock();
+                if (head != null) {
+                    head.unlock();
+                }
             }
         }
 
@@ -542,14 +574,13 @@ public final class RealBuffer implements Buffer {
         var done = false;
 
         while (!done) {
-            final SegmentQueue.Node<?> headNode;
+            Segment head;
             try {
-                headNode = segmentQueue.lockedReadableHead();
+                head = segmentQueue.lockedReadableHead();
             } catch (JayoEOFException _unused) {
                 break;
             }
             try {
-                final var head = (Segment) headNode.segment();
                 final var data = head.data;
                 var pos = head.pos;
                 final var limit = head.limit;
@@ -593,10 +624,14 @@ public final class RealBuffer implements Buffer {
                 segmentQueue.decrementSize(read);
 
                 if (pos == limit) {
-                    SegmentPool.recycle(segmentQueue.removeHead());
+                    segmentQueue.removeLockedHead(head, false);
+                    SegmentPool.recycle(head);
+                    head = null;
                 }
             } finally {
-                headNode.unlock();
+                if (head != null) {
+                    head.unlock();
+                }
             }
         }
 
@@ -622,14 +657,70 @@ public final class RealBuffer implements Buffer {
         if (segmentQueue.size() < byteCount) {
             throw new JayoEOFException();
         }
+        if (byteCount == 0L) {
+            return ByteString.EMPTY;
+        }
 
         if (byteCount >= SEGMENTING_THRESHOLD) {
-            final var snapshot = snapshot((int) byteCount);
-            skip(byteCount);
-            return snapshot;
+            final var byteStringBuilder = prepareByteString(byteCount);
+            final var segments = byteStringBuilder.segments.toArray(new Segment[0]);
+            final var size = byteStringBuilder.offsets.size();
+            final var directory = new int[size * 2];
+            for (var i = 0; i < size; i++) {
+                directory[i] = byteStringBuilder.offsets.get(i);
+                directory[i + size] = byteStringBuilder.positions.get(i);
+            }
+            return new SegmentedByteString(segments, directory);
         } else {
             return new RealByteString(readByteArray(byteCount));
         }
+    }
+
+    private @NonNull ByteStringBuilder prepareByteString(final @NonNegative long byteCount) {
+        final var byteStringBuilder = new ByteStringBuilder();
+        var head = segmentQueue.lockedReadableHead();
+        try {
+            var offset = 0;
+            var finished = false;
+            while (!finished) {
+                assert head != null;
+                final var copy = head.sharedCopy();
+                byteStringBuilder.segments.add(copy);
+                final var copyPos = copy.pos;
+                final var segmentSize = copy.limit - copyPos;
+                offset += segmentSize;
+                finished = offset >= byteCount;
+                // Despite sharing more bytes, only report having up to byteCount.
+                byteStringBuilder.offsets.add((int) Math.min(offset, byteCount));
+                byteStringBuilder.positions.add(copyPos);
+                if (offset <= byteCount) {
+                    final var oldHead = head;
+                    if (finished) {
+                        segmentQueue.removeLockedHead(head, false);
+                        head = null;
+                    } else {
+                        head = segmentQueue.removeLockedHead(head, true);
+                    }
+                    segmentQueue.decrementSize(segmentSize);
+                    SegmentPool.recycle(oldHead);
+                } else {
+                    final var toRead = (int) (offset - byteCount);
+                    head.pos += toRead;
+                    segmentQueue.decrementSize(toRead);
+                }
+            }
+        } finally {
+            if (head != null) {
+                head.unlock();
+            }
+        }
+        return byteStringBuilder;
+    }
+
+    private static class ByteStringBuilder {
+        private final List<Segment> segments = new ArrayList<>();
+        private final List<Integer> offsets = new ArrayList<>();
+        private final List<Integer> positions = new ArrayList<>();
     }
 
     @Override
@@ -638,19 +729,38 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Utf8String readUtf8String(long byteCount) {
+    public @NonNull Utf8String readUtf8String(final @NonNegative long byteCount) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
         if (segmentQueue.size() < byteCount) {
             throw new JayoEOFException();
         }
+        if (byteCount == 0L) {
+            return Utf8String.EMPTY;
+        }
 
         if (byteCount >= SEGMENTING_THRESHOLD) {
-            final var utf8Snapshot = utf8Snapshot((int) byteCount);
-            skip(byteCount);
-            return utf8Snapshot;
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8String({1}), will return a " +
+                                "segmented Utf8String{2}",
+                        segmentQueue.segmentQueueId, byteCount, System.lineSeparator());
+            }
+            final var byteStringBuilder = prepareByteString(byteCount);
+            final var segments = byteStringBuilder.segments.toArray(new Segment[0]);
+            final var size = byteStringBuilder.offsets.size();
+            final var directory = new int[size * 2];
+            for (var i = 0; i < size; i++) {
+                directory[i] = byteStringBuilder.offsets.get(i);
+                directory[i + size] = byteStringBuilder.positions.get(i);
+            }
+            return new SegmentedUtf8String(segments, directory);
         } else {
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8String({1}), will return a " +
+                                "byte array based non-segmented Utf8String{2}",
+                        segmentQueue.segmentQueueId, byteCount, System.lineSeparator());
+            }
             return new RealUtf8String(readByteArray(byteCount), false);
         }
     }
@@ -725,12 +835,13 @@ public final class RealBuffer implements Buffer {
             return "";
         }
 
-        final var headNode = segmentQueue.lockedReadableHead();
+        var head = segmentQueue.lockedReadableHead();
         try {
-            final var head = (Segment) headNode.segment();
             if (head.pos + byteCount > head.limit) {
                 // If the string spans multiple segments, delegate to readByteArray().
-                return new String(readByteArray(byteCount), charset);
+                final var s = new String(readByteArray(head, (int) byteCount), charset);
+                head = null;
+                return s;
             }
 
             // else all bytes of this future String are in head Segment itself
@@ -739,12 +850,16 @@ public final class RealBuffer implements Buffer {
             segmentQueue.decrementSize(byteCount);
 
             if (head.pos == head.limit) {
-                SegmentPool.recycle(segmentQueue.removeHead());
+                segmentQueue.removeLockedHead(head, false);
+                SegmentPool.recycle(head);
+                head = null;
             }
 
             return result;
         } finally {
-            headNode.unlock();
+            if (head != null) {
+                head.unlock();
+            }
         }
     }
 
@@ -872,8 +987,12 @@ public final class RealBuffer implements Buffer {
             throw new JayoEOFException();
         }
 
-        final var result = new byte[(int) byteCount];
-        readTo(result);
+        return readByteArray(segmentQueue.lockedReadableHead(), (int) byteCount);
+    }
+
+    private byte @NonNull [] readByteArray(final @NonNull Segment head, final @NonNegative int byteCount) {
+        final var result = new byte[byteCount];
+        readTo(head, result, 0, byteCount);
         return result;
     }
 
@@ -888,16 +1007,31 @@ public final class RealBuffer implements Buffer {
                        final @NonNegative int byteCount) {
         Objects.requireNonNull(sink);
         checkOffsetAndCount(sink.length, offset, byteCount);
+
+        readTo(segmentQueue.lockedReadableHead(), sink, offset, byteCount);
+    }
+
+    private void readTo(final @NonNull Segment head,
+                        final byte @NonNull [] sink,
+                        final @NonNegative int offset,
+                        final @NonNegative int byteCount) {
+        var _head = head;
         var _offset = offset;
-        var remaining = byteCount;
-        while (remaining > 0) {
-            final var bytesRead = readAtMostTo(sink, _offset, remaining);
-            if (bytesRead == -1) {
-                throw new JayoEOFException("could not write all the requested bytes to byte array, remaining = " +
-                        remaining + "/" + byteCount);
-            }
-            _offset += bytesRead;
-            remaining -= bytesRead;
+        final var toWrite = (int) Math.min(byteCount, segmentQueue.size());
+        var remaining = toWrite;
+        var finished = false;
+        while (!finished) {
+            assert _head != null;
+            final var toCopy = Math.min(remaining, _head.limit - _head.pos);
+            remaining -= toCopy;
+            finished = remaining == 0;
+            _head = readAtMostTo(_head, sink, _offset, toCopy, !finished);
+            _offset += toCopy;
+        }
+
+        if (toWrite < byteCount) {
+            throw new JayoEOFException("could not write all the requested bytes to byte array, written " +
+                    toWrite + "/" + byteCount);
         }
     }
 
@@ -917,21 +1051,36 @@ public final class RealBuffer implements Buffer {
             return -1;
         }
 
-        final var headNode = segmentQueue.lockedReadableHead();
+        final var head = segmentQueue.lockedReadableHead();
+        final var toCopy = Math.min(byteCount, head.limit - head.pos);
+        readAtMostTo(head, sink, offset, toCopy, false);
+        return toCopy;
+    }
+
+    private @Nullable Segment readAtMostTo(final @NonNull Segment head,
+                                           final byte @NonNull [] sink,
+                                           final @NonNegative int offset,
+                                           final @NonNegative int byteCount,
+                                           final boolean lockNext) {
+        var _head = head;
         try {
-            final var head = (Segment) headNode.segment();
-            final var toCopy = Math.min(byteCount, head.limit - head.pos);
-            System.arraycopy(head.data, head.pos, sink, offset, toCopy);
-            head.pos += toCopy;
+            final var toCopy = Math.min(byteCount, _head.limit - _head.pos);
+            System.arraycopy(_head.data, _head.pos, sink, offset, toCopy);
+            _head.pos += toCopy;
             segmentQueue.decrementSize(toCopy);
 
-            if (head.pos == head.limit) {
-                SegmentPool.recycle(segmentQueue.removeHead());
+            if (_head.pos == _head.limit) {
+                final var nextHead = segmentQueue.removeLockedHead(_head, lockNext);
+                SegmentPool.recycle(_head);
+                _head = null;
+                return nextHead;
             }
 
-            return toCopy;
+            return null;
         } finally {
-            headNode.unlock();
+            if (_head != null) {
+                _head.unlock();
+            }
         }
     }
 
@@ -943,30 +1092,31 @@ public final class RealBuffer implements Buffer {
             return -1;
         }
 
-        final var headNode = segmentQueue.lockedReadableHead();
+        var head = segmentQueue.lockedReadableHead();
         try {
-            final var head = (Segment) headNode.segment();
             final var toCopy = Math.min(sink.remaining(), head.limit - head.pos);
             sink.put(head.data, head.pos, toCopy);
             head.pos += toCopy;
             segmentQueue.decrementSize(toCopy);
 
             if (head.pos == head.limit) {
-                SegmentPool.recycle(segmentQueue.removeHead());
+                segmentQueue.removeLockedHead(head, false);
+                SegmentPool.recycle(head);
+                head = null;
             }
 
             return toCopy;
         } finally {
-            headNode.unlock();
+            if (head != null) {
+                head.unlock();
+            }
         }
     }
 
     @Override
     public void clear() {
-        final var size = segmentQueue.size();
-        if (size > 0) {
-            skip(size);
-        }
+        final var size = segmentQueue.expectSize(Long.MAX_VALUE);
+        skipPrivate(size);
     }
 
     @Override
@@ -974,33 +1124,60 @@ public final class RealBuffer implements Buffer {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
-        final var skipped = skipPrivate(byteCount);
-        if (skipped < byteCount) {
-            throw new JayoEOFException("could not skip " + byteCount + " bytes, skipped: " + skipped);
+        final var size = segmentQueue.expectSize(byteCount);
+        final var toSkip = Math.min(byteCount, size);
+        skipPrivate(toSkip);
+        if (toSkip < byteCount) {
+            throw new JayoEOFException("could not skip " + byteCount + " bytes, skipped: " + toSkip);
         }
     }
 
-    public @NonNegative long skipPrivate(final @NonNegative long byteCount) {
-        final var toSkip = Math.min(byteCount, segmentQueue.size());
-        var remaining = toSkip;
-        while (remaining > 0L) {
-            final var headNode = segmentQueue.lockedReadableHead();
-            try {
-                final var head = (Segment) headNode.segment();
-                final var _toSkip = (int) Math.min(remaining, head.limit - head.pos);
-                head.pos += _toSkip;
-                segmentQueue.decrementSize(_toSkip);
+    public void skipPrivate(final @NonNegative long byteCount) {
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, """
+                            Buffer(SegmentQueue#{0}) : Start skipping {1} bytes from this
+                            {2}{3}""",
+                    segmentQueue.segmentQueueId, byteCount, segmentQueue, System.lineSeparator());
+        }
+        if (byteCount == 0L) {
+            return;
+        }
+        var remaining = byteCount;
+        var head = segmentQueue.lockedReadableHead();
+        try {
+            var finished = false;
+            while (!finished) {
+                assert head != null;
+                final var toSkipInSegment = (int) Math.min(remaining, head.limit - head.pos);
+                head.pos += toSkipInSegment;
+                segmentQueue.decrementSize(toSkipInSegment);
+
+                remaining -= toSkipInSegment;
+                finished = remaining == 0;
 
                 if (head.pos == head.limit) {
-                    SegmentPool.recycle(segmentQueue.removeHead());
+                    final var oldHead = head;
+                    if (finished) {
+                        segmentQueue.removeLockedHead(head, false);
+                        head = null;
+                    } else {
+                        head = segmentQueue.removeLockedHead(head, true);
+                    }
+                    SegmentPool.recycle(oldHead);
                 }
-
-                remaining -= _toSkip;
-            } finally {
-                headNode.unlock();
+            }
+        } finally {
+            if (head != null) {
+                head.unlock();
             }
         }
-        return toSkip;
+
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, """
+                            Buffer(SegmentQueue#{0}) : Finished skipping {1} bytes from this
+                            {2}{3}""",
+                    segmentQueue.segmentQueueId, byteCount, segmentQueue, System.lineSeparator());
+        }
     }
 
     @Override
@@ -1028,6 +1205,11 @@ public final class RealBuffer implements Buffer {
     public @NonNull Buffer writeUtf8(final @NonNull CharSequence charSequence,
                                      final @NonNegative int startIndex,
                                      final @NonNegative int endIndex) {
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start writeUtf8 {1} bytes{2}",
+                    segmentQueue.segmentQueueId, endIndex - startIndex, System.lineSeparator());
+        }
+
         Objects.requireNonNull(charSequence);
         if (endIndex < startIndex) {
             throw new IllegalArgumentException("endIndex < beginIndex: " + endIndex + " < " + startIndex);
@@ -1039,71 +1221,99 @@ public final class RealBuffer implements Buffer {
             throw new IndexOutOfBoundsException("endIndex > string.length: " + endIndex + " > " + charSequence.length());
         }
 
-        // Transcode a UTF-16 Java String to UTF-8 bytes.
-        final var i = new Wrapper.Int(startIndex);
-        while (i.value < endIndex) {
-            segmentQueue.withWritableTail(4, s -> {
-                final var data = s.data;
-                while (i.value < endIndex &&
-                        // we need at least 4 bytes left in the tail, otherwise we will add a new segment in the next
-                        // loop step
-                        (Segment.SIZE - s.limit) > 3) {
-                    final int c = charSequence.charAt(i.value);
-                    if (c < 0x80) {
-                        final var segmentOffset = s.limit - i.value;
-                        final var runLimit = Math.min(endIndex, Segment.SIZE - segmentOffset);
-
-                        // Emit a 7-bit character with 1 byte.
-                        data[segmentOffset + i.value++] = (byte) c; // 0xxxxxxx
-
-                        // Fast-path contiguous runs of ASCII characters. This is ugly, but yields a ~4x performance
-                        // improvement over independent calls to writeByte().
-                        while (i.value < runLimit) {
-                            final var c1 = charSequence.charAt(i.value);
-                            if (c1 >= 0x80) {
-                                break;
-                            }
-                            data[segmentOffset + i.value++] = (byte) c1; // 0xxxxxxx
-                        }
-
-                        s.limit += i.value + segmentOffset - s.limit; // Equivalent to i - (previous i).
-                    } else if (c < 0x800) {
-                        // Emit a 11-bit character with 2 bytes.
-                        data[s.limit++] = (byte) (c >> 6 | 0xc0); // 110xxxxx
-                        data[s.limit++] = (byte) (c & 0x3f | 0x80); // 10xxxxxx
-                        i.value++;
-                    } else if ((c < 0xd800) || (c > 0xdfff)) {
-                        // Emit a 16-bit character with 3 bytes.
-                        data[s.limit++] = (byte) (c >> 12 | 0xe0); // 1110xxxx
-                        data[s.limit++] = (byte) (c >> 6 & 0x3f | 0x80); // 10xxxxxx
-                        data[s.limit++] = (byte) (c & 0x3f | 0x80); // 10xxxxxx
-                        i.value++;
-                    } else {
-                        // c is a surrogate. Mac successor is a low surrogate. If not, the UTF-16 is invalid, in which
-                        // case we emit a replacement character.
-                        final int low = (i.value + 1 < endIndex) ? charSequence.charAt(i.value + 1) : 0;
-                        if (c > 0xdbff || low < 0xdc00 || low > 0xdfff) {
-                            data[s.limit++] = (byte) ((int) '?');
-                            i.value++;
-                        } else {
-                            // UTF-16 high surrogate: 110110xxxxxxxxxx (10 bits)
-                            // UTF-16 low surrogate:  110111yyyyyyyyyy (10 bits)
-                            // Unicode code point:    00010000000000000000 + xxxxxxxxxxyyyyyyyyyy (21 bits)
-                            final var codePoint = 0x010000 + ((c & 0x03ff) << 10 | (low & 0x03ff));
-
-                            // Emit a 21-bit character with 4 bytes.
-                            data[s.limit++] = (byte) (codePoint >> 18 | 0xf0); // 11110xxx
-                            data[s.limit++] = (byte) (codePoint >> 12 & 0x3f | 0x80); // 10xxxxxx
-                            data[s.limit++] = (byte) (codePoint >> 6 & 0x3f | 0x80); // 10xxyyyy
-                            data[s.limit++] = (byte) (codePoint & 0x3f | 0x80); // 10yyyyyy
-                            i.value += 2;
-                        }
-                    }
-                }
-                return true;
-            });
+        if (startIndex == endIndex) {
+            return this;
         }
 
+        // Transcode a UTF-16 Java String to UTF-8 bytes.
+
+        // We require at least 4 writable bytes in the tail to write one code point of this char-sequence : the max byte
+        // size of a char code point is 4 !
+        var tail = segmentQueue.lockedWritableTail(4);
+        var limit = tail.limit;
+        try {
+            var i = startIndex;
+            while (i < endIndex) {
+                if ((Segment.SIZE - limit) < 4) {
+                    final var writtenInSegment = (limit - tail.limit);
+                    tail.limit = limit;
+                    final var newTail = SegmentPool.take();
+                    newTail.lock.lock();
+                    Segment.NEXT.setVolatile(tail, newTail);
+                    segmentQueue.incrementSize(writtenInSegment);
+                    tail.unlock();
+                    tail = newTail;
+                    limit = 0;
+                }
+
+                final var data = tail.data;
+                final int c = charSequence.charAt(i);
+                if (c < 0x80) {
+                    final var segmentOffset = limit - i;
+                    final var runLimit = Math.min(endIndex, Segment.SIZE - segmentOffset);
+
+                    // Emit a 7-bit character with 1 byte.
+                    data[segmentOffset + i++] = (byte) c; // 0xxxxxxx
+
+                    // Fast-path contiguous runs of ASCII characters. This is ugly, but yields a ~4x performance
+                    // improvement over independent calls to writeByte().
+                    while (i < runLimit) {
+                        final var c1 = charSequence.charAt(i);
+                        if (c1 >= 0x80) {
+                            break;
+                        }
+                        data[segmentOffset + i++] = (byte) c1; // 0xxxxxxx
+                    }
+
+                    limit = i + segmentOffset; // Equivalent to i - (previous i).
+                } else if (c < 0x800) {
+                    // Emit a 11-bit character with 2 bytes.
+                    data[limit++] = (byte) (c >> 6 | 0xc0); // 110xxxxx
+                    data[limit++] = (byte) (c & 0x3f | 0x80); // 10xxxxxx
+                    i++;
+                } else if ((c < 0xd800) || (c > 0xdfff)) {
+                    // Emit a 16-bit character with 3 bytes.
+                    data[limit++] = (byte) (c >> 12 | 0xe0); // 1110xxxx
+                    data[limit++] = (byte) (c >> 6 & 0x3f | 0x80); // 10xxxxxx
+                    data[limit++] = (byte) (c & 0x3f | 0x80); // 10xxxxxx
+                    i++;
+                } else {
+                    // c is a surrogate. Mac successor is a low surrogate. If not, the UTF-16 is invalid, in which
+                    // case we emit a replacement character.
+                    final int low = (i + 1 < endIndex) ? charSequence.charAt(i + 1) : 0;
+                    if (c > 0xdbff || low < 0xdc00 || low > 0xdfff) {
+                        data[limit++] = (byte) ((int) '?');
+                        i++;
+                    } else {
+                        // UTF-16 high surrogate: 110110xxxxxxxxxx (10 bits)
+                        // UTF-16 low surrogate:  110111yyyyyyyyyy (10 bits)
+                        // Unicode code point:    00010000000000000000 + xxxxxxxxxxyyyyyyyyyy (21 bits)
+                        final var codePoint = 0x010000 + ((c & 0x03ff) << 10 | (low & 0x03ff));
+
+                        // Emit a 21-bit character with 4 bytes.
+                        data[limit++] = (byte) (codePoint >> 18 | 0xf0); // 11110xxx
+                        data[limit++] = (byte) (codePoint >> 12 & 0x3f | 0x80); // 10xxxxxx
+                        data[limit++] = (byte) (codePoint >> 6 & 0x3f | 0x80); // 10xxyyyy
+                        data[limit++] = (byte) (codePoint & 0x3f | 0x80); // 10yyyyyy
+                        i += 2;
+                    }
+                }
+            }
+        } finally {
+            final var writtenInSegment = (limit - tail.limit);
+            tail.limit = limit;
+            // tail may be null or a removed segment
+            SegmentQueue.TAIL.setVolatile(segmentQueue, tail);
+            segmentQueue.incrementSize(writtenInSegment);
+            tail.unlock();
+        }
+
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, """
+                            Buffer(SegmentQueue#{0}) : Finished writeUtf8 {1} bytes to this segment queue
+                            {2}{3}""",
+                    segmentQueue.segmentQueueId, endIndex - startIndex, segmentQueue, System.lineSeparator());
+        }
         return this;
     }
 
@@ -1432,8 +1642,10 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public void write(final @NonNull Buffer source, final @NonNegative long byteCount) {
-        // Move bytes from the head of the source buffer to the tail of this buffer while balancing two conflicting
-        // goals: don't waste CPU and don't waste memory.
+        // Move bytes from the head of the source buffer to the tail of this buffer in the most possible effective way !
+        // This method is the most crucial part of the Jayo concept based on Buffer = a queue of segments.
+        //
+        // We must do it while balancing two conflicting goals: don't waste CPU and don't waste memory.
         //
         //
         // Don't waste CPU (i.e. don't copy data around).
@@ -1479,49 +1691,128 @@ public final class RealBuffer implements Buffer {
             throw new IllegalArgumentException("source == this, cannot write in itself");
         }
         checkOffsetAndCount(source.byteSize(), 0, byteCount);
+        if (byteCount == 0L) {
+            return;
+        }
         if (!(source instanceof RealBuffer _source)) {
             throw new IllegalArgumentException("source must be an instance of RealBuffer");
         }
 
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, """
+                            Buffer(SegmentQueue#{0}) : Start writing {1} bytes from source segment queue
+                            {2}
+                            into this segment queue
+                            {3}{4}""",
+                    segmentQueue.segmentQueueId, byteCount, _source.segmentQueue, segmentQueue, System.lineSeparator());
+        }
+
         var remaining = byteCount;
-        var movedByteCount = 0;
-        while (remaining > 0L) {
-            var sourceHeadNode = _source.segmentQueue.lockedReadableHead();
-            final var tailNode = segmentQueue.lockedNonRemovedTailOrNull();
-            try {
-                var sourceHead = (Segment) sourceHeadNode.segment();
-                final var tail = (tailNode != null) ? (Segment) tailNode.segment() : null;
+        var tail = segmentQueue.lockedNonRemovedTailOrNull();
+        var sourceHead = _source.segmentQueue.lockedReadableHead();
+        Segment nextSourceHead = null;
+        try {
+            var finished = false;
+            while (!finished) {
+                if (nextSourceHead != null) {
+                    sourceHead = nextSourceHead;
+                    nextSourceHead = null;
+                }
+
                 // Is a prefix of the source's head segment all that we need to move?
+                assert sourceHead != null;
                 if (remaining < sourceHead.limit - sourceHead.pos) {
                     if (tail != null && tail.owner &&
                             remaining + tail.limit - ((tail.shared) ? 0 : tail.pos) <= Segment.SIZE
                     ) {
-                        // Our existing segments are sufficient. Move bytes from source's head to our tail.
+                        // Our existing segments are sufficient. Transfer bytes from source's head to our tail.
                         sourceHead.writeTo(tail, (int) remaining);
-                        movedByteCount = (int) remaining;
+                        if (LOGGER.isLoggable(TRACE)) {
+                            LOGGER.log(TRACE, """
+                                            Buffer(SegmentQueue#{0}) : transferred {1} bytes from source segment
+                                            {2}
+                                            to target segment
+                                            {3}{4}""",
+                                    segmentQueue.segmentQueueId, remaining, sourceHead, tail, System.lineSeparator());
+                        }
+                        _source.segmentQueue.decrementSize(remaining);
+                        segmentQueue.incrementSize(remaining);
                         return;
                     }
                     // We're going to need another segment. Split the source's head segment in two, then we will
                     // move the first of those two to this buffer.
-                    sourceHeadNode = _source.segmentQueue.splitHead((int) remaining);
+                    nextSourceHead = sourceHead;
+
+                    sourceHead = sourceHead.splitLockedHead((int) remaining);
+                    if (LOGGER.isLoggable(TRACE)) {
+                        LOGGER.log(TRACE, """
+                                        Buffer(SegmentQueue#{0}) : lockedSplitHead. prefix :
+                                        {1}
+                                        ,suffix :
+                                        {2}{3}""",
+                                segmentQueue.segmentQueueId, sourceHead, nextSourceHead, System.lineSeparator());
+                    }
                 }
 
                 // Remove the source's head segment and append it to our tail.
-                sourceHead = _source.segmentQueue.removeHead();
-                movedByteCount = sourceHead.limit() - sourceHead.pos();
-                final var newTail = newTailIfNeeded(tail, sourceHead);
-                if (newTail != null) {
-                    segmentQueue.addTail(newTail);
-                }
+                final var movedByteCount = sourceHead.limit - sourceHead.pos;
                 remaining -= movedByteCount;
-            } finally {
+
+                finished = (remaining == 0);
+                final var wasSplit = nextSourceHead != null;
+                nextSourceHead = _source.segmentQueue
+                        .removeLockedHead(sourceHead, !wasSplit && !finished, wasSplit);
+                assert sourceHead.lock.isHeldByCurrentThread();
                 _source.segmentQueue.decrementSize(movedByteCount);
-                sourceHeadNode.unlock();
-                if (tailNode != null) {
-                    tailNode.unlock();
+                if (wasSplit && finished) {
+                    assert nextSourceHead != null;
+                    nextSourceHead.unlock();
                 }
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE,
+                            "Buffer(SegmentQueue#{0}) : decrement {1} bytes of source SegmentQueue#{2} size{3}",
+                            segmentQueue.segmentQueueId, movedByteCount, _source.segmentQueue.segmentQueueId,
+                            System.lineSeparator());
+                }
+
+                final var newTail = newTailIfNeeded(tail, sourceHead);
+                Segment nextTail = null;
+                // newTail != null is true if we transfer sourceHead to our buffer
+                if (newTail != null) {
+                    nextTail = segmentQueue.addLockedTail(tail, newTail, false);
+                } else {
+                    sourceHead = null;
+                }
+
                 segmentQueue.incrementSize(movedByteCount);
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE,
+                            "Buffer(SegmentQueue#{0}) : increment {1} bytes of this segment queue size{2}",
+                            segmentQueue.segmentQueueId, movedByteCount, System.lineSeparator());
+                }
+
+                if (nextTail != null) {
+                    if (tail != null) {
+                        tail.unlock();
+                    }
+                    tail = nextTail;
+                }
             }
+        } finally {
+            if (sourceHead != null) {
+                sourceHead.unlock();
+            }
+            if (tail != null && tail != sourceHead) {
+                tail.unlock();
+            }
+        }
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, """
+                            Buffer(SegmentQueue#{0}) : Finished writing {1} bytes from source segment queue
+                            {2}
+                            into this segment queue
+                            {3}{4}""",
+                    segmentQueue.segmentQueueId, byteCount, _source.segmentQueue, segmentQueue, System.lineSeparator());
         }
     }
 
@@ -1529,8 +1820,8 @@ public final class RealBuffer implements Buffer {
      * Call this when the tail and its predecessor may both be less than half full. In this case, we will copy data so
      * that a segment can be recycled.
      */
-    private static @Nullable Segment newTailIfNeeded(final @Nullable Segment currentTail,
-                                                     final @NonNull Segment newTail) {
+    private @Nullable Segment newTailIfNeeded(final @Nullable Segment currentTail,
+                                              final @NonNull Segment newTail) {
         Objects.requireNonNull(newTail);
         if (currentTail == null || !currentTail.owner) {
             return newTail; // Cannot compact: current tail is null or isn't writable.
@@ -1543,6 +1834,16 @@ public final class RealBuffer implements Buffer {
         }
 
         newTail.writeTo(currentTail, byteCount);
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, """
+                            Buffer(SegmentQueue#{0}) : tail and its predecessor were both less than half full,
+                            transferred {1} bytes from source segment
+                            {2}
+                            to target segment
+                            {3}{4}""",
+                    segmentQueue.segmentQueueId, byteCount, newTail, currentTail, System.lineSeparator());
+        }
+        newTail.unlock();
         SegmentPool.recycle(newTail);
         return null;
     }
@@ -1553,12 +1854,13 @@ public final class RealBuffer implements Buffer {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        if (segmentQueue.size() == 0L) {
+        final var size = segmentQueue.size();
+        if (size == 0L) {
             return -1L;
         }
         var _byteCount = byteCount;
-        if (byteCount > segmentQueue.size()) {
-            _byteCount = segmentQueue.size();
+        if (byteCount > size) {
+            _byteCount = size;
         }
         sink.write(this, _byteCount);
         return _byteCount;
@@ -1591,20 +1893,20 @@ public final class RealBuffer implements Buffer {
             return -1L;
         }
 
-        return seek(startIndex, (n, o) -> {
-            if (n == null) {
+        return seek(startIndex, (s, o) -> {
+            if (s == null) {
                 return -1L;
             }
-            var node = n;
+            var segment = s;
             var offset = o;
             var _startIndex = startIndex;
 
             // Scan through the segments, searching for b.
             while (offset < _endIndex) {
-                assert node != null;
-                final var data = node.segment().data();
-                final var currentPos = node.segment().pos();
-                final var currentLimit = node.segment().limit();
+                assert segment != null;
+                final var data = segment.data;
+                final var currentPos = segment.pos;
+                final var currentLimit = segment.limit;
                 final var limit = (int) Math.min(currentLimit, currentPos + _endIndex - offset);
                 var pos = (int) (currentPos + _startIndex - offset);
                 while (pos < limit) {
@@ -1617,10 +1919,10 @@ public final class RealBuffer implements Buffer {
                 // Not in this segment. Try the next one.
                 offset += (currentLimit - currentPos);
                 _startIndex = offset;
-                if (node.next() == null) {
+                if (segment.next() == null) {
                     break;
                 }
-                node = node.next();
+                segment = segment.next();
             }
 
             return -1L;
@@ -1644,11 +1946,11 @@ public final class RealBuffer implements Buffer {
             throw new IllegalArgumentException("bytes must be an instance of RealByteString");
         }
 
-        return seek(startIndex, (n, o) -> {
-            if (n == null) {
+        return seek(startIndex, (s, o) -> {
+            if (s == null) {
                 return -1L;
             }
-            var node = n;
+            var segment = s;
             var offset = o;
             var _startIndex = startIndex;
 
@@ -1659,14 +1961,14 @@ public final class RealBuffer implements Buffer {
             final var bytesSize = byteString.byteSize();
             final var resultLimit = segmentQueue.size() - bytesSize + 1L;
             while (offset < resultLimit) {
-                assert node != null;
-                final var data = node.segment().data();
-                final var currentPos = node.segment().pos();
-                final var currentLimit = node.segment().limit();
+                assert segment != null;
+                final var data = segment.data;
+                final var currentPos = segment.pos;
+                final var currentLimit = segment.limit;
                 final var segmentLimit = (int) Math.min(currentLimit, currentPos + resultLimit - offset);
                 for (var pos = (int) (currentPos + _startIndex - offset); pos < segmentLimit; pos++) {
                     if (data[pos] == b0
-                            && rangeEquals(node, pos + 1, targetByteArray, bytesSize)) {
+                            && rangeEquals(segment, pos + 1, targetByteArray, bytesSize)) {
                         return pos - currentPos + offset;
                     }
                 }
@@ -1674,7 +1976,7 @@ public final class RealBuffer implements Buffer {
                 // Not in this segment. Try the next one.
                 offset += (currentLimit - currentPos);
                 _startIndex = offset;
-                node = node.next();
+                segment = segment.next();
             }
 
             return -1L;
@@ -1695,11 +1997,11 @@ public final class RealBuffer implements Buffer {
             throw new IllegalArgumentException("targetBytes must be an instance of RealByteString");
         }
 
-        return seek(startIndex, (n, o) -> {
-            if (n == null) {
+        return seek(startIndex, (s, o) -> {
+            if (s == null) {
                 return -1L;
             }
-            var node = n;
+            var segment = s;
             var offset = o;
             var _startIndex = startIndex;
 
@@ -1711,11 +2013,11 @@ public final class RealBuffer implements Buffer {
                 final var b0 = _targetBytes.getByte(0);
                 final var b1 = _targetBytes.getByte(1);
                 while (offset < segmentQueue.size()) {
-                    assert node != null;
-                    final var data = node.segment().data();
-                    final var currentPos = node.segment().pos();
+                    assert segment != null;
+                    final var data = segment.data;
+                    final var currentPos = segment.pos;
                     var pos = (int) (currentPos + _startIndex - offset);
-                    final var currentLimit = node.segment().limit();
+                    final var currentLimit = segment.limit;
                     while (pos < currentLimit) {
                         final var b = (int) data[pos];
                         if (b == (int) b0 || b == (int) b1) {
@@ -1727,17 +2029,17 @@ public final class RealBuffer implements Buffer {
                     // Not in this segment. Try the next one.
                     offset += (currentLimit - currentPos);
                     _startIndex = offset;
-                    node = node.next();
+                    segment = segment.next();
                 }
             } else {
                 // Scan through the segments, searching for a byte that's also in the array.
                 final var targetByteArray = _targetBytes.internalArray();
                 while (offset < segmentQueue.size()) {
-                    assert node != null;
-                    final var data = node.segment().data();
-                    final var currentPos = node.segment().pos();
+                    assert segment != null;
+                    final var data = segment.data;
+                    final var currentPos = segment.pos;
                     var pos = (int) (currentPos + _startIndex - offset);
-                    final var currentLimit = node.segment().limit();
+                    final var currentLimit = segment.limit;
                     while (pos < currentLimit) {
                         final var b = (int) data[pos];
                         for (final var t : targetByteArray) {
@@ -1751,7 +2053,7 @@ public final class RealBuffer implements Buffer {
                     // Not in this segment. Try the next one.
                     offset += (currentLimit - currentPos);
                     _startIndex = offset;
-                    node = node.next();
+                    segment = segment.next();
                 }
             }
 
@@ -1803,9 +2105,9 @@ public final class RealBuffer implements Buffer {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Algorithm is not available : " + digest.algorithm(), e);
         }
-        segmentQueue.forEach(s -> {
-            final var currentPos = s.pos();
-            messageDigest.update(s.data(), currentPos, s.limit() - currentPos);
+        segmentQueue.forEach(segment -> {
+            final var currentPos = segment.pos;
+            messageDigest.update(segment.data, currentPos, segment.limit - currentPos);
         });
         return new RealByteString(messageDigest.digest());
     }
@@ -1827,9 +2129,9 @@ public final class RealBuffer implements Buffer {
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
-        segmentQueue.forEach(s -> {
-            final var currentPos = s.pos();
-            javaMac.update(s.data(), currentPos, s.limit() - currentPos);
+        segmentQueue.forEach(segment -> {
+            final var currentPos = segment.pos;
+            javaMac.update(segment.data, currentPos, segment.limit - currentPos);
         });
         return new RealByteString(javaMac.doFinal());
     }
@@ -1917,18 +2219,18 @@ public final class RealBuffer implements Buffer {
 
         final var builder = new StringBuilder(len * 2 + ((currentSize > maxPrintableBytes) ? 1 : 0));
 
-        var curr = segmentQueue.head();
-        assert curr != null;
+        var segment = segmentQueue.head();
+        assert segment != null;
         var written = 0;
-        var pos = curr.segment().pos();
+        var pos = segment.pos;
         while (written < len) {
-            if (pos == curr.segment().limit()) {
-                curr = curr.next();
-                assert curr != null;
-                pos = curr.segment().pos();
+            if (pos == segment.limit) {
+                segment = segment.next();
+                assert segment != null;
+                pos = segment.pos;
             }
 
-            final var b = (int) curr.segment().data()[pos++];
+            final var b = (int) segment.data[pos++];
             written++;
 
             builder.append(HEX_DIGIT_CHARS[(b >> 4) & 0xf])
@@ -1944,24 +2246,18 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer copy() {
-        final var result = new RealBuffer();
+        final var out = new RealBuffer();
         if (segmentQueue.size() == 0L) {
-            return result;
+            return out;
         }
         segmentQueue.forEach(segment -> {
             final var segmentCopy = segment.sharedCopy();
-            // we must lock the tail, if any
-            final var tailNode = result.segmentQueue.lockedNonRemovedTailOrNull();
-            try {
-                result.segmentQueue.addTail(segmentCopy);
-            } finally {
-                if (tailNode != null) {
-                    tailNode.unlock();
-                }
-            }
-            result.segmentQueue.incrementSize(segmentCopy.limit - segmentCopy.pos);
+
+            final var outTail = out.segmentQueue.lockedNonRemovedTailOrNull();
+            out.segmentQueue.addLockedTail(outTail, segmentCopy, true);
+            out.segmentQueue.incrementSize(segmentCopy.limit - segmentCopy.pos);
         });
-        return result;
+        return out;
     }
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
@@ -2000,18 +2296,18 @@ public final class RealBuffer implements Buffer {
 
         var offset = 0;
         var segmentCount = 0;
-        var s = segmentQueue.head();
+        var segment = segmentQueue.head();
         while (offset < byteCount) {
-            assert s != null;
-            final var currentPos = s.segment().pos();
-            final var currentLimit = s.segment().limit();
+            assert segment != null;
+            final var currentPos = segment.pos;
+            final var currentLimit = segment.limit;
             if (currentLimit == currentPos) {
                 // Empty segment. This should not happen!
                 throw new AssertionError("segment.limit == segment.pos");
             }
             offset += currentLimit - currentPos;
             segmentCount++;
-            s = s.next();
+            segment = segment.next();
         }
         return segmentCount;
     }
@@ -2019,10 +2315,10 @@ public final class RealBuffer implements Buffer {
     private void fillSegmentsAndDirectory(Segment[] segments, int[] directory, int byteCount) {
         var offset = 0;
         var segmentCount = 0;
-        var s = segmentQueue.head();
+        var segment = segmentQueue.head();
         while (offset < byteCount) {
-            assert s != null;
-            final var copy = s.segment().sharedCopy();
+            assert segment != null;
+            final var copy = segment.sharedCopy();
             segments[segmentCount] = copy;
             final var copyPos = copy.pos;
             offset += copy.limit - copyPos;
@@ -2030,33 +2326,8 @@ public final class RealBuffer implements Buffer {
             directory[segmentCount] = Math.min(offset, byteCount);
             directory[segmentCount + segments.length] = copyPos;
             segmentCount++;
-            s = s.next();
+            segment = segment.next();
         }
-    }
-
-    @Override
-    public @NonNull Utf8String utf8Snapshot() {
-        final var size = segmentQueue.size();
-        if (size > Integer.MAX_VALUE) {
-            throw new IllegalStateException("size > Integer.MAX_VALUE: " + segmentQueue.size());
-        }
-        return utf8Snapshot((int) size);
-    }
-
-    @Override
-    public @NonNull Utf8String utf8Snapshot(final @NonNegative int byteCount) {
-        if (byteCount == 0) {
-            return Utf8String.EMPTY;
-        }
-        // Walk through the buffer to count how many segments we'll need.
-        final var segmentCount = checkAndCountSegments(byteCount);
-
-        // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new Segment[segmentCount];
-        final var directory = new int[segmentCount * 2];
-        fillSegmentsAndDirectory(segments, directory, byteCount);
-
-        return new SegmentedUtf8String(segments, directory);
     }
 
     @Override
@@ -2095,40 +2366,39 @@ public final class RealBuffer implements Buffer {
      * Invoke `lambda` with the segment and offset at `startIndex`. Searches from the front or the back
      * depending on what's closer to `startIndex`.
      */
-    private <T> T seek(final long startIndex, BiFunction<SegmentQueue.Node<?>, Long, T> lambda) {
-        var node = segmentQueue.head();
-        if (node == null) {
+    private <T> T seek(final long startIndex, BiFunction<Segment, Long, T> lambda) {
+        var segment = segmentQueue.head();
+        if (segment == null) {
             return lambda.apply(null, -1L);
         }
 
-        final var size = segmentQueue.size();
-        long offset;
-        if (segmentQueue.isDoublyLinked() && size - startIndex < startIndex) {
-            // We're scanning in the back half of this buffer. Find the segment starting at the back.
-            offset = size;
-            node = segmentQueue.tail();
-            while (true) {
-                assert node != null;
-                offset -= (node.segment().limit() - node.segment().pos());
-                if (offset <= startIndex || node.prev() == null) {
-                    break;
-                }
-                node = node.prev();
+        // no more doubly-linked segment queue
+//        if (segmentQueue.isDoublyLinked() && size - startIndex < startIndex) {
+//            // We're scanning in the back half of this buffer. Find the segment starting at the back.
+//            offset = size;
+//            node = segmentQueue.tail();
+//            while (true) {
+//                assert node != null;
+//                offset -= (segment.limit - segment.pos);
+//                if (offset <= startIndex || node.prev() == null) {
+//                    break;
+//                }
+//                node = node.prev();
+//            }
+//        } else {
+        // We're scanning in the front half of this buffer. Find the segment starting at the front.
+        var offset = 0L;
+        while (true) {
+            assert segment != null;
+            final var nextOffset = offset + (segment.limit - segment.pos);
+            if (nextOffset > startIndex || segment.next() == null) {
+                break;
             }
-        } else {
-            // We're scanning in the front half of this buffer. Find the segment starting at the front.
-            offset = 0L;
-            while (true) {
-                assert node != null;
-                final var nextOffset = offset + (node.segment().limit() - node.segment().pos());
-                if (nextOffset > startIndex || node.next() == null) {
-                    break;
-                }
-                node = node.next();
-                offset = nextOffset;
-            }
+            segment = segment.next();
+            offset = nextOffset;
         }
-        return lambda.apply(node, offset);
+        //}
+        return lambda.apply(segment, offset);
     }
 
     /**
@@ -2136,24 +2406,24 @@ public final class RealBuffer implements Buffer {
      * {@code bytes[1..bytesLimit)}.
      */
     private static boolean rangeEquals(
-            final SegmentQueue.Node<?> node,
+            final @NonNull Segment segment,
             final int segmentPos,
             final byte[] bytes,
             final int bytesLimit
     ) {
-        var _node = node;
-        var data = _node.segment().data();
+        var _segment = segment;
+        var data = _segment.data;
         var _segmentPos = segmentPos;
-        var segmentLimit = _node.segment().limit();
+        var segmentLimit = _segment.limit;
 
         var i = 1;
         while (i < bytesLimit) {
             if (_segmentPos == segmentLimit) {
-                _node = _node.next();
-                assert _node != null;
-                data = _node.segment().data();
-                _segmentPos = _node.segment().pos();
-                segmentLimit = _node.segment().limit();
+                _segment = _segment.next();
+                assert _segment != null;
+                data = _segment.data;
+                _segmentPos = _segment.pos;
+                segmentLimit = _segment.limit;
             }
 
             if (data[_segmentPos] != bytes[i]) {
@@ -2218,7 +2488,9 @@ public final class RealBuffer implements Buffer {
                 if (byteCount < 0L) {
                     return 0L;
                 }
-                return skipPrivate(byteCount);
+                final var toSkip = Math.min(byteCount, segmentQueue.size());
+                skipPrivate(toSkip);
+                return toSkip;
             }
 
             @Override
@@ -2273,7 +2545,7 @@ public final class RealBuffer implements Buffer {
     }
 
     public static final class RealUnsafeCursor extends UnsafeCursor {
-        private SegmentQueue.@Nullable Node<?> node = null;
+        private Segment segment = null;
 
         @Override
         public int next() {
@@ -2282,10 +2554,9 @@ public final class RealBuffer implements Buffer {
             if (offset == buffer.byteSize()) {
                 throw new IllegalStateException("no more bytes");
             }
-            return (offset == -1L) ? seek(0L) : seek(offset + (end - start));
+            return (offset == -1L) ? seek(0L) : seek(offset + (limit - pos));
         }
 
-        @SuppressWarnings("unchecked")
         @Override
         public int seek(final @NonNegative long offset) {
             checkHasBuffer();
@@ -2298,76 +2569,90 @@ public final class RealBuffer implements Buffer {
             }
 
             if (offset == -1L || offset == size) {
-                this.node = null;
+                this.segment = null;
                 this.offset = offset;
                 this.data = null;
-                this.start = -1;
-                this.end = -1;
+                this.pos = -1;
+                this.limit = -1;
                 return -1;
             }
 
             // Navigate to the segment that contains `offset`. Start from our current segment if possible.
-            var min = 0L;
-            var max = size;
-            var headNode = _buffer.segmentQueue.head();
-            assert headNode != null;
-            var isTail = true;
-            var tailNode = _buffer.segmentQueue.tail();
-            assert tailNode != null;
-            if (this.node != null) {
-                final var segmentOffset = this.offset - (this.start - this.node.segment().pos());
-                if (segmentOffset > offset) {
-                    // Set the cursor segment to be the 'end'
-                    max = segmentOffset;
-                    tailNode = this.node;
-                    isTail = false;
-                } else {
+            var nextOffset = 0L;
+            final var currentHead = _buffer.segmentQueue.head();
+            assert currentHead != null;
+            Segment next = currentHead;
+            if (this.segment != null) {
+                final var segmentOffset = this.offset - (this.pos - this.segment.pos);
+                if (segmentOffset <= offset) {
                     // Set the cursor segment to be the 'beginning'
-                    min = segmentOffset;
-                    headNode = this.node;
+                    nextOffset = segmentOffset;
+                    next = this.segment;
                 }
             }
 
-            SegmentQueue.Node<?> next;
-            long nextOffset;
-            if (_buffer.segmentQueue.isDoublyLinked() && max - offset <= offset - min) {
-                // Start at the 'end' and search backwards
-                next = tailNode;
-                nextOffset = max;
-                if (isTail) {
-                    nextOffset -= (next.segment().limit() - next.segment().pos());
-                }
-                while (nextOffset > offset) {
-                    next = next.prev();
-                    assert next != null;
-                    nextOffset -= (next.segment().limit() - next.segment().pos());
-                }
-            } else {
-                // Start at the 'beginning' and search forwards
-                nextOffset = min;
-                next = headNode;
-                var nextSize = next.segment().limit() - next.segment().pos();
-                while (offset >= nextOffset + nextSize) {
-                    nextOffset += nextSize;
-                    next = next.next();
-                    assert next != null;
-                    nextSize = next.segment().limit() - next.segment().pos();
-                }
+            // no more doubly-linked segment queue
+//            if (_buffer.segmentQueue.isDoublyLinked() && max - offset <= offset - min) {
+//                // Start at the 'end' and search backwards
+//                next = tailNode;
+//                nextOffset = max;
+//                if (isTail) {
+//                    nextOffset -= (next.segment().limit - next.segment().pos);
+//                }
+//                while (nextOffset > offset) {
+//                    next = next.prev();
+//                    assert next != null;
+//                    nextOffset -= (next.segment().limit - next.segment().pos);
+//                }
+//            } else {
+            // Start at the 'beginning' and search forwards
+            Segment previous = null;
+            var nextSize = next.limit - next.pos;
+            while (offset >= nextOffset + nextSize) {
+                nextOffset += nextSize;
+                previous = next;
+                next = next.next();
+                assert next != null;
+                nextSize = next.limit - next.pos;
             }
+            //}
 
             // If we're going to write and our segment is shared, swap it for a read-write one.
-            if (readWrite && next.segment().shared()) {
-                //noinspection rawtypes
-                next = ((SegmentQueue) _buffer.segmentQueue).swapForUnsharedCopy(next);
+            if (readWrite && next.shared) {
+                final var unsharedNext = next.unsharedCopy();
+                final var nextNext = next.next();
+                if (nextNext != null) {
+                    if (!Segment.NEXT.compareAndSet(unsharedNext, null, nextNext)) {
+                        throw new IllegalStateException(
+                                "Could not swap for a writable segment, new unshared copy's next should be null");
+                    }
+                } else {
+                    if (!SegmentQueue.TAIL.compareAndSet(_buffer.segmentQueue, next, unsharedNext)) {
+                        throw new IllegalStateException(
+                                "Could not swap for a writable segment, tail should be the current next");
+                    }
+                }
+
+                if (previous != null) {
+                    if (!Segment.NEXT.compareAndSet(previous, next, unsharedNext)) {
+                        throw new IllegalStateException(
+                                "Could not swap for a writable segment, previous next should be the current next");
+                    }
+                } else {
+                    if (!SegmentQueue.HEAD.compareAndSet(_buffer.segmentQueue, next, unsharedNext)) {
+                        throw new IllegalStateException(
+                                "Could not swap for a writable segment, head should be the current next");
+                    }
+                }
             }
 
             // Update this cursor to the requested offset within the found segment.
-            this.node = next;
+            this.segment = next;
             this.offset = offset;
-            this.data = next.segment().data();
-            this.start = next.segment().pos() + (int) (offset - nextOffset);
-            this.end = next.segment().limit();
-            return end - start;
+            this.data = next.data;
+            this.pos = next.pos + (int) (offset - nextOffset);
+            this.limit = next.limit;
+            return limit - pos;
         }
 
         @Override
@@ -2386,26 +2671,31 @@ public final class RealBuffer implements Buffer {
                     throw new IllegalArgumentException("newSize < 0: " + newSize);
                 }
                 // Shrink the buffer by either shrinking segments or removing them.
-                var bytesToSubtract = oldSize - newSize;
-                while (bytesToSubtract > 0L) {
-                    final var tail = _buffer.segmentQueue.tail();
-                    assert tail != null;
-                    final var currentTailLimit = tail.segment().limit();
-                    final var tailSize = currentTailLimit - tail.segment().pos();
-                    if (tailSize <= bytesToSubtract) {
-                        SegmentPool.recycle(_buffer.segmentQueue.removeTail());
-                        bytesToSubtract -= tailSize;
+                var s = _buffer.segmentQueue.head();
+                var remaining = newSize;
+                var removeAll = false;
+                while (s != null) {
+                    final var segmentSize = s.limit - s.pos;
+                    if (segmentSize < remaining) {
+                        remaining -= segmentSize;
+                        s = s.next();
+                    } else if (!removeAll) {
+                        SegmentQueue.TAIL.setVolatile(_buffer.segmentQueue, s);
+                        s.limit = s.pos + (int) remaining;
+                        removeAll = true;
+                        s = s.next();
                     } else {
-                        ((Segment) tail.segment()).limit = currentTailLimit - (int) bytesToSubtract;
-                        break;
+                        final var next = s.next();
+                        SegmentPool.recycle(s);
+                        s = next;
                     }
                 }
                 // Seek to the end.
-                this.node = null;
+                this.segment = null;
                 this.offset = newSize;
                 this.data = null;
-                this.start = -1;
-                this.end = -1;
+                this.pos = -1;
+                this.limit = -1;
                 _buffer.segmentQueue.decrementSize(oldSize - newSize);
             } else {
                 // Enlarge the buffer by either enlarging segments or adding them.
@@ -2422,13 +2712,13 @@ public final class RealBuffer implements Buffer {
 
                     // If this is the first segment we're adding, seek to it.
                     if (needsToSeek) {
-                        final var tailNode = _buffer.segmentQueue.tail();
-                        assert tailNode != null;
-                        this.node = tailNode;
+                        final var tail = _buffer.segmentQueue.tail();
+                        assert tail != null;
+                        this.segment = tail;
                         this.offset = oldSize;
-                        this.data = tailNode.segment().data();
-                        this.start = tailNode.segment().limit() - segmentBytesToAdd.value;
-                        this.end = tailNode.segment().limit();
+                        this.data = tail.data;
+                        this.pos = tail.limit - segmentBytesToAdd.value;
+                        this.limit = tail.limit;
                         needsToSeek = false;
                     }
                 }
@@ -2464,11 +2754,11 @@ public final class RealBuffer implements Buffer {
             // Seek to the old size.
             final var tailNode = _buffer.segmentQueue.tail();
             assert tailNode != null;
-            this.node = tailNode;
+            this.segment = tailNode;
             this.offset = oldSize;
-            this.data = tailNode.segment().data();
-            this.start = Segment.SIZE - result.value;
-            this.end = Segment.SIZE;
+            this.data = tailNode.data;
+            this.pos = Segment.SIZE - result.value;
+            this.limit = Segment.SIZE;
 
             return result.value;
         }
@@ -2479,11 +2769,11 @@ public final class RealBuffer implements Buffer {
             checkHasBuffer();
 
             buffer = null;
-            node = null;
+            segment = null;
             offset = -1L;
             data = null;
-            start = -1;
-            end = -1;
+            pos = -1;
+            limit = -1;
         }
 
         private void checkHasBuffer() {

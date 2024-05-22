@@ -21,12 +21,12 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.Buffer;
 import jayo.RawSource;
 import jayo.exceptions.JayoException;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;

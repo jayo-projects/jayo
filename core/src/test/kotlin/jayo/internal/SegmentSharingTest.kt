@@ -85,7 +85,7 @@ class SegmentSharingTest {
         val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
         takeAllPoolSegments() // Make room for new segments.
         buffer.clear()
-        assertTrue(bufferHead.segment() !in takeAllPoolSegments())
+        assertTrue(bufferHead !in takeAllPoolSegments())
     }
 
     /**
@@ -101,12 +101,12 @@ class SegmentSharingTest {
         val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
         takeAllPoolSegments() // Make room for new segments.
         buffer.clear()
-        assertTrue(bufferHead.segment() !in takeAllPoolSegments())
+        assertTrue(bufferHead !in takeAllPoolSegments())
 
         val cloneHead = (clone as RealBuffer).segmentQueue.head()!!
         takeAllPoolSegments() // Make room for new segments.
         clone.clear()
-        assertTrue(cloneHead.segment() !in takeAllPoolSegments())
+        assertTrue(cloneHead !in takeAllPoolSegments())
     }
 
     @Test

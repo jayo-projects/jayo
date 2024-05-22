@@ -58,8 +58,8 @@ interface ByteStringFactory {
 
         @JvmStatic
         val SEGMENTED_UTF8_STRING: ByteStringFactory = object : ByteStringFactory {
-            override fun decodeHex(hex: String) = RealBuffer().apply { write(hex.decodeHex()) }.snapshot()
-            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.utf8Snapshot()
+            override fun decodeHex(hex: String) = RealBuffer().apply { write(hex.decodeHex()) }.readByteString()
+            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.readUtf8String()
         }
 
         @JvmStatic

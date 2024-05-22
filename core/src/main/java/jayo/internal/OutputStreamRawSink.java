@@ -36,9 +36,12 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.util.Objects;
 
+import static java.lang.System.Logger.Level.TRACE;
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 public final class OutputStreamRawSink implements RawSink {
+    private static final System.Logger LOGGER = System.getLogger("jayo.OutputStreamRawSink");
+
     private final @NonNull OutputStream out;
     private final @Nullable SeekableByteChannel bc;
 
@@ -66,26 +69,49 @@ public final class OutputStreamRawSink implements RawSink {
             return;
         }
 
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, "OutputStreamRawSink: Start writing {0} bytes to Buffer(SegmentQueue#{1}) from" +
+                            " the OutputStream{2}",
+                    byteCount, _source.segmentQueue.segmentQueueId, System.lineSeparator());
+        }
+
         var remaining = byteCount;
-        while (remaining > 0L) {
-            CancelToken.throwIfReached(cancelToken);
-            final var headNode = _source.segmentQueue.lockedReadableHead();
-            try {
-                final var head = (Segment) headNode.segment();
+        var head = _source.segmentQueue.lockedReadableHead();
+        try {
+            var finished = false;
+            while (!finished) {
+                CancelToken.throwIfReached(cancelToken);
+
+                assert head != null;
                 final var toWrite = (int) Math.min(remaining, head.limit - head.pos);
                 try {
                     out.write(head.data, head.pos, toWrite);
                 } catch (IOException e) {
                     throw JayoException.buildJayoException(e);
                 }
-                _source.segmentQueue.decrementSize(toWrite);
                 head.pos += toWrite;
-                if (head.pos == head.limit) {
-                    SegmentPool.recycle(_source.segmentQueue.removeHead());
-                }
+                _source.segmentQueue.decrementSize(toWrite);
                 remaining -= toWrite;
-            } finally {
-                headNode.unlock();
+                finished = remaining == 0;
+                if (head.pos == head.limit) {
+                    final var oldHead = head;
+                    if (finished) {
+                        _source.segmentQueue.removeLockedHead(head, false);
+                        head = null;
+                    } else {
+                        head = _source.segmentQueue.removeLockedHead(head, true);
+                    }
+                    SegmentPool.recycle(oldHead);
+                }
+            }
+        } finally {
+            if (head != null) {
+                head.unlock();
+            }
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "OutputStreamRawSink: Finished writing {0}/{1} bytes to Buffer(SegmentQueue#{2}) " +
+                                "from the OutputStream{2}",
+                        byteCount - remaining, byteCount, _source.segmentQueue.segmentQueueId, System.lineSeparator());
             }
         }
     }

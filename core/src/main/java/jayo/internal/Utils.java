@@ -45,14 +45,14 @@ final class Utils {
      * returns when it reaches a result in the trie, when it mismatches in the trie, and when the buffer is exhausted.
      */
     static int selectPrefix(final RealBuffer buffer, final RealOptions options) {
-        var node = buffer.segmentQueue.head();
-        if (node == null) {
+        var segment = buffer.segmentQueue.head();
+        if (segment == null) {
             return -1;
         }
 
-        var data = node.segment().data();
-        var pos = node.segment().pos();
-        var limit = node.segment().limit();
+        var data = segment.data;
+        var pos = segment.pos;
+        var limit = segment.limit;
 
         final var trie = options.trie;
         var triePos = 0;
@@ -70,7 +70,7 @@ final class Utils {
 
             final int nextStep;
 
-            if (node == null) {
+            if (segment == null) {
                 break;
             } else if (scanOrSelect < 0) {
                 // Scan: take multiple bytes from the buffer and the trie, looking for any mismatch.
@@ -85,11 +85,11 @@ final class Utils {
 
                     // Advance to the next buffer segment if this one is exhausted.
                     if (pos == limit) {
-                        node = node.next();
-                        if (node != null) {
-                            pos = node.segment().pos();
-                            data = node.segment().data();
-                            limit = node.segment().limit();
+                        segment = segment.next();
+                        if (segment != null) {
+                            pos = segment.pos;
+                            data = segment.data;
+                            limit = segment.limit;
                         } else {
                             if (!scanComplete) {
                                 break navigateTrie; // We were exhausted before the scan completed.
@@ -122,11 +122,11 @@ final class Utils {
 
                 // Advance to the next buffer segment if this one is exhausted.
                 if (pos == limit) {
-                    node = node.next();
-                    if (node != null) {
-                        pos = node.segment().pos();
-                        data = node.segment().data();
-                        limit = node.segment().limit();
+                    segment = segment.next();
+                    if (segment != null) {
+                        pos = segment.pos;
+                        data = segment.data;
+                        limit = segment.limit;
                     }
                     // else : no more segments! The next trie node will be our last.
                 }

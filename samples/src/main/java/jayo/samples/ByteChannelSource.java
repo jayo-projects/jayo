@@ -59,7 +59,7 @@ final class ByteChannelSource implements RawSource {
             int length = (int) Math.min(8192, byteCount);
 
             cursor.expandBuffer(length);
-            int read = channel.read(ByteBuffer.wrap(cursor.data, cursor.start, length));
+            int read = channel.read(ByteBuffer.wrap(cursor.data, cursor.pos, length));
             if (read == -1) {
                 cursor.resizeBuffer(oldSize);
             } else {

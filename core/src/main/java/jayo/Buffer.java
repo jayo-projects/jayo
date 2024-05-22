@@ -44,23 +44,23 @@ import java.nio.charset.Charset;
  * The buffer can be viewed as an unbound queue whose size grows with the data being written and shrinks with data being
  * consumed.
  * <p>
- * Internally, the buffer consists of a queue of fixed sized segments, and the buffer's capacity grows and shrinks in
- * units of segments instead of individual bytes.
+ * Internally, the buffer consists of a queue of data segments, and the buffer's capacity grows and shrinks in units of
+ * data segments instead of individual bytes. Each data segment store binary data in a fixed-sized byte array.
  * <ul>
  * <li><b>Moving data from one buffer to another is fast.</b> The buffer was designed to reduce memory allocations when
  * possible. Instead of copying bytes from one place in memory to another, this class just changes ownership of the
- * underlying byte array based segments.
+ * underlying data segments.
  * <li><b>This buffer grows with your data.</b> Just like ArrayList, each buffer starts small. It consumes only the
  * memory it needs to.
  * <li><b>This buffer pools its byte arrays.</b> When you allocate a byte array in Java, the runtime must zero-fill the
  * requested array before returning it to you. Even if you're going to write over that space anyway. This class avoids
  * zero-fill and GC churn by pooling byte arrays.
  * </ul>
- * This buffer write and read operations use the big-endian order. If you need little-endian order, use
- * {@code reverseBytes()}. Jayo provides Kotlin extension functions that support little-endian and unsigned numeric
- * types.
+ * This buffer write and read operations on numbers use the big-endian order. If you need little-endian order, use
+ * <i>reverseBytes()</i>, for example {@code Short.reverseBytes(buffer.readShort())}. Jayo provides Kotlin extension
+ * functions that support little-endian and unsigned numbers.
  * <p>
- * See {@link UnsafeCursor} for a detailed description of how a buffer works.
+ * Please read {@link UnsafeCursor} javadoc for a detailed description of how a buffer works.
  *
  * @implNote {@link Buffer} implements both {@link Source} and {@link Sink} and could be used as a source or a
  * sink, but unlike regular sinks and sources its {@link #close}, {@link #flush}, {@link #emit},
@@ -364,23 +364,6 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
     @NonNull ByteString snapshot(final @NonNegative int byteCount);
 
     /**
-     * @return a UTF-8 byte string containing a copy of all the bytes of this buffer. This method does not consume data
-     * from this buffer.
-     * @apiNote A {@link Utf8String} is immutable
-     */
-    @NonNull
-    Utf8String utf8Snapshot();
-
-    /**
-     * @return a UTF-8 byte string containing a copy of the first {@code byteCount} bytes of this buffer. This method
-     * does not consume data from this buffer.
-     * @throws IndexOutOfBoundsException if {@code byteCount > buffer.byteSize()}.
-     * @apiNote A {@link Utf8String} is immutable
-     */
-    @NonNull
-    Utf8String utf8Snapshot(final @NonNegative int byteCount);
-
-    /**
      * @return an unsafe cursor to only read this buffer's data. Always call {@link UnsafeCursor#close} when done with
      * the cursor. This is convenient with Java try-with-resource and Kotlin's {@code use} extension function.
      * @apiNote {@link UnsafeCursor} exposes privileged access to the internal memory segments of a buffer. This handle
@@ -437,10 +420,9 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * intermediate objects to be allocated.
      * </ul>
      * These optimizations all leverage the way Jayo stores data internally. Jayo buffers are implemented using a
-     * doubly-linked list of segments. Each segment is a contiguous range within a 16 KiB memory chunk (either on-heap
-     * or native). Each segment has two indexes, {@code start}, the offset of the first byte of the
-     * memory chunk containing application data, and {@code end}, the offset of the first byte beyond {@code start}
-     * whose data is undefined.
+     * singly-linked queue of segments. Each segment is a contiguous range within a 8 KiB {@code bye[]}. Each segment
+     * has two indexes: {@code pos}, the offset of the first byte of the first byte of the array containing
+     * application data, and {@code limit}, the offset of the first byte beyond {@code pos} whose data is undefined.
      * <p>
      * New buffers are empty and have no segments:
      * <pre>
@@ -449,14 +431,14 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * }
      * </pre>
      * We append 7 bytes of data to the end of our empty buffer. Internally, the buffer allocates a segment and writes
-     * its new data there. This single segment has a 16 KiB memory segment but only 7 bytes of data:
+     * its new data there. This single segment has a 8 KiB byte array but only 7 bytes of data:
      * <pre>
      * {@code
-     * buffer.writeUtf8("sealion");
+     * buffer.writeUtf8("unicorn");
      *
-     * // [ 's', 'e', 'a', 'l', 'i', 'o', 'n', '?', '?', '?', ...]
+     * // [ 'u', 'n', 'i', 'c', 'o', 'r', 'n', '?', '?', '?', ...]
      * //    ^                                  ^
-     * // start = 0                          end = 7
+     * // pos = 0                          limit = 7
      * }
      * </pre>
      * When we read 4 bytes of data from the buffer, it finds its first segment and returns that data to us. As bytes
@@ -465,36 +447,37 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * {@code
      * buffer.readUtf8(4); // "seal"
      *
-     * // [ 's', 'e', 'a', 'l', 'i', 'o', 'n', '?', '?', '?', ...]
+     * // [ 'u', 'n', 'i', 'c', 'o', 'r', 'n', '?', '?', '?', ...]
      * //                        ^              ^
-     * //                     start = 4      end = 7
+     * //                     pos = 4      limit = 7
      * }
      * </pre>
      * As we write data into a buffer we fill up its internal segments. When a write operation doesn't fit into a
-     * buffer's last segment, additional segments are allocated and appended to the queue of segments. Each segment has
-     * its own start and end indexes tracking where the user's data begins and ends.
+     * buffer's last segment, an additional segment is obtained from the internal segment pool and appended to the queue
+     * so the write operation continues in this new segment. The segment pool may return a segment from the pool if one
+     * is available, or allocate a new segment with its fresh new byte array. Each segment has its own pos and limit
+     * indexes tracking where the user's data begins and ends.
      * Let's illustrate that with a Kotlin sample
      * <pre>
      * {@code
-     * val xoxo = buffer()
-     * xoxo.writeUtf8("xo".repeat(10_000))
+     * val xoxo = Buffer()
+     * xoxo.writeUtf8("xo".repeat(5_000))
      *
      * // [ 'x', 'o', 'x', 'o', 'x', 'o', 'x', 'o', ..., 'x', 'o', 'x', 'o']
      * //    ^                                                               ^
-     * // start = 0                                                      end = 16_384
+     * // pos = 0                                                      limit = 8192
      * //
      * // [ 'x', 'o', 'x', 'o', ..., 'x', 'o', 'x', 'o', '?', '?', '?', ...]
      * //    ^                                            ^
-     * // start = 0                                   end = 3_616
+     * // start = 0                                   end = 1808
      * }
      * </pre>
      * The start index is always <b>inclusive</b> and the end index is always <b>exclusive</b>. The data preceding the
-     * start index is undefined, and the data at and following the end index is undefined.
+     * pos index is undefined, and the data at and following the limit index is undefined.
      * <p>
-     * After the last byte of a segment has been read, that segment may be returned to an internal segment pool. In
-     * addition to reducing the need to do garbage collection, segment pooling also saves the JVM from needing to
-     * zero-fill memory chunks. A memory chunk can be {@code byte[]}, {@code ByteBuffer} or {@code MemorySegment} based.
-     * Jayo doesn't need to zero-fill its memory chunks because it always writes memory before it reads it. But if you
+     * After the last byte of a segment has been read, that segment may be returned to the segment pool. In addition to
+     * reducing the need to do garbage collection, segment pooling also saves the JVM from needing to zero-fill byte
+     * arrays. Jayo doesn't need to zero-fill its arrays because it always writes memory before it reads it. But if you
      * look at a segment in a debugger you may see its effects. In this example below, let's assume that one of the
      * "xoxo" segments above is reused in an unrelated buffer:
      * <pre>
@@ -504,28 +487,28 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      *
      * // [ 'a', 'b', 'c', 'o', 'x', 'o', 'x', 'o', ...]
      * //    ^              ^
-     * // start = 0     end = 3
+     * // pos = 0     limit = 3
      * }
      * </pre>
-     * There is an optimization in {@link Buffer#clone()} and other methods that allows two segments to share a slice of
-     * the same underlying memory segment. Clones can't write to the shared memory chunk; instead they allocate a new
+     * There is an optimization in {@link Buffer#copy()} and other methods that allows two segments to share a slice of
+     * the same underlying byte array. Clones can't write to the shared byte array; instead they allocate a new
      * (private) segment early.
      * <pre>
      * {@code
-     * val nana = buffer()
+     * val nana = Buffer()
      * nana.writeUtf8("na".repeat(2_500))
      * nana.readUtf8(2) // "na"
      *
      * // [ 'n', 'a', 'n', 'a', ..., 'n', 'a', 'n', 'a', '?', '?', '?', ...]
      * //              ^                                  ^
-     * //           start = 2                         end = 5000
+     * //           pos = 2                         limit = 5000
      *
      * nana2 = nana.clone()
      * nana2.writeUtf8("batman")
      *
      * // [ 'n', 'a', 'n', 'a', ..., 'n', 'a', 'n', 'a', '?', '?', '?', ...]
      * //              ^                                  ^
-     * //           start = 2                         end = 5000
+     * //           pos = 2                         limit = 5000
      * //
      * // [ 'b', 'a', 't', 'm', 'a', 'n', '?', '?', '?', ...]
      * //    ^                             ^
@@ -535,19 +518,19 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * Segments are not shared when the shared region is small (ie. less than 1 KiB). This is intended to prevent
      * fragmentation in sharing-heavy use cases.
      * <h2>Unsafe Cursor API</h2>
-     * This class exposes privileged access to the internal memory segments of a buffer. A cursor either references the
+     * This class exposes privileged access to the internal byte arrays of a buffer. A cursor either references the
      * data of a single segment, it is before the first segment ({@code offset == -1}), or it is after the last segment
      * ({@code offset == buffer.byteSize()}).
      * <p>
-     * Call {@link UnsafeCursor#seek} to move the cursor to the segment that contains a specified offset.
-     * After seeking, {@link UnsafeCursor#data} references the segment's internal memory, {@link UnsafeCursor#start} is
-     * the segment's start and {@link UnsafeCursor#end} is its end.
+     * Call {@link UnsafeCursor#seek(long)} to move the cursor to the segment that contains a specified offset.
+     * After seeking, {@link UnsafeCursor#data} references the segment's internal byte array, {@link UnsafeCursor#pos}
+     * is the segment's start and {@link UnsafeCursor#limit} is its end.
      * <p>
-     * Call {@link UnsafeCursor#next} to advance the cursor to the next segment. This returns -1 if there are no further
-     * segments in the buffer.
+     * Call {@link UnsafeCursor#next()} to advance the cursor to the next segment. This returns -1 if there are no
+     * further segments in the buffer.
      * <p>
-     * Use {@link Buffer#readUnsafe} to create a cursor to read buffer data and {@link Buffer#readAndWriteUnsafe} to
-     * create a cursor to read and write buffer data. In either case, always call {@link UnsafeCursor#close} when done
+     * Use {@link Buffer#readUnsafe()} to create a cursor to read buffer data and {@link Buffer#readAndWriteUnsafe()} to
+     * create a cursor to read and write buffer data. In either case, always call {@link UnsafeCursor#close()} when done
      * with a cursor. This is convenient with Java try-with-resource and Kotlin's {@code use} extension function. In
      * this Kotlin example we read all the bytes in a buffer into a byte array:
      * <pre>
@@ -556,15 +539,15 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      *
      * buffer.readUnsafe().use { cursor ->
      *   while (cursor.next() != -1) {
-     *     System.arraycopy(cursor.data, cursor.start,
-     *     bufferBytes, cursor.offset.toInt(), cursor.end - cursor.start);
+     *     System.arraycopy(cursor.data, cursor.pos,
+     *     bufferBytes, cursor.offset.toInt(), cursor.limit - cursor.pos);
      *   }
      * }
      * }
      * </pre>
-     * Change the capacity of a buffer with {@link UnsafeCursor#resizeBuffer}. This is only permitted for read+write
-     * cursors. The buffer's size always changes from the end: shrinking it removes bytes from the end; growing it adds
-     * capacity to the end.
+     * Change the capacity of a buffer with {@link UnsafeCursor#resizeBuffer(long)}. This is only permitted for
+     * read+write cursors. The buffer's size always changes from the end: shrinking it removes bytes from the end;
+     * growing it adds capacity to the end.
      * <h2>Warnings</h2>
      * Most application developers should avoid this API. Those that must use this API should respect these warnings.
      * <ul>
@@ -573,21 +556,22 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * <li><b>Never mutate {@code data} unless you have read+write access.</b> You are on the honor system to never
      * write the buffer in read-only mode. Read-only mode may be more efficient than read+write mode because it does not
      * need to make private copies of shared segments.
-     * <li><b>Only access data in {@code [start..end)}.</b> Other data in the memory segment is undefined! It may
-     * contain private or sensitive data from other parts of your process.
+     * <li><b>Only access data in {@code [pos..limit)}.</b> Other data in the byte array is undefined! It may contain
+     * private or sensitive data from other parts of your process.
      * <li><b>Always fill the new capacity when you grow a buffer.</b> New capacity is not zero-filled and may contain
      * data from other parts of your process. Avoid leaking this information by always writing something to the
      * newly-allocated capacity. Do not assume that new capacity will be filled with {@code 0}; it will not be.
      * <li><b>Do not access a buffer while it is being accessed by a cursor.</b> Even simple read-only operations like
-     * {@link Buffer#clone} are unsafe because they mark segments as shared.
-     * <li><b>Do not hard-code the segment size in your application.</b> Jayo have heterogeneous segment sizes.
+     * {@link Buffer#clone()} are unsafe because they mark segments as shared.
+     * <li><b>Do not hard-code the segment size in your application.</b> It is possible that segment sizes will change
+     * with advances in hardware. Future versions of Jayo may even have heterogeneous segment sizes.
      * </ul>
      * These warnings are intended to help you to use this API safely. It's here for developers that need absolutely the
      * most throughput.
      * <p>
      * Since that's you, here's one final performance tip. You can reuse instances of this class if you like. Use the
-     * overloads of {@link Buffer#readUnsafe} and {@link Buffer#readAndWriteUnsafe} that take a cursor parameter and
-     * close it after use.
+     * overloads of {@link Buffer#readUnsafe(UnsafeCursor)} and {@link Buffer#readAndWriteUnsafe(UnsafeCursor)} that
+     * take a cursor parameter and close it after use.
      */
     sealed abstract class UnsafeCursor implements AutoCloseable permits RealBuffer.RealUnsafeCursor {
         /**
@@ -601,11 +585,11 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
         public boolean readWrite = false;
         public @NonNegative long offset = -1L;
         public byte[] data = null;
-        public @NonNegative int start = -1;
-        public @NonNegative int end = -1;
+        public @NonNegative int pos = -1;
+        public @NonNegative int limit = -1;
 
         /**
-         * Seeks to the next range of bytes, advancing the offset by {@code end - start}.
+         * Seeks to the next range of bytes, advancing the offset by {@code limit - pos}.
          *
          * @return the size of the readable range (at least 1), or -1 if we have reached the end of the buffer and there
          * are no more bytes to read.
@@ -613,7 +597,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
         public abstract int next();
 
         /**
-         * Reposition the cursor so that the data at {@code offset} is readable at {@code data.get(start)}.
+         * Reposition the cursor so that the data at {@code offset} is readable at {@code data.get(pos)}.
          *
          * @return the number of bytes readable in {@link #data} (at least 1), or -1 if there are no data to read.
          */
@@ -623,9 +607,10 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
          * Change the size of the buffer so that it equals {@code newSize} by either adding new capacity at the end or
          * truncating the buffer at the end. Newly added capacity may span multiple segments.
          * <p>
-         * As a side effect this cursor will {@link #seek}. If the buffer is being enlarged it will move {@link #offset}
-         * to the first byte of newly-added capacity. This is the size of the buffer prior to the {@code resizeBuffer()}
-         * call. If the buffer is being shrunk it will move {@link #offset} to the end of the buffer.
+         * As a side effect this cursor will {@link #seek(long)}. If the buffer is being enlarged it will move
+         * {@link #offset} to the first byte of newly-added capacity. This is the size of the buffer prior to the
+         * {@code resizeBuffer()} call. If the buffer is being shrunk it will move {@link #offset} to the end of the
+         * buffer.
          * <p>
          * Warning: it is the caller’s responsibility to write new data to every byte of the newly-allocated capacity.
          * Failure to do so may cause serious security problems as the data in the returned buffers is not zero filled.
@@ -640,7 +625,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
          * Grow the buffer by adding a <b>contiguous range</b> of capacity in a single segment. This adds at least
          * {@code minByteCount} bytes but may add up to a full segment of additional capacity.
          * <p>
-         * As a side effect this cursor will {@link #seek}. It will move {@link #offset} to the first byte of
+         * As a side effect this cursor will {@link #seek(long)}. It will move {@link #offset} to the first byte of
          * newly-added capacity. This is the size of the buffer prior to the {@code expandBuffer()} call.
          * <p>
          * If {@code minByteCount} bytes are available in the buffer's current tail segment that will be used; otherwise
@@ -653,7 +638,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
          * contain dirty pooled segments that hold very sensitive data from other parts of the current process.
          *
          * @param minByteCount the size of the contiguous capacity. Must be positive and not greater than the capacity
-         *                     size of a single segment (16 KiB).
+         *                     size of a single segment (8 KiB).
          * @return the number of bytes expanded by. Not less than {@code minByteCount}.
          */
         public abstract long expandBuffer(final int minByteCount);

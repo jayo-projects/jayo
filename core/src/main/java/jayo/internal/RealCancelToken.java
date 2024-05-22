@@ -44,12 +44,6 @@ public final class RealCancelToken implements CancelScope, CancelToken {
     volatile boolean finished = false;
 
     RealCancelToken(final @NonNegative long timeoutNanos, final @NonNegative long deadlineNanos) {
-        if (timeoutNanos < 0L) {
-            throw new IllegalArgumentException("timeoutNanos < 0L: " + timeoutNanos);
-        }
-        if (deadlineNanos < 0L) {
-            throw new IllegalArgumentException("deadlineNanos < 0L: " + deadlineNanos);
-        }
         this.timeoutNanos = timeoutNanos;
         this.deadlineNanoTime = (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L;
     }

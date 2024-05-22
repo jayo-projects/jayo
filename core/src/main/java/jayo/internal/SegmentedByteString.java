@@ -224,14 +224,8 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
             s.pos = _offset;
             s.limit = _offset + _byteCount;
             final var copy = s.sharedCopy();
-            final var bufferTailNode = buffer.segmentQueue.lockedNonRemovedTailOrNull();
-            try {
-                buffer.segmentQueue.addTail(copy);
-            } finally {
-                if (bufferTailNode != null) {
-                    bufferTailNode.unlock();
-                }
-            }
+            final var bufferTail = buffer.segmentQueue.lockedNonRemovedTailOrNull();
+            buffer.segmentQueue.addLockedTail(bufferTail, copy, true);
             buffer.segmentQueue.incrementSize(_byteCount);
             return true;
         });
