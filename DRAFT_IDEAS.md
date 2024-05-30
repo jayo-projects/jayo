@@ -83,6 +83,7 @@ streams are not safe for concurrent use.
 * [Netty](https://github.com/netty/netty) is the most advanced and powerful async I/O framework written in Java
 * [Quasar](https://github.com/puniverse/quasar) is the loom ancestor on JDK
 * [Chronicle Bytes](https://github.com/OpenHFT/Chronicle-Bytes)
+* [jox](https://github.com/softwaremill/jox) : Fast and Scalable Channels in Java
 * Nice usage of java `Stream<T>` like in Spring's `ResultSetSpliterator` in `JdbcTemplate` class
 * [Loom support added in Okio](https://github.com/square/okio/commit/f8434f575787198928a26334758ddbca9726b11c)
 * [Timeouts and cancellation for humans](https://vorpus.org/blog/timeouts-and-cancellation-for-humans/) inspiration for
