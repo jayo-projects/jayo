@@ -5,7 +5,9 @@ println("Using Kotlin compiler version: $KOTLIN_VERSION")
 println("Using Java compiler version: ${JavaVersion.current()}")
 
 plugins {
+    id("jayo-commons")
     id("jayo.build.optional-dependencies")
+
 }
 
 dependencies {

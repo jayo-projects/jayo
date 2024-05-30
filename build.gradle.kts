@@ -12,11 +12,15 @@
 plugins {
     `maven-publish`
     signing
-    id("net.researchgate.release")
+    alias(libs.plugins.release)
+
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.jmh) apply false
+    alias(libs.plugins.shadow) apply false
 }
 
 subprojects {
-    apply(plugin = "jayo-conventions")
     apply(plugin = "maven-publish")
     apply(plugin = "signing")
 

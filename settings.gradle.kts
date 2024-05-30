@@ -1,9 +1,5 @@
 pluginManagement {
-    val releasePluginVersion: String by settings
-    
-    plugins {
-        id("net.researchgate.release") version releasePluginVersion
-    }
+    includeBuild("build-logic")
 }
 
 rootProject.name = "jayo-root"

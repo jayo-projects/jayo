@@ -1,0 +1,53 @@
+[versions]
+
+java = "21"
+
+# plugins
+# https://github.com/JetBrains/kotlin/releases
+kotlin = "2.0.0"
+# https://github.com/Kotlin/dokka/releases
+dokka = "1.9.20"
+# https://github.com/Kotlin/kotlinx-kover/releases
+kover = "0.8.0"
+# https://github.com/melix/jmh-gradle-plugin/releases (for benchmarks)
+jmhPlugin = "0.7.2"
+# https://github.com/johnrengelman/shadow/releases (for benchmarks)
+shadow = "8.1.1"
+# https://github.com/researchgate/gradle-release/releases
+release = "3.0.2"
+
+# main
+# https://github.com/jspecify/jspecify/releases
+jspecify = "0.3.0"
+
+# third-parties
+# https://github.com/Kotlin/kotlinx.serialization/releases
+kotlinxSerialization = "1.6.3"
+
+# tests
+# https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
+junit = "5.10.2"
+# https://mvnrepository.com/artifact/org.assertj/assertj-core
+assertj = "3.26.0"
+# https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
+slf4j = "2.0.13"
+
+# benchmarks
+# https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
+jackson = "2.17.1"
+# https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-core
+jmh = "1.37"
+# https://github.com/square/okio/tags
+okio = "3.9.0"
+
+[libraries]
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+dokka-gradle-plugin = { group = "org.jetbrains.dokka", name = "dokka-gradle-plugin", version.ref = "dokka" }
+kover-gradle-plugin = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin", version.ref = "kover" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmhPlugin" }
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+release = { id = "net.researchgate.release", version.ref = "release" }
