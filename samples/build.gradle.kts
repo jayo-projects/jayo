@@ -1,4 +1,8 @@
-import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
+import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode.Disabled
+
+plugins {
+    id("jayo-commons")
+}
 
 dependencies {
     api(project(":jayo"))
@@ -6,5 +10,5 @@ dependencies {
 }
 
 kotlin {
-    explicitApi = ExplicitApiMode.Disabled
+    explicitApi = Disabled
 }
