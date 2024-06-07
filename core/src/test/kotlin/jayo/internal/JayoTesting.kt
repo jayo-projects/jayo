@@ -27,13 +27,13 @@ import jayo.Utf8String
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)
-    var segment: Segment? = buffer.segmentQueue.head() ?: return emptyList()
+    var segment: Segment? = buffer.segmentQueue.headVolatile() ?: return emptyList()
 
-    val sizes = mutableListOf(segment!!.limit - segment.pos)
-    segment = segment.next()
+    val sizes = mutableListOf(segment!!.limit() - segment.pos)
+    segment = segment.nextVolatile()
     while (segment != null) {
-        sizes.add(segment.limit - segment.pos)
-        segment = segment.next()
+        sizes.add(segment.limit() - segment.pos)
+        segment = segment.nextVolatile()
     }
     return sizes
 }
@@ -57,8 +57,8 @@ fun makeSegments(source: ByteString): ByteString {
     for (i in 0 until source.byteSize()) {
         buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
             tail.data[tail.pos] = source.getByte(i)
-            val limit = tail.limit
-            tail.limit = limit + 1
+            val limit = tail.limit()
+            tail.limit(limit + 1)
             true
         }
     }
@@ -70,8 +70,8 @@ fun makeUtf8Segments(source: Utf8String): Utf8String {
     for (i in 0 until source.byteSize()) {
         buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
             tail.data[tail.pos] = source.getByte(i)
-            val limit = tail.limit
-            tail.limit = limit + 1
+            val limit = tail.limit()
+            tail.limit(limit + 1)
             true
         }
     }

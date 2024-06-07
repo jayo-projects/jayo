@@ -35,31 +35,30 @@ public final class HashingUtils {
         try (rawSource; final var segmentQueue = new SourceSegmentQueue(rawSource)) {
             var toProcess = segmentQueue.expectSize(1L);
             while (toProcess != 0L) {
-                var head = segmentQueue.lockedReadableHead();
-                try {
-                    var finished = false;
-                    while (!finished) {
-                        assert head != null;
-                        final var toRead = (int) Math.min(toProcess, head.limit - head.pos);
-                        messageDigest.update(head.data, head.pos, toRead);
-                        head.pos += toRead;
-                        segmentQueue.decrementSize(toRead);
-                        toProcess -= toRead;
-                        finished = toProcess == 0L;
-                        if (head.pos == head.limit) {
-                            final var oldHead = head;
-                            if (finished) {
-                                segmentQueue.removeLockedHead(head, false);
-                                head = null;
-                            } else {
-                                head = segmentQueue.removeLockedHead(head, true);
+                var head = segmentQueue.headVolatile();
+                var finished = false;
+                while (!finished) {
+                    assert head != null;
+                    final var currentLimit = head.limitVolatile();
+                    final var toRead = (int) Math.min(toProcess, currentLimit - head.pos);
+                    messageDigest.update(head.data, head.pos, toRead);
+                    head.pos += toRead;
+                    segmentQueue.decrementSize(toRead);
+                    toProcess -= toRead;
+                    finished = toProcess == 0L;
+                    if (head.pos == currentLimit) {
+                        final var oldHead = head;
+                        if (finished) {
+                            if (head.tryRemove() && head.validateRemove()) {
+                                segmentQueue.removeHead(head);
                             }
-                            SegmentPool.recycle(oldHead);
+                        } else {
+                            if (!head.tryRemove()) {
+                                throw new IllegalStateException("Non tail segment should be removable");
+                            }
+                            head = segmentQueue.removeHead(head);
                         }
-                    }
-                } finally {
-                    if (head != null) {
-                        head.unlock();
+                        SegmentPool.recycle(oldHead);
                     }
                 }
                 toProcess = segmentQueue.expectSize(1L);
@@ -92,31 +91,30 @@ public final class HashingUtils {
         try (rawSource; final var segmentQueue = new SourceSegmentQueue(rawSource)) {
             var toProcess = segmentQueue.expectSize(1L);
             while (toProcess != 0L) {
-                var head = segmentQueue.lockedReadableHead();
-                try {
-                    var finished = false;
-                    while (!finished) {
-                        assert head != null;
-                        final var toRead = (int) Math.min(toProcess, head.limit - head.pos);
-                        javaMac.update(head.data, head.pos, toRead);
-                        head.pos += toRead;
-                        segmentQueue.decrementSize(toRead);
-                        toProcess -= toRead;
-                        finished = toProcess == 0L;
-                        if (head.pos == head.limit) {
-                            final var oldHead = head;
-                            if (finished) {
-                                segmentQueue.removeLockedHead(head, false);
-                                head = null;
-                            } else {
-                                head = segmentQueue.removeLockedHead(head, true);
+                var head = segmentQueue.headVolatile();
+                var finished = false;
+                while (!finished) {
+                    assert head != null;
+                    final var currentLimit = head.limitVolatile();
+                    final var toRead = (int) Math.min(toProcess, currentLimit - head.pos);
+                    javaMac.update(head.data, head.pos, toRead);
+                    head.pos += toRead;
+                    segmentQueue.decrementSize(toRead);
+                    toProcess -= toRead;
+                    finished = toProcess == 0L;
+                    if (head.pos == currentLimit) {
+                        final var oldHead = head;
+                        if (finished) {
+                            if (head.tryRemove() && head.validateRemove()) {
+                                segmentQueue.removeHead(head);
                             }
-                            SegmentPool.recycle(oldHead);
+                        } else {
+                            if (!head.tryRemove()) {
+                                throw new IllegalStateException("Non tail segment should be removable");
+                            }
+                            head = segmentQueue.removeHead(head);
                         }
-                    }
-                } finally {
-                    if (head != null) {
-                        head.unlock();
+                        SegmentPool.recycle(oldHead);
                     }
                 }
                 toProcess = segmentQueue.expectSize(1L);

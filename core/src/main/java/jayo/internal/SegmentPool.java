@@ -28,6 +28,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static jayo.internal.Segment.WRITING;
+
 /**
  * This class pools segments in a singly-linked queue of {@linkplain Segment segments}. Though this code is lock-free it
  * does use a sentinel {@link #DOOR} value to defend against races. Conflicted operations are not retried, so there is
@@ -90,7 +92,7 @@ public final class SegmentPool {
      */
     static int getByteCount() {
         final var first = firstRef().get();
-        return (first != null) ? first.limit : 0;
+        return (first != null) ? first.limit() : 0;
     }
 
     static @NonNull Segment take() {
@@ -115,15 +117,14 @@ public final class SegmentPool {
         // take this segment has these values
         Segment.NEXT.set(first, null);
         first.pos = 0;
-        first.limit = 0;
-        first.lastSegmentQueueId = -1;
+        first.limitVolatile(0);
+        Segment.STATUS.setVolatile(first, WRITING);
 
         return first;
     }
 
     static void recycle(final @NonNull Segment segment) {
         Objects.requireNonNull(segment);
-        assert !segment.lock.isHeldByCurrentThread();
 
         if (segment.shared) {
             Segment.NEXT.set(segment, null);
@@ -139,7 +140,7 @@ public final class SegmentPool {
         }
 
 
-        final var firstLimit = (first != null) ? first.limit : 0;
+        final var firstLimit = (first != null) ? first.limit() : 0;
         if (firstLimit >= MAX_SIZE) {
             firstRef.set(first); // Pool is full.
             Segment.NEXT.set(segment, null);
@@ -147,7 +148,7 @@ public final class SegmentPool {
         }
 
         Segment.NEXT.set(segment, first);
-        segment.limit = firstLimit + Segment.SIZE;
+        segment.limit(firstLimit + Segment.SIZE);
 
         firstRef.set(segment);
     }

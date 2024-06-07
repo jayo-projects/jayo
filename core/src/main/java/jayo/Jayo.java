@@ -330,7 +330,11 @@ public final class Jayo {
         @Override
         public void write(final @NonNull Buffer source, final @NonNegative long byteCount) {
             Objects.requireNonNull(source);
-            source.skip(byteCount);
+            try {
+                source.skip(byteCount);
+            } catch (IllegalStateException _ignored) {
+
+            }
         }
 
         @Override

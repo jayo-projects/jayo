@@ -213,11 +213,11 @@ public final class GzipRawSource implements RawSource {
         var _offset = offset;
         var _byteCount = byteCount;
         // Skip segments that we aren't checksumming.
-        var segment = buffer.segmentQueue.head();
+        var segment = buffer.segmentQueue.headVolatile();
         assert segment != null;
-        while (_offset >= segment.limit - segment.pos) {
-            _offset -= (segment.limit - segment.pos);
-            segment = segment.next();
+        while (_offset >= segment.limit() - segment.pos) {
+            _offset -= (segment.limit() - segment.pos);
+            segment = segment.nextVolatile();
             assert segment != null;
         }
 
@@ -225,11 +225,11 @@ public final class GzipRawSource implements RawSource {
         while (_byteCount > 0) {
             assert segment != null;
             final var pos = (int) (segment.pos + _offset);
-            final var toUpdate = (int) Math.min(segment.limit - pos, _byteCount);
+            final var toUpdate = (int) Math.min(segment.limit() - pos, _byteCount);
             crc.update(segment.data, pos, toUpdate);
             _byteCount -= toUpdate;
             _offset = 0;
-            segment = segment.next();
+            segment = segment.nextVolatile();
         }
     }
 

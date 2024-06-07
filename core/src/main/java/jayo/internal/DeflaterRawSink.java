@@ -60,37 +60,36 @@ public final class DeflaterRawSink implements RawSink {
         }
 
         var remaining = byteCount;
-        var head = _source.segmentQueue.lockedReadableHead();
-        try {
-            var finished = false;
-            while (!finished) {
-                assert head != null;
-                // Share bytes from the head segment of 'source' with the deflater.
-                final var toDeflate = (int) Math.min(remaining, head.limit - head.pos);
-                deflater.setInput(head.data, head.pos, toDeflate);
+        var head = _source.segmentQueue.headVolatile();
+        var finished = false;
+        while (!finished) {
+            assert head != null;
+            final var currentLimit = head.limitVolatile();
+            // Share bytes from the head segment of 'source' with the deflater.
+            final var toDeflate = (int) Math.min(remaining, currentLimit - head.pos);
+            deflater.setInput(head.data, head.pos, toDeflate);
 
-                // Deflate those bytes into sink.
-                deflate(false);
+            // Deflate those bytes into sink.
+            deflate(false);
 
-                // Mark those bytes as read.
-                head.pos += toDeflate;
-                _source.segmentQueue.decrementSize(toDeflate);
-                remaining -= toDeflate;
-                finished = remaining == 0L;
-                if (head.pos == head.limit) {
-                    final var oldHead = head;
-                    if (finished) {
-                        _source.segmentQueue.removeLockedHead(head, false);
-                        head = null;
-                    } else {
-                        head = _source.segmentQueue.removeLockedHead(head, true);
+            // Mark those bytes as read.
+            head.pos += toDeflate;
+            _source.segmentQueue.decrementSize(toDeflate);
+            remaining -= toDeflate;
+            finished = remaining == 0L;
+            if (head.pos == currentLimit) {
+                final var oldHead = head;
+                if (finished) {
+                    if (head.tryRemove() && head.validateRemove()) {
+                        _source.segmentQueue.removeHead(head);
                     }
-                    SegmentPool.recycle(oldHead);
+                } else {
+                    if (!head.tryRemove()) {
+                        throw new IllegalStateException("Non tail segment should be removable");
+                    }
+                    head = _source.segmentQueue.removeHead(head);
                 }
-            }
-        } finally {
-            if (head != null) {
-                head.unlock();
+                SegmentPool.recycle(oldHead);
             }
         }
     }
@@ -155,24 +154,23 @@ public final class DeflaterRawSink implements RawSink {
     private void deflate(final boolean syncFlush) {
         final var segmentQueue = sink.buffer.segmentQueue;
 
-        var tail = segmentQueue.lockedWritableTail(1);
+        var tail = segmentQueue.writableTail(1);
         try {
-            var limit = tail.limit;
+            var limit = tail.limit();
             while (true) {
                 if (limit == Segment.SIZE) {
-                    final var writtenInSegment = (limit - tail.limit);
-                    tail.limit = limit;
+                    final var writtenInSegment = (limit - tail.limit());
+                    tail.limitVolatile(limit);
                     final var newTail = SegmentPool.take();
-                    newTail.lock.lock();
                     Segment.NEXT.setVolatile(tail, newTail);
                     segmentQueue.incrementSize(writtenInSegment);
-                    tail.unlock();
+                    tail.finishWrite();
                     tail = newTail;
                     limit = 0;
                 }
                 final int deflated;
                 try {
-                    deflated = deflater.deflate(tail.data, tail.limit, Segment.SIZE - tail.limit,
+                    deflated = deflater.deflate(tail.data, tail.limit(), Segment.SIZE - tail.limit(),
                             syncFlush ? Deflater.SYNC_FLUSH : Deflater.NO_FLUSH);
                 } catch (NullPointerException npe) {
                     throw new JayoException("Deflater already closed", new IOException(npe));
@@ -185,13 +183,13 @@ public final class DeflaterRawSink implements RawSink {
                     break;
                 }
             }
-            final var writtenInSegment = (limit - tail.limit);
-            tail.limit = limit;
+            final var writtenInSegment = (limit - tail.limit());
+            tail.limitVolatile(limit);
             // tail may be null or a removed segment
             SegmentQueue.TAIL.setVolatile(segmentQueue, tail);
             segmentQueue.incrementSize(writtenInSegment);
         } finally {
-            tail.unlock();
+            tail.finishWrite();
         }
     }
 }

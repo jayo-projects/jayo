@@ -53,7 +53,7 @@ final class PeekRawSource implements RawSource {
         this.upstream = Objects.requireNonNull(upstream);
         buffer = getBufferFromSource(upstream);
         buffer.segmentQueue.expectSize(1L);
-        final var bufferHead = buffer.segmentQueue.head();
+        final var bufferHead = buffer.segmentQueue.headVolatile();
         if (bufferHead != null) {
             this.expectedSegment = bufferHead;
             this.expectedPos = bufferHead.pos;
@@ -73,7 +73,7 @@ final class PeekRawSource implements RawSource {
             throw new IllegalStateException("this peek source is closed");
         }
 
-        final var bufferHead = buffer.segmentQueue.head();
+        final var bufferHead = buffer.segmentQueue.headVolatile();
         // Source becomes invalid if there is an expected Segment and it and the expected position does not match the
         // current head and head position of the upstream buffer
         if (expectedSegment != null &&

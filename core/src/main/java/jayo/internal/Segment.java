@@ -28,7 +28,6 @@ import org.jspecify.annotations.Nullable;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
@@ -68,16 +67,19 @@ final class Segment {
      */
     final byte @NonNull [] data;
     /**
-     * The next byte of application data byte to read in this segment.
+     * The next byte of application data byte to read in this segment. This field will be exclusively modified and read
+     * by the reader.
      */
     int pos = 0;
     /**
-     * The first byte of available data ready to be written to.
+     * The first byte of available data ready to be written to. This field will be exclusively modified by the
+     * writer, and will be read by the reader.
      * <p>
-     * If the segment is free and linked in the segment pool, the field contains total
-     * byte count of this and next segments.
+     * If the segment is free and linked in the segment pool, the field contains total byte count of this and next
+     * segments.
      */
-    int limit = 0;
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile int limit = 0;
     /**
      * True if other buffer segments or byte strings use the same byte array.
      */
@@ -87,26 +89,31 @@ final class Segment {
      */
     final boolean owner;
     /**
-     * The last {@link SegmentQueue} ID this segment was removed from, contains -1 if never removed.
-     */
-    int lastSegmentQueueId = -1;
-    /**
      * Next segment in the queue.
      */
     @SuppressWarnings("FieldMayBeFinal")
     private volatile @Nullable Segment next = null;
-    /**
-     * This lock is used to avoid multi-threading issues when 2 threads do concurrent reads and writes.
-     */
-    final ReentrantLock lock = new ReentrantLock();
+
+    // status
+    static final byte AVAILABLE = 1;
+    static final byte WRITING = 2;
+    static final byte TRANSFERRING = 3;
+    static final byte REMOVING = 4; // final state, cannot go back
+
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile byte status;
 
     // VarHandle mechanics
+    private static final VarHandle LIMIT;
     static final VarHandle NEXT;
+    static final VarHandle STATUS;
 
     static {
         try {
             final var l = MethodHandles.lookup();
+            LIMIT = l.findVarHandle(Segment.class, "limit", int.class);
             NEXT = l.findVarHandle(Segment.class, "next", Segment.class);
+            STATUS = l.findVarHandle(Segment.class, "status", byte.class);
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
@@ -137,24 +144,99 @@ final class Segment {
         this.data = new byte[SIZE];
         this.owner = true;
         this.shared = false;
+        this.status = WRITING;
     }
 
     Segment(final byte @NonNull [] data, final int pos, final int limit, final boolean shared, final boolean owner) {
+        this(data, pos, limit, shared, owner, WRITING);
+    }
+
+    Segment(final byte @NonNull [] data, final int pos, final int limit, final boolean shared, final boolean owner, final byte status) {
         this.data = Objects.requireNonNull(data);
         this.pos = pos;
         this.limit = limit;
         this.shared = shared;
         this.owner = owner;
+        this.status = status;
     }
 
     @Nullable
-    Segment next() {
+    Segment nextVolatile() {
         return (@Nullable Segment) NEXT.getVolatile(this);
     }
 
-    void unlock() {
-        assert lock.isHeldByCurrentThread();
-        lock.unlock();
+    @NonNegative
+    int limit() {
+        return (int) LIMIT.get(this);
+    }
+
+    @NonNegative
+    int limitVolatile() {
+        return (int) LIMIT.getVolatile(this);
+    }
+
+    // Use only this non-volatile set from SegmentPool or Buffer.UnsafeCursor !
+    void limit(final @NonNegative int limit) {
+        LIMIT.set(this, limit);
+    }
+
+    void limitVolatile(final @NonNegative int limit) {
+        LIMIT.setVolatile(this, limit); // test less strict than volatile
+    }
+
+    void incrementLimitVolatile(final @NonNegative int increment) {
+        LIMIT.getAndAdd(this, increment); // test less strict than volatile
+    }
+
+    boolean tryWrite() {
+        return STATUS.compareAndSet(this, AVAILABLE, WRITING);
+    }
+
+    void finishWrite() {
+        if (!STATUS.compareAndSet(this, WRITING, AVAILABLE)) {
+            throw new IllegalStateException("Could not finish write operation");
+        }
+    }
+
+    boolean tryRemove() {
+        final var previousState = (byte) STATUS.compareAndExchange(this, AVAILABLE, REMOVING);
+        return switch (previousState) {
+            case AVAILABLE, REMOVING -> true;
+            default -> false;
+        };
+    }
+
+    boolean validateRemove() {
+        assert (byte) Segment.STATUS.get(this) == REMOVING;
+
+        if (pos == limitVolatile()) {
+            return true;
+        }
+
+        finishRemove();
+        return false;
+    }
+
+    void finishRemove() {
+        if (!STATUS.compareAndSet(this, REMOVING, AVAILABLE)) {
+            throw new IllegalStateException("Could not finish remove operation");
+        }
+    }
+
+    public boolean startTransfer() {
+        final var previousState = (byte) STATUS.compareAndExchange(this, AVAILABLE, TRANSFERRING);
+        return switch (previousState) {
+            case AVAILABLE -> false;
+            case WRITING -> true;
+            default -> throw new IllegalStateException("Unexpected state " + previousState + ". The head queue " +
+                    "node should be in 'AVAILABLE' or 'WRITING' state before transferring.");
+        };
+    }
+
+    void finishTransfer(final boolean wasWriting) {
+        if (!wasWriting) {
+            STATUS.compareAndSet(this, TRANSFERRING, AVAILABLE);
+        }
     }
 
     /**
@@ -164,7 +246,7 @@ final class Segment {
     @NonNull
     Segment sharedCopy() {
         shared = true;
-        return new Segment(data, pos, limit, true, false);
+        return new Segment(data, pos, limitVolatile(), true, false);
     }
 
     /**
@@ -172,7 +254,7 @@ final class Segment {
      */
     @NonNull
     Segment unsharedCopy() {
-        return new Segment(data.clone(), pos, limit, false, true);
+        return new Segment(data.clone(), pos, limitVolatile(), false, true, AVAILABLE);
     }
 
     /**
@@ -183,14 +265,7 @@ final class Segment {
      * @return the new head of the queue.
      */
     @NonNull
-    Segment splitLockedHead(final @NonNegative int byteCount) {
-        assert lock.isHeldByCurrentThread();
-
-        final var currentPos = pos;
-        if (byteCount <= 0 || byteCount > limit - currentPos) {
-            throw new IllegalArgumentException("byteCount out of range: " + byteCount);
-        }
-
+    Segment splitHead(final @NonNegative int byteCount, final boolean wasWriting) {
         final Segment prefix;
 
         // We have two competing performance goals:
@@ -202,16 +277,19 @@ final class Segment {
             prefix = sharedCopy();
         } else {
             prefix = SegmentPool.take();
-            System.arraycopy(data, currentPos, prefix.data, 0, byteCount);
+            System.arraycopy(data, pos, prefix.data, 0, byteCount);
         }
+        Segment.STATUS.set(prefix, TRANSFERRING);
 
         prefix.limit = prefix.pos + byteCount;
-        pos = currentPos + byteCount;
+        pos += byteCount;
 
-        prefix.lock.lock();
         if (!NEXT.compareAndSet(prefix, null, this)) {
             throw new IllegalStateException("Could set next segment of prefix");
         }
+        // stop transferring suffix
+        finishTransfer(wasWriting);
+
         return prefix;
     }
 
@@ -223,7 +301,7 @@ final class Segment {
         if (!targetSegment.owner) {
             throw new IllegalStateException("only owner can write");
         }
-        var sinkCurrentLimit = targetSegment.limit;
+        var sinkCurrentLimit = targetSegment.limit();
         if (sinkCurrentLimit + byteCount > SIZE) {
             // We can't fit byteCount bytes at the sink's current position. Shift sink first.
             if (targetSegment.shared) {
@@ -255,8 +333,14 @@ final class Segment {
                 ", limit=" + limit + System.lineSeparator() +
                 ", shared=" + shared +
                 ", owner=" + owner +
-                ", lastSegmentQueueId=" + lastSegmentQueueId + System.lineSeparator() +
-                ", lock=" + lock + System.lineSeparator() +
+                ", status=" +
+                switch (status) {
+                    case 1 -> "AVAILABLE";
+                    case 2 -> "WRITING";
+                    case 3 -> "TRANSFERRING";
+                    case 4 -> "REMOVING";
+                    default -> throw new IllegalStateException("Unexpected status: " + status);
+                } + System.lineSeparator() +
                 ", next=" + ((next != null) ? "Segment#" + next.hashCode() : "null") + System.lineSeparator() +
                 '}';
     }

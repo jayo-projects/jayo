@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
@@ -30,9 +31,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
     @Override
     @NonNegative
     long expectSize(final long expectedSize) {
-        if (expectedSize < 1L) {
-            throw new IllegalArgumentException("expectedSize < 1 : " + expectedSize);
-        }
+        assert expectedSize > 0L;
         // fast-path : current size is enough
         final var currentSize = size();
         if (currentSize >= expectedSize || closed) {
@@ -75,6 +74,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
         private volatile @Nullable RuntimeException exception = null;
 
         private @NonNegative long expectedSize = 0;
+        private final ReentrantLock lock = new ReentrantLock();
         private final Condition expectingSize = lock.newCondition();
         // when source is temporarily exhausted or the segment queue is full
         private final Condition sourceConsumerPaused = lock.newCondition();
@@ -125,7 +125,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
                                     , current size = {2}
                                     segment queue =
                                     {3}{4}""",
-                            segmentQueueId, expectedSize, currentSize, this, System.lineSeparator());
+                            hashCode(), expectedSize, currentSize, this, System.lineSeparator());
                 }
                 // we must wait until expected size is reached, or no more write operation
                 this.expectedSize = expectedSize;
@@ -136,7 +136,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
                 if (LOGGER.isLoggable(DEBUG)) {
                     LOGGER.log(DEBUG, "AsyncSourceSegmentQueue#{0}: expectSize({1}) resumed expecting more " +
                                     "bytes, current size = {2}{3}",
-                            segmentQueueId, expectedSize, currentSize, System.lineSeparator());
+                            hashCode(), expectedSize, currentSize, System.lineSeparator());
                 }
                 return currentSize;
             } catch (InterruptedException e) {
@@ -152,7 +152,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
         public void close() {
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "AsyncSourceSegmentQueue#{0}: Start close{1}",
-                        segmentQueueId, System.lineSeparator());
+                        hashCode(), System.lineSeparator());
             }
             if (closed) {
                 return;
@@ -168,7 +168,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
             }
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "AsyncSourceSegmentQueue#{0}: Finished close{1}",
-                        segmentQueueId, System.lineSeparator());
+                        hashCode(), System.lineSeparator());
             }
         }
 
@@ -177,7 +177,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
             public void run() {
                 if (LOGGER.isLoggable(DEBUG)) {
                     LOGGER.log(DEBUG, "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task: start",
-                            segmentQueueId);
+                            hashCode());
                 }
                 try {
                     var currentExpectedSize = 0L;
@@ -211,13 +211,13 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
                                                     "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task:" +
                                                             " source is exhausted, expected size = {1}, pausing" +
                                                             " consumer thread{2}",
-                                                    segmentQueueId, currentExpectedSize, System.lineSeparator());
+                                                    hashCode(), currentExpectedSize, System.lineSeparator());
                                         } else {
                                             LOGGER.log(DEBUG,
                                                     "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task:" +
                                                             " buffer reached or exceeded max capacity: {1}/{2}," +
                                                             " pausing consumer thread{3}",
-                                                    segmentQueueId, currentSize, MAX_BYTE_SIZE, System.lineSeparator());
+                                                    hashCode(), currentSize, MAX_BYTE_SIZE, System.lineSeparator());
                                         }
                                     }
                                     // if read did not return any result or buffer reached max capacity,
@@ -259,7 +259,7 @@ sealed class SourceSegmentQueue extends SegmentQueue permits SourceSegmentQueue.
                 }
                 if (LOGGER.isLoggable(DEBUG)) {
                     LOGGER.log(DEBUG, "AsyncSourceSegmentQueue#{0}:SourceConsumer Runnable task: end",
-                            segmentQueueId);
+                            hashCode());
                 }
             }
 

@@ -63,14 +63,14 @@ public final class InputStreamRawSource implements RawSource {
 
         final var bytesRead = new Wrapper.Int();
         _sink.segmentQueue.withWritableTail(1, tail -> {
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
             try {
-                bytesRead.value = in.read(tail.data, tail.limit, toRead);
+                bytesRead.value = in.read(tail.data, tail.limit(), toRead);
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }
             if (bytesRead.value > 0) {
-                tail.limit += bytesRead.value;
+                tail.incrementLimitVolatile(bytesRead.value);
             }
             return true;
         });

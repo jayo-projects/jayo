@@ -222,10 +222,10 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
         Objects.requireNonNull(buffer);
         forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
             s.pos = _offset;
-            s.limit = _offset + _byteCount;
+            s.limit(_offset + _byteCount);
             final var copy = s.sharedCopy();
-            final var bufferTail = buffer.segmentQueue.lockedNonRemovedTailOrNull();
-            buffer.segmentQueue.addLockedTail(bufferTail, copy, true);
+            final var bufferTail = buffer.segmentQueue.nonRemovedTailOrNull();
+            buffer.segmentQueue.addWritableTail(bufferTail, copy, true);
             buffer.segmentQueue.incrementSize(_byteCount);
             return true;
         });

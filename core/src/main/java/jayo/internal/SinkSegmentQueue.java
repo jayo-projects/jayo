@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
@@ -74,6 +75,7 @@ sealed class SinkSegmentQueue extends SegmentQueue {
         private boolean lastEmittedIncluding = false;
 
         private volatile boolean isSegmentQueueFull = false;
+        private final ReentrantLock lock = new ReentrantLock();
         private final Condition segmentQueueNotFull = lock.newCondition();
         private final Condition pausedForFlush = lock.newCondition();
 
@@ -108,19 +110,20 @@ sealed class SinkSegmentQueue extends SegmentQueue {
 
         @Override
         void emitCompleteSegments() {
-            var currentTail = tail();
+            var currentTail = tailVolatile();
             if (currentTail == null) {
                 // can happen when we write nothing, like sink.writeUtf8("")
                 return;
             }
 
-            final var includingTail = !currentTail.owner || currentTail.limit == Segment.SIZE;
+            final var includingTail = !currentTail.owner || currentTail.limit() == Segment.SIZE;
             emitEventIfRequired(currentTail, includingTail);
         }
 
         private void emitEventIfRequired(final @NonNull Segment segment, final boolean includingTail) {
-            if (lastEmittedCompleteSegment == null || lastEmittedCompleteSegment != segment || (includingTail && !lastEmittedIncluding)) {
-                emitEvents.add(new EmitEvent(segment, includingTail, segment.limit, false));
+            if (lastEmittedCompleteSegment == null || lastEmittedCompleteSegment != segment
+                    || (includingTail && !lastEmittedIncluding)) {
+                emitEvents.add(new EmitEvent(segment, includingTail, segment.limit(), false));
                 lastEmittedCompleteSegment = segment;
                 lastEmittedIncluding = includingTail;
             }
@@ -129,13 +132,13 @@ sealed class SinkSegmentQueue extends SegmentQueue {
         @Override
         void emit(final boolean flush) {
             throwIfNeeded();
-            final var currentTail = tail();
+            final var currentTail = tailVolatile();
             if (currentTail == null) {
                 LOGGER.log(DEBUG, "AsyncSinkSegmentQueue#{0}: You should not emit or flush without writing data " +
-                        "first. We do nothing", segmentQueueId);
+                        "first. We do nothing", hashCode());
                 return;
             }
-            final var emitEvent = new EmitEvent(currentTail, true, currentTail.limit, flush);
+            final var emitEvent = new EmitEvent(currentTail, true, currentTail.limit(), flush);
             if (!flush) {
                 emitEvents.add(emitEvent);
                 return;
@@ -164,7 +167,7 @@ sealed class SinkSegmentQueue extends SegmentQueue {
         public void close() {
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "AsyncSinkSegmentQueue#{0}: Start close{1}",
-                        segmentQueueId, System.lineSeparator());
+                        hashCode(), System.lineSeparator());
             }
             throwIfNeeded();
             if (closed) {
@@ -181,7 +184,7 @@ sealed class SinkSegmentQueue extends SegmentQueue {
             }
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "AsyncSinkSegmentQueue#{0}: Finished close{1}",
-                        segmentQueueId, System.lineSeparator());
+                        hashCode(), System.lineSeparator());
             }
         }
 
@@ -198,20 +201,20 @@ sealed class SinkSegmentQueue extends SegmentQueue {
             @Override
             public void run() {
                 if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncSinkSegmentQueue#{0}:SinkEmitter Runnable task: start", segmentQueueId);
+                    LOGGER.log(DEBUG, "AsyncSinkSegmentQueue#{0}:SinkEmitter Runnable task: start", hashCode());
                 }
                 try {
                     mainLoop:
                     while (!Thread.interrupted()) {
                         try {
                             final var emitEvent = emitEvents.take();
-                            var segment = head();
-                            if (segment != null && (emitEvent.including || segment.next() != null)) {
+                            var segment = headVolatile();
+                            if (segment != null && (emitEvent.including || segment.nextVolatile() != null)) {
                                 var toWrite = 0L;
                                 while (true) {
-                                    final var nextSegment = segment.next();
+                                    final var nextSegment = segment.nextVolatile();
                                     if (!emitEvent.including && nextSegment != null && emitEvent.segment == nextSegment) {
-                                        toWrite += segment.limit - segment.pos;
+                                        toWrite += segment.limit() - segment.pos;
                                         break;
                                     }
                                     if (emitEvent.including && emitEvent.segment == segment) {
@@ -222,7 +225,7 @@ sealed class SinkSegmentQueue extends SegmentQueue {
                                     if (segment == null) {
                                         continue mainLoop;
                                     }
-                                    toWrite += segment.limit - segment.pos;
+                                    toWrite += segment.limit() - segment.pos;
                                 }
                                 if (toWrite > 0) {
                                     sink.write(getBuffer(), toWrite);
@@ -276,7 +279,7 @@ sealed class SinkSegmentQueue extends SegmentQueue {
                     }
                 }
                 if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncSinkSegmentQueue#{0}:SinkEmitter Runnable task: end", segmentQueueId);
+                    LOGGER.log(DEBUG, "AsyncSinkSegmentQueue#{0}:SinkEmitter Runnable task: end", hashCode());
                 }
             }
         }

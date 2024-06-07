@@ -95,13 +95,13 @@ public final class RealInflaterRawSource implements InflaterRawSource {
         final var bytesInflated = new Wrapper.Int();
         // Prepare the destination that we'll write into.
         _sink.segmentQueue.withWritableTail(1, tail -> {
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
 
             // Prepare the source that we'll read from.
             refill();
             try {
                 // Decompress the inflater's compressed data into the sink.
-                bytesInflated.value = inflater.inflate(tail.data, tail.limit, toRead);
+                bytesInflated.value = inflater.inflate(tail.data, tail.limit(), toRead);
             } catch (DataFormatException e) {
                 throw new JayoException(new IOException(e));
             }
@@ -110,7 +110,7 @@ public final class RealInflaterRawSource implements InflaterRawSource {
 
             // Track produced bytes in the destination.
             if (bytesInflated.value > 0) {
-                tail.limit += bytesInflated.value;
+                tail.incrementLimitVolatile(bytesInflated.value);
             } else {
                 bytesInflated.value = 0;
             }
@@ -131,18 +131,19 @@ public final class RealInflaterRawSource implements InflaterRawSource {
             return true;
         }
 
-        unlockCurrentSegmentIfPresent();
+        resetCurrentSegmentIfPresent();
         // Assign buffer bytes to the inflater.
-        final var head = source.buffer.segmentQueue.lockedReadableHead();
+        final var head = source.buffer.segmentQueue.headVolatile();
+        assert head != null;
         currentSegment = head;
-        bufferBytesHeldByInflater = head.limit - head.pos;
+        bufferBytesHeldByInflater = head.limitVolatile() - head.pos;
         inflater.setInput(head.data, head.pos, bufferBytesHeldByInflater);
         return false;
     }
 
     @Override
     public void close() {
-        unlockCurrentSegmentIfPresent();
+        resetCurrentSegmentIfPresent();
         if (closed) {
             return;
         }
@@ -173,8 +174,9 @@ public final class RealInflaterRawSource implements InflaterRawSource {
                 }
                 source.buffer.segmentQueue.decrementSize(toRelease);
 
-                if (currentSegment.pos == currentSegment.limit) {
-                    source.buffer.segmentQueue.removeLockedHead(currentSegment, false);
+                if (currentSegment.pos == currentSegment.limitVolatile() && currentSegment.tryRemove()
+                        && currentSegment.validateRemove()) {
+                    source.buffer.segmentQueue.removeHead(currentSegment);
                     SegmentPool.recycle(currentSegment);
                     currentSegment = null;
                 }
@@ -183,13 +185,12 @@ public final class RealInflaterRawSource implements InflaterRawSource {
             }
             bufferBytesHeldByInflater -= toRelease;
         } finally {
-            unlockCurrentSegmentIfPresent();
+            resetCurrentSegmentIfPresent();
         }
     }
 
-    private void unlockCurrentSegmentIfPresent() {
+    private void resetCurrentSegmentIfPresent() {
         if (currentSegment != null) {
-            currentSegment.unlock();
             currentSegment = null;
         }
     }
