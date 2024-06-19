@@ -154,20 +154,9 @@ public final class DeflaterRawSink implements RawSink {
     private void deflate(final boolean syncFlush) {
         final var segmentQueue = sink.buffer.segmentQueue;
 
-        var tail = segmentQueue.writableTail(1);
-        try {
-            var limit = tail.limit();
-            while (true) {
-                if (limit == Segment.SIZE) {
-                    final var writtenInSegment = (limit - tail.limit());
-                    tail.limitVolatile(limit);
-                    final var newTail = SegmentPool.take();
-                    Segment.NEXT.setVolatile(tail, newTail);
-                    segmentQueue.incrementSize(writtenInSegment);
-                    tail.finishWrite();
-                    tail = newTail;
-                    limit = 0;
-                }
+        var continueLoop = true;
+        while (continueLoop) {
+            continueLoop = segmentQueue.withWritableTail(1, tail -> {
                 final int deflated;
                 try {
                     deflated = deflater.deflate(tail.data, tail.limit(), Segment.SIZE - tail.limit(),
@@ -177,19 +166,13 @@ public final class DeflaterRawSink implements RawSink {
                 }
 
                 if (deflated > 0) {
-                    limit += deflated;
+                    tail.incrementLimitVolatile(deflated);
                     sink.emitCompleteSegments();
-                } else if (deflater.needsInput()) {
-                    break;
+                    return true;
+                } else {
+                    return !deflater.needsInput();
                 }
-            }
-            final var writtenInSegment = (limit - tail.limit());
-            tail.limitVolatile(limit);
-            // tail may be null or a removed segment
-            SegmentQueue.TAIL.setVolatile(segmentQueue, tail);
-            segmentQueue.incrementSize(writtenInSegment);
-        } finally {
-            tail.finishWrite();
+            });
         }
     }
 }

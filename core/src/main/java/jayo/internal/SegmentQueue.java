@@ -73,7 +73,7 @@ sealed class SegmentQueue implements Closeable
             TAIL.compareAndSet(this, currentHead, null);
         }
         if (!Boolean.TRUE.equals(wasSplit)) {
-           HEAD.compareAndSet(this, currentHead, newHead);
+            HEAD.compareAndSet(this, currentHead, newHead);
         }
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, """
@@ -138,13 +138,7 @@ sealed class SegmentQueue implements Closeable
                         currentTail.finishWrite();
                     }
                 } else {
-                    // previous tail was either null or removed
-                    if (!SegmentQueue.HEAD.compareAndSet(this, null, newTail)) {
-                        // should clean non-readable heads
-                        headVolatile();
-                        // try again and force this time
-                        HEAD.setVolatile(this, newTail);
-                    }
+                    HEAD.setVolatile(this, newTail);
                     TAIL.setVolatile(this, newTail);
                 }
             } finally {
@@ -186,67 +180,6 @@ sealed class SegmentQueue implements Closeable
                             {1}
                             , return null{2}""",
                     hashCode(), currentTail, System.lineSeparator());
-        }
-        return null;
-    }
-
-    final @NonNull Segment writableTail(final int minimumCapacity) {
-        final var currentTail = tailVolatile();
-        final var tailOrNull = writableTailOrNull(currentTail, minimumCapacity);
-        if (tailOrNull != null) {
-            return tailOrNull;
-        }
-
-        // no current writable tail that have the capacity we need, we add a new one
-        final var newTail = SegmentPool.take();
-        if (currentTail != null) {
-            if (!currentTail.tryWrite()) {
-                return writableTail(minimumCapacity);
-            }
-            try {
-                if (!Segment.NEXT.compareAndSet(currentTail, null, newTail)) {
-                    throw new IllegalStateException("Current tail next should be null");
-                }
-            } finally {
-                currentTail.finishWrite();
-            }
-        } else {
-            if (!SegmentQueue.HEAD.compareAndSet(this, null, newTail)) {
-                throw new IllegalStateException("Could not replace null head with new tail");
-            }
-        }
-        SegmentQueue.TAIL.setVolatile(this, newTail);
-        return newTail;
-    }
-
-    private @Nullable Segment writableTailOrNull(final @Nullable Segment currentTail, final int minimumCapacity) {
-        if (currentTail == null) {
-            if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE,
-                        "SegmentQueue#{0}: writableTailOrNull({1}) no current tail, return null{2}",
-                        hashCode(), minimumCapacity, System.lineSeparator());
-            }
-            return null;
-        }
-
-        if (currentTail.owner && currentTail.limit() + minimumCapacity <= Segment.SIZE
-                && currentTail.tryWrite()) {
-            if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, """
-                                SegmentQueue#{0}: writableTailOrNull({1}) locking and return current writable tail :
-                                {2}{3}""",
-                        hashCode(), minimumCapacity, currentTail, System.lineSeparator());
-            }
-            return currentTail;
-        }
-
-        if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE,
-                    """
-                            SegmentQueue#{0}: writableTailOrNull({1}) current tail is removed or has not enough writable space left:
-                            {2}
-                            , return null{3}""",
-                    hashCode(), minimumCapacity, currentTail, System.lineSeparator());
         }
         return null;
     }

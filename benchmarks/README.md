@@ -3,30 +3,30 @@ You must comment benchmarks except the one you want to execute in `build.gralde.
 ## BufferLatin1Benchmark
 
 Benchmark                              (encoding)  (length)   Mode  Cnt         Score         Error  Units
-BufferLatin1Benchmark.readLatin1Jayo        ascii        20  thrpt    5  11448268.972 ±  119142.092  ops/s
-BufferLatin1Benchmark.readLatin1Jayo        ascii      2000  thrpt    5   4925067.615 ±  138641.162  ops/s
-BufferLatin1Benchmark.readLatin1Jayo        ascii    200000  thrpt    5     27648.084 ±    1226.017  ops/s
-BufferLatin1Benchmark.readLatin1Jayo       latin1        20  thrpt    5  11400153.915 ±   87496.498  ops/s
-BufferLatin1Benchmark.readLatin1Jayo       latin1      2000  thrpt    5   4913847.306 ±  252140.628  ops/s
-BufferLatin1Benchmark.readLatin1Jayo       latin1    200000  thrpt    5     27169.091 ±    1279.085  ops/s
-BufferLatin1Benchmark.readLatin1Okio        ascii        20  thrpt    5  24912879.698 ±  100345.521  ops/s
-BufferLatin1Benchmark.readLatin1Okio        ascii      2000  thrpt    5   3250674.992 ±   16461.673  ops/s
-BufferLatin1Benchmark.readLatin1Okio        ascii    200000  thrpt    5     17600.692 ±     660.549  ops/s
-BufferLatin1Benchmark.readLatin1Okio       latin1        20  thrpt    5  25310543.815 ±  372489.838  ops/s
-BufferLatin1Benchmark.readLatin1Okio       latin1      2000  thrpt    5   3227599.067 ±   23857.477  ops/s
-BufferLatin1Benchmark.readLatin1Okio       latin1    200000  thrpt    5     17414.299 ±    1070.370  ops/s
-BufferLatin1Benchmark.writeLatin1Jayo       ascii        20  thrpt    5  12116459.779 ±   12273.354  ops/s
-BufferLatin1Benchmark.writeLatin1Jayo       ascii      2000  thrpt    5   9450969.237 ±  137083.827  ops/s
-BufferLatin1Benchmark.writeLatin1Jayo       ascii    200000  thrpt    5    142275.019 ±    8242.716  ops/s
-BufferLatin1Benchmark.writeLatin1Jayo      latin1        20  thrpt    5  12152537.135 ±  305197.285  ops/s
-BufferLatin1Benchmark.writeLatin1Jayo      latin1      2000  thrpt    5  10696149.155 ±  115228.966  ops/s
-BufferLatin1Benchmark.writeLatin1Jayo      latin1    200000  thrpt    5    144056.388 ±    7690.589  ops/s
-BufferLatin1Benchmark.writeLatin1Okio       ascii        20  thrpt    5  28453493.931 ± 2838877.333  ops/s
-BufferLatin1Benchmark.writeLatin1Okio       ascii      2000  thrpt    5   5773877.871 ±  325109.718  ops/s
-BufferLatin1Benchmark.writeLatin1Okio       ascii    200000  thrpt    5     37928.763 ±     969.686  ops/s
-BufferLatin1Benchmark.writeLatin1Okio      latin1        20  thrpt    5  28215912.536 ±  933287.370  ops/s
-BufferLatin1Benchmark.writeLatin1Okio      latin1      2000  thrpt    5   5951312.042 ±   58006.566  ops/s
-BufferLatin1Benchmark.writeLatin1Okio      latin1    200000  thrpt    5     38092.819 ±     818.043  ops/s
+BufferLatin1Benchmark.readLatin1Jayo        ascii        20  thrpt    5   9841880.699 ±   22294.152  ops/s
+BufferLatin1Benchmark.readLatin1Jayo        ascii      2000  thrpt    5   4712443.912 ±   43178.902  ops/s
+BufferLatin1Benchmark.readLatin1Jayo        ascii    200000  thrpt    5     27459.964 ±    1085.450  ops/s
+BufferLatin1Benchmark.readLatin1Jayo       latin1        20  thrpt    5   9995580.219 ±   49299.851  ops/s
+BufferLatin1Benchmark.readLatin1Jayo       latin1      2000  thrpt    5   4649029.604 ±  105122.332  ops/s
+BufferLatin1Benchmark.readLatin1Jayo       latin1    200000  thrpt    5     27269.783 ±     587.219  ops/s
+BufferLatin1Benchmark.readLatin1Okio        ascii        20  thrpt    5  24788436.433 ±  175069.036  ops/s
+BufferLatin1Benchmark.readLatin1Okio        ascii      2000  thrpt    5   3323047.610 ±  320917.321  ops/s
+BufferLatin1Benchmark.readLatin1Okio        ascii    200000  thrpt    5     17566.134 ±     830.974  ops/s
+BufferLatin1Benchmark.readLatin1Okio       latin1        20  thrpt    5  24047181.977 ±  192979.491  ops/s
+BufferLatin1Benchmark.readLatin1Okio       latin1      2000  thrpt    5   3238834.271 ±   23894.701  ops/s
+BufferLatin1Benchmark.readLatin1Okio       latin1    200000  thrpt    5     17658.851 ±     969.750  ops/s
+BufferLatin1Benchmark.writeLatin1Jayo       ascii        20  thrpt    5  11115266.578 ±   22014.562  ops/s
+BufferLatin1Benchmark.writeLatin1Jayo       ascii      2000  thrpt    5   9761918.557 ±   14865.449  ops/s
+BufferLatin1Benchmark.writeLatin1Jayo       ascii    200000  thrpt    5    142275.564 ±    9327.682  ops/s
+BufferLatin1Benchmark.writeLatin1Jayo      latin1        20  thrpt    5  10952998.755 ±   33039.726  ops/s
+BufferLatin1Benchmark.writeLatin1Jayo      latin1      2000  thrpt    5   8729374.825 ±    7624.132  ops/s
+BufferLatin1Benchmark.writeLatin1Jayo      latin1    200000  thrpt    5    139706.250 ±   10157.672  ops/s
+BufferLatin1Benchmark.writeLatin1Okio       ascii        20  thrpt    5  28781137.964 ± 3071424.942  ops/s
+BufferLatin1Benchmark.writeLatin1Okio       ascii      2000  thrpt    5   6027070.530 ±  153061.133  ops/s
+BufferLatin1Benchmark.writeLatin1Okio       ascii    200000  thrpt    5     38872.698 ±    1054.937  ops/s
+BufferLatin1Benchmark.writeLatin1Okio      latin1        20  thrpt    5  29100043.622 ± 2352982.496  ops/s
+BufferLatin1Benchmark.writeLatin1Okio      latin1      2000  thrpt    5   5953676.814 ±  311215.677  ops/s
+BufferLatin1Benchmark.writeLatin1Okio      latin1    200000  thrpt    5     38972.075 ±     518.597  ops/s
 
 ## BufferUtf8Benchmark
 
