@@ -1068,12 +1068,16 @@ abstract class AbstractSourceTest internal constructor(private val factory: Sour
 
     @Test
     fun longHexAlphabet() {
-        sink.writeUtf8("7896543210abcdef")
-        sink.emit()
-        assertEquals(0x7896543210abcdefL, source.readHexadecimalUnsignedLong())
-        sink.writeUtf8("ABCDEF")
-        sink.emit()
-        assertEquals(0xabcdefL, source.readHexadecimalUnsignedLong())
+        repeat(100) { // this test is a good race-condition test, do it several times !
+            before()
+            sink.writeUtf8("7896543210abcdef")
+            sink.emit()
+            assertEquals(0x7896543210abcdefL, source.readHexadecimalUnsignedLong())
+            sink.writeUtf8("ABCDEF")
+            sink.emit()
+            assertEquals(0xabcdefL, source.readHexadecimalUnsignedLong())
+            after()
+        }
     }
 
     @Test

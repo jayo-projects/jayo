@@ -131,9 +131,7 @@ sealed class SegmentQueue implements Closeable
                             throw new IllegalStateException("Could not add new Segment after current tail, " +
                                     "next node should be null");
                         }
-                        if (!TAIL.compareAndSet(this, currentTail, newTail)) {
-                            throw new IllegalStateException("Could not replace current tail with new tail");
-                        }
+                        TAIL.setVolatile(this, newTail);
                     } finally {
                         currentTail.finishWrite();
                     }

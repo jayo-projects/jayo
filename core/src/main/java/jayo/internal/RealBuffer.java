@@ -1729,12 +1729,6 @@ public final class RealBuffer implements Buffer {
 
                 assert (byte) Segment.STATUS.get(sourceHead) == TRANSFERRING;
 
-                /*if (!sourceHead.tryRemove()) {
-                    continue;
-                } else if (!split && currentLimit != sourceHead.limitVolatile()) {
-                    sourceHead.finishRemove();
-                    continue;
-                }*/
                 // Remove the source's head segment and append it to our tail.
                 final var movedByteCount = currentLimit - sourceHead.pos;
 

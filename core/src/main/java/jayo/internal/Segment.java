@@ -317,10 +317,10 @@ final class Segment {
             targetSegment.pos = 0;
         }
 
-        sinkCurrentLimit = targetSegment.limit;
+        sinkCurrentLimit = targetSegment.limit();
         final var currentPos = pos;
         System.arraycopy(data, currentPos, targetSegment.data, sinkCurrentLimit, byteCount);
-        targetSegment.limit = sinkCurrentLimit + byteCount;
+        targetSegment.limit(sinkCurrentLimit + byteCount);
         pos = currentPos + byteCount;
     }
 
