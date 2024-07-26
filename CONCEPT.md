@@ -39,6 +39,6 @@ we wanted to solve.
 include the `kotlin-stdlib` dependency. Jayo targets JVM backend projects, that are still mostly written in Java, so
 a Java full rewrite allowed to get rid of that `kotlin-stdlib` dependency. Jayo uses no external dependencies at all !
 * Some naming enhancements are present in Jayo, they were mainly inspired by [kotlinx-io](https://github.com/Kotlin/kotlinx-io)
-* Cancellation and timeout have been fully changed.
-* Virtual threads are used in `Sink` and `Source` implementations so a thread produces segments in the buffer, and
-another thread consumes segments from this same buffer, asynchronously.
+* Cancellation and timeout have been fully reworked.
+* Virtual threads are used in the **async** buffered `Sink` and `Source` implementations so a thread produces segments
+in the buffer, and another thread consumes segments from this same buffer, asynchronously.

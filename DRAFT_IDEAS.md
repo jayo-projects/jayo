@@ -74,7 +74,8 @@ we must follow a few steps in this exact order :
 3. increase or decrease the byte size of the `SegmentQueue`
 4. atomically `compareAndSet` the **TAIL** or the **HEAD**
 5. (optional) atomically update the **NEXT** segment
-6. end the operation by resetting the `Segment` state to `AVAILABLE`
+6. end the operation by resetting the `Segment` state to `AVAILABLE`, or recycle it in the segment pool if this segment
+was fully read
 
 We must battle test these potential race conditions with a lot of tests and benchmarks, sometimes with some `Random`
 involved to create all sorts of weird use cases !
