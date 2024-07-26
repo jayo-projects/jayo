@@ -4,8 +4,8 @@
 
 # Jayo
 
-A fast and simple to use synchronous I/O library for the JVM. Designed to be used with Java 21+ and a great companion of
-virtual threads, see [Project Loom](https://openjdk.org/projects/loom/).
+A fast and simple synchronous I/O library for the JVM that relies on Java 21+ virtual threads, see
+[Project Loom](https://openjdk.org/projects/loom/).
 
 Virtual threads allow to run as many threads as we need without requiring thread pools or event-loop. With blocking IO
 that runs inside virtual threads, Jayo offers great performances and scalability, leading to simple, readable and
@@ -56,7 +56,7 @@ serverThread.join();
 Jayo is written in Java without any external dependencies, to stay as light as possible.
 
 We also love Kotlin ! Jayo is fully usable and optimized from Kotlin code thanks to `@NonNull` annotations, Kotlin
-friendly method naming (`get*` and `set*`) and a lot of Kotlin extension functions are included in this project.
+friendly method naming (`get*` and `set*`) and a lot of Kotlin extension functions are natively included in this project.
 
 Jayo's source code is derived and inspired from [Okio](https://github.com/square/okio) and
 [kotlinx-io](https://github.com/Kotlin/kotlinx-io), but does not preserve strict backward compatibility with them.
@@ -73,7 +73,7 @@ Java 21 is required to use Jayo.
 
 [Jayo](./core) offers solid I/O foundations by providing the tools we need for binary data manipulation
 * `Buffer` is a mutable sequence of bytes one can easily write to and read from.
-* `ByteString` is an immutable and serializable sequence of bytes that stores a String binary content.
+* `ByteString` is an immutable and serializable sequence of bytes that stores a String related binary content.
 * `RawSource` and `RawSink` (and their buffered versions `Source` and `Sink`) offer great improvements over
 `InputStream` and `OutputStream`.
 

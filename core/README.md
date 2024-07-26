@@ -1,7 +1,7 @@
 # jayo-core
 
 `jayo-core` module makes I/O on the JVM easier by providing you a deliberately reduced range of powerful tools. \
-It is based the amazing *Okio library* [1], but does not preserve strict backward compatibility with it, and has been
+It is based on the amazing *Okio library* [1], but does not preserve strict backward compatibility with it, and has been
 fully rewritten in Java. \
 It also contains some naming, designs and documentation from the great *kotlinx-io library* [2].
 
@@ -13,11 +13,11 @@ exclusively Kotlin, with multiplatform support._
 
 * `Buffer` is a mutable sequence of bytes one can easily write to and read from. It works like a Queue and will
 automatically grow when you write data to its end, and shrink when you read data from the start.
-* `ByteString` is an immutable and serializable sequence of bytes that stores a String binary content as-is. You can
-encode or decode it as hex, base64, and UTF-8, you can also search content in it, build substring and much more.
+* `ByteString` is an immutable and serializable sequence of bytes that stores a String related binary content as-is. You
+can encode or decode it as hex, base64, and UTF-8, you can also search content in it, build substring and much more.
 
-Buffer relies on a linked list of memory segments. It is optimized fo zero-copy segment sharing with other buffers and
-uses pooled `byte[]` based segments to avoid GC churn and zero-fill of the memory.
+Buffer relies on a queue of memory segments. It is optimized fo zero-copy segment sharing with other buffers and uses
+pooled `byte[]` based segments to avoid GC churn and zero-fill of the memory.
 
 ## Sources and Sinks
 
