@@ -78,47 +78,47 @@ class KotlinSocksProxyServer {
     }
 
     private fun handleSocket(fromSocket: Socket) {
-        val fromSource = fromSocket.source().buffered()
-        val fromSink = fromSocket.sink().buffered()
+        val fromReader = fromSocket.reader().buffered()
+        val fromWriter = fromSocket.writer().buffered()
         try {
             // Read the hello.
-            val socksVersion = fromSource.readByte()
+            val socksVersion = fromReader.readByte()
             if (socksVersion != VERSION_5) {
                 throw ProtocolException()
             }
-            val methodCount = fromSource.readByte()
+            val methodCount = fromReader.readByte()
             var foundSupportedMethod = false
             for (i in 0 until methodCount) {
-                val method = fromSource.readByte()
+                val method = fromReader.readByte()
                 foundSupportedMethod = foundSupportedMethod or (method == METHOD_NO_AUTHENTICATION_REQUIRED)
             }
             if (!foundSupportedMethod) throw ProtocolException()
 
             // Respond to hello.
-            fromSink.writeByte(VERSION_5)
+            fromWriter.writeByte(VERSION_5)
                 .writeByte(METHOD_NO_AUTHENTICATION_REQUIRED)
                 .emit()
 
             // Read a command.
-            val version = fromSource.readByte()
-            val command = fromSource.readByte()
-            val reserved = fromSource.readByte()
+            val version = fromReader.readByte()
+            val command = fromReader.readByte()
+            val reserved = fromReader.readByte()
             if (version != VERSION_5 || command != COMMAND_CONNECT || reserved != 0.toByte()) {
                 throw ProtocolException()
             }
 
             // Read an address.
-            val addressType = fromSource.readByte()
+            val addressType = fromReader.readByte()
             val inetAddress = when (addressType) {
-                ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromSource.readByteArray(4L))
+                ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromReader.readByteArray(4L))
                 ADDRESS_TYPE_DOMAIN_NAME -> {
-                    val domainNameLength = fromSource.readByte()
-                    InetAddress.getByName(fromSource.readUtf8(domainNameLength.toLong()))
+                    val domainNameLength = fromReader.readByte()
+                    InetAddress.getByName(fromReader.readUtf8String(domainNameLength.toLong()))
                 }
 
                 else -> throw ProtocolException()
             }
-            val port = fromSource.readShort().toInt() and 0xffff
+            val port = fromReader.readShort().toInt() and 0xffff
 
             // Connect to the caller's specified host.
             val toSocket = Socket(inetAddress, port)
@@ -127,7 +127,7 @@ class KotlinSocksProxyServer {
             if (localAddress.size != 4) throw ProtocolException()
 
             // Write the reply.
-            fromSink.writeByte(VERSION_5)
+            fromWriter.writeByte(VERSION_5)
                 .writeByte(REPLY_SUCCEEDED)
                 .writeByte(0)
                 .writeByte(ADDRESS_TYPE_IPV4)
@@ -135,11 +135,11 @@ class KotlinSocksProxyServer {
                 .writeShort(toSocket.localPort.toShort())
                 .emit()
 
-            // Connect sources to sinks in both directions.
-            val toSink = toSocket.sink()
-            executor.execute { transfer(fromSocket, fromSource, toSink) }
-            val toSource = toSocket.source()
-            executor.execute { transfer(toSocket, toSource, fromSink) }
+            // Connect readers to writers in both directions.
+            val toWriter = toSocket.writer()
+            executor.execute { transfer(fromSocket, fromReader, toWriter) }
+            val toReader = toSocket.reader()
+            executor.execute { transfer(toSocket, toReader, fromWriter) }
         } catch (e: IOException) {
             fromSocket.close()
             openSockets.remove(fromSocket)
@@ -148,22 +148,22 @@ class KotlinSocksProxyServer {
     }
 
     /**
-     * Read data from `source` and write it to `sink`. This doesn't use [Sink.transferFrom] because that method doesn't
+     * Read data from `reader` and write it to `writer`. This doesn't use [Writer.transferFrom] because that method doesn't
      * flush aggressively, and we need that.
      */
-    private fun transfer(sourceSocket: Socket, source: RawSource, sink: RawSink) {
+    private fun transfer(readerSocket: Socket, reader: RawReader, writer: RawWriter) {
         try {
             val buffer = Buffer()
             var byteCount: Long
-            while (source.readAtMostTo(buffer, 8192L).also { byteCount = it } != -1L) {
-                sink.write(buffer, byteCount)
-                sink.flush()
+            while (reader.readAtMostTo(buffer, 8192L).also { byteCount = it } != -1L) {
+                writer.write(buffer, byteCount)
+                writer.flush()
             }
         } finally {
-            sink.close()
-            source.close()
-            sourceSocket.close()
-            openSockets.remove(sourceSocket)
+            writer.close()
+            reader.close()
+            readerSocket.close()
+            openSockets.remove(readerSocket)
         }
     }
 }
@@ -175,8 +175,8 @@ fun main() {
     val url =
         URI("https://raw.githubusercontent.com/jayo-projects/jayo/main/samples/src/main/resources/jayo.txt").toURL()
     val connection = url.openConnection(proxyServer.proxy())
-    connection.getInputStream().source().buffered().use { source ->
-        generateSequence { source.readUtf8Line() }
+    connection.getInputStream().reader().buffered().use { reader ->
+        generateSequence { reader.readUtf8Line() }
             .forEach(::println)
     }
 

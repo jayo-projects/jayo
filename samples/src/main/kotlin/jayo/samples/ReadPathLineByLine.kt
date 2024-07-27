@@ -22,13 +22,13 @@
 package jayo.samples
 
 import jayo.buffered
-import jayo.source
+import jayo.reader
 import java.nio.file.Path
 
 fun readLines(path: Path) {
-    path.source().buffered().use { fileSource ->
+    path.reader().buffered().use { fileReader ->
         while (true) {
-            val line = fileSource.readUtf8Line() ?: break
+            val line = fileReader.readUtf8Line() ?: break
             if ("Jayo" in line) {
                 println(line)
             }

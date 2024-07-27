@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2024-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
- * 
+ *
  * Forked from Okio (https://github.com/square/okio), original copyright is below
- * 
+ *
  * Copyright (C) 2013 Square, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,251 +21,223 @@
 
 package jayo.internal
 
+import jayo.Utf8
+import jayo.encodeToUtf8
+import jayo.exceptions.JayoCharacterCodingException
+import jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT
+import jayo.readUtf8
+import jayo.toUtf8
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatIterator
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import jayo.ByteString.of
-import jayo.decodeHex
-import jayo.exceptions.JayoEOFException
-import jayo.internal.TestUtil.REPLACEMENT_CODE_POINT
-import jayo.utf8Size
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
-import kotlin.test.fail
-import kotlin.text.Charsets.UTF_8
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
+import java.io.ByteArrayInputStream
+import java.nio.ByteBuffer
+import java.util.stream.Stream
 
 class Utf8Test {
-    @Test
-    fun oneByteCharacters() {
-        assertEncoded("00", 0x00) // Smallest 1-byte character.
-        assertEncoded("20", ' '.code)
-        assertEncoded("7e", '~'.code)
-        assertEncoded("7f", 0x7f) // Largest 1-byte character.
-    }
 
-    @Test
-    fun twoByteCharacters() {
-        assertEncoded("c280", 0x0080) // Smallest 2-byte character.
-        assertEncoded("c3bf", 0x00ff)
-        assertEncoded("c480", 0x0100)
-        assertEncoded("dfbf", 0x07ff) // Largest 2-byte character.
-    }
-
-    @Test
-    fun threeByteCharacters() {
-        assertEncoded("e0a080", 0x0800) // Smallest 3-byte character.
-        assertEncoded("e0bfbf", 0x0fff)
-        assertEncoded("e18080", 0x1000)
-        assertEncoded("e1bfbf", 0x1fff)
-        assertEncoded("ed8080", 0xd000)
-        assertEncoded("ed9fbf", 0xd7ff) // Largest character lower than the min surrogate.
-        assertEncoded("ee8080", 0xe000) // Smallest character greater than the max surrogate.
-        assertEncoded("eebfbf", 0xefff)
-        assertEncoded("ef8080", 0xf000)
-        assertEncoded("efbfbf", 0xffff) // Largest 3-byte character.
-    }
-
-    @Test
-    fun fourByteCharacters() {
-        assertEncoded("f0908080", 0x010000) // Smallest surrogate pair.
-        assertEncoded("f48fbfbf", 0x10ffff) // Largest code point expressible by UTF-16.
-    }
-
-    @Test
-    fun danglingHighSurrogate() {
-        assertStringEncoded("3f", "\ud800") // "?"
-    }
-
-    @Test
-    fun lowSurrogateWithoutHighSurrogate() {
-        assertStringEncoded("3f", "\udc00") // "?"
-    }
-
-    @Test
-    fun highSurrogateFollowedByNonSurrogate() {
-        assertStringEncoded("3f61", "\ud800\u0061") // "?a": Following character is too low.
-        assertStringEncoded("3fee8080", "\ud800\ue000") // "?\ue000": Following character is too high.
-    }
-
-    @Test
-    fun doubleLowSurrogate() {
-        assertStringEncoded("3f3f", "\udc00\udc00") // "??"
-    }
-
-    @Test
-    fun doubleHighSurrogate() {
-        assertStringEncoded("3f3f", "\ud800\ud800") // "??"
-    }
-
-    @Test
-    fun highSurrogateLowSurrogate() {
-        assertStringEncoded("3f3f", "\udc00\ud800") // "??"
-    }
-
-    @Test
-    fun multipleSegmentString() {
-        val a = "a".repeat(SEGMENT_SIZE + SEGMENT_SIZE + 1)
-        val encoded = RealBuffer().writeUtf8(a)
-        val expected = RealBuffer().write(a.toByteArray(UTF_8))
-        assertEquals(expected.readByteString(), encoded.readByteString())
-    }
-
-    @Test
-    fun stringSpansSegments() {
-        val buffer = RealBuffer()
-        val a = "a".repeat(SEGMENT_SIZE - 1)
-        val b = "bb"
-        val c = "c".repeat(SEGMENT_SIZE - 1)
-        buffer.writeUtf8(a)
-        buffer.writeUtf8(b)
-        buffer.writeUtf8(c)
-        assertEquals(a + b + c, buffer.readUtf8())
-    }
-
-    @Test
-    fun readEmptyBufferThrowsEofException() {
-        val buffer = RealBuffer()
-        assertThrows<JayoEOFException> { buffer.readUtf8CodePoint()  }
-    }
-
-    @Test
-    fun readLeadingContinuationByteReturnsReplacementCharacter() {
-        val buffer = RealBuffer()
-        buffer.writeByte(0xbf.toByte())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertTrue(buffer.exhausted())
-    }
-
-    @Test
-    fun readMissingContinuationBytesThrowsEofException() {
-        val buffer = RealBuffer()
-        buffer.writeByte(0xdf.toByte())
-        assertThrows<JayoEOFException> { buffer.readUtf8CodePoint() }
-        assertFalse(buffer.exhausted()) // Prefix byte wasn't consumed.
-    }
-
-    @Test
-    fun readTooLargeCodepointReturnsReplacementCharacter() {
-        // 5-byte and 6-byte code points are not supported.
-        val buffer = RealBuffer()
-        buffer.write("f888808080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertTrue(buffer.exhausted())
-    }
-
-    @Test
-    fun readNonContinuationBytesReturnsReplacementCharacter() {
-        // Use a non-continuation byte where a continuation byte is expected.
-        val buffer = RealBuffer()
-        buffer.write("df20".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(0x20, buffer.readUtf8CodePoint().toLong()) // Non-continuation character not consumed.
-        assertTrue(buffer.exhausted())
-    }
-
-    @Test
-    fun readCodePointBeyondUnicodeMaximum() {
-        // A 4-byte encoding with data above the U+10ffff Unicode maximum.
-        val buffer = RealBuffer()
-        buffer.write("f4908080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertTrue(buffer.exhausted())
-    }
-
-    @Test
-    fun readSurrogateCodePoint() {
-        val buffer = RealBuffer()
-        buffer.write("eda080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertTrue(buffer.exhausted())
-        buffer.write("edbfbf".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertTrue(buffer.exhausted())
-    }
-
-    @Test
-    fun readOverlongCodePoint() {
-        // Use 2 bytes to encode data that only needs 1 byte.
-        val buffer = RealBuffer()
-        buffer.write("c080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertTrue(buffer.exhausted())
-    }
-
-    @Test
-    fun writeSurrogateCodePoint() {
-        assertStringEncoded("ed9fbf", "\ud7ff") // Below lowest surrogate is okay.
-        assertStringEncoded("3f", "\ud800") // Lowest surrogate gets '?'.
-        assertStringEncoded("3f", "\udfff") // Highest surrogate gets '?'.
-        assertStringEncoded("ee8080", "\ue000") // Above highest surrogate is okay.
-    }
-
-    @Test
-    fun writeCodePointBeyondUnicodeMaximum() {
-        val buffer = RealBuffer()
-        try {
-            buffer.writeUtf8CodePoint(0x110000)
-            fail()
-        } catch (expected: IllegalArgumentException) {
-            assertEquals("Unexpected code point: 0x110000", expected.message)
+    companion object {
+        @JvmStatic
+        fun parameters(): Stream<Arguments>? {
+            return Stream.of(
+                Arguments.of(Utf8Factory.UTF8, "Utf8"),
+                Arguments.of(Utf8Factory.UTF8_FROM_BYTES, "Utf8 (from bytes)"),
+                Arguments.of(
+                    Utf8Factory.UTF8_FROM_BYTES_NO_COMPACT_STRING,
+                    "Utf8 (from bytes without compact string)"
+                ),
+                Arguments.of(Utf8Factory.SEGMENTED_UTF8, "SegmentedUtf8"),
+                Arguments.of(Utf8Factory.UTF8_ONE_BYTE_PER_SEGMENT, "SegmentedUtf8 (one-byte-at-a-time)"),
+            )
         }
+
+        private const val ASCII = "abcdef"
+        private const val UTF8_NO_SURROGATE = "Cａfé \uD83C\uDF69!" // é is one code point.
+        private const val UTF8_SURROGATES = "Cａfé \uD83C\uDF69!" // e is one code point, its accent is another.
+        private const val LAST_3_BYTES_CHARACTER = "\uFFFF"
+        private const val FIRST_4_BYTES_CHARACTER = "\uD800\uDC00"
+        private const val LAST_4_BYTES_CHARACTER = "\uD803\uDFFF"
     }
 
     @Test
-    fun size() {
-        assertEquals(0, "".utf8Size())
-        assertEquals(3, "abc".utf8Size())
-        assertEquals(16, "təˈranəˌsôr".utf8Size())
+    fun arrayToByteString() {
+        val actual = byteArrayOf(1, 2, 3, 4).toUtf8()
+        val expected = Utf8.ofUtf8(1, 2, 3, 4)
+        assertEquals(actual, expected)
     }
 
-    private fun assertEncoded(hex: String, vararg codePoints: Int) {
-        assertCodePointEncoded(hex, *codePoints)
-        assertCodePointDecoded(hex, *codePoints)
-        assertStringEncoded(hex, String(codePoints, 0, codePoints.size))
+    @Test
+    fun arraySubsetToByteString() {
+        val actual = byteArrayOf(1, 2, 3, 4).toUtf8(1, 2)
+        val expected = Utf8.ofUtf8(2, 3)
+        assertEquals(actual, expected)
     }
 
-    private fun assertCodePointEncoded(hex: String, vararg codePoints: Int) {
-        val buffer = RealBuffer()
-        for (codePoint in codePoints) {
-            buffer.writeUtf8CodePoint(codePoint)
-        }
-        assertEquals(buffer.readByteString(), hex.decodeHex())
+    @Test
+    fun byteBufferToByteString() {
+        val actual = ByteBuffer.wrap(byteArrayOf(1, 2, 3, 4)).toUtf8()
+        val expected = Utf8.ofUtf8(1, 2, 3, 4)
+        assertEquals(actual, expected)
     }
 
-    private fun assertCodePointDecoded(hex: String, vararg codePoints: Int) {
-        val buffer = RealBuffer().write(hex.decodeHex())
-        for (codePoint in codePoints) {
-            assertEquals(codePoint.toLong(), buffer.readUtf8CodePoint().toLong())
-        }
-        assertTrue(buffer.exhausted())
+    @Test
+    fun streamReadByteString() {
+        val stream = ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8))
+        assertThrows<IllegalArgumentException> { stream.readUtf8(-42) }
+        val actual = stream.readUtf8(4)
+        val expected = Utf8.ofUtf8(1, 2, 3, 4)
+        assertEquals(actual, expected)
     }
 
-    private fun assertStringEncoded(hex: String, string: String) {
-        val expectedUtf8 = hex.decodeHex()
+    @Test
+    fun substring() {
+        val utf8 = ASCII.encodeToUtf8()
+        assertEquals(utf8.substring(0, 3), "abc".encodeToUtf8())
+        assertEquals(utf8.substring(3), "def".encodeToUtf8())
+        assertEquals(utf8.substring(1, 5), "bcde".encodeToUtf8())
+    }
 
-        // Confirm our expectations are consistent with the platform.
-        val platformUtf8 = of(*string.toByteArray(charset("UTF-8")))
-        assertEquals(expectedUtf8, platformUtf8)
+    @Test
+    fun lengthEncodingErrors() {
+        var utf8 = Utf8.ofUtf8(0xc0.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+        utf8 = makeUtf8Segments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+        utf8 = Utf8.ofUtf8(0xe2.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+        utf8 = makeUtf8Segments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+        utf8 = Utf8.ofUtf8(0xf4.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+        utf8 = makeUtf8Segments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+        utf8 = Utf8.ofUtf8(0xff.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+        utf8 = makeUtf8Segments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.length() }
+    }
 
-        // Confirm our implementation matches those expectations.
-        val actualUtf8 = RealBuffer().writeUtf8(string).readByteString()
-        assertEquals(expectedUtf8, actualUtf8)
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun lengthAndDecodeUtf8(factory: Utf8Factory) {
+        var utf8 = factory.encodeUtf8(ASCII)
+        assertEquals(ASCII.length, utf8.length())
+        assertEquals(ASCII, utf8.decodeToUtf8())
+        utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
+        assertEquals(UTF8_NO_SURROGATE.length, utf8.length())
+        assertEquals(UTF8_NO_SURROGATE, utf8.decodeToUtf8())
+        utf8 = factory.encodeUtf8(UTF8_SURROGATES)
+        assertEquals(UTF8_SURROGATES.length, utf8.length())
+        assertEquals(UTF8_SURROGATES, utf8.decodeToUtf8())
+        utf8 = factory.encodeUtf8(LAST_3_BYTES_CHARACTER)
+        assertEquals(LAST_3_BYTES_CHARACTER.length, utf8.length())
+        assertEquals(LAST_3_BYTES_CHARACTER, utf8.decodeToUtf8())
+        utf8 = factory.encodeUtf8(FIRST_4_BYTES_CHARACTER)
+        assertEquals(FIRST_4_BYTES_CHARACTER.length, utf8.length())
+        assertEquals(FIRST_4_BYTES_CHARACTER, utf8.decodeToUtf8())
+        utf8 = factory.encodeUtf8(LAST_4_BYTES_CHARACTER)
+        assertEquals(LAST_4_BYTES_CHARACTER.length, utf8.length())
+        assertEquals(LAST_4_BYTES_CHARACTER, utf8.decodeToUtf8())
+    }
 
-        // Confirm we are consistent when writing one code point at a time.
-        val bufferUtf8 = RealBuffer()
-        var i = 0
-        while (i < string.length) {
-            val c = string.codePointAt(i)
-            bufferUtf8.writeUtf8CodePoint(c)
-            i += Character.charCount(c)
-        }
-        assertEquals(expectedUtf8, bufferUtf8.readByteString())
+    @Test
+    fun codePointsUtf8Replacement() {
+        var utf8 = Utf8.ofUtf8(0xc0.toByte())
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = makeUtf8Segments(utf8)
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = Utf8.ofUtf8(0xe2.toByte())
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = makeUtf8Segments(utf8)
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = Utf8.ofUtf8(0xf4.toByte())
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = makeUtf8Segments(utf8)
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = Utf8.ofUtf8(0xff.toByte())
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = makeUtf8Segments(utf8)
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = Utf8.ofUtf8(0xc0.toByte(), 0x01.toByte())
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = makeUtf8Segments(utf8)
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = Utf8.ofUtf8(0xc0.toByte(), 0x80.toByte())
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = makeUtf8Segments(utf8)
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = Utf8.ofUtf8(0xf4.toByte(), 0xb0.toByte(), 0x80.toByte(), 0x80.toByte())
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+        utf8 = makeUtf8Segments(utf8)
+        assertThat(utf8.codePoints())
+            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+    }
 
-        // Confirm we are consistent when measuring lengths.
-        assertEquals(expectedUtf8.byteSize().toLong(), string.utf8Size())
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun codePoints(factory: Utf8Factory) {
+        var utf8 = factory.encodeUtf8(ASCII)
+        assertThat(utf8.codePoints())
+            .containsExactly('a'.code, 'b'.code, 'c'.code, 'd'.code, 'e'.code, 'f'.code)
+        utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
+        assertThat(utf8.codePoints())
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'é'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
+        utf8 = factory.encodeUtf8(UTF8_SURROGATES)
+        assertThat(utf8.codePoints())
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
+        // force generation of utf8 string
+        utf8.decodeToUtf8()
+        assertThat(utf8.codePoints())
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun codePointsIterator(factory: Utf8Factory) {
+        var utf8 = Utf8.EMPTY
+        assertThat(utf8.codePoints().iterator().hasNext()).isFalse()
+        assertThrows<NoSuchElementException> { utf8.codePoints().iterator().nextInt() }
+        utf8 = factory.encodeUtf8(ASCII)
+        assertThatIterator(utf8.codePoints().iterator()).toIterable()
+            .containsExactly('a'.code, 'b'.code, 'c'.code, 'd'.code, 'e'.code, 'f'.code)
+        utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
+        assertThatIterator(utf8.codePoints().iterator()).toIterable()
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'é'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
+        utf8 = factory.encodeUtf8(UTF8_SURROGATES)
+        assertThatIterator(utf8.codePoints().iterator()).toIterable()
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
     }
 }

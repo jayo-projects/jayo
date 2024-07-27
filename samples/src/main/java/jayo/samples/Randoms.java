@@ -23,8 +23,8 @@ package jayo.samples;
 
 import jayo.Buffer;
 import jayo.Jayo;
-import jayo.RawSource;
-import jayo.Source;
+import jayo.RawReader;
+import jayo.Reader;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Random;
@@ -32,21 +32,21 @@ import java.util.Random;
 public final class Randoms {
     public void run() {
         Random random = new Random(3782615686L);
-        Source source = Jayo.buffer(new RandomSource(random, 5));
-        System.out.println("Secret random is: " + source.readUtf8());
+        Reader reader = Jayo.buffer(new RandomReader(random, 5));
+        System.out.println("Secret random is: " + reader.readUtf8String());
     }
 
-    static final class RandomSource implements RawSource {
+    static final class RandomReader implements RawReader {
         private final Random random;
         private long bytesLeft;
 
-        RandomSource(Random random, long bytesLeft) {
+        RandomReader(Random random, long bytesLeft) {
             this.random = random;
             this.bytesLeft = bytesLeft;
         }
 
         @Override
-        public long readAtMostTo(final @NonNull Buffer sink, final long byteCount) {
+        public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
             if (bytesLeft == -1L) {
                 throw new IllegalStateException("closed");
             }
@@ -64,7 +64,7 @@ public final class Randoms {
             // Random is most efficient when computing 32 bits of randomness. Start with that.
             int ints = (int) (resolvedByteCount / 4);
             for (int i = 0; i < ints; i++) {
-                sink.writeInt(random.nextInt());
+                writer.writeInt(random.nextInt());
             }
 
             // If we need 1, 2, or 3 bytes more, keep going. We'll discard 24, 16 or 8 random bits!
@@ -72,7 +72,7 @@ public final class Randoms {
             if (bytes > 0) {
                 int bits = random.nextInt();
                 for (int i = 0; i < bytes; i++) {
-                    sink.writeByte((byte) (bits & 0xff));
+                    writer.writeByte((byte) (bits & 0xff));
                     bits >>>= 8;
                 }
             }

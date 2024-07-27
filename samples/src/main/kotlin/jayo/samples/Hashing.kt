@@ -49,22 +49,22 @@ class KotlinHashing {
         println("  sha3_512: " + buffer.hash(Digests.SHA3_512).hex())
         println()
 
-//    println("HashingSource")
-//    sha256(FileSystem.SYSTEM.source(path)).use { hashingSource ->
-//      hashingSource.buffer().use { source ->
-//        source.readAll(blackholeSink())
-//        println("    sha256: " + hashingSource.hash.hex())
+//    println("HashingReader")
+//    sha256(FileSystem.SYSTEM.reader(path)).use { hashingReader ->
+//      hashingReader.buffer().use { reader ->
+//        reader.readAll(blackholeWriter())
+//        println("    sha256: " + hashingReader.hash.hex())
 //      }
 //    }
 //    println()
 //
-//    println("HashingSink")
-//    sha256(blackholeSink()).use { hashingSink ->
-//      hashingSink.buffer().use { sink ->
-//        FileSystem.SYSTEM.source(path).use { source ->
-//          sink.writeAll(source)
-//          sink.close() // Emit anything buffered.
-//          println("    sha256: " + hashingSink.hash.hex())
+//    println("HashingWriter")
+//    sha256(blackholeWriter()).use { hashingWriter ->
+//      hashingWriter.buffer().use { writer ->
+//        FileSystem.SYSTEM.reader(path).use { reader ->
+//          writer.writeAll(reader)
+//          writer.close() // Emit anything buffered.
+//          println("    sha256: " + hashingWriter.hash.hex())
 //        }
 //      }
 //    }
@@ -77,13 +77,13 @@ class KotlinHashing {
     }
 
     private fun readByteString(path: Path): ByteString {
-        return path.source().buffered().use { it.readByteString() }
+        return path.reader().buffered().use { it.readByteString() }
     }
 
     @Throws(IOException::class)
     fun readBuffer(path: Path): Buffer {
-        path.source().use { rawSource ->
-            return Buffer().apply { transferFrom(rawSource) }
+        path.reader().use { rawReader ->
+            return Buffer().apply { transferFrom(rawReader) }
         }
     }
 }

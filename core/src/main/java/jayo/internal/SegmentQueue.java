@@ -20,7 +20,7 @@ import static java.lang.System.Logger.Level.TRACE;
 
 
 sealed class SegmentQueue implements Closeable
-        permits SinkSegmentQueue, SourceSegmentQueue {
+        permits WriterSegmentQueue, ReaderSegmentQueue {
     final static long MAX_BYTE_SIZE = 128 * 1024;
 
     private static final System.Logger LOGGER = System.getLogger("jayo.SegmentQueue");

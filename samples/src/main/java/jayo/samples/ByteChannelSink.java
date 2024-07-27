@@ -22,7 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
-import jayo.RawSink;
+import jayo.RawWriter;
 import jayo.exceptions.JayoException;
 import jayo.external.CancelToken;
 import org.jspecify.annotations.NonNull;
@@ -32,23 +32,23 @@ import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
 
 /**
- * Creates a Sink around a WritableByteChannel and efficiently writes data using an UnsafeCursor.
+ * Creates a Writer around a WritableByteChannel and efficiently writes data using an UnsafeCursor.
  *
  * <p>This is a basic example showing another use for the UnsafeCursor. Using the
  * {@link ByteBuffer#wrap(byte[], int, int) ByteBuffer.wrap()} along with access to Buffer segments,
  * a WritableByteChannel can be given direct access to Buffer data without having to copy the data.
  */
-final class ByteChannelSink implements RawSink {
+final class ByteChannelWriter implements RawWriter {
     private final WritableByteChannel channel;
 
     private final Buffer.UnsafeCursor cursor = Buffer.UnsafeCursor.create();
 
-    ByteChannelSink(WritableByteChannel channel) {
+    ByteChannelWriter(WritableByteChannel channel) {
         this.channel = channel;
     }
 
     @Override
-    public void write(@NonNull final Buffer source, final long byteCount) {
+    public void write(@NonNull final Buffer reader, final long byteCount) {
         if (!channel.isOpen()) throw new IllegalStateException("closed");
         if (byteCount == 0) return;
 
@@ -58,12 +58,12 @@ final class ByteChannelSink implements RawSink {
         while (remaining > 0) {
             CancelToken.throwIfReached(cancelToken);
 
-            try (Buffer.UnsafeCursor ignored = source.readUnsafe(cursor)) {
+            try (Buffer.UnsafeCursor ignored = reader.readUnsafe(cursor)) {
                 cursor.seek(0);
                 int length = (int) Math.min(cursor.limit - cursor.pos, remaining);
                 int written = channel.write(ByteBuffer.wrap(cursor.data, cursor.pos, length));
                 remaining -= written;
-                source.skip(written);
+                reader.skip(written);
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }

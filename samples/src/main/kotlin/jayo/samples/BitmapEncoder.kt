@@ -58,13 +58,13 @@ class KotlinBitmapEncoder {
     }
 
     fun encode(bitmap: Bitmap, path: Path) {
-        path.sink(StandardOpenOption.CREATE).buffered().use { sink ->
-            encode(bitmap, sink)
+        path.writer(StandardOpenOption.CREATE).buffered().use { writer ->
+            encode(bitmap, writer)
         }
     }
 
     /** https://en.wikipedia.org/wiki/BMP_file_format  */
-    private fun encode(bitmap: Bitmap, sink: Sink) {
+    private fun encode(bitmap: Bitmap, writer: Writer) {
         val height = bitmap.height
         val width = bitmap.width
         val bytesPerPixel = 3
@@ -75,36 +75,36 @@ class KotlinBitmapEncoder {
         val dibHeaderSize = 40
 
         // BMP Header
-        sink.writeUtf8("BM") // ID.
-        sink.writeIntLe(bmpHeaderSize + dibHeaderSize + pixelDataSize) // File size.
-        sink.writeShortLe(0) // Unused.
-        sink.writeShortLe(0) // Unused.
-        sink.writeIntLe(bmpHeaderSize + dibHeaderSize) // Offset of pixel data.
+        writer.writeUtf8("BM") // ID.
+        writer.writeIntLe(bmpHeaderSize + dibHeaderSize + pixelDataSize) // File size.
+        writer.writeShortLe(0) // Unused.
+        writer.writeShortLe(0) // Unused.
+        writer.writeIntLe(bmpHeaderSize + dibHeaderSize) // Offset of pixel data.
 
         // DIB Header
-        sink.writeIntLe(dibHeaderSize)
-        sink.writeIntLe(width)
-        sink.writeIntLe(height)
-        sink.writeShortLe(1) // Color plane count.
-        sink.writeShortLe((bytesPerPixel * Byte.SIZE_BITS).toShort())
-        sink.writeIntLe(0) // No compression.
-        sink.writeIntLe(16) // Size of bitmap data including padding.
-        sink.writeIntLe(2835) // Horizontal print resolution in pixels/meter. (72 dpi).
-        sink.writeIntLe(2835) // Vertical print resolution in pixels/meter. (72 dpi).
-        sink.writeIntLe(0) // Palette color count.
-        sink.writeIntLe(0) // 0 important colors.
+        writer.writeIntLe(dibHeaderSize)
+        writer.writeIntLe(width)
+        writer.writeIntLe(height)
+        writer.writeShortLe(1) // Color plane count.
+        writer.writeShortLe((bytesPerPixel * Byte.SIZE_BITS).toShort())
+        writer.writeIntLe(0) // No compression.
+        writer.writeIntLe(16) // Size of bitmap data including padding.
+        writer.writeIntLe(2835) // Horizontal print resolution in pixels/meter. (72 dpi).
+        writer.writeIntLe(2835) // Vertical print resolution in pixels/meter. (72 dpi).
+        writer.writeIntLe(0) // Palette color count.
+        writer.writeIntLe(0) // 0 important colors.
 
         // Pixel data.
         for (y in height - 1 downTo 0) {
             for (x in 0 until width) {
-                sink.writeByte(bitmap.blue(x, y))
-                sink.writeByte(bitmap.green(x, y))
-                sink.writeByte(bitmap.red(x, y))
+                writer.writeByte(bitmap.blue(x, y))
+                writer.writeByte(bitmap.green(x, y))
+                writer.writeByte(bitmap.red(x, y))
             }
 
             // Padding for 4-byte alignment.
             for (p in rowByteCountWithoutPadding until rowByteCount) {
-                sink.writeByte(0)
+                writer.writeByte(0)
             }
         }
     }

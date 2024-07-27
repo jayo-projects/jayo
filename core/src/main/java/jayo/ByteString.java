@@ -58,10 +58,10 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * <b>Immutability is guaranteed:</b> ByteString copies data on creation as well as on conversion back to {@code byte[]}
  * , thus guaranteeing that subsequent modification of source data or data returned from {@link #toByteArray()} won't
  * mutate the byte string itself.
- * @see Utf8String a UTF-8 specific implementation of {@code ByteString}.
+ * @see Utf8 a UTF-8 specific implementation of {@code ByteString}.
  */
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
-        permits RealByteString, SegmentedByteString, Utf8String {
+        permits RealByteString, SegmentedByteString, Utf8 {
     /**
      * The empty byte string
      */

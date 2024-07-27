@@ -24,7 +24,7 @@ package jayo.internal
 import jayo.ByteString
 import jayo.decodeHex
 import jayo.encodeToByteString
-import jayo.encodeToUtf8String
+import jayo.encodeToUtf8
 
 interface ByteStringFactory {
     fun decodeHex(hex: String): ByteString
@@ -39,9 +39,9 @@ interface ByteStringFactory {
         }
 
         @JvmStatic
-        val UTF8_STRING: ByteStringFactory = object : ByteStringFactory {
+        val UTF8: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = hex.decodeHex()
-            override fun encodeUtf8(s: String) = s.encodeToUtf8String()
+            override fun encodeUtf8(s: String) = s.encodeToUtf8()
         }
 
         @JvmStatic
@@ -57,15 +57,15 @@ interface ByteStringFactory {
         }
 
         @JvmStatic
-        val SEGMENTED_UTF8_STRING: ByteStringFactory = object : ByteStringFactory {
+        val SEGMENTED_UTF8: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = RealBuffer().apply { write(hex.decodeHex()) }.readByteString()
-            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.readUtf8String()
+            override fun encodeUtf8(s: String) = RealBuffer().apply { writeUtf8(s) }.readUtf8()
         }
 
         @JvmStatic
         val UTF8_ONE_BYTE_PER_SEGMENT: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = makeSegments(hex.decodeHex())
-            override fun encodeUtf8(s: String) = makeUtf8Segments(s.encodeToUtf8String())
+            override fun encodeUtf8(s: String) = makeUtf8Segments(s.encodeToUtf8())
         }
     }
 }

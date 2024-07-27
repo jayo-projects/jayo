@@ -105,20 +105,20 @@ open class BufferUtf8Benchmark {
     }
 
     @Benchmark
-    fun writeUtf8StringJayo() {
+    fun writeByteStringJayo() {
         jayoBuffer.write(jayoDecode)
         jayoBuffer.clear()
     }
 
     @Benchmark
-    fun readUtf8Jayo(): Int {
+    fun readUtf8StringJayo(): Int {
         jayoBuffer.write(jayoDecode)
-        return jayoBuffer.readUtf8().length
+        return jayoBuffer.readUtf8String().length
     }
 
     @Benchmark
-    fun readUtf8StringJayo(): Int {
+    fun readUtf8Jayo(): Int {
         jayoBuffer.write(jayoDecode)
-        return jayoBuffer.readUtf8String().length()
+        return jayoBuffer.readUtf8().length()
     }
 }

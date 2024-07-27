@@ -6,7 +6,7 @@
 package jayo.internal;
 
 import jayo.ByteString;
-import jayo.RawSource;
+import jayo.RawReader;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import org.jspecify.annotations.NonNull;
@@ -22,8 +22,8 @@ public final class HashingUtils {
     private HashingUtils() {
     }
 
-    public static @NonNull ByteString hash(final @NonNull RawSource rawSource, final @NonNull Digest digest) {
-        Objects.requireNonNull(rawSource);
+    public static @NonNull ByteString hash(final @NonNull RawReader rawReader, final @NonNull Digest digest) {
+        Objects.requireNonNull(rawReader);
         Objects.requireNonNull(digest);
         final MessageDigest messageDigest;
         try {
@@ -31,8 +31,8 @@ public final class HashingUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Algorithm is not available : " + digest.algorithm(), e);
         }
-        // todo should we use SourceSegmentQueue.Async here because hash is a slow operation ?
-        try (rawSource; final var segmentQueue = new SourceSegmentQueue(rawSource)) {
+        // todo should we use ReaderSegmentQueue.Async here because hash is a slow operation ?
+        try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
             var toProcess = segmentQueue.expectSize(1L);
             while (toProcess != 0L) {
                 var head = segmentQueue.headVolatile();
@@ -67,10 +67,10 @@ public final class HashingUtils {
         return new RealByteString(messageDigest.digest());
     }
 
-    public static @NonNull ByteString hmac(final @NonNull RawSource rawSource,
+    public static @NonNull ByteString hmac(final @NonNull RawReader rawReader,
                                            final @NonNull Hmac hMac,
                                            final @NonNull ByteString key) {
-        Objects.requireNonNull(rawSource);
+        Objects.requireNonNull(rawReader);
         Objects.requireNonNull(key);
         Objects.requireNonNull(hMac);
         final javax.crypto.Mac javaMac;
@@ -87,8 +87,8 @@ public final class HashingUtils {
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
-        // todo should we use SourceSegmentQueue.Async here because hmac is a slow operation ?
-        try (rawSource; final var segmentQueue = new SourceSegmentQueue(rawSource)) {
+        // todo should we use ReaderSegmentQueue.Async here because hmac is a slow operation ?
+        try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
             var toProcess = segmentQueue.expectSize(1L);
             while (toProcess != 0L) {
                 var head = segmentQueue.headVolatile();

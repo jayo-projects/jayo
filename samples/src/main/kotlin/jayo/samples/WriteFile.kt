@@ -22,7 +22,7 @@
 package jayo.samples
 
 import jayo.buffered
-import jayo.sink
+import jayo.writer
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
@@ -43,12 +43,12 @@ import java.nio.file.StandardOpenOption
  */
 
 fun writeEnv(path: Path) {
-    path.sink(StandardOpenOption.CREATE).buffered().use { sink ->
+    path.writer(StandardOpenOption.CREATE).buffered().use { writer ->
         for ((key, value) in System.getenv()) {
-            sink.writeUtf8(key)
-            sink.writeUtf8("=")
-            sink.writeUtf8(value)
-            sink.writeUtf8("\n")
+            writer.writeUtf8(key)
+            writer.writeUtf8("=")
+            writer.writeUtf8(value)
+            writer.writeUtf8("\n")
         }
     }
 }

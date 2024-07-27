@@ -12,40 +12,40 @@
 
 package jayo.kotlinx.serialization.internal
 
-import jayo.Sink
-import jayo.Source
+import jayo.Writer
+import jayo.Reader
 import kotlinx.serialization.json.internal.ESCAPE_STRINGS
 import kotlinx.serialization.json.internal.InternalJsonWriter
 import kotlinx.serialization.json.internal.InternalJsonReader
 
-internal class JsonToJayoStreamWriter(private val sink: Sink) : InternalJsonWriter {
+internal class JsonToJayoStreamWriter(private val writer: Writer) : InternalJsonWriter {
     override fun writeLong(value: Long) {
         write(value.toString())
     }
 
     override fun writeChar(char: Char) {
-        sink.writeUtf8CodePoint(char.code)
+        writer.writeUtf8CodePoint(char.code)
     }
 
     override fun write(text: String) {
-        sink.writeUtf8(text)
+        writer.writeUtf8(text)
     }
 
     override fun writeQuoted(text: String) {
-        sink.writeUtf8CodePoint('"'.code)
+        writer.writeUtf8CodePoint('"'.code)
         var lastPos = 0
         for (i in text.indices) {
             val c = text[i].code
             if (c < ESCAPE_STRINGS.size && ESCAPE_STRINGS[c] != null) {
-                sink.writeUtf8(text, lastPos, i) // flush prev
-                sink.writeUtf8(ESCAPE_STRINGS[c]!!)
+                writer.writeUtf8(text, lastPos, i) // flush prev
+                writer.writeUtf8(ESCAPE_STRINGS[c]!!)
                 lastPos = i + 1
             }
         }
 
-        if (lastPos != 0) sink.writeUtf8(text, lastPos, text.length)
-        else sink.writeUtf8(text)
-        sink.writeUtf8CodePoint('"'.code)
+        if (lastPos != 0) writer.writeUtf8(text, lastPos, text.length)
+        else writer.writeUtf8(text)
+        writer.writeUtf8CodePoint('"'.code)
     }
 
     override fun release() {
@@ -61,7 +61,7 @@ private const val HIGH_SURROGATE_HEADER = 0xd800 - (0x010000 ushr 10)
 private const val LOW_SURROGATE_HEADER = 0xdc00
 
 
-internal class JayoSerialReader(private val source: Source): InternalJsonReader {
+internal class JayoSerialReader(private val reader: Reader): InternalJsonReader {
     /*
     A sequence of code points is read from UTF-8, some of it can take 2 characters.
     In case the last code point requires 2 characters, and the array is already full, we buffer the second character
@@ -77,8 +77,8 @@ internal class JayoSerialReader(private val source: Source): InternalJsonReader 
             bufferedChar = null
         }
 
-        while (i < count && !source.exhausted()) {
-            val codePoint = source.readUtf8CodePoint()
+        while (i < count && !reader.exhausted()) {
+            val codePoint = reader.readUtf8CodePoint()
             if (codePoint <= SINGLE_CHAR_MAX_CODEPOINT) {
                 buffer[bufferOffset + i] = codePoint.toChar()
                 i++

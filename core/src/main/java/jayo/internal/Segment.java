@@ -301,26 +301,26 @@ final class Segment {
         if (!targetSegment.owner) {
             throw new IllegalStateException("only owner can write");
         }
-        var sinkCurrentLimit = targetSegment.limit();
-        if (sinkCurrentLimit + byteCount > SIZE) {
-            // We can't fit byteCount bytes at the sink's current position. Shift sink first.
+        var writerCurrentLimit = targetSegment.limit();
+        if (writerCurrentLimit + byteCount > SIZE) {
+            // We can't fit byteCount bytes at the writer's current position. Shift writer first.
             if (targetSegment.shared) {
                 throw new IllegalArgumentException("cannot write in a shared Segment");
             }
-            final var sinkCurrentPos = targetSegment.pos;
-            if (sinkCurrentLimit + byteCount - sinkCurrentPos > SIZE) {
-                throw new IllegalArgumentException("not enough space in sink segment to write " + byteCount + " bytes");
+            final var writerCurrentPos = targetSegment.pos;
+            if (writerCurrentLimit + byteCount - writerCurrentPos > SIZE) {
+                throw new IllegalArgumentException("not enough space in writer segment to write " + byteCount + " bytes");
             }
-            final var sinkSize = sinkCurrentLimit - sinkCurrentPos;
-            System.arraycopy(targetSegment.data, sinkCurrentPos, targetSegment.data, 0, sinkSize);
-            targetSegment.limitVolatile(sinkSize);
+            final var writerSize = writerCurrentLimit - writerCurrentPos;
+            System.arraycopy(targetSegment.data, writerCurrentPos, targetSegment.data, 0, writerSize);
+            targetSegment.limitVolatile(writerSize);
             targetSegment.pos = 0;
         }
 
-        sinkCurrentLimit = targetSegment.limit();
+        writerCurrentLimit = targetSegment.limit();
         final var currentPos = pos;
-        System.arraycopy(data, currentPos, targetSegment.data, sinkCurrentLimit, byteCount);
-        targetSegment.limitVolatile(sinkCurrentLimit + byteCount);
+        System.arraycopy(data, currentPos, targetSegment.data, writerCurrentLimit, byteCount);
+        targetSegment.limitVolatile(writerCurrentLimit + byteCount);
         pos = currentPos + byteCount;
     }
 

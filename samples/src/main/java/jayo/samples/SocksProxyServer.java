@@ -79,18 +79,18 @@ public final class SocksProxyServer {
     }
 
     private void handleSocket(final Socket fromSocket) {
-        final Source fromSource = Jayo.buffer(Jayo.source(fromSocket));
-        final Sink fromSink = Jayo.buffer(Jayo.sink(fromSocket));
+        final Reader fromReader = Jayo.buffer(Jayo.reader(fromSocket));
+        final Writer fromWriter = Jayo.buffer(Jayo.writer(fromSocket));
         try {
             // Read the hello.
-            int socksVersion = fromSource.readByte();
+            int socksVersion = fromReader.readByte();
             if (socksVersion != VERSION_5) {
                 throw new ProtocolException();
             }
-            int methodCount = fromSource.readByte();
+            int methodCount = fromReader.readByte();
             boolean foundSupportedMethod = false;
             for (int i = 0; i < methodCount; i++) {
-                final var method = fromSource.readByte();
+                final var method = fromReader.readByte();
                 foundSupportedMethod |= method == METHOD_NO_AUTHENTICATION_REQUIRED;
             }
             if (!foundSupportedMethod) {
@@ -98,26 +98,26 @@ public final class SocksProxyServer {
             }
 
             // Respond to hello.
-            fromSink.writeByte(VERSION_5)
+            fromWriter.writeByte(VERSION_5)
                     .writeByte(METHOD_NO_AUTHENTICATION_REQUIRED)
                     .emit();
 
             // Read a command.
-            final var version = fromSource.readByte();
-            final var command = fromSource.readByte();
-            final var reserved = fromSource.readByte();
+            final var version = fromReader.readByte();
+            final var command = fromReader.readByte();
+            final var reserved = fromReader.readByte();
             if (version != VERSION_5 || command != COMMAND_CONNECT || reserved != 0) {
                 throw new ProtocolException();
             }
 
             // Read an address.
-            final var addressType = fromSource.readByte();
+            final var addressType = fromReader.readByte();
             final var inetAddress = switch (addressType) {
-                case ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromSource.readByteArray(4L));
-                case ADDRESS_TYPE_DOMAIN_NAME -> InetAddress.getByName(fromSource.readUtf8(fromSource.readByte()));
+                case ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromReader.readByteArray(4L));
+                case ADDRESS_TYPE_DOMAIN_NAME -> InetAddress.getByName(fromReader.readUtf8String(fromReader.readByte()));
                 default -> throw new ProtocolException();
             };
-            int port = fromSource.readShort() & 0xffff;
+            int port = fromReader.readShort() & 0xffff;
 
             // Connect to the caller's specified host.
             final Socket toSocket = new Socket(inetAddress, port);
@@ -128,7 +128,7 @@ public final class SocksProxyServer {
             }
 
             // Write the reply.
-            fromSink.writeByte(VERSION_5)
+            fromWriter.writeByte(VERSION_5)
                     .writeByte(REPLY_SUCCEEDED)
                     .writeByte((byte) 0)
                     .writeByte(ADDRESS_TYPE_IPV4)
@@ -136,11 +136,11 @@ public final class SocksProxyServer {
                     .writeShort((short) toSocket.getLocalPort())
                     .flush();
 
-            // Connect sources to sinks in both directions.
-            final var toSink = Jayo.sink(toSocket);
-            executor.execute(() -> transfer(fromSocket, fromSource, toSink));
-            final var toSource = Jayo.source(toSocket);
-            executor.execute(() -> transfer(toSocket, toSource, fromSink));
+            // Connect readers to writers in both directions.
+            final var toWriter = Jayo.writer(toSocket);
+            executor.execute(() -> transfer(fromSocket, fromReader, toWriter));
+            final var toReader = Jayo.reader(toSocket);
+            executor.execute(() -> transfer(toSocket, toReader, fromWriter));
         } catch (IOException e) {
             closeQuietly(fromSocket);
             openSockets.remove(fromSocket);
@@ -149,21 +149,21 @@ public final class SocksProxyServer {
     }
 
     /**
-     * Read data from {@code source} and write it to {@code sink}. This doesn't use {@link Sink#transferFrom(RawSource)}
+     * Read data from {@code reader} and write it to {@code writer}. This doesn't use {@link Writer#transferFrom(RawReader)}
      * because that method doesn't flush aggressively, and we need that.
      */
-    private void transfer(Socket sourceSocket, RawSource source, RawSink sink) {
+    private void transfer(Socket readerSocket, RawReader reader, RawWriter writer) {
         try {
             Buffer buffer = Buffer.create();
-            for (long byteCount; (byteCount = source.readAtMostTo(buffer, 8192L)) != -1; ) {
-                sink.write(buffer, byteCount);
-                sink.flush();
+            for (long byteCount; (byteCount = reader.readAtMostTo(buffer, 8192L)) != -1; ) {
+                writer.write(buffer, byteCount);
+                writer.flush();
             }
         } finally {
-            closeQuietly(sink);
-            closeQuietly(source);
-            closeQuietly(sourceSocket);
-            openSockets.remove(sourceSocket);
+            closeQuietly(writer);
+            closeQuietly(reader);
+            closeQuietly(readerSocket);
+            openSockets.remove(readerSocket);
         }
     }
 
@@ -182,8 +182,8 @@ public final class SocksProxyServer {
                 "https://raw.githubusercontent.com/jayo-projects/jayo/main/samples/src/main/resources/jayo.txt")
                 .toURL();
         URLConnection connection = url.openConnection(proxyServer.proxy());
-        try (final var source = Jayo.buffer(Jayo.source(connection.getInputStream()))) {
-            for (String line; (line = source.readUtf8Line()) != null; ) {
+        try (final var reader = Jayo.buffer(Jayo.reader(connection.getInputStream()))) {
+            for (String line; (line = reader.readUtf8Line()) != null; ) {
                 System.out.println(line);
             }
         }

@@ -24,8 +24,8 @@ package jayo.internal
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import jayo.sink
-import jayo.source
+import jayo.writer
+import jayo.reader
 import org.junit.jupiter.api.assertThrows
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -39,112 +39,112 @@ class JayoTest {
     private lateinit var tempDir: File
 
     @Test
-    fun fileRawSink() {
-        val file = tempDir.resolve("fileSink.txt")
+    fun fileRawWriter() {
+        val file = tempDir.resolve("fileWriter.txt")
         file.createNewFile()
-        val sink = file.sink()
-        sink.write(RealBuffer().writeUtf8("a"), 1L)
-        sink.flush()
+        val writer = file.writer()
+        writer.write(RealBuffer().writeUtf8("a"), 1L)
+        writer.flush()
         assertThat(file.readText()).isEqualTo("a")
     }
 
     @Test
-    fun fileRawSource() {
-        val file = tempDir.resolve("fileSource.txt")
+    fun fileRawReader() {
+        val file = tempDir.resolve("fileReader.txt")
         file.writeText("a")
-        val source = file.source()
+        val reader = file.reader()
         val buffer = RealBuffer()
-        source.readAtMostTo(buffer, 1L)
-        assertThat(buffer.readUtf8()).isEqualTo("a")
+        reader.readAtMostTo(buffer, 1L)
+        assertThat(buffer.readUtf8String()).isEqualTo("a")
     }
 
     @Test
-    fun pathRawSink() {
-        val file = tempDir.resolve("pathSink.txt")
+    fun pathRawWriter() {
+        val file = tempDir.resolve("pathWriter.txt")
         file.createNewFile()
-        val sink = file.toPath().sink()
-        sink.write(RealBuffer().writeUtf8("a"), 1L)
-        sink.flush()
+        val writer = file.toPath().writer()
+        writer.write(RealBuffer().writeUtf8("a"), 1L)
+        writer.flush()
         assertThat(file.readText()).isEqualTo("a")
     }
 
     @Test
-    fun pathRawSinkWithAppend() {
-        val file = tempDir.resolve("pathSinkWithOptions.txt")
+    fun pathRawWriterWithAppend() {
+        val file = tempDir.resolve("pathWriterWithOptions.txt")
         file.writeText("a")
-        val sink = file.toPath().sink(StandardOpenOption.APPEND)
-        sink.write(RealBuffer().writeUtf8("b"), 1L)
+        val writer = file.toPath().writer(StandardOpenOption.APPEND)
+        writer.write(RealBuffer().writeUtf8("b"), 1L)
         assertThat(file.readText()).isEqualTo("ab")
     }
 
     @Test
-    fun pathRawSinkWithIgnoredOptions() {
-        val file = tempDir.resolve("pathSinkWithIgnoredOptions.txt")
+    fun pathRawWriterWithIgnoredOptions() {
+        val file = tempDir.resolve("pathWriterWithIgnoredOptions.txt")
         file.createNewFile()
-        val sink = file.toPath().sink(StandardOpenOption.READ)
-        sink.write(RealBuffer().writeUtf8("a"), 1L)
+        val writer = file.toPath().writer(StandardOpenOption.READ)
+        writer.write(RealBuffer().writeUtf8("a"), 1L)
         assertThat(file.readText()).isEqualTo("a")
     }
 
     @Test
-    fun pathRawSource() {
-        val file = tempDir.resolve("pathSource.txt")
+    fun pathRawReader() {
+        val file = tempDir.resolve("pathReader.txt")
         file.writeText("a")
-        val source = file.toPath().source(StandardOpenOption.DELETE_ON_CLOSE)
+        val reader = file.toPath().reader(StandardOpenOption.DELETE_ON_CLOSE)
         val buffer = RealBuffer()
-        source.readAtMostTo(buffer, 1L)
-        assertThat(buffer.readUtf8()).isEqualTo("a")
+        reader.readAtMostTo(buffer, 1L)
+        assertThat(buffer.readUtf8String()).isEqualTo("a")
     }
 
     @Test
-    fun pathRawSourceWithIgnoredOptions() {
-        val file = tempDir.resolve("pathSourceWithIgnoredOptions.txt")
+    fun pathRawReaderWithIgnoredOptions() {
+        val file = tempDir.resolve("pathReaderWithIgnoredOptions.txt")
         file.writeText("a")
-        val source = file.toPath().source(StandardOpenOption.DSYNC)
+        val reader = file.toPath().reader(StandardOpenOption.DSYNC)
         val buffer = RealBuffer()
-        source.readAtMostTo(buffer, 1L)
-        assertThat(buffer.readUtf8()).isEqualTo("a")
+        reader.readAtMostTo(buffer, 1L)
+        assertThat(buffer.readUtf8String()).isEqualTo("a")
     }
 
     @Test
-    fun outputStreamRawSink() {
+    fun outputStreamRawWriter() {
         val baos = ByteArrayOutputStream()
-        val sink = baos.sink()
-        sink.write(RealBuffer().writeUtf8("a"), 1L)
+        val writer = baos.writer()
+        writer.write(RealBuffer().writeUtf8("a"), 1L)
         assertThat(baos.toByteArray()).isEqualTo(byteArrayOf(0x61))
     }
 
     @Test
-    fun inputStreamRawSource() {
+    fun inputStreamRawReader() {
         val bais = ByteArrayInputStream(byteArrayOf(0x61))
-        val source = bais.source()
+        val reader = bais.reader()
         val buffer = RealBuffer()
-        source.readAtMostTo(buffer, 1)
-        assertThat(buffer.readUtf8()).isEqualTo("a")
+        reader.readAtMostTo(buffer, 1)
+        assertThat(buffer.readUtf8String()).isEqualTo("a")
 
-        assertThrows<IllegalArgumentException> { source.readAtMostTo(buffer, -42)}
+        assertThrows<IllegalArgumentException> { reader.readAtMostTo(buffer, -42)}
     }
 
     @Test
-    fun socketRawSink() {
+    fun socketRawWriter() {
         val baos = ByteArrayOutputStream()
         val socket = object : Socket() {
             override fun getOutputStream() = baos
         }
-        val sink = socket.sink()
-        sink.write(RealBuffer().writeUtf8("a"), 1L)
+        val writer = socket.writer()
+        writer.write(RealBuffer().writeUtf8("a"), 1L)
         assertThat(baos.toByteArray()).isEqualTo(byteArrayOf(0x61))
     }
 
     @Test
-    fun socketRawSource() {
+    fun socketRawReader() {
         val bais = ByteArrayInputStream(byteArrayOf(0x61))
         val socket = object : Socket() {
             override fun getInputStream() = bais
         }
-        val source = socket.source()
+        val reader = socket.reader()
         val buffer = RealBuffer()
-        source.readAtMostTo(buffer, 1L)
-        assertThat(buffer.readUtf8()).isEqualTo("a")
+        reader.readAtMostTo(buffer, 1L)
+        assertThat(buffer.readUtf8String()).isEqualTo("a")
     }
 }

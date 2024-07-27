@@ -62,12 +62,12 @@ import java.nio.charset.Charset;
  * <p>
  * Please read {@link UnsafeCursor} javadoc for a detailed description of how a buffer works.
  *
- * @implNote {@link Buffer} implements both {@link Source} and {@link Sink} and could be used as a source or a
- * sink, but unlike regular sinks and sources its {@link #close}, {@link #flush}, {@link #emit},
+ * @implNote {@link Buffer} implements both {@link Reader} and {@link Writer} and could be used as a reader or a
+ * writer, but unlike regular writers and readers its {@link #close}, {@link #flush}, {@link #emit},
  * {@link #emitCompleteSegments()} does not affect buffer's state and {@link #exhausted} only indicates that a buffer is
  * empty.
  */
-public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffer {
+public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuffer {
     /**
      * @return a new {@link Buffer}
      */
@@ -208,7 +208,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
 
     /**
      * @return the number of bytes in segments that are fully filled and are no longer writable.
-     * This is the number of bytes that can be flushed immediately to an underlying sink without harming throughput.
+     * This is the number of bytes that can be flushed immediately to an underlying writer without harming throughput.
      */
     @NonNegative
     long completeSegmentByteCount();
@@ -262,7 +262,7 @@ public sealed interface Buffer extends Source, Sink, Cloneable permits RealBuffe
      * @throws IllegalArgumentException {@inheritDoc}
      */
     @Override
-    @NonNull Buffer write(final @NonNull RawSource source, final @NonNegative long byteCount);
+    @NonNull Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
 
     @Override
     @NonNull Buffer writeUtf8(final @NonNull CharSequence charSequence);

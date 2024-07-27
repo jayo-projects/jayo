@@ -45,11 +45,11 @@ class ByteStringTest {
         fun parameters(): Stream<Arguments>? {
             return Stream.of(
                 Arguments.of(ByteStringFactory.BYTE_STRING, "ByteString"),
-                Arguments.of(ByteStringFactory.UTF8_STRING, "Utf8String"),
+                Arguments.of(ByteStringFactory.UTF8, "Utf8"),
                 Arguments.of(ByteStringFactory.SEGMENTED_BYTE_STRING, "SegmentedByteString"),
                 Arguments.of(ByteStringFactory.ONE_BYTE_PER_SEGMENT, "SegmentedByteString (one-byte-at-a-time)"),
-                Arguments.of(ByteStringFactory.SEGMENTED_UTF8_STRING, "SegmentedUtf8String"),
-                Arguments.of(ByteStringFactory.UTF8_ONE_BYTE_PER_SEGMENT, "SegmentedUtf8String (one-byte-at-a-time)"),
+                Arguments.of(ByteStringFactory.SEGMENTED_UTF8, "SegmentedUtf8"),
+                Arguments.of(ByteStringFactory.UTF8_ONE_BYTE_PER_SEGMENT, "SegmentedUtf8 (one-byte-at-a-time)"),
             )
         }
     }
@@ -191,7 +191,7 @@ class ByteStringTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    fun copyIntoWithSourceOffset(factory: ByteStringFactory) {
+    fun copyIntoWithReaderOffset(factory: ByteStringFactory) {
         val byteString = factory.encodeUtf8("abcdefgh")
         val byteArray = "WwwwXxxxYyyyZzzz".encodeToByteArray()
         byteString.copyInto(3, byteArray, 0, 5)

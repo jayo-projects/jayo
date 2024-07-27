@@ -21,7 +21,7 @@
 
 package jayo.internal;
 
-import jayo.Source;
+import jayo.Reader;
 import org.jspecify.annotations.NonNull;
 
 import java.lang.Thread.Builder;
@@ -141,14 +141,14 @@ final class Utils {
         return prefixIndex; // Return any matches we encountered while searching for a deeper match.
     }
 
-    static RealBuffer getBufferFromSource(final Source source) {
-        if (source instanceof RealBuffer _buffer) {
+    static RealBuffer getBufferFromReader(final Reader reader) {
+        if (reader instanceof RealBuffer _buffer) {
             return _buffer;
         }
-        if (source instanceof RealSource _source) {
-            return _source.buffer;
+        if (reader instanceof RealReader _reader) {
+            return _reader.buffer;
         }
-        throw new IllegalArgumentException("Source must be an instance of RealBuffer or RealSource");
+        throw new IllegalArgumentException("Reader must be an instance of RealBuffer or RealReader");
     }
 
     static String toHexString(final byte b) {

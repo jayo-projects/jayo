@@ -162,7 +162,7 @@ class BufferCursorTest {
     fun seekWithinSegment(bufferFactory: BufferFactory) {
         assumeTrue(bufferFactory === BufferFactory.SMALL_SEGMENTED_BUFFER)
         val buffer = bufferFactory.newBuffer()
-        assertEquals("abcdefghijkl", buffer.clone().readUtf8())
+        assertEquals("abcdefghijkl", buffer.clone().readUtf8String())
         buffer.readUnsafe().use { cursor ->
             assertEquals(2, cursor.seek(5).toLong()) // 2 for 2 bytes left in the segment: "fg".
             assertEquals(5, cursor.offset)

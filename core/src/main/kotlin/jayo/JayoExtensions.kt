@@ -30,43 +30,43 @@ import java.net.Socket
 import java.nio.file.OpenOption
 import java.nio.file.Path
 
-/** @return a sink that writes to this [OutputStream]. */
-public fun OutputStream.sink(): RawSink = Jayo.sink(this)
+/** @return a writer that writes to this [OutputStream]. */
+public fun OutputStream.writer(): RawWriter = Jayo.writer(this)
 
-/** @return a sink that reads from this [InputStream]. */
-public fun InputStream.source(): RawSource = Jayo.source(this)
+/** @return a writer that reads from this [InputStream]. */
+public fun InputStream.reader(): RawReader = Jayo.reader(this)
 
 /**
- * @return a sink that writes to this [Socket]. Prefer this over [sink] because this method honors timeouts.
+ * @return a writer that writes to this [Socket]. Prefer this over [writer] because this method honors timeouts.
  * When the socket write times out, it is asynchronously closed by a watchdog thread.
  */
-public fun Socket.sink(): RawSink = Jayo.sink(this)
+public fun Socket.writer(): RawWriter = Jayo.writer(this)
 
 /**
- * @return a source that reads from this [Socket]. Prefer this over [source] because this method honors timeouts.
+ * @return a reader that reads from this [Socket]. Prefer this over [reader] because this method honors timeouts.
  * When the socket read times out, it is asynchronously closed by a watchdog thread.
  */
-public fun Socket.source(): RawSource = Jayo.source(this)
+public fun Socket.reader(): RawReader = Jayo.reader(this)
 
 /**
- * @return a sink that writes to this [Path]. options allow to specify how the file is opened.
+ * @return a writer that writes to this [Path]. options allow to specify how the file is opened.
  *
  * Note : we always add the `StandardOpenOption.WRITE` option to the options Set, so we ensure we can write in this path
  */
-public fun Path.sink(vararg options: OpenOption): RawSink = Jayo.sink(this, *options)
+public fun Path.writer(vararg options: OpenOption): RawWriter = Jayo.writer(this, *options)
 
 /**
- * @return a sink that writes to this [Path]. options allow to specify how the file is opened.
+ * @return a writer that writes to this [Path]. options allow to specify how the file is opened.
  *
  * Note : we always add the `StandardOpenOption.READ` option to the options Set, so we ensure we can read from this path
  */
-public fun Path.source(vararg options: OpenOption): RawSource = Jayo.source(this, *options)
+public fun Path.reader(vararg options: OpenOption): RawReader = Jayo.reader(this, *options)
 
-/** @return a sink that writes to this [File]. If you need specific options, please use [Path.sink] instead. */
-public fun File.sink(): RawSink = Jayo.sink(this)
+/** @return a writer that writes to this [File]. If you need specific options, please use [Path.writer] instead. */
+public fun File.writer(): RawWriter = Jayo.writer(this)
 
-/** @return a source that reads from this [File]. If you need specific options, please use [Path.source] instead. */
-public fun File.source(): RawSource = Jayo.source(this)
+/** @return a reader that reads from this [File]. If you need specific options, please use [Path.reader] instead. */
+public fun File.reader(): RawReader = Jayo.reader(this)
 
-/** @return a sink that discards all data written to it. */
-public fun discardingSink(): RawSink = Jayo.discardingSink()
+/** @return a writer that discards all data written to it. */
+public fun discardingWriter(): RawWriter = Jayo.discardingWriter()

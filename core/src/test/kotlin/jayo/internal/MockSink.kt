@@ -24,11 +24,11 @@ package jayo.internal
 import org.junit.jupiter.api.Assertions.assertEquals
 import jayo.Buffer
 import jayo.exceptions.JayoException
-import jayo.RawSink
+import jayo.RawWriter
 import kotlin.test.assertTrue
 
-/** A scriptable sink. Like Mockito, but worse and requiring less configuration.  */
-class MockSink : RawSink {
+/** A scriptable writer. Like Mockito, but worse and requiring less configuration.  */
+class MockWriter : RawWriter {
   private val log = mutableListOf<String>()
   private val callThrows = mutableMapOf<Int, JayoException>()
 
@@ -49,9 +49,9 @@ class MockSink : RawSink {
     if (exception != null) throw exception
   }
 
-  override fun write(source: Buffer, byteCount: Long) {
-    log.add("write($source, $byteCount)")
-    source.skip(byteCount)
+  override fun write(reader: Buffer, byteCount: Long) {
+    log.add("write($reader, $byteCount)")
+    reader.skip(byteCount)
     throwIfScheduled()
   }
 

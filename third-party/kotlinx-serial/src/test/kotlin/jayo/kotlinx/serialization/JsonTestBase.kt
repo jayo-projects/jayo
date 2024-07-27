@@ -26,22 +26,22 @@ abstract class JsonTestBase {
         value: T
     ): String {
         val buffer = Buffer()
-        encodeToSink(serializer, value, buffer)
-        return buffer.readUtf8()
+        encodeToWriter(serializer, value, buffer)
+        return buffer.readUtf8String()
     }
 
-    internal inline fun <reified T : Any> Json.decodeFromStringWithJayo(source: String): T {
+    internal inline fun <reified T : Any> Json.decodeFromStringWithJayo(reader: String): T {
         val deserializer = serializersModule.serializer<T>()
-        return decodeFromStringWithJayo(deserializer, source)
+        return decodeFromStringWithJayo(deserializer, reader)
     }
 
     internal fun <T> Json.decodeFromStringWithJayo(
         deserializer: DeserializationStrategy<T>,
-        source: String,
+        reader: String,
     ): T {
         val buffer = Buffer()
-        buffer.writeUtf8(source)
-        return decodeFromSource(deserializer, buffer)
+        buffer.writeUtf8(reader)
+        return decodeFromReader(deserializer, buffer)
     }
 
     protected open fun parametrizedTest(test: () -> Unit) {

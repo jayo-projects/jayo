@@ -51,21 +51,21 @@ public final class Hashing {
         System.out.println("  sha3_512: " + buffer.hash(Digests.SHA3_512).hex());
         System.out.println();
 
-//        System.out.println("HashingSource");
-//        try (HashingSource hashingSource = HashingSource.sha256(FileSystem.SYSTEM.source(path));
-//             BufferedSource source = Okio.buffer(hashingSource)) {
-//            source.readAll(Okio.blackhole());
-//            System.out.println("    sha256: " + hashingSource.hash().hex());
+//        System.out.println("HashingReader");
+//        try (HashingReader hashingReader = HashingReader.sha256(FileSystem.SYSTEM.reader(path));
+//             BufferedReader reader = Okio.buffer(hashingReader)) {
+//            reader.readAll(Okio.blackhole());
+//            System.out.println("    sha256: " + hashingReader.hash().hex());
 //        }
 //        System.out.println();
 //
-//        System.out.println("HashingSink");
-//        try (HashingSink hashingSink = HashingSink.sha256(Okio.blackhole());
-//             BufferedSink sink = Okio.buffer(hashingSink);
-//             Source source = FileSystem.SYSTEM.source(path)) {
-//            sink.writeAll(source);
-//            sink.close(); // Emit anything buffered.
-//            System.out.println("    sha256: " + hashingSink.hash().hex());
+//        System.out.println("HashingWriter");
+//        try (HashingWriter hashingWriter = HashingWriter.sha256(Okio.blackhole());
+//             BufferedWriter writer = Okio.buffer(hashingWriter);
+//             Reader reader = FileSystem.SYSTEM.reader(path)) {
+//            writer.writeAll(reader);
+//            writer.close(); // Emit anything buffered.
+//            System.out.println("    sha256: " + hashingWriter.hash().hex());
 //        }
 //        System.out.println();
 
@@ -76,15 +76,15 @@ public final class Hashing {
     }
 
     public ByteString readByteString(Path path) {
-        try (final var source = Jayo.buffer(Jayo.source(path))) {
-            return source.readByteString();
+        try (final var reader = Jayo.buffer(Jayo.reader(path))) {
+            return reader.readByteString();
         }
     }
 
     public Buffer readBuffer(Path path) {
-        try (final var rawSource = Jayo.source(path)) {
+        try (final var rawReader = Jayo.reader(path)) {
             Buffer buffer = Buffer.create();
-            buffer.transferFrom(rawSource);
+            buffer.transferFrom(rawReader);
             return buffer;
         }
     }

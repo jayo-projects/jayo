@@ -5,9 +5,9 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import jayo.Buffer
 import jayo.buffered
-import jayo.discardingSink
-import jayo.kotlinx.serialization.decodeFromSource
-import jayo.kotlinx.serialization.encodeToSink
+import jayo.discardingWriter
+import jayo.kotlinx.serialization.decodeFromReader
+import jayo.kotlinx.serialization.encodeToWriter
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -73,7 +73,7 @@ open class JsonSerializationBenchmark {
 
         private val smallData = SmallDataClass(42, "Vincent")
 
-        private val devNullSinkJayo = discardingSink().buffered()
+        private val devNullWriterJayo = discardingWriter().buffered()
         private val devNullSinkOkio = blackholeSink().buffer()
         private val devNullStream = object : OutputStream() {
             override fun write(b: Int) {}
@@ -126,15 +126,15 @@ open class JsonSerializationBenchmark {
 
     @Benchmark
     fun kotlinxToJayo() =
-        kotlinxSerializationMapper.encodeToSink(DefaultPixelEvent.serializer(), defaultPixelEvent, devNullSinkJayo)
+        kotlinxSerializationMapper.encodeToWriter(DefaultPixelEvent.serializer(), defaultPixelEvent, devNullWriterJayo)
 
     @Benchmark
     fun kotlinxSmallToJayo() =
-        kotlinxSerializationMapper.encodeToSink(SmallDataClass.serializer(), smallData, devNullSinkJayo)
+        kotlinxSerializationMapper.encodeToWriter(SmallDataClass.serializer(), smallData, devNullWriterJayo)
 
     @Benchmark
     fun kotlinxFromJayo() =
-        kotlinxSerializationMapper.decodeFromSource(
+        kotlinxSerializationMapper.decodeFromReader(
             DefaultPixelEvent.serializer(),
             Buffer().write(utf8BytesData)
         )
