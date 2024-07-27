@@ -7,8 +7,8 @@ package jayo.kotlinx.serialization
 
 import jayo.Buffer
 import jayo.buffered
-import jayo.discardingSink
-import jayo.source
+import jayo.discardingWriter
+import jayo.reader
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
@@ -27,7 +27,7 @@ class SerializationTest {
         private val date = System.currentTimeMillis().toString()
 
         @JvmStatic
-        private val devNullSinkJayo = discardingSink().buffered()
+        private val devNullWriterJayo = discardingWriter().buffered()
 
         private val defaultPixelEvent = DefaultPixelEvent(
             version = 1,
@@ -50,7 +50,7 @@ class SerializationTest {
     @Test
     fun socketEncodeDecode() {
         val buffer = Buffer()
-        kotlinxSerializationMapper.encodeToSink(
+        kotlinxSerializationMapper.encodeToWriter(
             DefaultPixelEvent.serializer(),
             defaultPixelEvent,
             buffer
@@ -58,10 +58,10 @@ class SerializationTest {
         val socket = object : Socket() {
             override fun getInputStream() = buffer.asInputStream()
         }
-        val source = socket.source().buffered()
-        val decoded = kotlinxSerializationMapper.decodeFromSource(
+        val reader = socket.reader().buffered()
+        val decoded = kotlinxSerializationMapper.decodeFromReader(
             DefaultPixelEvent.serializer(),
-            source
+            reader
         )
         assertThat(decoded).isEqualTo(defaultPixelEvent)
     }
@@ -69,7 +69,7 @@ class SerializationTest {
     @Test
     fun kotlinxSmallToJayo() {
         IntStream.range(0, 1000).forEach {
-            kotlinxSerializationMapper.encodeToSink(SmallDataClass.serializer(), smallData, devNullSinkJayo)
+            kotlinxSerializationMapper.encodeToWriter(SmallDataClass.serializer(), smallData, devNullWriterJayo)
         }
     }
 }

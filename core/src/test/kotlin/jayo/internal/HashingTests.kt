@@ -26,8 +26,8 @@ class HashingTests {
         val buffer = Buffer().write(bytes)
         assertThat(buffer.hash(Digests.MD5).hex()).isEqualTo(expectedMd5)
         
-        // hash from source
-        assertThat((buffer as RawSource).hash(Digests.MD5).hex()).isEqualTo(expectedMd5)
+        // hash from reader
+        assertThat((buffer as RawReader).hash(Digests.MD5).hex()).isEqualTo(expectedMd5)
     }
 
     @Test
@@ -45,7 +45,7 @@ class HashingTests {
         val buffer = Buffer().write(bytes)
         assertThat(buffer.hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
 
-        // hash from source
-        assertThat((buffer as RawSource).hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
+        // hash from reader
+        assertThat((buffer as RawReader).hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
     }
 }

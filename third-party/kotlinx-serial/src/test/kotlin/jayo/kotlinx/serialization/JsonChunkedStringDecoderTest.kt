@@ -57,25 +57,25 @@ open class JsonChunkedStringDecoderTest : JsonTestBase() {
     @Test
     fun decodePlainLenientString() {
         val longString = "abcd".repeat(8192) // Make string more than 16k
-        val sourceObject = ClassWithLargeStringDataField(LargeStringData(longString))
+        val readerObject = ClassWithLargeStringDataField(LargeStringData(longString))
         val serializedObject = "{\"largeStringField\": $longString }"
         val jsonWithLenientMode = Json { isLenient = true }
-        testDecodeInAllModes(jsonWithLenientMode, serializedObject, sourceObject)
+        testDecodeInAllModes(jsonWithLenientMode, serializedObject, readerObject)
     }
 
     @Test
     fun decodePlainString() {
         val longStringWithEscape = "${"abcd".repeat(4096)}\"${"abcd".repeat(4096)}" // Make string more than 16k
-        val sourceObject = ClassWithLargeStringDataField(LargeStringData(longStringWithEscape))
-        val serializedObject = Json.encodeToString(sourceObject)
-        testDecodeInAllModes(Json, serializedObject, sourceObject)
+        val readerObject = ClassWithLargeStringDataField(LargeStringData(longStringWithEscape))
+        val serializedObject = Json.encodeToString(readerObject)
+        testDecodeInAllModes(Json, serializedObject, readerObject)
     }
 
     private fun testDecodeInAllModes(
-        seralizer: Json, serializedObject: String, sourceObject: ClassWithLargeStringDataField
+        seralizer: Json, serializedObject: String, readerObject: ClassWithLargeStringDataField
     ) {
         val deserializedObject =
             seralizer.decodeFromStringWithJayo<ClassWithLargeStringDataField>(serializedObject)
-        assertThat(deserializedObject.largeStringField).isEqualTo(sourceObject.largeStringField)
+        assertThat(deserializedObject.largeStringField).isEqualTo(readerObject.largeStringField)
     }
 }

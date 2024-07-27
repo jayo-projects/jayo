@@ -22,8 +22,8 @@ public class SocketTest {
         var serverThread = Thread.startVirtualThread(() -> {
             try (var serverSocket = new ServerSocket(freePortNumber);
                  var acceptedSocket = serverSocket.accept();
-                 var serverSink = Jayo.buffer(Jayo.sink(acceptedSocket))) {
-                serverSink.writeUtf8("The Answer to the Ultimate Question of Life is ")
+                 var serverWriter = Jayo.buffer(Jayo.writer(acceptedSocket))) {
+                serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
                         .writeUtf8CodePoint('4')
                         .writeUtf8CodePoint('2');
             } catch (IOException e) {
@@ -31,8 +31,8 @@ public class SocketTest {
             }
         });
         try (var clientSocket = new Socket("localhost", freePortNumber);
-             var clientSource = Jayo.buffer(Jayo.source(clientSocket))) {
-            assertThat(clientSource.readUtf8()).isEqualTo("The Answer to the Ultimate Question of Life is 42");
+             var clientReader = Jayo.buffer(Jayo.reader(clientSocket))) {
+            assertThat(clientReader.readUtf8String()).isEqualTo("The Answer to the Ultimate Question of Life is 42");
         }
         serverThread.join();
     }

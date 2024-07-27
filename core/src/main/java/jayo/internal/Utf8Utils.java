@@ -38,13 +38,13 @@ final class Utf8Utils {
         Objects.requireNonNull(buffer);
         if (newline > 0L && buffer.getByte(newline - 1) == (byte) ((int) '\r')) {
             // Read everything until '\r\n', then skip the '\r\n'.
-            final var result = buffer.readUtf8(newline - 1L);
+            final var result = buffer.readUtf8String(newline - 1L);
             buffer.skip(2L);
             return result;
         }
 
         // Read everything until '\n', then skip the '\n'.
-        final var result = buffer.readUtf8(newline);
+        final var result = buffer.readUtf8String(newline);
         buffer.skip(1L);
         return result;
     }

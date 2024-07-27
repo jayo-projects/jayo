@@ -22,7 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
-import jayo.RawSource;
+import jayo.RawReader;
 import jayo.exceptions.JayoException;
 import org.jspecify.annotations.NonNull;
 
@@ -31,21 +31,21 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.WritableByteChannel;
 
 /**
- * Special Source for a FileChannel to take advantage of the
+ * Special Reader for a FileChannel to take advantage of the
  * {@link FileChannel#transferTo(long, long, WritableByteChannel) transfer} method available.
  */
-final class FileChannelRawSource implements RawSource {
+final class FileChannelRawReader implements RawReader {
     private final FileChannel channel;
 
     private long position;
 
-    FileChannelRawSource(FileChannel channel) throws IOException {
+    FileChannelRawReader(FileChannel channel) throws IOException {
         this.channel = channel;
         this.position = channel.position();
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer sink, final long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         if (!channel.isOpen()) {
             throw new IllegalStateException("closed");
         }
@@ -54,7 +54,7 @@ final class FileChannelRawSource implements RawSource {
                 return -1L;
             }
 
-            long read = channel.transferTo(position, byteCount, sink.asWritableByteChannel());
+            long read = channel.transferTo(position, byteCount, writer.asWritableByteChannel());
             position += read;
             return read;
         } catch (IOException e) {

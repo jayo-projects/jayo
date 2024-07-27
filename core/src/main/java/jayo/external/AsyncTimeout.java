@@ -23,8 +23,8 @@ package jayo.external;
 
 import org.jspecify.annotations.NonNull;
 import jayo.CancelScope;
-import jayo.RawSink;
-import jayo.RawSource;
+import jayo.RawWriter;
+import jayo.RawReader;
 import jayo.exceptions.JayoCancelledException;
 import jayo.internal.RealAsyncTimeout;
 
@@ -39,7 +39,7 @@ import java.util.function.Supplier;
  * will be invoked by the shared watchdog thread, so it should not do any long-running operations. Otherwise, we risk
  * starving other timeouts from being triggered.
  * <p>
- * Use {@link #sink} and {@link #source} to apply this timeout to a stream. The returned value will apply the
+ * Use {@link #writer} and {@link #reader} to apply this timeout to a stream. The returned value will apply the
  * timeout to each operation on the wrapped stream.
  * <p>
  * Callers should call {@link #enter} before doing work that is subject to timeouts, and {@link #exit} afterward.
@@ -74,16 +74,16 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     <T> T withTimeout(final @NonNull CancelScope cancelScope, final @NonNull Supplier<T> block);
 
     /**
-     * @return a new sink that delegates to {@code sink}, using this to implement timeouts. If a timeout occurs, the
+     * @return a new writer that delegates to {@code writer}, using this to implement timeouts. If a timeout occurs, the
      * {@code onTimeout} declared in {@link #create(Runnable)} will execute.
      */
     @NonNull
-    RawSink sink(final @NonNull RawSink sink);
+    RawWriter writer(final @NonNull RawWriter writer);
 
     /**
-     * @return a new source that delegates to {@code source}, using this to implement timeouts. If a timeout occurs, the
+     * @return a new reader that delegates to {@code reader}, using this to implement timeouts. If a timeout occurs, the
      * {@code onTimeout} declared in {@link #create(Runnable)} will execute.
      */
     @NonNull
-    RawSource source(final @NonNull RawSource source);
+    RawReader reader(final @NonNull RawReader reader);
 }

@@ -37,8 +37,8 @@ var freePortNumber = 54321;
 var serverThread = Thread.startVirtualThread(() -> {
     try (var serverSocket = new ServerSocket(freePortNumber);
         var acceptedSocket = serverSocket.accept();
-        var serverSink = Jayo.buffer(Jayo.sink(acceptedSocket))) {
-        serverSink.writeUtf8("The Answer to the Ultimate Question of Life is ")
+        var serverWriter = Jayo.buffer(Jayo.writer(acceptedSocket))) {
+        serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
             .writeUtf8CodePoint('4')
             .writeUtf8CodePoint('2');
     } catch (IOException e) {
@@ -46,8 +46,8 @@ var serverThread = Thread.startVirtualThread(() -> {
     }
 });
 try (var clientSocket = new Socket("localhost", freePortNumber);
-    var clientSource = Jayo.buffer(Jayo.source(clientSocket))) {
-    assertThat(clientSource.readUtf8())
+    var clientReader = Jayo.buffer(Jayo.reader(clientSocket))) {
+    assertThat(clientReader.readUtf8())
         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
 }
 serverThread.join();
@@ -73,8 +73,9 @@ Java 21 is required to use Jayo.
 
 [Jayo](./core) offers solid I/O foundations by providing the tools we need for binary data manipulation
 * `Buffer` is a mutable sequence of bytes one can easily write to and read from.
-* `ByteString` is an immutable and serializable sequence of bytes that stores a String related binary content.
-* `RawSource` and `RawSink` (and their buffered versions `Source` and `Sink`) offer great improvements over
+* `ByteString` is an immutable and serializable sequence of bytes that stores a String related binary content
+  * `Utf8` is a `ByteString` that contains UTF-8 encoded bytes only.
+* `RawReader` and `RawWriter` (and their buffered versions `Reader` and `Writer`) offer great improvements over
 `InputStream` and `OutputStream`.
 
 You can also read [concepts](CONCEPT.md) and [draft ideas](DRAFT_IDEAS.md).
@@ -82,8 +83,8 @@ You can also read [concepts](CONCEPT.md) and [draft ideas](DRAFT_IDEAS.md).
 ### Third-party integration modules
 
 Jayo includes modules to integrate it with third-party external libraries
-* [jayo-3p-kotlinx-serialization](./third-party/kotlinx-serial) allow you to serialize JSON content directly into Jayo's sinks and
-from Jayo's sources thanks to [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization)
+* [jayo-3p-kotlinx-serialization](./third-party/kotlinx-serial) allow you to serialize JSON content directly into Jayo's writers and
+from Jayo's readers thanks to [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization)
 
 ## Build
 

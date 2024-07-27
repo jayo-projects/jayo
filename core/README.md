@@ -19,16 +19,18 @@ can encode or decode it as hex, base64, and UTF-8, you can also search content i
 Buffer relies on a queue of memory segments. It is optimized fo zero-copy segment sharing with other buffers and uses
 pooled `byte[]` based segments to avoid GC churn and zero-fill of the memory.
 
-## Sources and Sinks
+`Utf8` is a `ByteString` that contains UTF-8 encoded bytes only.
 
-`RawSource` and `RawSink`, although conceptually identical, offer great improvements over `InputStream` and
+## Readers and Writers
+
+`RawReader` and `RawWriter`, although conceptually identical, offer great improvements over `InputStream` and
 `OutputStream`
-* Create a `RawSource` for reading from or a `RawSink` for writing to a file or a network socket, then just obtain a
-buffered `Source` or a `Sink` from it. With them, you have access to feature rich interfaces that provide all you need,
+* Create a `RawReader` for reading from or a `RawWriter` for writing to a file or a network socket, then just obtain a
+buffered `Reader` or a `Writer` from it. With them, you have access to feature rich interfaces that provide all you need,
 yet remaining relatively light with a few dozen useful functions.
-* `Source` and `Sink` are all you need ; wether you manipulate Strings, ByteStrings, numbers, pure binary content and so
+* `Reader` and `Writer` are all you need ; wether you manipulate Strings, ByteStrings, numbers, pure binary content and so
 on. No more specific readers needed here.
-* `RawSource` and `RawSink` are reasonably easy to implement, feel free to try it !
+* `RawReader` and `RawWriter` are reasonably easy to implement, feel free to try it !
 
 ## Timeouts and cancellation
 

@@ -31,9 +31,9 @@ public final class ReadPathLineByLine {
     }
 
     public void readLines(Path path) {
-        try (final var fileSource = Jayo.buffer(Jayo.source(path))) {
+        try (final var fileReader = Jayo.buffer(Jayo.reader(path))) {
             while (true) {
-                String line = fileSource.readUtf8Line();
+                String line = fileReader.readUtf8Line();
                 if (line == null) {
                     break;
                 }

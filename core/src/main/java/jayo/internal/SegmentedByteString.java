@@ -68,7 +68,7 @@ import static jayo.internal.Utils.arrayRangeEquals;
  * This structure is chosen so that the segment holding a particular offset can be found by
  * binary search. We use one array rather than two for the directory as a micro-optimization.
  */
-public sealed class SegmentedByteString extends RealByteString implements ByteString permits SegmentedUtf8String {
+public sealed class SegmentedByteString extends RealByteString implements ByteString permits SegmentedUtf8 {
     transient final @NonNull Segment @NonNull [] segments;
     transient final int @NonNull [] directory;
 

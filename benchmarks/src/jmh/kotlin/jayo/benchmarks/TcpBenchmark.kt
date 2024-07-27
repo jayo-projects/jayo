@@ -1,10 +1,10 @@
 package jayo.benchmarks
 
 import jayo.Buffer
-import jayo.sink
-import jayo.source
-import okio.sink as okioSink
-import okio.source as okioSource
+import jayo.writer
+import jayo.reader
+import okio.sink
+import okio.source
 import org.openjdk.jmh.annotations.*
 import java.net.ServerSocket
 import java.net.Socket
@@ -65,12 +65,12 @@ open class TcpBenchmark {
     fun readerJayo() {
         Socket().use { socket ->
             socket.connect(senderServer.localSocketAddress)
-            socket.source().use { source ->
+            socket.reader().use { reader ->
                 val buffer = Buffer()
                     .writeUtf8("b")
                 var toRead = BYTE_COUNT
                 while (toRead > 0) {
-                    val read = source.readAtMostTo(buffer, BYTE_COUNT.toLong()).toInt()
+                    val read = reader.readAtMostTo(buffer, BYTE_COUNT.toLong()).toInt()
                     toRead -= read
                 }
                 buffer.clear()
@@ -79,10 +79,10 @@ open class TcpBenchmark {
     }
 
     @Benchmark
-    fun readerOkio() {
+    fun sourceOkio() {
         Socket().use { socket ->
             socket.connect(senderServer.localSocketAddress)
-            socket.okioSource().use { source ->
+            socket.source().use { source ->
                 val buffer = okio.Buffer()
                     .writeUtf8("b")
                 var toRead = BYTE_COUNT
@@ -99,8 +99,8 @@ open class TcpBenchmark {
     fun senderJayo() {
         val socket = Socket()
         socket.connect(receiverServer.localSocketAddress)
-        socket.sink().use { sink ->
-            sink.write(Buffer().writeUtf8("b".repeat(BYTE_COUNT)), BYTE_COUNT.toLong())
+        socket.writer().use { writer ->
+            writer.write(Buffer().writeUtf8("b".repeat(BYTE_COUNT)), BYTE_COUNT.toLong())
         }
     }
 
@@ -108,7 +108,7 @@ open class TcpBenchmark {
     fun senderOkio() {
         val socket = Socket()
         socket.connect(receiverServer.localSocketAddress)
-        socket.okioSink().use { sink ->
+        socket.sink().use { sink ->
             sink.write(okio.Buffer().writeUtf8("b".repeat(BYTE_COUNT)), BYTE_COUNT.toLong())
         }
     }

@@ -68,11 +68,11 @@ class SegmentSharingTest {
         val byteString = bufferWithSegments(xs, ys, zs).snapshot()
         val out = RealBuffer()
         byteString.write(out.asOutputStream())
-        assertEquals(xs + ys + zs, out.readUtf8())
+        assertEquals(xs + ys + zs, out.readUtf8String())
     }
 
     /**
-     * Snapshots share their backing byte arrays with the source buffers. Those byte arrays must not
+     * Snapshots share their backing byte arrays with the reader buffers. Those byte arrays must not
      * be recycled, otherwise the new writer could corrupt the segment.
      */
     @Test
@@ -89,7 +89,7 @@ class SegmentSharingTest {
     }
 
     /**
-     * Clones share their backing byte arrays with the source buffers. Those byte arrays must not
+     * Clones share their backing byte arrays with the reader buffers. Those byte arrays must not
      * be recycled, otherwise the new writer could corrupt the segment.
      */
     @Test
@@ -131,22 +131,22 @@ class SegmentSharingTest {
         val bufferB = bufferA.clone()
         bufferA.writeUtf8("def")
         bufferB.writeUtf8("DEF")
-        assertEquals("abcdef", bufferA.readUtf8())
-        assertEquals("abcDEF", bufferB.readUtf8())
+        assertEquals("abcdef", bufferA.readUtf8String())
+        assertEquals("abcDEF", bufferB.readUtf8String())
     }
 
     @Test
     fun concatenateSegmentsCanCombine() {
         val bufferA = RealBuffer().writeUtf8(ys).writeUtf8(us)
-        assertEquals(ys, bufferA.readUtf8(ys.length.toLong()))
+        assertEquals(ys, bufferA.readUtf8String(ys.length.toLong()))
         val bufferB = RealBuffer().writeUtf8(vs).writeUtf8(ws)
         val bufferC = bufferA.clone()
         bufferA.write(bufferB, vs.length.toLong())
         bufferC.writeUtf8(xs)
 
-        assertEquals(us + vs, bufferA.readUtf8())
-        assertEquals(ws, bufferB.readUtf8())
-        assertEquals(us + xs, bufferC.readUtf8())
+        assertEquals(us + vs, bufferA.readUtf8String())
+        assertEquals(ws, bufferB.readUtf8String())
+        assertEquals(us + xs, bufferC.readUtf8String())
     }
 
     @Test

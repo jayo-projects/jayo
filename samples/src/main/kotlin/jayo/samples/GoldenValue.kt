@@ -35,7 +35,7 @@ class KotlinGoldenValue {
         val pointBytes = serialize(point)
         println(pointBytes.base64())
         val goldenBytes = (
-                "rO0ABXNyABdLb3RsaW5Hb2xkZW5WYWx1ZSRQb2ludCrUIxiJQbunAgACRAABeEQAAXl4cEAgAAAAAAAAQC4AAAAAAAA="
+                "rO0ABXNyABJqYXlvLnNhbXBsZXMuUG9pbnT1wai9iK0Z/QIAAkQAAXhEAAF5eHBAIAAAAAAAAEAuAAAAAAAA"
                 ).decodeBase64()!!
         val decoded = deserialize(goldenBytes) as Point
         assertEquals(point, decoded)
@@ -61,8 +61,6 @@ class KotlinGoldenValue {
         }
     }
 
-    internal class Point(var x: Double, var y: Double) : Serializable
-
     private fun assertEquals(
         a: Point,
         b: Point,
@@ -70,6 +68,8 @@ class KotlinGoldenValue {
         if (a.x != b.x || a.y != b.y) throw AssertionError()
     }
 }
+
+class Point(var x: Double, var y: Double) : Serializable
 
 fun main() {
     KotlinGoldenValue().run()

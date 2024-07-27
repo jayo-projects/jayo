@@ -23,7 +23,7 @@ package jayo.internal
 
 import jayo.Buffer
 import jayo.Options
-import jayo.encodeToUtf8String
+import jayo.encodeToUtf8
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -407,7 +407,7 @@ class OptionsTest {
     }
 
     private fun utf8Options(vararg options: String): Options {
-        return Options.of(*options.map { it.encodeToUtf8String() }.toTypedArray())
+        return Options.of(*options.map { it.encodeToUtf8() }.toTypedArray())
     }
 
     private fun assertSelect(data: String, expected: Int, options: Options) {

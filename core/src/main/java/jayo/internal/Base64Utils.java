@@ -46,11 +46,11 @@ public final class Base64Utils {
             .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", StandardCharsets.UTF_8))
             .data;
 
-    public static byte @Nullable [] decodeBase64ToArray(final @NonNull CharSequence source) {
+    public static byte @Nullable [] decodeBase64ToArray(final @NonNull CharSequence reader) {
         // Ignore trailing '=' padding and whitespace from the input.
-        var limit = Objects.requireNonNull(source).length();
+        var limit = Objects.requireNonNull(reader).length();
         while (limit > 0) {
-            final var c = source.charAt(limit - 1);
+            final var c = reader.charAt(limit - 1);
             if (c != '=' && c != '\n' && c != '\r' && c != ' ' && c != '\t') {
                 break;
             }
@@ -64,7 +64,7 @@ public final class Base64Utils {
 
         var word = 0;
         for (var pos = 0; pos < limit; pos++) {
-            final var c = source.charAt(pos);
+            final var c = reader.charAt(pos);
 
             final int bits;
             if (c >= 'A' && c <= 'Z') {

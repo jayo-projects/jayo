@@ -21,7 +21,7 @@
 
 package jayo.samples
 
-import jayo.encodeToUtf8String
+import jayo.encodeToUtf8
 import jayo.utf8Size
 
 fun dumpStringData(s: String) {
@@ -29,7 +29,7 @@ fun dumpStringData(s: String) {
     println("        String.length: " + s.length)
     println("String.codePointCount: " + s.codePointCount(0, s.length))
     println("            Utf8.size: " + s.utf8Size())
-    println("          UTF-8 bytes: " + s.encodeToUtf8String().hex())
+    println("          UTF-8 bytes: " + s.encodeToUtf8().hex())
     println()
 }
 

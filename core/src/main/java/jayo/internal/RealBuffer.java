@@ -87,8 +87,8 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Source peek() {
-        return new RealSource(new PeekRawSource(this), false);
+    public @NonNull Reader peek() {
+        return new RealReader(new PeekRawReader(this), false);
     }
 
     @Override
@@ -493,7 +493,7 @@ public final class RealBuffer implements Buffer {
                             if (!negative) {
                                 buffer.readByte(); // Skip negative sign.
                             }
-                            throw new NumberFormatException("Number too large: " + buffer.readUtf8());
+                            throw new NumberFormatException("Number too large: " + buffer.readUtf8String());
                         }
                     }
                     value *= 10L;
@@ -580,7 +580,7 @@ public final class RealBuffer implements Buffer {
                 if ((value & -0x1000000000000000L) != 0L) {
                     try (final var buffer = new RealBuffer()) {
                         buffer.writeHexadecimalUnsignedLong(value).writeByte(b);
-                        throw new NumberFormatException("Number too large: " + buffer.readUtf8());
+                        throw new NumberFormatException("Number too large: " + buffer.readUtf8String());
                     }
                 }
 
@@ -687,12 +687,11 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Utf8String readUtf8String() {
-        return readUtf8String(segmentQueue.size());
+    public @NonNull Utf8 readUtf8() {
+        return readUtf8(segmentQueue.size());
     }
 
-    @Override
-    public @NonNull Utf8String readUtf8String(final @NonNegative long byteCount) {
+    public @NonNull Utf8 readUtf8(final @NonNegative long byteCount) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
@@ -700,13 +699,13 @@ public final class RealBuffer implements Buffer {
             throw new JayoEOFException();
         }
         if (byteCount == 0L) {
-            return Utf8String.EMPTY;
+            return Utf8.EMPTY;
         }
 
         if (byteCount >= SEGMENTING_THRESHOLD) {
             if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8String({1}), will return a " +
-                                "segmented Utf8String{2}",
+                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8({1}), will return a " +
+                                "segmented Utf8{2}",
                         segmentQueue.hashCode(), byteCount, System.lineSeparator());
             }
             final var byteStringBuilder = prepareByteString(byteCount);
@@ -717,14 +716,14 @@ public final class RealBuffer implements Buffer {
                 directory[i] = byteStringBuilder.offsets.get(i);
                 directory[i + size] = byteStringBuilder.positions.get(i);
             }
-            return new SegmentedUtf8String(segments, directory);
+            return new SegmentedUtf8(segments, directory);
         } else {
             if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8String({1}), will return a " +
-                                "byte array based non-segmented Utf8String{2}",
+                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8({1}), will return a " +
+                                "byte array based non-segmented Utf8{2}",
                         segmentQueue.hashCode(), byteCount, System.lineSeparator());
             }
-            return new RealUtf8String(readByteArray(byteCount), false);
+            return new RealUtf8(readByteArray(byteCount), false);
         }
     }
 
@@ -745,38 +744,38 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void readTo(final @NonNull RawSink sink, final @NonNegative long byteCount) {
-        Objects.requireNonNull(sink);
+    public void readTo(final @NonNull RawWriter writer, final @NonNegative long byteCount) {
+        Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
         final var currentSize = segmentQueue.size();
         if (currentSize < byteCount) {
-            sink.write(this, currentSize); // Exhaust ourselves.
+            writer.write(this, currentSize); // Exhaust ourselves.
             throw new JayoEOFException(
                     "Buffer exhausted before writing " + byteCount + " bytes. Only " + currentSize
                             + " bytes were written.");
         }
-        sink.write(this, byteCount);
+        writer.write(this, byteCount);
     }
 
     @Override
-    public @NonNegative long transferTo(final @NonNull RawSink sink) {
-        Objects.requireNonNull(sink);
+    public @NonNegative long transferTo(final @NonNull RawWriter writer) {
+        Objects.requireNonNull(writer);
         final var byteCount = segmentQueue.size();
         if (byteCount > 0L) {
-            sink.write(this, byteCount);
+            writer.write(this, byteCount);
         }
         return byteCount;
     }
 
     @Override
-    public @NonNull String readUtf8() {
+    public @NonNull String readUtf8String() {
         return readString(segmentQueue.size(), StandardCharsets.UTF_8);
     }
 
     @Override
-    public @NonNull String readUtf8(final @NonNegative long byteCount) {
+    public @NonNull String readUtf8String(final @NonNegative long byteCount) {
         return readString(byteCount, StandardCharsets.UTF_8);
     }
 
@@ -827,7 +826,7 @@ public final class RealBuffer implements Buffer {
             return Utf8Utils.readUtf8Line(this, newline);
         }
         if (segmentQueue.size() != 0L) {
-            return readUtf8(segmentQueue.size());
+            return readUtf8String(segmentQueue.size());
         }
 
         return null;
@@ -955,24 +954,24 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void readTo(final byte @NonNull [] sink) {
-        readTo(sink, 0, sink.length);
+    public void readTo(final byte @NonNull [] writer) {
+        readTo(writer, 0, writer.length);
     }
 
     @Override
-    public void readTo(final byte @NonNull [] sink,
+    public void readTo(final byte @NonNull [] writer,
                        final @NonNegative int offset,
                        final @NonNegative int byteCount) {
-        Objects.requireNonNull(sink);
-        checkOffsetAndCount(sink.length, offset, byteCount);
+        Objects.requireNonNull(writer);
+        checkOffsetAndCount(writer.length, offset, byteCount);
 
         final var head = segmentQueue.headVolatile();
         assert head != null;
-        readTo(head, sink, offset, byteCount);
+        readTo(head, writer, offset, byteCount);
     }
 
     private void readTo(final @NonNull Segment head,
-                        final byte @NonNull [] sink,
+                        final byte @NonNull [] writer,
                         final @NonNegative int offset,
                         final @NonNegative int byteCount) {
         var _head = head;
@@ -986,7 +985,7 @@ public final class RealBuffer implements Buffer {
             final var toCopy = Math.min(remaining, currentLimit - _head.pos);
             remaining -= toCopy;
             finished = remaining == 0;
-            _head = readAtMostTo(_head, sink, _offset, toCopy, currentLimit);
+            _head = readAtMostTo(_head, writer, _offset, toCopy, currentLimit);
             _offset += toCopy;
         }
 
@@ -997,16 +996,16 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public int readAtMostTo(final byte @NonNull [] sink) {
-        return readAtMostTo(sink, 0, sink.length);
+    public int readAtMostTo(final byte @NonNull [] writer) {
+        return readAtMostTo(writer, 0, writer.length);
     }
 
     @Override
-    public int readAtMostTo(final byte @NonNull [] sink,
+    public int readAtMostTo(final byte @NonNull [] writer,
                             final @NonNegative int offset,
                             final @NonNegative int byteCount) {
-        Objects.requireNonNull(sink);
-        checkOffsetAndCount(sink.length, offset, byteCount);
+        Objects.requireNonNull(writer);
+        checkOffsetAndCount(writer.length, offset, byteCount);
 
         if (segmentQueue.size() == 0L) {
             return -1;
@@ -1016,17 +1015,17 @@ public final class RealBuffer implements Buffer {
         assert head != null;
         final var currentLimit = head.limitVolatile();
         final var toCopy = Math.min(byteCount, currentLimit - head.pos);
-        readAtMostTo(head, sink, offset, toCopy, currentLimit);
+        readAtMostTo(head, writer, offset, toCopy, currentLimit);
         return toCopy;
     }
 
     private @Nullable Segment readAtMostTo(final @NonNull Segment head,
-                                           final byte @NonNull [] sink,
+                                           final byte @NonNull [] writer,
                                            final @NonNegative int offset,
                                            final @NonNegative int byteCount,
                                            final @NonNegative int currentLimit) {
         final var toCopy = Math.min(byteCount, currentLimit - head.pos);
-        System.arraycopy(head.data, head.pos, sink, offset, toCopy);
+        System.arraycopy(head.data, head.pos, writer, offset, toCopy);
         head.pos += toCopy;
         segmentQueue.decrementSize(toCopy);
 
@@ -1040,8 +1039,8 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public int readAtMostTo(final @NonNull ByteBuffer sink) {
-        Objects.requireNonNull(sink);
+    public int readAtMostTo(final @NonNull ByteBuffer writer) {
+        Objects.requireNonNull(writer);
 
         if (segmentQueue.size() == 0L) {
             return -1;
@@ -1050,8 +1049,8 @@ public final class RealBuffer implements Buffer {
         final var head = segmentQueue.headVolatile();
         assert head != null;
         final var currentLimit = head.limitVolatile();
-        final var toCopy = Math.min(sink.remaining(), currentLimit - head.pos);
-        sink.put(head.data, head.pos, toCopy);
+        final var toCopy = Math.min(writer.remaining(), currentLimit - head.pos);
+        writer.put(head.data, head.pos, toCopy);
         head.pos += toCopy;
         segmentQueue.decrementSize(toCopy);
 
@@ -1374,13 +1373,13 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative int transferFrom(final @NonNull ByteBuffer source) {
-        final var byteCount = Objects.requireNonNull(source).remaining();
+    public @NonNegative int transferFrom(final @NonNull ByteBuffer reader) {
+        final var byteCount = Objects.requireNonNull(reader).remaining();
         final var remaining = new Wrapper.Int(byteCount);
         while (remaining.value > 0) {
             segmentQueue.withWritableTail(1, s -> {
                 final var toCopy = Math.min(remaining.value, Segment.SIZE - s.limit());
-                source.get(s.data, s.limit(), toCopy);
+                reader.get(s.data, s.limit(), toCopy);
                 remaining.value -= toCopy;
                 s.incrementLimitVolatile(toCopy);
                 return true;
@@ -1391,11 +1390,11 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative long transferFrom(final @NonNull RawSource source) {
-        Objects.requireNonNull(source);
+    public @NonNegative long transferFrom(final @NonNull RawReader reader) {
+        Objects.requireNonNull(reader);
         var totalBytesRead = 0L;
         while (true) {
-            final var readCount = source.readAtMostTo(this, Segment.SIZE);
+            final var readCount = reader.readAtMostTo(this, Segment.SIZE);
             if (readCount == -1L) {
                 break;
             }
@@ -1405,14 +1404,14 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull RawSource source, final @NonNegative long byteCount) {
-        Objects.requireNonNull(source);
+    public @NonNull Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount) {
+        Objects.requireNonNull(reader);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         var _byteCount = byteCount;
         while (_byteCount > 0L) {
-            final var read = source.readAtMostTo(this, _byteCount);
+            final var read = reader.readAtMostTo(this, _byteCount);
             if (read == -1L) {
                 throw new JayoEOFException();
             }
@@ -1600,8 +1599,8 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void write(final @NonNull Buffer source, final @NonNegative long byteCount) {
-        // Move bytes from the head of the source buffer to the tail of this buffer in the most possible effective way !
+    public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+        // Move bytes from the head of the reader buffer to the tail of this buffer in the most possible effective way !
         // This method is the most crucial part of the Jayo concept based on Buffer = a queue of segments.
         //
         // We must do it while balancing two conflicting goals: don't waste CPU and don't waste memory.
@@ -1641,117 +1640,117 @@ public final class RealBuffer implements Buffer {
         //
         // Splitting segments
         //
-        // Occasionally we write only part of a source buffer to a sink buffer. For example, given a sink [51%, 91%], we
-        // may want to write the first 30% of a source [92%, 82%] to it. To simplify, we first transform the source to
-        // an equivalent buffer [30%, 62%, 82%] and then move the head segment, yielding sink [51%, 91%, 30%] and source
+        // Occasionally we write only part of a reader buffer to a writer buffer. For example, given a writer [51%, 91%], we
+        // may want to write the first 30% of a reader [92%, 82%] to it. To simplify, we first transform the reader to
+        // an equivalent buffer [30%, 62%, 82%] and then move the head segment, yielding writer [51%, 91%, 30%] and reader
         // [62%, 82%].
 
-        if (Objects.requireNonNull(source) == this) {
-            throw new IllegalArgumentException("source == this, cannot write in itself");
+        if (Objects.requireNonNull(reader) == this) {
+            throw new IllegalArgumentException("reader == this, cannot write in itself");
         }
-        checkOffsetAndCount(source.byteSize(), 0, byteCount);
+        checkOffsetAndCount(reader.byteSize(), 0, byteCount);
         if (byteCount == 0L) {
             return;
         }
-        if (!(source instanceof RealBuffer _source)) {
-            throw new IllegalArgumentException("source must be an instance of RealBuffer");
+        if (!(reader instanceof RealBuffer _reader)) {
+            throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
 
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, """
-                            Buffer(SegmentQueue#{0}) : Start writing {1} bytes from source segment queue
+                            Buffer(SegmentQueue#{0}) : Start writing {1} bytes from reader segment queue
                             {2}
                             into this segment queue
                             {3}{4}""",
-                    segmentQueue.hashCode(), byteCount, _source.segmentQueue, segmentQueue, System.lineSeparator());
+                    segmentQueue.hashCode(), byteCount, _reader.segmentQueue, segmentQueue, System.lineSeparator());
         }
 
         var remaining = byteCount;
         var tail = segmentQueue.nonRemovedTailOrNull();
-        var sourceHead = _source.segmentQueue.headVolatile();
-        Segment nextSourceHead = null;
-        var sourceHeadIsWriting = false;
+        var readerHead = _reader.segmentQueue.headVolatile();
+        Segment nextReaderHead = null;
+        var readerHeadIsWriting = false;
         try {
             while (remaining > 0) {
-                if (nextSourceHead != null) {
-                    sourceHead = nextSourceHead;
+                if (nextReaderHead != null) {
+                    readerHead = nextReaderHead;
                 }
-                if (sourceHead == null) {
-                    LOGGER.log(WARNING, "sourceHead == null, should not !\n" + _source.segmentQueue);
-                    throw new IllegalStateException("sourceHead == null, should not !");
+                if (readerHead == null) {
+                    LOGGER.log(WARNING, "readerHead == null, should not !\n" + _reader.segmentQueue);
+                    throw new IllegalStateException("readerHead == null, should not !");
                 }
 
-                // Is a prefix of the source's head segment all that we need to move?
-                assert sourceHead != null;
-                var currentLimit = sourceHead.limitVolatile();
-                var bytesInSource = currentLimit - sourceHead.pos;
-                var split = sourceHeadIsWriting;
-                if (remaining < bytesInSource) {
+                // Is a prefix of the reader's head segment all that we need to move?
+                assert readerHead != null;
+                var currentLimit = readerHead.limitVolatile();
+                var bytesInReader = currentLimit - readerHead.pos;
+                var split = readerHeadIsWriting;
+                if (remaining < bytesInReader) {
                     if (tail != null && tail.owner &&
                             remaining + tail.limit() - ((tail.shared) ? 0 : tail.pos) <= Segment.SIZE
                     ) {
                         try {
-                            // Our existing segments are sufficient. Transfer bytes from source's head to our tail.
-                            sourceHead.writeTo(tail, (int) remaining);
+                            // Our existing segments are sufficient. Transfer bytes from reader's head to our tail.
+                            readerHead.writeTo(tail, (int) remaining);
                             if (LOGGER.isLoggable(TRACE)) {
-                                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : transferred {1} bytes from source " +
+                                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : transferred {1} bytes from reader " +
                                                 "Segment#{2} to target Segment#{3}{4}",
-                                        segmentQueue.hashCode(), remaining, sourceHead.hashCode(), tail.hashCode(),
+                                        segmentQueue.hashCode(), remaining, readerHead.hashCode(), tail.hashCode(),
                                         System.lineSeparator());
                             }
-                            _source.segmentQueue.decrementSize(remaining);
+                            _reader.segmentQueue.decrementSize(remaining);
                             segmentQueue.incrementSize(remaining);
                             return;
                         } finally {
-                            sourceHead.finishTransfer(sourceHeadIsWriting);
+                            readerHead.finishTransfer(readerHeadIsWriting);
                         }
                     }
                     split = true;
                 }
 
                 if (!split) {
-                    split = sourceHead.startTransfer();
+                    split = readerHead.startTransfer();
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE,
-                                "source SegmentQueue#{0} : head Segment#{1} is writing = {2}{3}",
-                                _source.segmentQueue.hashCode(), sourceHead.hashCode(), split,
+                                "reader SegmentQueue#{0} : head Segment#{1} is writing = {2}{3}",
+                                _reader.segmentQueue.hashCode(), readerHead.hashCode(), split,
                                 System.lineSeparator());
                     }
                 }
 
                 if (split) {
-                    // We're going to need another segment. Split the source's head segment in two, then we will
+                    // We're going to need another segment. Split the reader's head segment in two, then we will
                     // move the first of those two to this buffer.
-                    nextSourceHead = sourceHead;
+                    nextReaderHead = readerHead;
 
-                    bytesInSource = (int) Math.min(bytesInSource, remaining);
-                    sourceHead = sourceHead.splitHead(bytesInSource, sourceHeadIsWriting);
+                    bytesInReader = (int) Math.min(bytesInReader, remaining);
+                    readerHead = readerHead.splitHead(bytesInReader, readerHeadIsWriting);
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE,
-                                "source SegmentQueue#{0} : splitHead. prefix Segment#{1}, suffix Segment#{2}{3}",
-                                _source.segmentQueue.hashCode(), sourceHead.hashCode(), nextSourceHead.hashCode(),
+                                "reader SegmentQueue#{0} : splitHead. prefix Segment#{1}, suffix Segment#{2}{3}",
+                                _reader.segmentQueue.hashCode(), readerHead.hashCode(), nextReaderHead.hashCode(),
                                 System.lineSeparator());
                     }
-                    currentLimit = sourceHead.limit();
+                    currentLimit = readerHead.limit();
                 }
 
-                assert (byte) Segment.STATUS.get(sourceHead) == TRANSFERRING;
+                assert (byte) Segment.STATUS.get(readerHead) == TRANSFERRING;
 
-                // Remove the source's head segment and append it to our tail.
-                final var movedByteCount = currentLimit - sourceHead.pos;
+                // Remove the reader's head segment and append it to our tail.
+                final var movedByteCount = currentLimit - readerHead.pos;
 
-                _source.segmentQueue.decrementSize(movedByteCount);
-                nextSourceHead = _source.segmentQueue.removeHead(sourceHead, split);
+                _reader.segmentQueue.decrementSize(movedByteCount);
+                nextReaderHead = _reader.segmentQueue.removeHead(readerHead, split);
 
                 if (LOGGER.isLoggable(TRACE)) {
                     LOGGER.log(TRACE,
-                            "Buffer(SegmentQueue#{0}) : decrement {1} bytes of source SegmentQueue#{2}{3}",
-                            segmentQueue.hashCode(), movedByteCount, _source.segmentQueue.hashCode(),
+                            "Buffer(SegmentQueue#{0}) : decrement {1} bytes of reader SegmentQueue#{2}{3}",
+                            segmentQueue.hashCode(), movedByteCount, _reader.segmentQueue.hashCode(),
                             System.lineSeparator());
                 }
 
-                final var newTail = newTailIfNeeded(tail, sourceHead);
-                // newTail != null is true if we will transfer sourceHead to our buffer
+                final var newTail = newTailIfNeeded(tail, readerHead);
+                // newTail != null is true if we will transfer readerHead to our buffer
                 if (newTail != null) {
                     segmentQueue.addWritableTail(tail, newTail, false);
 
@@ -1762,8 +1761,8 @@ public final class RealBuffer implements Buffer {
 
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE,
-                                "Buffer(SegmentQueue#{0}) : transferred Segment#{1} of {2} bytes from source SegmentQueue#{3}{4}",
-                                segmentQueue.hashCode(), newTail.hashCode(), movedByteCount, _source.segmentQueue.hashCode(), System.lineSeparator());
+                                "Buffer(SegmentQueue#{0}) : transferred Segment#{1} of {2} bytes from reader SegmentQueue#{3}{4}",
+                                segmentQueue.hashCode(), newTail.hashCode(), movedByteCount, _reader.segmentQueue.hashCode(), System.lineSeparator());
                     }
 
                     if (tail != null) {
@@ -1771,7 +1770,7 @@ public final class RealBuffer implements Buffer {
                     }
                     tail = newTail;
                 } else {
-                    sourceHead = null;
+                    readerHead = null;
                 }
 
                 segmentQueue.incrementSize(movedByteCount);
@@ -1790,11 +1789,11 @@ public final class RealBuffer implements Buffer {
         }
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, """
-                            Buffer(SegmentQueue#{0}) : Finished writing {1} bytes from source segment queue
+                            Buffer(SegmentQueue#{0}) : Finished writing {1} bytes from reader segment queue
                             {2}
                             into this segment queue
                             {3}{4}""",
-                    segmentQueue.hashCode(), byteCount, _source.segmentQueue, segmentQueue, System.lineSeparator());
+                    segmentQueue.hashCode(), byteCount, _reader.segmentQueue, segmentQueue, System.lineSeparator());
         }
     }
 
@@ -1821,7 +1820,7 @@ public final class RealBuffer implements Buffer {
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, """
                             Buffer(SegmentQueue#{0}) : tail and its predecessor were both less than half full,
-                            transferred {1} bytes from source segment
+                            transferred {1} bytes from reader segment
                             {2}
                             to target segment
                             {3}{4}""",
@@ -1832,8 +1831,8 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer sink, final @NonNegative long byteCount) {
-        Objects.requireNonNull(sink);
+    public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+        Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
@@ -1845,7 +1844,7 @@ public final class RealBuffer implements Buffer {
         if (byteCount > size) {
             _byteCount = size;
         }
-        sink.write(this, _byteCount);
+        writer.write(this, _byteCount);
         return _byteCount;
     }
 
@@ -2452,8 +2451,8 @@ public final class RealBuffer implements Buffer {
             }
 
             @Override
-            public int read(final byte @NonNull [] sink, final int offset, final int byteCount) {
-                return readAtMostTo(sink, offset, byteCount);
+            public int read(final byte @NonNull [] writer, final int offset, final int byteCount) {
+                return readAtMostTo(writer, offset, byteCount);
             }
 
             @Override
@@ -2502,13 +2501,13 @@ public final class RealBuffer implements Buffer {
     public @NonNull ByteChannel asByteChannel() {
         return new ByteChannel() {
             @Override
-            public int read(final @NonNull ByteBuffer sink) {
-                return RealBuffer.this.readAtMostTo(sink);
+            public int read(final @NonNull ByteBuffer writer) {
+                return RealBuffer.this.readAtMostTo(writer);
             }
 
             @Override
-            public int write(final @NonNull ByteBuffer source) {
-                return RealBuffer.this.transferFrom(source);
+            public int write(final @NonNull ByteBuffer reader) {
+                return RealBuffer.this.transferFrom(reader);
             }
 
             @Override

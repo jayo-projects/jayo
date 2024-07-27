@@ -45,7 +45,7 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Utils.HEX_DIGIT_CHARS;
 import static jayo.internal.Utils.arrayRangeEquals;
 
-public sealed class RealByteString implements ByteString permits RealUtf8String, SegmentedByteString {
+public sealed class RealByteString implements ByteString permits RealUtf8, SegmentedByteString {
     @Serial
     private static final long serialVersionUID = 42L;
 
@@ -495,7 +495,7 @@ public sealed class RealByteString implements ByteString permits RealUtf8String,
             isAsciiField.set(this, isAscii);
             lengthField.set(this, length);
         } catch (IllegalAccessException e) {
-            throw new IllegalStateException("It should be possible to set RealUtf8String's 'data', 'isAscii' and " +
+            throw new IllegalStateException("It should be possible to set RealUtf8's 'data', 'isAscii' and " +
                     "'length' fields", e);
         }
     }

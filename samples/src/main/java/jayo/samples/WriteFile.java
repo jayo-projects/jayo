@@ -22,7 +22,7 @@
 package jayo.samples;
 
 import jayo.Jayo;
-import jayo.Sink;
+import jayo.Writer;
 
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -34,13 +34,13 @@ public final class WriteFile {
   }
 
   public void writeEnv(Path path) {
-    try (Sink fileSink = Jayo.buffer(Jayo.sink(path, StandardOpenOption.CREATE))) {
+    try (Writer fileWriter = Jayo.buffer(Jayo.writer(path, StandardOpenOption.CREATE))) {
 
       for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
-        fileSink.writeUtf8(entry.getKey());
-        fileSink.writeUtf8("=");
-        fileSink.writeUtf8(entry.getValue());
-        fileSink.writeUtf8("\n");
+        fileWriter.writeUtf8(entry.getKey());
+        fileWriter.writeUtf8("=");
+        fileWriter.writeUtf8(entry.getValue());
+        fileWriter.writeUtf8("\n");
       }
 
     }

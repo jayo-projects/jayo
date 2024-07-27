@@ -23,8 +23,8 @@ package jayo.internal;
 
 import jayo.Buffer;
 import jayo.CancelScope;
-import jayo.RawSink;
-import jayo.RawSource;
+import jayo.RawWriter;
+import jayo.RawReader;
 import jayo.exceptions.JayoCancelledException;
 import jayo.exceptions.JayoException;
 import jayo.exceptions.JayoTimeoutException;
@@ -51,7 +51,7 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
  * invoked by the shared watchdog thread, so it should not do any long-running operations. Otherwise,
  * we risk starving other timeouts from being triggered.
  * <p>
- * Use {@link #sink} and {@link #source} to apply this timeout to a stream. The returned value will apply the
+ * Use {@link #writer} and {@link #reader} to apply this timeout to a stream. The returned value will apply the
  * timeout to each operation on the wrapped stream.
  * <p>
  * Callers should call {@link #enter} before doing work that is subject to timeouts, and {@link #exit} afterward.
@@ -116,22 +116,22 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawSink sink(final @NonNull RawSink sink) {
-        Objects.requireNonNull(sink);
-        return new RawSink() {
+    public @NonNull RawWriter writer(final @NonNull RawWriter writer) {
+        Objects.requireNonNull(writer);
+        return new RawWriter() {
             @Override
-            public void write(final @NonNull Buffer source, final @NonNegative long byteCount) {
-                Objects.requireNonNull(source);
-                checkOffsetAndCount(source.byteSize(), 0, byteCount);
-                if (!(source instanceof RealBuffer _source)) {
-                    throw new IllegalArgumentException("source must be an instance of RealBuffer");
+            public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+                Objects.requireNonNull(reader);
+                checkOffsetAndCount(reader.byteSize(), 0, byteCount);
+                if (!(reader instanceof RealBuffer _reader)) {
+                    throw new IllegalArgumentException("reader must be an instance of RealBuffer");
                 }
 
                 // get cancel token immediately, if present it will be used in all I/O calls
                 final var cancelToken = CancellableUtils.getCancelToken();
 
                 if (cancelToken == null) {
-                    sink.write(source, byteCount);
+                    writer.write(reader, byteCount);
                     return;
                 }
 
@@ -142,7 +142,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 while (remaining > 0L) {
                     // Count how many bytes to write. This loop guarantees we split on a segment boundary.
                     var _toWrite = 0L;
-                    var segment = _source.segmentQueue.headVolatile();
+                    var segment = _reader.segmentQueue.headVolatile();
                     while (_toWrite < TIMEOUT_WRITE_SIZE) {
                         assert segment != null;
                         final var segmentSize = segment.limitVolatile() - segment.pos;
@@ -157,7 +157,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     final var toWrite = _toWrite;
                     // Emit one write. Only this section is subject to the timeout.
                     withTimeout(cancelToken, () -> {
-                        sink.write(source, toWrite);
+                        writer.write(reader, toWrite);
                         return null;
                     });
                     remaining -= _toWrite;
@@ -169,12 +169,12 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 final var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
                     withTimeout(cancelToken, () -> {
-                        sink.flush();
+                        writer.flush();
                         return null;
                     });
                     return;
                 }
-                sink.flush();
+                writer.flush();
             }
 
             @Override
@@ -182,34 +182,34 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 final var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
                     withTimeout(cancelToken, () -> {
-                        sink.close();
+                        writer.close();
                         return null;
                     });
                     return;
                 }
-                sink.close();
+                writer.close();
             }
 
             @Override
             @NonNull
             public String toString() {
-                return "AsyncTimeout.sink(" + sink + ")";
+                return "AsyncTimeout.writer(" + writer + ")";
             }
         };
     }
 
     @Override
-    public @NonNull RawSource source(final @NonNull RawSource source) {
-        Objects.requireNonNull(source);
-        return new RawSource() {
+    public @NonNull RawReader reader(final @NonNull RawReader reader) {
+        Objects.requireNonNull(reader);
+        return new RawReader() {
             @Override
-            public long readAtMostTo(final @NonNull Buffer sink, final @NonNegative long byteCount) {
-                Objects.requireNonNull(sink);
+            public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+                Objects.requireNonNull(writer);
                 final var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
-                    return withTimeout(cancelToken, () -> source.readAtMostTo(sink, byteCount));
+                    return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));
                 }
-                return source.readAtMostTo(sink, byteCount);
+                return reader.readAtMostTo(writer, byteCount);
             }
 
             @Override
@@ -217,18 +217,18 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 final var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
                     withTimeout(cancelToken, () -> {
-                        source.close();
+                        reader.close();
                         return null;
                     });
                     return;
                 }
-                source.close();
+                reader.close();
             }
 
             @Override
             @NonNull
             public String toString() {
-                return "AsyncTimeout.source(" + source + ")";
+                return "AsyncTimeout.reader(" + reader + ")";
             }
         };
     }

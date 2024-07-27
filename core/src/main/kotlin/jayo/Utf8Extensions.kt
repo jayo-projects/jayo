@@ -23,7 +23,33 @@
 
 package jayo
 
+import java.io.InputStream
+import java.nio.ByteBuffer
+
 /**
- * Returns the number of bytes used to encode the slice of `string` as UTF-8 when using [Sink.writeString].
+ * Returns a new [ByteString] containing a copy of `byteCount` bytes of this `ByteArray` starting at `offset`.
  */
-public fun CharSequence.utf8Size(): Long = Utf8.size(this)
+public fun ByteArray.toUtf8(
+    offset: Int = 0,
+    byteCount: Int = size
+): Utf8 {
+    return Utf8.ofUtf8(this, offset, byteCount)
+}
+
+/** Returns a [ByteString] containing a copy of the content of this [ByteBuffer]. */
+public fun ByteBuffer.toUtf8(): Utf8 = Utf8.ofUtf8(this)
+
+/**
+ * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
+ *
+ * @throws jayo.exceptions.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ */
+public fun InputStream.readUtf8(byteCount: Int): Utf8 = Utf8.readUtf8(this, byteCount)
+
+/** Returns a new [Utf8] containing the UTF-8-encoded bytes of this [String]. */
+public fun String.encodeToUtf8(): Utf8 = Utf8.encodeUtf8(this)
+
+/**
+ * Returns the number of bytes used to encode the slice of `string` as UTF-8 when using [Writer.writeString].
+ */
+public fun CharSequence.utf8Size(): Long = Utf8Utils.size(this)

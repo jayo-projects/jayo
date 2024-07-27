@@ -28,12 +28,12 @@ import java.util.List;
 import java.util.RandomAccess;
 
 /**
- * An indexed set of values that may be read with {@link Source#select(Options)}.
+ * An indexed set of values that may be read with {@link Reader#select(Options)}.
  */
 public sealed interface Options extends List<ByteString>, RandomAccess permits RealOptions {
     /**
      * @param byteStrings the strings we try to find
-     * @return a new indexed set of values that may be read with {@link Source#select(Options)}.
+     * @return a new indexed set of values that may be read with {@link Reader#select(Options)}.
      */
     static @NonNull Options of(final @NonNull ByteString @NonNull ... byteStrings) {
         return RealOptions.of(byteStrings);

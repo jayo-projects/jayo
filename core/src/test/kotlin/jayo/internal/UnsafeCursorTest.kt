@@ -42,7 +42,7 @@ class UnsafeCursorTest {
             cursor.close()
         }
 
-        assertEquals("xo".repeat(5000), buffer.readUtf8())
+        assertEquals("xo".repeat(5000), buffer.readUtf8String())
     }
 
     @Test
@@ -56,7 +56,7 @@ class UnsafeCursorTest {
             }
         }
 
-        assertEquals("zz".repeat(5000), buffer.readUtf8())
+        assertEquals("zz".repeat(5000), buffer.readUtf8String())
     }
 
     @Test
@@ -70,7 +70,7 @@ class UnsafeCursorTest {
             }
         }
 
-        assertEquals("zz".repeat(10000), buffer.readUtf8())
+        assertEquals("zz".repeat(10000), buffer.readUtf8String())
     }
 
     @Test
@@ -88,7 +88,7 @@ class UnsafeCursorTest {
         }
 
         val expected = "z".repeat(100)
-        val actual = buffer.readUtf8()
+        val actual = buffer.readUtf8String()
         assertEquals(expected, actual)
     }
 
@@ -101,7 +101,7 @@ class UnsafeCursorTest {
             cursor.data.fill('z'.code.toByte(), cursor.pos, cursor.limit)
         }
 
-        assertEquals("z".repeat(100), buffer.readUtf8())
+        assertEquals("z".repeat(100), buffer.readUtf8String())
     }
 
     @Test

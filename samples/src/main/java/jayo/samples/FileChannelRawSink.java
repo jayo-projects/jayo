@@ -22,7 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
-import jayo.RawSink;
+import jayo.RawWriter;
 import jayo.exceptions.JayoException;
 import org.jspecify.annotations.NonNull;
 
@@ -31,29 +31,29 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 
 /**
- * Special Sink for a FileChannel to take advantage of the
+ * Special Writer for a FileChannel to take advantage of the
  * {@link FileChannel#transferFrom(ReadableByteChannel, long, long) transfer} method available.
  */
-final class FileChannelRawSink implements RawSink {
+final class FileChannelRawWriter implements RawWriter {
     private final FileChannel channel;
 
     private long position;
 
-    FileChannelRawSink(FileChannel channel) throws IOException {
+    FileChannelRawWriter(FileChannel channel) throws IOException {
         this.channel = channel;
         this.position = channel.position();
     }
 
     @Override
-    public void write(@NonNull Buffer source, long byteCount) {
+    public void write(@NonNull Buffer reader, long byteCount) {
         if (!channel.isOpen()) throw new IllegalStateException("closed");
         if (byteCount == 0) return;
 
-        final var sourceAsByteChannel = source.asReadableByteChannel();
+        final var readerAsByteChannel = reader.asReadableByteChannel();
         try {
             long remaining = byteCount;
             while (remaining > 0) {
-                long written = channel.transferFrom(sourceAsByteChannel, position, remaining);
+                long written = channel.transferFrom(readerAsByteChannel, position, remaining);
                 position += written;
                 remaining -= written;
             }
@@ -65,7 +65,7 @@ final class FileChannelRawSink implements RawSink {
     @Override
     public void flush() {
         try {
-            // Cannot alter meta data through this Sink
+            // Cannot alter meta data through this Writer
             channel.force(false);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
