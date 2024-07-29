@@ -15,11 +15,10 @@ exclusively Kotlin, with multiplatform support._
 automatically grow when you write data to its end, and shrink when you read data from the start.
 * `ByteString` is an immutable and serializable sequence of bytes that stores a String related binary content as-is. You
 can encode or decode it as hex, base64, and UTF-8, you can also search content in it, build substring and much more.
+  * `Utf8` is a `ByteString` that contains UTF-8 encoded bytes only.
 
 Buffer relies on a queue of memory segments. It is optimized fo zero-copy segment sharing with other buffers and uses
 pooled `byte[]` based segments to avoid GC churn and zero-fill of the memory.
-
-`Utf8` is a `ByteString` that contains UTF-8 encoded bytes only.
 
 ## Readers and Writers
 
