@@ -47,7 +47,7 @@ var serverThread = Thread.startVirtualThread(() -> {
 });
 try (var clientSocket = new Socket("localhost", freePortNumber);
     var clientReader = Jayo.buffer(Jayo.reader(clientSocket))) {
-    assertThat(clientReader.readUtf8())
+    assertThat(clientReader.readUtf8String())
         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
 }
 serverThread.join();
