@@ -1,14 +1,3 @@
-//val centralUsername = if (project.hasProperty("centralUsername")) {
-//    project.property("centralUsername") as String?
-//} else {
-//    System.getenv("CENTRAL_USERNAME")
-//}
-//val centralPassword = if (project.hasProperty("centralPassword")) {
-//    project.property("centralPassword") as String?
-//} else {
-//    System.getenv("CENTRAL_PASSWORD")
-//}
-
 plugins {
     `maven-publish`
     signing
@@ -30,16 +19,6 @@ subprojects {
         repositories {
             maven {
                 url = uri(layout.buildDirectory.dir("repos/releases"))
-
-//                if (project.version.toString().endsWith("SNAPSHOT")) {
-//                    url = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-//                } else {
-//                    url = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-//                }
-//                credentials {
-//                    username = centralUsername
-//                    password = centralPassword
-//                }
             }
         }
 
