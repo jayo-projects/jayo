@@ -35,7 +35,6 @@ jmh {
 //    includes.set(listOf("""jayo\.benchmarks\.SlowWriterBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.TcpBenchmark.*"""))
 }
 
 dependencies {
