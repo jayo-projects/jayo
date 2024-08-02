@@ -1079,6 +1079,9 @@ public final class RealBuffer implements Buffer {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
+        if (byteCount == 0L) {
+            return;
+        }
         final var size = segmentQueue.expectSize(byteCount);
         final var toSkip = Math.min(byteCount, size);
         skipPrivate(toSkip);

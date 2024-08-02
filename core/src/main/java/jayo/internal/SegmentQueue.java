@@ -231,6 +231,7 @@ sealed class SegmentQueue implements Closeable
 
     @NonNegative
     long expectSize(final long expectedSize) {
+        assert expectedSize > 0L;
         return size();
     }
 

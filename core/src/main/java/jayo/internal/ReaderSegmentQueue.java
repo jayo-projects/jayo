@@ -102,9 +102,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
 
         @NonNegative
         long expectSize(final long expectedSize) {
-            if (expectedSize < 1L) {
-                throw new IllegalArgumentException("expectedSize < 1 : " + expectedSize);
-            }
+            assert expectedSize > 0L;
             // fast-path : current size is enough
             var currentSize = size();
             if (currentSize >= expectedSize || closed) {
