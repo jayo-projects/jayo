@@ -2,7 +2,11 @@
  * Copyright (c) 2024-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
  *
- * Forked from Okio (https://github.com/square/okio), original copyright is below
+ * Forked from Okio (https://github.com/square/okio) and kotlinx-io (https://github.com/Kotlin/kotlinx-io), original
+ * copyrights are below
+ *
+ * Copyright 2017-2023 JetBrains s.r.o. and respective authors and developers.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the LICENCE file.
  *
  * Copyright (C) 2013 Square, Inc.
  *
@@ -28,48 +32,74 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.lang.System.Logger.Level.ERROR;
+import static java.lang.System.Logger.Level.INFO;
 import static jayo.internal.Segment.WRITING;
 
 /**
- * This class pools segments in a singly-linked queue of {@linkplain Segment segments}. Though this code is lock-free it
- * does use a sentinel {@link #DOOR} value to defend against races. Conflicted operations are not retried, so there is
- * no chance of blocking despite the term "lock".
+ * This class pools segments in a lock-free singly-linked queue of {@linkplain Segment segments}. Though this code is
+ * lock-free it does use a sentinel {@link #DOOR} value to defend against races. To reduce the contention, the pool
+ * consists of several buckets (see {@link #HASH_BUCKET_COUNT}), each holding a reference to its own segments cache.
+ * Every {@link #take()} or {@link #recycle(Segment)} choose one of the buckets depending on a
+ * {@link Thread#currentThread()}'s {@linkplain Thread#threadId() threadId}.
  * <p>
  * On {@link #take()}, a caller swaps the Thread's corresponding segment cache with the {@link #DOOR} sentinel. If the
  * segment cache was not already locked, the caller pop the first segment from the cache.
  * <p>
- * On {@link #recycle(Segment)} a caller swaps the Thread's corresponding segment cache with the {@link #DOOR} sentinel.
- * If the segment cache was not already locked, the caller push the segment in the last position of the cache.
+ * On {@link #recycle(Segment)}, a caller swaps the head with a new node whose successor is the replaced head.
  * <p>
- * On conflict, operations succeed, but segments are not pooled. For example, a {@link #take()} that loses a race
- * allocates a new segment regardless of the pool size. A {@link #recycle(Segment)} call that loses a race will not
- * increase the size of the pool.
+ * On conflict, operations are retried until they succeed.
  * <p>
- * Under significant contention, this pool will have fewer hits and the VM will do more GC and memory allocations.
+ * This tracks the number of bytes in each queue in its {@code Segment.limit} property. Each element has a limit that's
+ * one segment size greater than its successor element. The maximum size of the pool is a product of {@code #MAX_SIZE}
+ * and {@code #HASH_BUCKET_COUNT}.
+ * <p>
+ * {@code #MAX_SIZE} is kept relatively small to avoid excessive memory consumption in case of a large
+ * {@code #HASH_BUCKET_COUNT}.
+ * For better handling of scenarios with high segments demand, a second-level pool is enabled and can be tuned by
+ * setting up a value of `jayo.pool.size.bytes` system property.
+ * <p>
+ * The second-level pool use half of the {@code #HASH_BUCKET_COUNT} and if an initially selected bucket is empty on
+ * {@link #take()} or full or {@link #recycle(Segment)}, all other buckets will be inspected before finally giving up
+ * (which means allocating a new segment on {@link #take()}, or loosing a reference to a segment on
+ * {@link #recycle(Segment)}). That second-level pool is used as a backup in case when {@link #take()} or
+ * {@link #recycle(Segment)} failed due to an empty or exhausted segments chain in a corresponding first-level bucket
+ * (one of {@code #HASH_BUCKET_COUNT}).
  */
 @SuppressWarnings("unchecked")
 public final class SegmentPool {
+    private static final System.Logger LOGGER = System.getLogger("jayo.SegmentPool");
+
     // un-instantiable
     private SegmentPool() {
     }
 
     /**
-     * The maximum byte size in all segments per hash bucket in the pool.
+     * The maximum number of bytes to pool per hash bucket.
      */
     // TODO: Is this a good maximum size?
-    static final int MAX_SIZE = 256 * Segment.SIZE;
+    static final int MAX_SIZE = 64 * 1024; // 64 KiB.
 
     /**
      * The number of hash buckets. This number needs to balance keeping the pool small and contention low. We use the
      * number of processors rounded up to the nearest power of two.
      * For example a machine with 6 cores will have 8 hash buckets.
      */
-    private static final int HASH_BUCKET_COUNT = Integer.highestOneBit(Runtime.getRuntime().availableProcessors() * 2 - 1);
+    private static final int HASH_BUCKET_COUNT =
+            Integer.highestOneBit(Runtime.getRuntime().availableProcessors() * 2 - 1);
+
+    private static final int HASH_BUCKET_COUNT_L2;
+
+    private static final int DEFAULT_SECOND_LEVEL_POOL_TOTAL_SIZE = 4 * 1024 * 1024; // 4MB
+
+    private static final int SECOND_LEVEL_POOL_TOTAL_SIZE;
+
+    private static final int SECOND_LEVEL_POOL_BUCKET_SIZE;
 
     /**
      * A sentinel segment to indicate that the cache is currently being modified.
      */
-    private static final Segment DOOR = new Segment(new byte[0], 0, 0, false, false);
+    private static final Segment DOOR = new Segment(new byte[0], 0, 0, null, false);
 
     /**
      * Hash buckets each contain a singly-linked queue of segments. The index/key is a hash function of thread ID
@@ -78,12 +108,45 @@ public final class SegmentPool {
      * We don't use ThreadLocal because we don't know how many threads the host process has, and we don't want to leak
      * memory for the duration of a thread's life.
      */
-    private static final @NonNull AtomicReference<@Nullable Segment> @NonNull [] hashBuckets;
+    private static final @NonNull AtomicReference<@Nullable Segment> @NonNull [] HASH_BUCKETS;
+    private static final @NonNull AtomicReference<@Nullable Segment> @NonNull [] HASH_BUCKETS_L2;
 
     static {
-        hashBuckets = new AtomicReference[HASH_BUCKET_COUNT];
+        final var hashBucketCountL2 = HASH_BUCKET_COUNT / 2;
+        HASH_BUCKET_COUNT_L2 = (hashBucketCountL2 > 0) ? hashBucketCountL2 : 1;
+
+        // SegmentPool.SECOND_LEVEL_POOL_TOTAL_SIZE System property overriding.
+        String systemSecondLevelPoolTotalSize = null;
+        try {
+            systemSecondLevelPoolTotalSize = System.getProperty("jayo.pool.size.bytes");
+        } catch (Throwable t) { // whatever happens, recover
+            LOGGER.log(ERROR,
+                    "Exception when resolving the provided second level pool size, fallback to default = {0}",
+                    DEFAULT_SECOND_LEVEL_POOL_TOTAL_SIZE);
+        } finally {
+            var secondLevelPoolTotalSize = 0;
+            if (systemSecondLevelPoolTotalSize != null && !systemSecondLevelPoolTotalSize.isBlank()) {
+                try {
+                    secondLevelPoolTotalSize = Integer.parseInt(systemSecondLevelPoolTotalSize);
+                } catch (NumberFormatException _unused) {
+                    LOGGER.log(ERROR, "{0} is not a valid size, fallback to default second level pool size = {1}",
+                            systemSecondLevelPoolTotalSize, DEFAULT_SECOND_LEVEL_POOL_TOTAL_SIZE);
+                }
+            }
+            SECOND_LEVEL_POOL_TOTAL_SIZE =
+                    (secondLevelPoolTotalSize > 0) ? secondLevelPoolTotalSize : DEFAULT_SECOND_LEVEL_POOL_TOTAL_SIZE;
+            LOGGER.log(INFO, "Jayo will use second level pool size of = {0} bytes", SECOND_LEVEL_POOL_TOTAL_SIZE);
+        }
+
+        SECOND_LEVEL_POOL_BUCKET_SIZE = Math.max(SECOND_LEVEL_POOL_TOTAL_SIZE / HASH_BUCKET_COUNT_L2, Segment.SIZE);
+
+        HASH_BUCKETS = new AtomicReference[HASH_BUCKET_COUNT];
         // null value implies an empty bucket
-        Arrays.setAll(hashBuckets, _unused -> new AtomicReference<@Nullable Segment>());
+        Arrays.setAll(HASH_BUCKETS, _unused -> new AtomicReference<@Nullable Segment>());
+
+        HASH_BUCKETS_L2 = new AtomicReference[HASH_BUCKET_COUNT_L2];
+        // null value implies an empty bucket
+        Arrays.setAll(HASH_BUCKETS_L2, _unused -> new AtomicReference<@Nullable Segment>());
     }
 
     /**
@@ -91,76 +154,166 @@ public final class SegmentPool {
      * as by thread, this returns the byte count accessible to the calling thread.
      */
     static int getByteCount() {
-        final var first = firstRef().get();
+        final var first = HASH_BUCKETS[l1BucketId(Thread.currentThread())].get();
         return (first != null) ? first.limit() : 0;
     }
 
     static @NonNull Segment take() {
-        final var firstRef = firstRef();
+        final var firstRef = HASH_BUCKETS[l1BucketId(Thread.currentThread())];
 
-        // Hold the door !!!
-        final var first = firstRef.getAndSet(DOOR);
-        if (first == DOOR) {
-            // A take() or recycle() is currently in progress. Return a new segment.
-            return new Segment();
+        while (true) {
+            // Hold the door !!!
+            final var first = firstRef.getAndSet(DOOR);
+            if (first == DOOR) {
+                // We didn't acquire the lock. Let's try again
+                continue;
+            }
+
+            if (first == null) {
+                // We acquired the lock but the pool was empty.
+                // Unlock the bucket and acquire a segment from the second level cache
+                firstRef.set(null);
+
+                return takeL2();
+            }
+
+            // We acquired the lock and the pool was not empty. Pop the first element and return it.
+            firstRef.set((Segment) Segment.NEXT.get(first));
+
+            // cleanup segment to cache, must be done here because these are non-volatile fields. We ensure the thread
+            // that take this segment has these values
+            Segment.NEXT.set(first, null);
+            first.pos = 0;
+            first.owner = true;
+            first.limitVolatile(0);
+            Segment.STATUS.setVolatile(first, WRITING);
+
+            return first;
         }
-        if (first == null) {
-            // We acquired the lock but the cache was empty. Unlock and return a new segment.
-            firstRef.set(null);
-            return new Segment();
+    }
+
+    private static @NonNull Segment takeL2() {
+        var bucketId = l2BucketId(Thread.currentThread());
+        var attempts = 0;
+
+        while (true) {
+            final var firstRef = HASH_BUCKETS_L2[bucketId];
+
+            // Hold the door !!!
+            final var first = firstRef.getAndSet(DOOR);
+            if (first == DOOR) {
+                // We didn't acquire the lock. Let's try again
+                continue;
+            }
+
+            if (first == null) {
+                // We acquired the lock but the pool was empty.
+                // Unlock the current bucket and select a new one.
+                // If all buckets were already scanned, allocate a new segment.
+                firstRef.set(null);
+
+                if (attempts < HASH_BUCKET_COUNT_L2) {
+                    bucketId = (bucketId + 1) & (HASH_BUCKET_COUNT_L2 - 1);
+                    attempts++;
+                    continue;
+                }
+
+                return new Segment();
+            }
+
+            // We acquired the lock and the pool was not empty. Pop the first element and return it.
+            firstRef.set((Segment) Segment.NEXT.get(first));
+
+            // cleanup segment to cache, must be done here because these are non-volatile fields. We ensure the thread
+            // that take this segment has these values
+            Segment.NEXT.set(first, null);
+            first.pos = 0;
+            first.owner = true;
+            first.limitVolatile(0);
+            Segment.STATUS.setVolatile(first, WRITING);
+
+            return first;
         }
-
-        // We acquired the lock and the cache was not empty. Pop the first element and return it.
-        firstRef.set((Segment) Segment.NEXT.get(first));
-
-        // cleanup segment to cache, must be done here because these are non-volatile fields. We ensure the thread that
-        // take this segment has these values
-        Segment.NEXT.set(first, null);
-        first.pos = 0;
-        first.limitVolatile(0);
-        Segment.STATUS.setVolatile(first, WRITING);
-
-        return first;
     }
 
     static void recycle(final @NonNull Segment segment) {
-        Objects.requireNonNull(segment);
+        assert segment != null;
 
-        if (segment.shared) {
-            Segment.NEXT.set(segment, null);
-            return; // This segment cannot be recycled.
-        }
-        final var firstRef = firstRef();
+        final var segmentCopyTracker = (SegmentCopyTracker) Segment.COPY_TRACKER.getVolatile(segment);
 
-        // Hold the door !!!
-        var first = firstRef.getAndSet(DOOR);
-        if (first == DOOR) {
-            Segment.NEXT.set(segment, null);
-            return; // A take() or recycle() is currently in progress.
-        }
-
-
-        final var firstLimit = (first != null) ? first.limit() : 0;
-        if (firstLimit >= MAX_SIZE) {
-            firstRef.set(first); // Pool is full.
+        // This segment cannot be recycled.
+        if (segmentCopyTracker != null && segmentCopyTracker.removeCopy()) {
             Segment.NEXT.set(segment, null);
             return;
         }
 
-        Segment.NEXT.set(segment, first);
-        segment.limit(firstLimit + Segment.SIZE);
+        final var firstRef = HASH_BUCKETS[l1BucketId(Thread.currentThread())];
 
-        firstRef.set(segment);
+        while (true) {
+            var first = firstRef.get();
+            if (first == DOOR) {
+                continue; // A take() is currently in progress.
+            }
+
+            final var firstLimit = (first != null) ? first.limit() : 0;
+            if (firstLimit >= MAX_SIZE) {
+                recycleL2(segment);
+                return;
+            }
+
+            Segment.NEXT.set(segment, first);
+            segment.limit(firstLimit + Segment.SIZE);
+
+            if (firstRef.compareAndSet(first, segment)) {
+                return;
+            }
+        }
     }
 
-    private static AtomicReference<@Nullable Segment> firstRef() {
-        // Get a final value in [0..HASH_BUCKET_COUNT) based on the current thread.
-        final var hashBucketIndex = getHashBucketIndex(Thread.currentThread());
-        return hashBuckets[hashBucketIndex];
+    private static void recycleL2(final @NonNull Segment segment) {
+        var bucketId = l2BucketId(Thread.currentThread());
+        var attempts = 0;
+
+        while (true) {
+            final var firstRef = HASH_BUCKETS_L2[bucketId];
+            var first = firstRef.get();
+
+            if (first == DOOR) {
+                continue; // A take() is currently in progress.
+            }
+
+            final var firstLimit = (first != null) ? first.limit() : 0;
+            if (firstLimit + Segment.SIZE > SECOND_LEVEL_POOL_BUCKET_SIZE) {
+                // The current bucket is full, try to find another one and return the segment there.
+                if (attempts < HASH_BUCKET_COUNT_L2) {
+                    attempts++;
+                    bucketId = (bucketId + 1) & (HASH_BUCKET_COUNT_L2 - 1);
+                    continue;
+                }
+                // L2 pool is full.
+                Segment.NEXT.set(segment, null);
+                return;
+            }
+
+            Segment.NEXT.set(segment, first);
+            segment.limit(firstLimit + Segment.SIZE);
+
+            if (firstRef.compareAndSet(first, segment)) {
+                return;
+            }
+        }
     }
 
-    static int getHashBucketIndex(final @NonNull Thread thread) {
+    static int l1BucketId(final @NonNull Thread thread) {
+        return bucketId(thread, HASH_BUCKET_COUNT - 1L);
+    }
+
+    private static int l2BucketId(final @NonNull Thread thread) {
+        return bucketId(thread, HASH_BUCKET_COUNT_L2 - 1L);
+    }
+
+    static int bucketId(final @NonNull Thread thread, final long mask) {
         Objects.requireNonNull(thread);
-        return (int) (thread.threadId() & (HASH_BUCKET_COUNT - 1L));
+        return (int) (thread.threadId() & mask);
     }
 }

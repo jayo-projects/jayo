@@ -28,8 +28,9 @@ public class SegmentPoolTest {
         final var initialSegment = new Segment();
         SegmentPool.recycle(initialSegment);
 
-        final var initialThreadHashBucketIndex = SegmentPool.getHashBucketIndex(Thread.currentThread());
-        final var segmentThreadId = getSegmentFromOtherVirtalThread(initialThreadHashBucketIndex, true);
+        final var currentThread = Thread.currentThread();
+        final var initialBucketId = SegmentPool.bucketId(currentThread, SegmentPool.l1BucketId(currentThread));
+        final var segmentThreadId = getSegmentFromOtherVirtalThread(initialBucketId, true);
 
         assertThat(initialSegment).isSameAs(segmentThreadId.segment);
         assertThat(Thread.currentThread().threadId()).isNotEqualTo(segmentThreadId.threadId);
@@ -41,18 +42,19 @@ public class SegmentPoolTest {
         final var initialSegment = new Segment();
         SegmentPool.recycle(initialSegment);
 
-        final var initialThreadHashBucketIndex = SegmentPool.getHashBucketIndex(Thread.currentThread());
-        final var segmentThreadId = getSegmentFromOtherVirtalThread(initialThreadHashBucketIndex, false);
+        final var currentThread = Thread.currentThread();
+        final var initialBucketId = SegmentPool.bucketId(currentThread, SegmentPool.l1BucketId(currentThread));
+        final var segmentThreadId = getSegmentFromOtherVirtalThread(initialBucketId, false);
 
         // take the segment in cache to reset to an all empty pool
-        getSegmentFromOtherVirtalThread(initialThreadHashBucketIndex, true);
+        getSegmentFromOtherVirtalThread(initialBucketId, true);
 
         assertThat(initialSegment).isNotSameAs(segmentThreadId.segment);
         assertThat(Thread.currentThread().threadId()).isNotEqualTo(segmentThreadId.threadId);
     }
 
     private SegmentThreadId getSegmentFromOtherVirtalThread(
-            int initialThreadHashBucketIndex,
+            int initialBucketId,
             boolean matching
     ) throws InterruptedException {
         final var segments = new ArrayList<Segment>();
@@ -61,12 +63,12 @@ public class SegmentPoolTest {
         var newThread = TestUtil.newThread(runnable);
         if (matching) {
             // loop until we have a matching hash bucket
-            while (SegmentPool.getHashBucketIndex(newThread) != initialThreadHashBucketIndex) {
+            while (SegmentPool.bucketId(newThread, SegmentPool.l1BucketId(newThread)) != initialBucketId) {
                 newThread = TestUtil.newThread(runnable);
             }
         } else {
             // loop until we have a non-matching hash bucket
-            while (SegmentPool.getHashBucketIndex(newThread) == initialThreadHashBucketIndex) {
+            while (SegmentPool.bucketId(newThread, SegmentPool.l1BucketId(newThread)) == initialBucketId) {
                 newThread = TestUtil.newThread(runnable);
             }
         }

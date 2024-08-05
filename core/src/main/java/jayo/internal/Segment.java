@@ -81,13 +81,14 @@ final class Segment {
     @SuppressWarnings("FieldMayBeFinal")
     private volatile int limit = 0;
     /**
-     * True if other buffer segments or byte strings use the same byte array.
+     * Tracks number shared copies
      */
-    boolean shared;
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile @Nullable SegmentCopyTracker copyTracker;
     /**
      * True if this segment owns the byte array and can append to it, extending `limit`.
      */
-    final boolean owner;
+    boolean owner;
     /**
      * Next segment in the queue.
      */
@@ -105,6 +106,7 @@ final class Segment {
 
     // VarHandle mechanics
     private static final VarHandle LIMIT;
+    static final VarHandle COPY_TRACKER;
     static final VarHandle NEXT;
     static final VarHandle STATUS;
 
@@ -112,6 +114,7 @@ final class Segment {
         try {
             final var l = MethodHandles.lookup();
             LIMIT = l.findVarHandle(Segment.class, "limit", int.class);
+            COPY_TRACKER = l.findVarHandle(Segment.class, "copyTracker", SegmentCopyTracker.class);
             NEXT = l.findVarHandle(Segment.class, "next", Segment.class);
             STATUS = l.findVarHandle(Segment.class, "status", byte.class);
         } catch (ReflectiveOperationException e) {
@@ -121,7 +124,7 @@ final class Segment {
         // Segment.SIZE System property overriding.
         String systemSegmentSize = null;
         try {
-            systemSegmentSize = System.getProperty("jayo.segmentSize");
+            systemSegmentSize = System.getProperty("jayo.segment.size.bytes");
         } catch (Throwable t) { // whatever happens, recover
             LOGGER.log(ERROR, "Exception when resolving the provided segment size, fallback to default " +
                     "segment's SIZE = {0}", DEFAULT_SIZE);
@@ -143,19 +146,28 @@ final class Segment {
     Segment() {
         this.data = new byte[SIZE];
         this.owner = true;
-        this.shared = false;
+        this.copyTracker = null;
         this.status = WRITING;
     }
 
-    Segment(final byte @NonNull [] data, final int pos, final int limit, final boolean shared, final boolean owner) {
-        this(data, pos, limit, shared, owner, WRITING);
+    Segment(final byte @NonNull [] data,
+            final int pos,
+            final int limit,
+            final @Nullable SegmentCopyTracker copyTracker,
+            final boolean owner) {
+        this(data, pos, limit, copyTracker, owner, WRITING);
     }
 
-    Segment(final byte @NonNull [] data, final int pos, final int limit, final boolean shared, final boolean owner, final byte status) {
+    Segment(final byte @NonNull [] data,
+            final int pos,
+            final int limit,
+            final @Nullable SegmentCopyTracker copyTracker,
+            final boolean owner,
+            final byte status) {
         this.data = Objects.requireNonNull(data);
         this.pos = pos;
         this.limit = limit;
-        this.shared = shared;
+        this.copyTracker = copyTracker;
         this.owner = owner;
         this.status = status;
     }
@@ -240,13 +252,29 @@ final class Segment {
     }
 
     /**
+     * True if other buffer segments or byte strings use the same byte array.
+     */
+    boolean isShared() {
+        final var ct = (SegmentCopyTracker) COPY_TRACKER.getVolatile(this);
+        return ct != null && ct.isShared();
+    }
+
+    /**
      * Returns a new segment that shares the underlying byte array with this one. Adjusting pos and limit are safe but
      * writes are forbidden. This also marks the current segment as shared, which prevents it from being pooled.
      */
     @NonNull
     Segment sharedCopy() {
-        shared = true;
-        return new Segment(data, pos, limitVolatile(), true, false);
+        var ct = (SegmentCopyTracker) COPY_TRACKER.getVolatile(this);
+        if (ct == null) {
+            ct = new SegmentCopyTracker();
+            final var oldCt = (SegmentCopyTracker) COPY_TRACKER.compareAndExchange(this, null, ct);
+            if (oldCt != null) {
+                ct = oldCt;
+            }
+        }
+        ct.addCopy();
+        return new Segment(data, pos, limitVolatile(), ct, false);
     }
 
     /**
@@ -254,7 +282,7 @@ final class Segment {
      */
     @NonNull
     Segment unsharedCopy() {
-        return new Segment(data.clone(), pos, limitVolatile(), false, true, AVAILABLE);
+        return new Segment(data.clone(), pos, limitVolatile(), null, true, AVAILABLE);
     }
 
     /**
@@ -304,7 +332,7 @@ final class Segment {
         var writerCurrentLimit = targetSegment.limit();
         if (writerCurrentLimit + byteCount > SIZE) {
             // We can't fit byteCount bytes at the writer's current position. Shift writer first.
-            if (targetSegment.shared) {
+            if (targetSegment.isShared()) {
                 throw new IllegalArgumentException("cannot write in a shared Segment");
             }
             final var writerCurrentPos = targetSegment.pos;
@@ -331,7 +359,7 @@ final class Segment {
                 "data=[" + data.length + "]" +
                 ", pos=" + pos +
                 ", limit=" + limit + System.lineSeparator() +
-                ", shared=" + shared +
+                ", shared=" + isShared() +
                 ", owner=" + owner +
                 ", status=" +
                 switch (status) {
