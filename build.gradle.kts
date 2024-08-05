@@ -1,3 +1,5 @@
+import org.gradle.tooling.GradleConnector
+
 plugins {
     `maven-publish`
     signing
@@ -56,6 +58,31 @@ subprojects {
     signing {
         // Require signing.keyId, signing.password and signing.secretKeyRingFile
         sign(publishing.publications)
+    }
+}
+
+// workaround : https://github.com/researchgate/gradle-release/issues/304#issuecomment-1083692649
+configure(listOf(tasks.release, tasks.runBuildTasks)) {
+    configure {
+        actions.clear()
+        doLast {
+            GradleConnector
+                .newConnector()
+                .forProjectDirectory(layout.projectDirectory.asFile)
+                .connect()
+                .use { projectConnection ->
+                    val buildLauncher = projectConnection
+                        .newBuild()
+                        .forTasks(*tasks.toTypedArray())
+                        .setStandardInput(System.`in`)
+                        .setStandardOutput(System.out)
+                        .setStandardError(System.err)
+                    gradle.startParameter.excludedTaskNames.forEach {
+                        buildLauncher.addArguments("-x", it)
+                    }
+                    buildLauncher.run()
+                }
+        }
     }
 }
 
