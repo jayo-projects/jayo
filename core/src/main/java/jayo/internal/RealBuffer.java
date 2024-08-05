@@ -660,7 +660,7 @@ public final class RealBuffer implements Buffer {
             if (offset <= byteCount) {
                 final var oldHead = head;
                 if (finished) {
-                    if (head.tryRemove() && head.validateRemove()) {
+                    if (head.tryRemove()) {
                         segmentQueue.removeHead(head);
                     }
                 } else {
