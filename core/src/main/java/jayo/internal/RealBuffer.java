@@ -1690,7 +1690,7 @@ public final class RealBuffer implements Buffer {
                 var split = readerHeadIsWriting;
                 if (remaining < bytesInReader) {
                     if (tail != null && tail.owner &&
-                            remaining + tail.limit() - ((tail.shared) ? 0 : tail.pos) <= Segment.SIZE
+                            remaining + tail.limit() - ((tail.isShared()) ? 0 : tail.pos) <= Segment.SIZE
                     ) {
                         try {
                             // Our existing segments are sufficient. Transfer bytes from reader's head to our tail.
@@ -1813,7 +1813,7 @@ public final class RealBuffer implements Buffer {
         }
         final var byteCount = newTail.limit() - newTail.pos;
         final var availableByteCount = Segment.SIZE - currentTail.limit()
-                + ((currentTail.shared) ? 0 : currentTail.pos);
+                + ((currentTail.isShared()) ? 0 : currentTail.pos);
         if (byteCount > availableByteCount) {
             // Cannot compact: not enough writable space in current tail.
             return newTail;
@@ -2603,7 +2603,7 @@ public final class RealBuffer implements Buffer {
             //}
 
             // If we're going to write and our segment is shared, swap it for a read-write one.
-            if (readWrite && next.shared) {
+            if (readWrite && next.isShared()) {
                 final var unsharedNext = next.unsharedCopy();
                 final var nextNext = next.nextVolatile();
                 if (nextNext != null) {
