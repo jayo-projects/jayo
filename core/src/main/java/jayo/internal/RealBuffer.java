@@ -1152,6 +1152,18 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
+    public @NonNull Buffer writeUtf8(final @NonNull Utf8 utf8) {
+        return write(utf8);
+    }
+
+    @Override
+    public @NonNull Buffer writeUtf8(final @NonNull Utf8 utf8,
+                                     final @NonNegative int offset,
+                                     final @NonNegative int byteCount) {
+        return write(utf8, offset, byteCount);
+    }
+
+    @Override
     public @NonNull Buffer writeUtf8(final @NonNull CharSequence charSequence) {
         return writeUtf8(charSequence, 0, charSequence.length());
     }

@@ -554,6 +554,32 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     }
 
     @Test
+    fun writeUtf8() {
+        writer.writeUtf8("təˈranəˌsôr".encodeToUtf8())
+        writer.flush()
+        assertEquals(Utf8.ofUtf8(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readUtf8())
+        if (writer is RealWriter) {
+            writer.close()
+            assertFailsWith<IllegalStateException> {
+                writer.writeUtf8("təˈranəˌsôr".encodeToUtf8())
+            }
+        }
+    }
+
+    @Test
+    fun writeUtf8Offset() {
+        writer.writeUtf8("təˈranəˌsôr".encodeToUtf8(), 5, 5)
+        writer.flush()
+        assertEquals(Utf8.ofUtf8(*"72616ec999".decodeHex()), data.readUtf8())
+        if (writer is RealWriter) {
+            writer.close()
+            assertFailsWith<IllegalStateException> {
+                writer.writeUtf8("təˈranəˌsôr".encodeToUtf8(), 5, 5)
+            }
+        }
+    }
+
+    @Test
     fun outputStream() {
         val out: OutputStream = writer.asOutputStream()
         out.write('a'.code)

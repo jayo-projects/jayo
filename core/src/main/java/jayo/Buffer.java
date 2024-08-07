@@ -85,13 +85,15 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * This method does not affect this buffer's content as there is no upstream to write data to.
      */
     @Override
-    @NonNull Buffer emitCompleteSegments();
+    @NonNull
+    Buffer emitCompleteSegments();
 
     /**
      * This method does not affect this buffer's content as there is no upstream to write data to.
      */
     @Override
-    @NonNull Buffer emit();
+    @NonNull
+    Buffer emit();
 
     /**
      * This method does not affect this buffer's content as there is no upstream to write data to.
@@ -105,7 +107,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param out the stream to copy data into.
      * @return {@code this}
      */
-    @NonNull Buffer copyTo(final @NonNull OutputStream out);
+    @NonNull
+    Buffer copyTo(final @NonNull OutputStream out);
 
     /**
      * Copy {@code (getSize() - offset)} bytes from this buffer, starting at {@code offset}, to {@code out} stream. This
@@ -117,7 +120,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IndexOutOfBoundsException if {@code offset} is out of this buffer bounds
      *                                   ({@code [0..buffer.byteSize())}).
      */
-    @NonNull Buffer copyTo(final @NonNull OutputStream out, final @NonNegative long offset);
+    @NonNull
+    Buffer copyTo(final @NonNull OutputStream out, final @NonNegative long offset);
 
     /**
      * Copy {@code byteCount} bytes from this buffer, starting at {@code offset}, to {@code out} stream. This method
@@ -130,8 +134,9 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of this buffer bounds
      *                                   ({@code [0..buffer.byteSize())}).
      */
-    @NonNull Buffer copyTo(final @NonNull OutputStream out,
-                           final @NonNegative long offset, final @NonNegative long byteCount);
+    @NonNull
+    Buffer copyTo(final @NonNull OutputStream out,
+                  final @NonNegative long offset, final @NonNegative long byteCount);
 
     /**
      * Copy all bytes from this buffer to {@code out} buffer. This method does not consume data from this buffer.
@@ -139,7 +144,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param out the destination buffer to copy data into.
      * @return {@code this}
      */
-    @NonNull Buffer copyTo(final @NonNull Buffer out);
+    @NonNull
+    Buffer copyTo(final @NonNull Buffer out);
 
     /**
      * Copy {@code (getSize() - offset)} bytes from this buffer, starting at {@code offset}, to {@code out} buffer. This
@@ -151,7 +157,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IndexOutOfBoundsException if {@code offset} is out of this buffer bounds
      *                                   ({@code [0..buffer.byteSize())}).
      */
-    @NonNull Buffer copyTo(final @NonNull Buffer out, final @NonNegative long offset);
+    @NonNull
+    Buffer copyTo(final @NonNull Buffer out, final @NonNegative long offset);
 
     /**
      * Copy {@code byteCount} bytes from this buffer, starting at {@code offset}, to {@code out} buffer. This method
@@ -164,8 +171,9 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of this buffer bounds
      *                                   ({@code [0..buffer.byteSize())}).
      */
-    @NonNull Buffer copyTo(final @NonNull Buffer out,
-                           final @NonNegative long offset, final @NonNegative long byteCount);
+    @NonNull
+    Buffer copyTo(final @NonNull Buffer out,
+                  final @NonNegative long offset, final @NonNegative long byteCount);
 
     /**
      * Consumes all bytes from this buffer and writes them to {@code out} stream.
@@ -173,7 +181,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param out the destination stream to write data into.
      * @return {@code this}
      */
-    @NonNull Buffer readTo(final @NonNull OutputStream out);
+    @NonNull
+    Buffer readTo(final @NonNull OutputStream out);
 
     /**
      * Consumes {@code byteCount} bytes from this buffer and writes them to {@code out} stream.
@@ -183,7 +192,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @return {@code this}
      * @throws IllegalArgumentException if {@code byteCount} is negative or exceeds this buffer size.
      */
-    @NonNull Buffer readTo(final @NonNull OutputStream out, final @NonNegative long byteCount);
+    @NonNull
+    Buffer readTo(final @NonNull OutputStream out, final @NonNegative long byteCount);
 
     /**
      * Read and exhaust bytes from {@code input} stream into this buffer. Stops reading data on {@code input}
@@ -192,7 +202,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param input the stream to read data from.
      * @return {@code this}
      */
-    @NonNull Buffer transferFrom(final @NonNull InputStream input);
+    @NonNull
+    Buffer transferFrom(final @NonNull InputStream input);
 
     /**
      * Read {@code byteCount} bytes from {@code input} stream into this buffer. Throws an exception if {@code input} is
@@ -201,10 +212,11 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param input     the stream to read data from.
      * @param byteCount the number of bytes to read from {@code input}.
      * @return {@code this}
-     * @throws JayoException          if {@code input} was exhausted before reading {@code byteCount} bytes from it.
+     * @throws JayoException            if {@code input} was exhausted before reading {@code byteCount} bytes from it.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
-    @NonNull Buffer write(final @NonNull InputStream input, final @NonNegative long byteCount);
+    @NonNull
+    Buffer write(final @NonNull InputStream input, final @NonNegative long byteCount);
 
     /**
      * @return the number of bytes in segments that are fully filled and are no longer writable.
@@ -239,105 +251,138 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     void skip(final @NonNegative long byteCount);
 
     @Override
-    @NonNull Buffer write(final @NonNull ByteString byteString);
+    @NonNull
+    Buffer write(final @NonNull ByteString byteString);
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
     @Override
-    @NonNull Buffer write(final @NonNull ByteString byteString,
-                          final @NonNegative int offset, final @NonNegative int byteCount);
+    @NonNull
+    Buffer write(final @NonNull ByteString byteString,
+                 final @NonNegative int offset, final @NonNegative int byteCount);
 
     @Override
-    @NonNull Buffer write(final byte @NonNull [] source);
+    @NonNull
+    Buffer writeUtf8(final @NonNull Utf8 utf8);
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
     @Override
-    @NonNull Buffer write(final byte @NonNull [] source,
-                          final @NonNegative int offset, final @NonNegative int byteCount);
+    @NonNull
+    Buffer writeUtf8(final @NonNull Utf8 utf8,
+                     final @NonNegative int offset, final @NonNegative int byteCount);
+
+    @Override
+    @NonNull
+    Buffer write(final byte @NonNull [] source);
+
+    /**
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     */
+    @Override
+    @NonNull
+    Buffer write(final byte @NonNull [] source,
+                 final @NonNegative int offset, final @NonNegative int byteCount);
 
     /**
      * @throws IllegalArgumentException {@inheritDoc}
      */
     @Override
-    @NonNull Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
+    @NonNull
+    Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
 
     @Override
-    @NonNull Buffer writeUtf8(final @NonNull CharSequence charSequence);
-
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalArgumentException  {@inheritDoc}
-     */
-    @Override
-    @NonNull Buffer writeUtf8(final @NonNull CharSequence charSequence,
-                              final @NonNegative int startIndex,
-                              final @NonNegative int endIndex);
-
-    @Override
-    @NonNull Buffer writeUtf8CodePoint(final @NonNegative int codePoint);
-
-    @Override
-    @NonNull Buffer writeString(final @NonNull String string, final @NonNull Charset charset);
+    @NonNull
+    Buffer writeUtf8(final @NonNull CharSequence charSequence);
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @throws IllegalArgumentException  {@inheritDoc}
      */
     @Override
-    @NonNull Buffer writeString(final @NonNull String string,
-                                @NonNegative int startIndex,
-                                @NonNegative int endIndex,
-                                @NonNull Charset charset);
+    @NonNull
+    Buffer writeUtf8(final @NonNull CharSequence charSequence,
+                     final @NonNegative int startIndex,
+                     final @NonNegative int endIndex);
 
     @Override
-    @NonNull Buffer writeByte(final byte b);
+    @NonNull
+    Buffer writeUtf8CodePoint(final @NonNegative int codePoint);
 
     @Override
-    @NonNull Buffer writeShort(final short s);
+    @NonNull
+    Buffer writeString(final @NonNull String string, final @NonNull Charset charset);
+
+    /**
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     * @throws IllegalArgumentException  {@inheritDoc}
+     */
+    @Override
+    @NonNull
+    Buffer writeString(final @NonNull String string,
+                       @NonNegative int startIndex,
+                       @NonNegative int endIndex,
+                       @NonNull Charset charset);
 
     @Override
-    @NonNull Buffer writeInt(final int i);
+    @NonNull
+    Buffer writeByte(final byte b);
 
     @Override
-    @NonNull Buffer writeLong(final long l);
+    @NonNull
+    Buffer writeShort(final short s);
 
     @Override
-    @NonNull Buffer writeDecimalLong(final long l);
+    @NonNull
+    Buffer writeInt(final int i);
 
     @Override
-    @NonNull Buffer writeHexadecimalUnsignedLong(final long l);
+    @NonNull
+    Buffer writeLong(final long l);
+
+    @Override
+    @NonNull
+    Buffer writeDecimalLong(final long l);
+
+    @Override
+    @NonNull
+    Buffer writeHexadecimalUnsignedLong(final long l);
 
     /**
      * @param digest the chosen message digest algorithm to use for hashing.
      * @return the hash of this buffer.
      */
-    @NonNull ByteString hash(final @NonNull Digest digest);
+    @NonNull
+    ByteString hash(final @NonNull Digest digest);
 
     /**
      * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
-     * @param key the key to use for this MAC operation.
+     * @param key  the key to use for this MAC operation.
      * @return the MAC result of this buffer.
      * @throws IllegalArgumentException if the {@code key} is invalid
      */
-    @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key);
+    @NonNull
+    ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key);
 
     /**
      * Returns a new byte channel that read from and writes to this buffer.
      */
-    @NonNull ByteChannel asByteChannel();
+    @NonNull
+    ByteChannel asByteChannel();
 
     /**
      * @return a deep copy of this buffer.
      */
-    @NonNull Buffer copy();
+    @NonNull
+    Buffer copy();
 
     /**
      * @return a deep copy of this buffer. This is the same as {@link #copy()}
      */
-    @NonNull Buffer clone();
+    @NonNull
+    Buffer clone();
 
     /**
      * @return a human-readable string that describes the contents of this buffer. For buffers containing
@@ -346,14 +391,16 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * Thus, the returned string of this method cannot be used to compare buffers or verify buffer's content.
      */
     @Override
-    @NonNull String toString();
+    @NonNull
+    String toString();
 
     /**
      * @return a byte string containing a copy of all the bytes of this buffer. This method does not consume data from
      * this buffer.
      * @apiNote A {@link ByteString} is immutable
      */
-    @NonNull ByteString snapshot();
+    @NonNull
+    ByteString snapshot();
 
     /**
      * @return a byte string containing a copy of the first {@code byteCount} bytes of this buffer. This method does not
@@ -361,7 +408,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IndexOutOfBoundsException if {@code byteCount > buffer.byteSize()}.
      * @apiNote A {@link ByteString} is immutable
      */
-    @NonNull ByteString snapshot(final @NonNegative int byteCount);
+    @NonNull
+    ByteString snapshot(final @NonNegative int byteCount);
 
     /**
      * @return an unsafe cursor to only read this buffer's data. Always call {@link UnsafeCursor#close} when done with
@@ -370,7 +418,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * is unsafe because it does not enforce its own invariants. Instead, it assumes a careful user who has studied
      * Jayo's implementation details and their consequences.
      */
-    @NonNull UnsafeCursor readUnsafe();
+    @NonNull
+    UnsafeCursor readUnsafe();
 
     /**
      * @param unsafeCursor an existing unsafe cursor
@@ -381,7 +430,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * is unsafe because it does not enforce its own invariants. Instead, it assumes a careful user who has studied
      * Jayo's implementation details and their consequences.
      */
-    @NonNull UnsafeCursor readUnsafe(final @NonNull UnsafeCursor unsafeCursor);
+    @NonNull
+    UnsafeCursor readUnsafe(final @NonNull UnsafeCursor unsafeCursor);
 
     /**
      * @return an unsafe cursor to read and write this buffer's data. Always call {@link UnsafeCursor#close} when done
@@ -390,7 +440,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * is unsafe because it does not enforce its own invariants. Instead, it assumes a careful user who has studied
      * Jayo's implementation details and their consequences.
      */
-    @NonNull UnsafeCursor readAndWriteUnsafe();
+    @NonNull
+    UnsafeCursor readAndWriteUnsafe();
 
     /**
      * @param unsafeCursor an existing unsafe cursor
@@ -401,7 +452,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * is unsafe because it does not enforce its own invariants. Instead, it assumes a careful user who has studied
      * Jayo's implementation details and their consequences.
      */
-    @NonNull UnsafeCursor readAndWriteUnsafe(final @NonNull UnsafeCursor unsafeCursor);
+    @NonNull
+    UnsafeCursor readAndWriteUnsafe(final @NonNull UnsafeCursor unsafeCursor);
 
     /**
      * A handle to the underlying data in a buffer. This handle is unsafe because it does not enforce its own

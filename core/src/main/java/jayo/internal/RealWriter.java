@@ -91,8 +91,8 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer write(final @NonNull ByteString byteString,
-                               final @NonNegative int offset,
-                               final @NonNegative int byteCount) {
+                                 final @NonNegative int offset,
+                                 final @NonNegative int byteCount) {
         Objects.requireNonNull(byteString);
         if (closed) {
             throw new IllegalStateException("closed");
@@ -100,6 +100,18 @@ public final class RealWriter implements Writer {
         segmentQueue.pauseIfFull();
         buffer.write(byteString, offset, byteCount);
         return emitCompleteSegments();
+    }
+
+    @Override
+    public @NonNull Writer writeUtf8(final @NonNull Utf8 utf8) {
+        return write(utf8);
+    }
+
+    @Override
+    public @NonNull Writer writeUtf8(final @NonNull Utf8 utf8,
+                                     final @NonNegative int offset,
+                                     final @NonNegative int byteCount) {
+        return write(utf8, offset, byteCount);
     }
 
     @Override
@@ -115,8 +127,8 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer writeUtf8(final @NonNull CharSequence charSequence,
-                                   final @NonNegative int startIndex,
-                                   final @NonNegative int endIndex) {
+                                     final @NonNegative int startIndex,
+                                     final @NonNegative int endIndex) {
         Objects.requireNonNull(charSequence);
         if (closed) {
             throw new IllegalStateException("closed");
@@ -150,9 +162,9 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer writeString(final @NonNull String string,
-                                     final @NonNegative int startIndex,
-                                     final @NonNegative int endIndex,
-                                     final @NonNull Charset charset) {
+                                       final @NonNegative int startIndex,
+                                       final @NonNegative int endIndex,
+                                       final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
         if (closed) {
@@ -176,8 +188,8 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer write(final byte @NonNull [] reader,
-                               final @NonNegative int offset,
-                               final @NonNegative int byteCount) {
+                                 final @NonNegative int offset,
+                                 final @NonNegative int byteCount) {
         Objects.requireNonNull(reader);
         if (closed) {
             throw new IllegalStateException("closed");
@@ -186,8 +198,8 @@ public final class RealWriter implements Writer {
     }
 
     private @NonNull Writer writePrivate(final byte @NonNull [] reader,
-                                       final @NonNegative int offset,
-                                       final @NonNegative int byteCount) {
+                                         final @NonNegative int offset,
+                                         final @NonNegative int byteCount) {
         segmentQueue.pauseIfFull();
         buffer.write(reader, offset, byteCount);
         return emitCompleteSegments();
