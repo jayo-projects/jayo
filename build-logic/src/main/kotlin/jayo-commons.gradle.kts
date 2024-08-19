@@ -121,6 +121,7 @@ val dokkaHtmlJar by tasks.register<Jar>("dokkaHtmlJar") {
 
 java {
     withSourcesJar()
+    withJavadocJar()
 }
 
 publishing.publications.withType<MavenPublication> {
