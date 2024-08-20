@@ -9,7 +9,6 @@ import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Objects;
@@ -19,7 +18,7 @@ import java.util.function.Consumer;
 import static java.lang.System.Logger.Level.TRACE;
 
 
-sealed class SegmentQueue implements Closeable
+sealed class SegmentQueue implements AutoCloseable
         permits WriterSegmentQueue, ReaderSegmentQueue {
     final static long MAX_BYTE_SIZE = 128 * 1024;
 

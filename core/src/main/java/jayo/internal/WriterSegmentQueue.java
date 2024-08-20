@@ -134,8 +134,10 @@ sealed class WriterSegmentQueue extends SegmentQueue {
             throwIfNeeded();
             final var currentTail = tailVolatile();
             if (currentTail == null) {
-                LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}: You should not emit or flush without writing data " +
-                        "first. We do nothing", hashCode());
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}: You should not emit or flush without " +
+                            "writing data first. We do nothing", hashCode());
+                }
                 return;
             }
             final var emitEvent = new EmitEvent(currentTail, true, currentTail.limit(), flush);

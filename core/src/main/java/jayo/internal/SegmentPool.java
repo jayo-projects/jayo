@@ -239,7 +239,7 @@ public final class SegmentPool {
     static void recycle(final @NonNull Segment segment) {
         assert segment != null;
 
-        final var segmentCopyTracker = (SegmentCopyTracker) Segment.COPY_TRACKER.getVolatile(segment);
+        final var segmentCopyTracker = (Segment.CopyTracker) Segment.COPY_TRACKER.getVolatile(segment);
 
         // This segment cannot be recycled.
         if (segmentCopyTracker != null && segmentCopyTracker.removeCopy()) {

@@ -52,8 +52,8 @@ public final class RealInflaterRawReader implements InflaterRawReader {
     }
 
     /**
-     * This internal constructor shares a buffer with its trusted caller. In general, we can't share a
-     * {@code Reader} because the inflater holds input bytes until they are inflated.
+     * This internal constructor shares a buffer with its trusted caller. In general, we can't share a {@code Reader}
+     * because the inflater holds input bytes until they are inflated.
      */
     RealInflaterRawReader(final @NonNull RealReader reader, final @NonNull Inflater inflater) {
         this.reader = Objects.requireNonNull(reader);

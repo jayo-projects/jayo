@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * Wraps a {@link FileAlreadyExistsException} with an unchecked exception.
  */
-public class JayoFileAlreadyExistsException extends JayoException {
+public final class JayoFileAlreadyExistsException extends JayoException {
     public JayoFileAlreadyExistsException(final @NonNull FileAlreadyExistsException cause) {
         super(Objects.requireNonNull(cause));
     }

@@ -43,20 +43,19 @@ import java.util.function.Supplier;
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 /**
- * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to
- * implement timeouts where they aren't supported natively, such as to sockets or channels that are blocked on
- * writing.
+ * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to implement
+ * timeouts where they aren't supported natively, such as to sockets or channels that are blocked on writing.
  * <p>
- * Subclasses should override {@link #onTimeout} to take action when a timeout occurs. This method will be
- * invoked by the shared watchdog thread, so it should not do any long-running operations. Otherwise,
- * we risk starving other timeouts from being triggered.
+ * Subclasses should override {@link #onTimeout} to take action when a timeout occurs. This method will be invoked by
+ * the shared watchdog thread, so it should not do any long-running operations. Otherwise, we risk starving other
+ * timeouts from being triggered.
  * <p>
- * Use {@link #writer} and {@link #reader} to apply this timeout to a stream. The returned value will apply the
- * timeout to each operation on the wrapped stream.
+ * Use {@link #writer} and {@link #reader} to apply this timeout to a stream. The returned value will apply the timeout
+ * to each operation on the wrapped stream.
  * <p>
- * Callers should call {@link #enter} before doing work that is subject to timeouts, and {@link #exit} afterward.
- * The return value of {@link #exit} indicates whether a timeout was triggered. Note that the call to
- * {@link #onTimeout} is asynchronous, and may be called after {@link #exit}.
+ * Callers should call {@link #enter} before doing work that is subject to timeouts, and {@link #exit} afterward. The
+ * return value of {@link #exit} indicates whether a timeout was triggered. Note that the call to {@link #onTimeout} is
+ * asynchronous, and may be called after {@link #exit}.
  */
 public final class RealAsyncTimeout implements AsyncTimeout {
     /**

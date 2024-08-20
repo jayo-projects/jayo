@@ -40,15 +40,9 @@ public final class DeflaterRawWriter implements RawWriter {
     private boolean closed = false;
 
     public DeflaterRawWriter(final @NonNull RawWriter writer, final @NonNull Deflater deflater) {
-        this(new RealWriter(Objects.requireNonNull(writer), false), deflater);
-    }
-
-    /**
-     * This internal constructor shares a buffer with its trusted caller.
-     */
-    DeflaterRawWriter(final @NonNull RealWriter writer, final @NonNull Deflater deflater) {
-        this.writer = Objects.requireNonNull(writer);
         this.deflater = Objects.requireNonNull(deflater);
+        Objects.requireNonNull(writer);
+        this.writer = new RealWriter(writer, false);
     }
 
     @Override
@@ -107,7 +101,7 @@ public final class DeflaterRawWriter implements RawWriter {
         }
 
         // Emit deflated data to the underlying writer. If this fails, we still need to close the deflater and the writer;
-        // otherwise we risk leaking resourcess.
+        // otherwise we risk leaking resources.
         Throwable thrown = null;
         try {
             finishDeflate();
