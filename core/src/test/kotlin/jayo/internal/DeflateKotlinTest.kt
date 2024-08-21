@@ -84,7 +84,7 @@ class DeflateKotlinTest {
         val deflater = Deflater()
         deflater.setLevel(Deflater.NO_COMPRESSION)
         val deflaterWriter = DeflaterRawWriter(mockWriter, deflater)
-        deflaterWriter.write(Buffer().writeUtf8("a".repeat(SEGMENT_SIZE)), SEGMENT_SIZE.toLong())
+        deflaterWriter.write(Buffer().writeUtf8("a".repeat(Segment.SIZE)), Segment.SIZE.toLong())
         try {
             deflaterWriter.close()
             fail()

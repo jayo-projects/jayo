@@ -41,9 +41,9 @@ public final class DeflaterRawWriter implements RawWriter {
     private boolean closed = false;
 
     public DeflaterRawWriter(final @NonNull RawWriter writer, final @NonNull Deflater deflater) {
-        this.deflater = Objects.requireNonNull(deflater);
         Objects.requireNonNull(writer);
         this.segmentQueue = newWriterSegmentQueue(writer, false);
+        this.deflater = Objects.requireNonNull(deflater);
     }
 
     @Override
@@ -55,7 +55,7 @@ public final class DeflaterRawWriter implements RawWriter {
         }
 
         var remaining = byteCount;
-        var head = _reader.segmentQueue.headVolatile();
+        var head = _reader.segmentQueue.head();
         assert head != null;
         while (remaining > 0L) {
             var headLimit = head.limitVolatile();

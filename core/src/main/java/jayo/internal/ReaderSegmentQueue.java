@@ -39,6 +39,16 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         return new ReaderSegmentQueue(reader);
     }
 
+    static @NonNull ReaderSegmentQueue newSyncReaderSegmentQueue(final @NonNull RawReader reader) {
+        Objects.requireNonNull(reader);
+
+        if (reader instanceof RealReader realReader && !(realReader.segmentQueue instanceof ReaderSegmentQueue.Async)) {
+            return realReader.segmentQueue;
+        }
+
+        return new ReaderSegmentQueue(reader);
+    }
+
     final @NonNull RawReader reader;
     final @NonNull RealBuffer buffer;
     boolean closed = false;

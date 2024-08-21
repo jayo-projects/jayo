@@ -77,6 +77,8 @@ Java 21 is required to use Jayo.
   * `Utf8` is a `ByteString` that contains UTF-8 encoded bytes only.
 * `RawReader` and `RawWriter` (and their buffered versions `Reader` and `Writer`) offer great improvements over
 `InputStream` and `OutputStream`.
+* `TlsEndpoint` is an easy-to-use streaming API based on Jayo's reader and writer, that allows to secure JVM
+applications with minimal added complexity.
 
 You can also read [concepts](CONCEPT.md) and [draft ideas](DRAFT_IDEAS.md).
 

@@ -39,15 +39,21 @@ import java.util.Objects;
 
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.ReaderSegmentQueue.newReaderSegmentQueue;
+import static jayo.internal.ReaderSegmentQueue.newSyncReaderSegmentQueue;
 
 public final class RealReader implements Reader {
     private static final long INTEGER_MAX_PLUS_1 = (long) Integer.MAX_VALUE + 1;
 
     final @NonNull ReaderSegmentQueue segmentQueue;
 
-    public RealReader(final @NonNull RawReader reader, final boolean async) {
+    RealReader(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
-        segmentQueue = newReaderSegmentQueue(reader, async);
+        segmentQueue = newSyncReaderSegmentQueue(reader);
+    }
+
+    public RealReader(final @NonNull RawReader reader, final boolean preferAsync) {
+        Objects.requireNonNull(reader);
+        segmentQueue = newReaderSegmentQueue(reader, preferAsync);
     }
 
     @Override
@@ -427,7 +433,7 @@ public final class RealReader implements Reader {
         var remaining = byteCount;
         while (remaining > 0) {
             // trying to read Segment.SIZE, so we have at least one complete segment in the buffer
-            final var size = segmentQueue.expectSize(Segment.SIZE);
+            final var size = segmentQueue.expectSize(remaining);
             if (size == 0L) {
                 break;
             }
@@ -604,7 +610,7 @@ public final class RealReader implements Reader {
 
     @Override
     public @NonNull Reader peek() {
-        return new RealReader(new PeekRawReader(this), false);
+        return new RealReader(new PeekRawReader(this));
     }
 
     @Override

@@ -6,6 +6,7 @@
 package jayo.internal;
 
 import jayo.RawWriter;
+import jayo.endpoints.JayoClosedEndpointException;
 import jayo.exceptions.JayoInterruptedIOException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
@@ -21,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 
-sealed class WriterSegmentQueue extends SegmentQueue {
+sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.Async {
 
     static @NonNull WriterSegmentQueue newWriterSegmentQueue(final @NonNull RawWriter writer,
                                                              final boolean preferAsync) {
@@ -70,7 +71,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
         if (closed) {
             return;
         }
-        // Emit buffered data to the underlying writer. If this fails, we still need to close the writer;
+        // best effort to emit buffered data to the underlying writer. If this fails, we still need to close the writer;
         // otherwise we risk leaking resources.
         Throwable thrown = null;
         try {
@@ -78,8 +79,8 @@ sealed class WriterSegmentQueue extends SegmentQueue {
             if (size > 0) {
                 writer.write(buffer, size);
             }
-        } catch (JayoInterruptedIOException ignored) {
-            // cancellation lead to closing, ignore
+        } catch (JayoInterruptedIOException | JayoClosedEndpointException ignored) {
+            // cancellation lead to closing, and a closed endpoint must be ignored
         } catch (Throwable e) {
             thrown = e;
         }
@@ -90,6 +91,12 @@ sealed class WriterSegmentQueue extends SegmentQueue {
             if (thrown == null) {
                 thrown = e;
             }
+        }
+
+        // clear buffer in case the previous write operation could not write all remaining data from the buffer
+        final var size = buffer.byteSize();
+        if (size > 0) {
+            buffer.clear();
         }
 
         closed = true;
@@ -116,7 +123,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
          * to trigger the end of the async emitter thread
          */
         private final static EmitEvent STOP_EMITTER_THREAD = new EmitEvent(
-                new Segment(new byte[0], 0, 0, null, false),
+                new Segment(new byte[0], 0, 0, null, null, null, false),
                 false, -42, false);
 
         private volatile @Nullable RuntimeException exception = null;
@@ -164,7 +171,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
 
         @Override
         void emitCompleteSegments() {
-            var currentTail = tailVolatile();
+            var currentTail = tail();
             if (currentTail == null) {
                 // can happen when we write nothing, like writer.writeUtf8("")
                 return;
@@ -186,7 +193,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
         @Override
         void emit(final boolean flush) {
             throwIfNeeded();
-            final var currentTail = tailVolatile();
+            final var currentTail = tail();
             if (currentTail == null) {
                 // can happen when we write nothing, like writer.writeUtf8("")
                 return;
@@ -267,7 +274,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
                             if (emitEvent == STOP_EMITTER_THREAD) {
                                 break;
                             }
-                            var segment = headVolatile();
+                            var segment = head();
                             if (segment != null && (emitEvent.including || segment.nextVolatile() != null)) {
                                 var toWrite = 0L;
                                 while (true) {

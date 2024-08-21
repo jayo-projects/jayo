@@ -78,7 +78,7 @@ public final class SegmentPool {
      * The maximum number of bytes to pool per hash bucket.
      */
     // TODO: Is this a good maximum size?
-    static final int MAX_SIZE = 64 * 1024; // 64 KiB.
+    static final int MAX_SIZE = 8 * Segment.SIZE; // ~150 KiB.
 
     /**
      * The number of hash buckets. This number needs to balance keeping the pool small and contention low. We use the
@@ -99,7 +99,7 @@ public final class SegmentPool {
     /**
      * A sentinel segment to indicate that the cache is currently being modified.
      */
-    private static final Segment DOOR = new Segment(new byte[0], 0, 0, null, false);
+    private static final Segment DOOR = new Segment(new byte[0], 0, 0, null, null, null, false);
 
     /**
      * Hash buckets each contain a singly-linked queue of segments. The index/key is a hash function of thread ID

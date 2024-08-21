@@ -101,7 +101,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         val original = "They're moving in herds. They do move in herds."
 
         // Exercise all possible offsets for the outgoing segment.
-        for (i in 0 until SEGMENT_SIZE) {
+        for (i in 0 until Segment.SIZE) {
             before()
             val clearText = Buffer().writeUtf8(original)
             writer.writeUtf8("a".repeat(i))
@@ -120,7 +120,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         val deflater = Deflater()
         deflater.setLevel(Deflater.NO_COMPRESSION)
         val deflaterWriter = DeflaterRawWriter(writer, deflater)
-        val byteCount = SEGMENT_SIZE * 4
+        val byteCount = Segment.SIZE * 4
         deflaterWriter.write(Buffer().writeUtf8("a".repeat(byteCount)), byteCount.toLong())
         deflaterWriter.close()
         assertEquals("a".repeat(byteCount), inflate(data).readUtf8String(byteCount.toLong()))

@@ -29,4 +29,12 @@ final class Wrapper {
             this.value = value;
         }
     }
+
+    static final class Boolean {
+        boolean value = false;
+    }
+
+    static final class SSLEngineResult {
+        javax.net.ssl.SSLEngineResult value;
+    }
 }

@@ -56,7 +56,8 @@ public final class OutputStreamRawWriter implements RawWriter {
 
     @Override
     public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
-        checkOffsetAndCount(Objects.requireNonNull(reader).byteSize(), 0L, byteCount);
+        Objects.requireNonNull(reader);
+        checkOffsetAndCount(reader.byteSize(), 0L, byteCount);
         if (!(reader instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
@@ -76,7 +77,7 @@ public final class OutputStreamRawWriter implements RawWriter {
         }
 
         var remaining = byteCount;
-        var head = _reader.segmentQueue.headVolatile();
+        var head = _reader.segmentQueue.head();
         assert head != null;
         while (remaining > 0L) {
             CancelToken.throwIfReached(cancelToken);
@@ -118,6 +119,11 @@ public final class OutputStreamRawWriter implements RawWriter {
     @Override
     public void flush() {
         try {
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "OutputStreamRawWriter: flushing to the OutputStream {0}{1}",
+                        out, System.lineSeparator());
+            }
+
             out.flush();
             // File specific : opinionated action to force to synchronize with the underlying device when calling
             // rawWriter.flush()

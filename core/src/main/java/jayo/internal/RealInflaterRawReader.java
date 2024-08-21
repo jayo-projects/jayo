@@ -27,6 +27,7 @@ import jayo.InflaterRawReader;
 import jayo.RawReader;
 import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
+import jayo.external.CancelToken;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -36,7 +37,7 @@ import java.util.Objects;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-import static jayo.internal.ReaderSegmentQueue.newReaderSegmentQueue;
+import static jayo.internal.ReaderSegmentQueue.newSyncReaderSegmentQueue;
 
 public final class RealInflaterRawReader implements InflaterRawReader {
     private final @NonNull ReaderSegmentQueue segmentQueue;
@@ -50,7 +51,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
     private boolean closed = false;
 
     public RealInflaterRawReader(final @NonNull RawReader reader, final @NonNull Inflater inflater) {
-        this(newReaderSegmentQueue(Objects.requireNonNull(reader), false), inflater);
+        this(newSyncReaderSegmentQueue(Objects.requireNonNull(reader)), inflater);
     }
 
     /**
@@ -130,6 +131,10 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         if (closed) {
             throw new IllegalStateException("closed");
         }
+
+        final var cancelToken = CancellableUtils.getCancelToken();
+        CancelToken.throwIfReached(cancelToken);
+
         if (byteCount == 0L) {
             return 0L;
         }
@@ -156,7 +161,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
             } else {
                 bytesInflated.value = 0;
             }
-            return true;
+            return null;
         });
 
         return bytesInflated.value;
@@ -174,7 +179,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         }
 
         // Assign buffer bytes to the inflater.
-        currentHead = segmentQueue.headVolatile();
+        currentHead = segmentQueue.head();
         assert currentHead != null;
         bytesHeldByInflater = currentHead.limitVolatile() - currentHead.pos;
         inflater.setInput(currentHead.data, currentHead.pos, bytesHeldByInflater);

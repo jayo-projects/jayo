@@ -639,9 +639,9 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
     @Test
     fun writeLargeNioBufferWritesAllData() {
-        val expected: String = "a".repeat(SEGMENT_SIZE * 3)
-        val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(SEGMENT_SIZE * 4)
-        nioByteBuffer.put("a".repeat(SEGMENT_SIZE * 3).toByteArray(Charsets.UTF_8))
+        val expected: String = "a".repeat(Segment.SIZE * 3)
+        val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(Segment.SIZE * 4)
+        nioByteBuffer.put("a".repeat(Segment.SIZE * 3).toByteArray(Charsets.UTF_8))
         nioByteBuffer.flip()
         val byteCount: Int = writer.transferFrom(nioByteBuffer)
         assertEquals(expected.length, byteCount)
