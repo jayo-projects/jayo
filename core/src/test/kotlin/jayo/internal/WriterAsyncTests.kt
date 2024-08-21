@@ -9,7 +9,7 @@ import jayo.Jayo
 import jayo.buffered
 import jayo.writer
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.RepeatedTest
 import java.io.OutputStream
 import java.time.Duration
 import kotlin.random.Random
@@ -17,114 +17,102 @@ import kotlin.test.fail
 
 // these tests are a good race-condition test, do them several times !
 class WriterAsyncTests {
-    @Test
+    @RepeatedTest(10)
     fun writerFastProducerSlowEmitter() {
-        repeat(10) {
-            val outputStream = outputStream(true)
+        val outputStream = outputStream(true)
 
-            outputStream.writer().buffered().use { writer ->
-                writer.writeUtf8('a'.repeat(EXPECTED_SIZE))
-            }
-            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-            assertThat(outputStream.bytes).isEqualTo(ARRAY)
+        outputStream.writer().buffered().use { writer ->
+            writer.writeUtf8('a'.repeat(EXPECTED_SIZE))
         }
+        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+        assertThat(outputStream.bytes).isEqualTo(ARRAY)
     }
 
-    @Test
+    @RepeatedTest(10)
     fun asyncWriterFastProducerSlowEmitter() {
-        repeat(10) {
-            val outputStream = outputStream(true)
+        val outputStream = outputStream(true)
 
-            Jayo.bufferAsync(outputStream.writer()).use { writer ->
-                writer.writeUtf8('a'.repeat(EXPECTED_SIZE))
-            }
-            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-            assertThat(outputStream.bytes).isEqualTo(ARRAY)
+        Jayo.bufferAsync(outputStream.writer()).use { writer ->
+            writer.writeUtf8('a'.repeat(EXPECTED_SIZE))
         }
+        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+        assertThat(outputStream.bytes).isEqualTo(ARRAY)
     }
 
-    @Test
+    @RepeatedTest(10)
     fun writerSlowProducerFastEmitter() {
-        repeat(10) {
-            val outputStream = outputStream(false)
+        val outputStream = outputStream(false)
 
-            var written = 0
-            outputStream.writer().buffered().use { writer ->
-                val toWrite = CHUNKS_BYTE_SIZE
-                val bytes = ByteArray(toWrite)
-                while (written < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    ARRAY.copyInto(bytes, 0, 0, toWrite)
-                    writer.write(bytes)
-                    written += toWrite
-                }
+        var written = 0
+        outputStream.writer().buffered().use { writer ->
+            val toWrite = CHUNKS_BYTE_SIZE
+            val bytes = ByteArray(toWrite)
+            while (written < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                ARRAY.copyInto(bytes, 0, 0, toWrite)
+                writer.write(bytes)
+                written += toWrite
             }
-            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-            assertThat(outputStream.bytes).isEqualTo(ARRAY)
         }
+        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+        assertThat(outputStream.bytes).isEqualTo(ARRAY)
     }
 
-    @Test
+    @RepeatedTest(10)
     fun asyncWriterSlowProducerFastEmitter() {
-        repeat(10) {
-            val outputStream = outputStream(false)
+        val outputStream = outputStream(false)
 
-            var written = 0
-            outputStream.writer().buffered(true).use { writer ->
-                val toWrite = CHUNKS_BYTE_SIZE
-                val bytes = ByteArray(toWrite)
-                while (written < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    ARRAY.copyInto(bytes, 0, 0, toWrite)
-                    writer.write(bytes)
-                    written += toWrite
-                }
+        var written = 0
+        outputStream.writer().buffered(true).use { writer ->
+            val toWrite = CHUNKS_BYTE_SIZE
+            val bytes = ByteArray(toWrite)
+            while (written < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                ARRAY.copyInto(bytes, 0, 0, toWrite)
+                writer.write(bytes)
+                written += toWrite
             }
-            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-            assertThat(outputStream.bytes).isEqualTo(ARRAY)
         }
+        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+        assertThat(outputStream.bytes).isEqualTo(ARRAY)
     }
 
-    @Test
+    @RepeatedTest(10)
     fun writerSlowProducerSlowEmitter() {
-        repeat(10) {
-            val outputStream = outputStream(true)
+        val outputStream = outputStream(true)
 
-            var written = 0
-            outputStream.writer().buffered().use { writer ->
-                val toWrite = CHUNKS_BYTE_SIZE
-                val bytes = ByteArray(toWrite)
-                while (written < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    ARRAY.copyInto(bytes, 0, 0, toWrite)
-                    writer.write(bytes)
-                    written += toWrite
-                }
+        var written = 0
+        outputStream.writer().buffered().use { writer ->
+            val toWrite = CHUNKS_BYTE_SIZE
+            val bytes = ByteArray(toWrite)
+            while (written < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                ARRAY.copyInto(bytes, 0, 0, toWrite)
+                writer.write(bytes)
+                written += toWrite
             }
-            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-            assertThat(outputStream.bytes).isEqualTo(ARRAY)
         }
+        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+        assertThat(outputStream.bytes).isEqualTo(ARRAY)
     }
 
-    @Test
+    @RepeatedTest(30)
     fun asyncWriterSlowProducerSlowEmitter() {
-        repeat(30) {
-            val outputStream = outputStream(true)
+        val outputStream = outputStream(true)
 
-            var written = 0
-            outputStream.writer().buffered(true).use { writer ->
-                val toWrite = CHUNKS_BYTE_SIZE
-                val bytes = ByteArray(toWrite)
-                while (written < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    ARRAY.copyInto(bytes, 0, 0, toWrite)
-                    writer.write(bytes)
-                    written += toWrite
-                }
+        var written = 0
+        outputStream.writer().buffered(true).use { writer ->
+            val toWrite = CHUNKS_BYTE_SIZE
+            val bytes = ByteArray(toWrite)
+            while (written < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                ARRAY.copyInto(bytes, 0, 0, toWrite)
+                writer.write(bytes)
+                written += toWrite
             }
-            assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-            assertThat(outputStream.bytes).isEqualTo(ARRAY)
         }
+        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
+        assertThat(outputStream.bytes).isEqualTo(ARRAY)
     }
 
     companion object {

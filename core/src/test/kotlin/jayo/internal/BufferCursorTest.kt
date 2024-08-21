@@ -436,13 +436,13 @@ class BufferCursorTest {
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.seek(originalSize - 1)
             val originalEnd = cursor.limit
-            assumeTrue(originalEnd < SEGMENT_SIZE)
+            assumeTrue(originalEnd < Segment.SIZE)
             val addedByteCount = cursor.expandBuffer(1)
-            assertEquals((SEGMENT_SIZE - originalEnd).toLong(), addedByteCount)
+            assertEquals((Segment.SIZE - originalEnd).toLong(), addedByteCount)
             assertEquals(originalSize + addedByteCount, buffer.byteSize())
             assertEquals(originalSize, cursor.offset)
             assertEquals(originalEnd.toLong(), cursor.pos.toLong())
-            assertEquals(SEGMENT_SIZE.toLong(), cursor.limit.toLong())
+            assertEquals(Segment.SIZE.toLong(), cursor.limit.toLong())
         }
     }
 
@@ -452,11 +452,11 @@ class BufferCursorTest {
         val buffer = bufferFactory.newBuffer()
         val originalSize = buffer.byteSize()
         buffer.readAndWriteUnsafe().use { cursor ->
-            val addedByteCount = cursor.expandBuffer(SEGMENT_SIZE)
-            assertEquals(SEGMENT_SIZE.toLong(), addedByteCount)
+            val addedByteCount = cursor.expandBuffer(Segment.SIZE)
+            assertEquals(Segment.SIZE.toLong(), addedByteCount)
             assertEquals(originalSize, cursor.offset)
             assertEquals(0, cursor.pos.toLong())
-            assertEquals(SEGMENT_SIZE.toLong(), cursor.limit.toLong())
+            assertEquals(Segment.SIZE.toLong(), cursor.limit.toLong())
         }
     }
 

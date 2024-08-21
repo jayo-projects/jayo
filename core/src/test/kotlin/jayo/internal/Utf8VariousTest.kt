@@ -104,7 +104,7 @@ class Utf8VariousTest {
 
     @Test
     fun multipleSegmentString() {
-        val a = "a".repeat(SEGMENT_SIZE + SEGMENT_SIZE + 1)
+        val a = "a".repeat(Segment.SIZE + Segment.SIZE + 1)
         val encoded = RealBuffer().writeUtf8(a)
         val expected = RealBuffer().write(a.toByteArray(UTF_8))
         assertEquals(expected.readByteString(), encoded.readByteString())
@@ -113,9 +113,9 @@ class Utf8VariousTest {
     @Test
     fun stringSpansSegments() {
         val buffer = RealBuffer()
-        val a = "a".repeat(SEGMENT_SIZE - 1)
+        val a = "a".repeat(Segment.SIZE - 1)
         val b = "bb"
-        val c = "c".repeat(SEGMENT_SIZE - 1)
+        val c = "c".repeat(Segment.SIZE - 1)
         buffer.writeUtf8(a)
         buffer.writeUtf8(b)
         buffer.writeUtf8(c)

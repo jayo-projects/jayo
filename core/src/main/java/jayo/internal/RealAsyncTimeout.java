@@ -58,11 +58,11 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
  */
 public final class RealAsyncTimeout implements AsyncTimeout {
     /**
-     * Don't write more than 64 KiB of data at a time, give or take 8 segments. Otherwise, slow connections may suffer
-     * timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never succeed
-     * on a sufficiently slow connection.
+     * Don't write more than 4 segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer timeouts
+     * even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never succeed on a
+     * sufficiently slow connection.
      */
-    static final int TIMEOUT_WRITE_SIZE = 64 * 1024;
+    static final int TIMEOUT_WRITE_SIZE = 4 * Segment.SIZE;
 
     /**
      * True if this node is currently in the queue.
@@ -137,7 +137,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 while (remaining > 0L) {
                     // Count how many bytes to write. This loop guarantees we split on a segment boundary.
                     var _toWrite = 0L;
-                    var segment = _reader.segmentQueue.headVolatile();
+                    var segment = _reader.segmentQueue.head();
                     while (_toWrite < TIMEOUT_WRITE_SIZE) {
                         assert segment != null;
                         final var segmentSize = segment.limitVolatile() - segment.pos;

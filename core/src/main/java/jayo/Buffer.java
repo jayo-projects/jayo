@@ -45,13 +45,13 @@ import java.nio.charset.Charset;
  * consumed.
  * <p>
  * Internally, the buffer consists of a queue of data segments, and the buffer's capacity grows and shrinks in units of
- * data segments instead of individual bytes. Each data segment store binary data in a fixed-sized byte array.
+ * data segments instead of individual bytes. Each data segment store binary data in a fixed-sized {@code byte[]}.
  * <ul>
  * <li><b>Moving data from one buffer to another is fast.</b> The buffer was designed to reduce memory allocations when
  * possible. Instead of copying bytes from one place in memory to another, this class just changes ownership of the
  * underlying data segments.
- * <li><b>This buffer grows with your data.</b> Just like ArrayList, each buffer starts small. It consumes only the
- * memory it needs to.
+ * <li><b>This buffer grows with your data.</b> Just like an {@code ArrayList}, each buffer starts small. It consumes
+ * only the memory it needs to.
  * <li><b>This buffer pools its byte arrays.</b> When you allocate a byte array in Java, the runtime must zero-fill the
  * requested array before returning it to you. Even if you're going to write over that space anyway. This class avoids
  * zero-fill and GC churn by pooling byte arrays.
@@ -226,10 +226,10 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     long completeSegmentByteCount();
 
     /**
-     * @return the byte at {@code position}.
+     * @return the byte at the {@code position} index.
      * <p>
-     * Use of this method may expose significant performance penalties, and it's not recommended to use it
-     * for sequential access to a range of bytes within the buffer.
+     * Use of this method may expose significant performance penalties, and it's not recommended to use it for
+     * sequential access to a range of bytes within the buffer.
      * @throws IndexOutOfBoundsException if {@code position} is negative or greater or equal to {@link #byteSize()}.
      */
     byte getByte(final @NonNegative long pos);
@@ -237,13 +237,13 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     /**
      * Discards all bytes in this buffer.
      * <p>
-     * Call to this method is equivalent to {@link #skip} with {@code byteCount = size}, call this method when you're
-     * done with a buffer, its segments will return to the pool.
+     * Call to this method is equivalent to {@link #skip(long)} with {@code byteCount = buffer.byteSize()}, call this
+     * method when you're done with a buffer, its segments will return to the pool.
      */
     void clear();
 
     /**
-     * Discards {@code byteCount} bytes from the head of this buffer.
+     * Discards {@code byteCount} bytes, starting from the head of this buffer.
      *
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
@@ -470,11 +470,14 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <li><b>Fast Copy:</b> Multiple buffers can share the same underlying memory.
      * <li><b>Fast Encoding and Decoding:</b> Common operations like UTF-8 encoding and decimal decoding do not require
      * intermediate objects to be allocated.
+     * <li><b>Concurrency:</b> A buffer is a SPSC Single Producer Single Consumer lock-free data structure. In the Jayo
+     * world this means that a thread can write data using all the {@link Writer} methods, and another thread can read
+     * data using all the {@link Reader} methods concurrently.
      * </ul>
      * These optimizations all leverage the way Jayo stores data internally. Jayo buffers are implemented using a
-     * singly-linked queue of segments. Each segment is a contiguous range within a 8 KiB {@code bye[]}. Each segment
-     * has two indexes: {@code pos}, the offset of the first byte of the first byte of the array containing
-     * application data, and {@code limit}, the offset of the first byte beyond {@code pos} whose data is undefined.
+     * singly-linked queue of segments. Each segment holds a {@code bye[]} of 16_709 bytes. Each segment has two
+     * indexes: {@code pos}, the offset of the first byte of the first byte of the array containing application data,
+     * and {@code limit}, the offset of the first byte beyond {@code pos} whose data is undefined.
      * <p>
      * New buffers are empty and have no segments:
      * <pre>
@@ -483,7 +486,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * }
      * </pre>
      * We append 7 bytes of data to the end of our empty buffer. Internally, the buffer allocates a segment and writes
-     * its new data there. This single segment has a 8 KiB byte array but only 7 bytes of data:
+     * its new data there. This single segment has a byte array of 16_709 bytes but only 7 bytes of data in it:
      * <pre>
      * {@code
      * buffer.writeUtf8("unicorn");
@@ -507,21 +510,21 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * As we write data into a buffer we fill up its internal segments. When a write operation doesn't fit into a
      * buffer's last segment, an additional segment is obtained from the internal segment pool and appended to the queue
      * so the write operation continues in this new segment. The segment pool may return a segment from the pool if one
-     * is available, or allocate a new segment with its fresh new byte array. Each segment has its own pos and limit
-     * indexes tracking where the user's data begins and ends.
+     * is available, or allocate a brand-new segment with its fresh new byte array. Each segment has its own pos and
+     * limit indexes tracking where the user's data begins and ends.
      * Let's illustrate that with a Kotlin sample
      * <pre>
      * {@code
      * val xoxo = Buffer()
-     * xoxo.writeUtf8("xo".repeat(5_000))
+     * xoxo.writeUtf8("xo".repeat(10_000))
      *
-     * // [ 'x', 'o', 'x', 'o', 'x', 'o', 'x', 'o', ..., 'x', 'o', 'x', 'o']
-     * //    ^                                                               ^
-     * // pos = 0                                                      limit = 8192
+     * // [ 'x', 'o', 'x', 'o', 'x', 'o', 'x', 'o', ..., 'x', 'o', 'x']
+     * //    ^                                                      ^
+     * // pos = 0                                             limit = 16_709
      * //
-     * // [ 'x', 'o', 'x', 'o', ..., 'x', 'o', 'x', 'o', '?', '?', '?', ...]
-     * //    ^                                            ^
-     * // pos = 0                                   limit = 1808
+     * // [ 'o', 'x', 'o', ..., 'x', 'o', 'x', 'o', '?', '?', '?', ...]
+     * //    ^                                       ^
+     * // pos = 0                               limit = 3_291
      * }
      * </pre>
      * The pos index is always <b>inclusive</b> and the limit index is always <b>exclusive</b>. The data preceding the
@@ -530,7 +533,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * After the last byte of a segment has been read, that segment may be returned to the segment pool. In addition to
      * reducing the need to do garbage collection, segment pooling also saves the JVM from needing to zero-fill byte
      * arrays. Jayo doesn't need to zero-fill its arrays because it always writes memory before it reads it. But if you
-     * look at a segment in a debugger you may see its effects. In this example below, let's assume that one of the
+     * look at a segment in a debugger you may see its effects. In the example below, let's assume that one of the
      * "xoxo" segments above is reused in an unrelated buffer:
      * <pre>
      * {@code
@@ -549,7 +552,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * {@code
      * val nana = Buffer()
      * nana.writeUtf8("na".repeat(2_500))
-     * nana.readUtf8(2) // "na"
+     * nana.readUtf8(2) // reads "na"
      *
      * // [ 'n', 'a', 'n', 'a', ..., 'n', 'a', 'n', 'a', '?', '?', '?', ...]
      * //              ^                                  ^
@@ -558,6 +561,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * nana2 = nana.clone()
      * nana2.writeUtf8("batman")
      *
+     * // this segment and its byte[] is shared between nana and nana2 buffers
+     * //                                 ↓
      * // [ 'n', 'a', 'n', 'a', ..., 'n', 'a', 'n', 'a', '?', '?', '?', ...]
      * //              ^                                  ^
      * //           pos = 2                         limit = 5000
@@ -567,9 +572,11 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * //  pos = 0                    limit = 6
      * }
      * </pre>
-     * Segments are not shared when the shared region is small (ie. less than 1 KiB). This is intended to prevent
+     * Segments are not shared when the shared region is small (i.e. less than 1 KiB). This is intended to prevent
      * fragmentation in sharing-heavy use cases.
+     *
      * <h2>Unsafe Cursor API</h2>
+     *
      * This class exposes privileged access to the internal byte arrays of a buffer. A cursor either references the
      * data of a single segment, it is before the first segment ({@code offset == -1}), or it is after the last segment
      * ({@code offset == buffer.byteSize()}).

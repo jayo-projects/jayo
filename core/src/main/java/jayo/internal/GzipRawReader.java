@@ -67,7 +67,7 @@ public final class GzipRawReader implements RawReader {
 
     public GzipRawReader(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
-        this.reader = new RealReader(reader, false);
+        this.reader = new RealReader(reader);
         inflaterReader = new RealInflaterRawReader(this.reader.segmentQueue, inflater);
     }
 
@@ -215,7 +215,7 @@ public final class GzipRawReader implements RawReader {
         var _offset = offset;
         var _byteCount = byteCount;
         // Skip segments that we aren't checksumming.
-        var segment = segmentQueue.headVolatile();
+        var segment = segmentQueue.head();
         assert segment != null;
         while (_offset >= segment.limit() - segment.pos) {
             _offset -= (segment.limit() - segment.pos);

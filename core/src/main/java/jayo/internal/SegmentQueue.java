@@ -11,15 +11,17 @@ import org.jspecify.annotations.Nullable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.ToIntFunction;
 
 import static java.lang.System.Logger.Level.TRACE;
 
-
-sealed class SegmentQueue implements AutoCloseable
-        permits WriterSegmentQueue, ReaderSegmentQueue {
+sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, ReaderSegmentQueue {
     final static long MAX_BYTE_SIZE = 128 * 1024;
 
     private static final System.Logger LOGGER = System.getLogger("jayo.SegmentQueue");
@@ -44,11 +46,11 @@ sealed class SegmentQueue implements AutoCloseable
         }
     }
 
-    final @Nullable Segment headVolatile() {
+    final @Nullable Segment head() {
         return (Segment) HEAD.getVolatile(this);
     }
 
-    final @Nullable Segment tailVolatile() {
+    final @Nullable Segment tail() {
         return (Segment) TAIL.getVolatile(this);
     }
 
@@ -57,7 +59,7 @@ sealed class SegmentQueue implements AutoCloseable
     }
 
     // this method must only be called from Buffer.write call
-    final @Nullable Segment removeHead(final @NonNull Segment currentHead, final Boolean wasSplit) {
+    final @Nullable Segment removeHead(final @NonNull Segment currentHead, final @Nullable Boolean wasSplit) {
         assert currentHead != null;
         assert (byte) Segment.STATUS.get(currentHead) == Segment.REMOVING
                 || (byte) Segment.STATUS.get(currentHead) == Segment.TRANSFERRING;
@@ -85,13 +87,158 @@ sealed class SegmentQueue implements AutoCloseable
         return newHead;
     }
 
-    final boolean withWritableTail(final int minimumCapacity,
-                                   final @NonNull ToBooleanFunction<@NonNull Segment> writeAction) {
+    final int withHeadsAsByteBuffers(final int toRead,
+                                     final @NonNull ToIntFunction<@NonNull ByteBuffer @NonNull []> readAction) {
+        assert readAction != null;
+        assert toRead > 0;
+
+        var head = head();
+        var segment = head;
+
+        // 1) build the ByteBuffer list to read from
+        final var byteBuffers = new ArrayList<ByteBuffer>();
+        var remaining = toRead;
+        while (true) {
+            assert segment != null;
+            final var toReadInSegment = Math.min(remaining, segment.limitVolatile() - segment.pos);
+            byteBuffers.add(segment.asReadByteBuffer(toReadInSegment));
+            remaining -= toReadInSegment;
+            if (remaining == 0) {
+                break;
+            }
+            segment = segment.nextVolatile();
+        }
+        final var sources = byteBuffers.toArray(new ByteBuffer[0]);
+
+        // 2) call readAction
+        final var read = readAction.applyAsInt(sources);
+        if (read <= 0) {
+            return read;
+        }
+
+        // 3) apply changes to head segments
+        remaining = read;
+        var finished = false;
+        while (!finished) {
+            assert head != null;
+            final var currentLimit = head.limitVolatile();
+            final var readFromHead = Math.min(remaining, currentLimit - head.pos);
+            head.pos += readFromHead;
+            decrementSize(readFromHead);
+            remaining -= readFromHead;
+            finished = remaining == 0;
+            if (head.pos == currentLimit) {
+                final var oldHead = head;
+                if (finished) {
+                    if (head.tryRemove() && head.validateRemove()) {
+                        removeHead(head);
+                    }
+                } else {
+                    if (!head.tryRemove()) {
+                        throw new IllegalStateException("Non tail segment should be removable");
+                    }
+                    head = removeHead(head);
+                }
+                SegmentPool.recycle(oldHead);
+            }
+        }
+
+        return read;
+    }
+
+    final void withCompactedHeadAsByteBuffer(final int toRead,
+                                             final @NonNull ToIntFunction<@NonNull ByteBuffer> readAction) {
+        assert readAction != null;
+        assert toRead > 0;
+
+        final var head = head();
+        assert head != null;
+
+        // 1) adapt the head segment to red from, compact it if needed
+        final var availableInHead = head.limitVolatile() - head.pos;
+        if (availableInHead < toRead) {
+            // must compact several segments in the head alone.
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "Compact head start, SegmentQueue:{0}{1},{2}",
+                        System.lineSeparator(), this, System.lineSeparator());
+            }
+
+            // 1.1) shift bytes in head
+            System.arraycopy(head.data, head.pos, head.data, 0, availableInHead);
+            head.limit(head.limit() - head.pos);
+            head.pos = 0;
+
+            // 1.2) copy bytes from next segments into head
+            var remaining = toRead - availableInHead;
+            var segment = head.nextVolatile();
+            var finished = false;
+            while (!finished) {
+                assert segment != null;
+                final var toCopy = Math.min(remaining, segment.limitVolatile() - segment.pos);
+                System.arraycopy(segment.data, segment.pos, head.data, head.limit(), toCopy);
+                segment.pos += toCopy;
+                head.limit(head.limit() + toCopy);
+                remaining -= toCopy;
+                finished = remaining == 0;
+                if (segment.pos == segment.limitVolatile()) {
+                    final var oldSegment = segment;
+                    segment = segment.nextVolatile();
+                    if (finished) {
+                        if (oldSegment.tryRemove() && oldSegment.validateRemove()) {
+                            if (!Segment.NEXT.compareAndSet(head, oldSegment, segment)) {
+                                throw new IllegalStateException(
+                                        "Could not swap head, previous next should be the current next");
+                            }
+                            if (segment == null) {
+                                // this segment was the tail, now head is the tail
+                                if (!TAIL.compareAndSet(this, oldSegment, head)) {
+                                    throw new IllegalStateException("Could not replace old tail with enlarged head");
+                                }
+                            }
+                        }
+                    } else {
+                        if (!oldSegment.tryRemove()) {
+                            throw new IllegalStateException("Non tail segment should be removable");
+                        }
+                        if (!Segment.NEXT.compareAndSet(head, oldSegment, segment)) {
+                            throw new IllegalStateException(
+                                    "Could not swap head, previous next should be the current next");
+                        }
+                    }
+                    SegmentPool.recycle(oldSegment);
+                }
+            }
+
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "Compact head end, SegmentQueue:{0}{1},{2}",
+                        System.lineSeparator(), this, System.lineSeparator());
+            }
+        }
+
+        // 2) call readAction
+        final var read = readAction.applyAsInt(head.asReadByteBuffer(toRead));
+        if (read <= 0) {
+            return;
+        }
+
+        // 3) apply changes to head segment
+        head.pos += read;
+        decrementSize(read);
+        if (head.pos == head.limitVolatile()) {
+            if (head.tryRemove() && head.validateRemove()) {
+                removeHead(head);
+            }
+            SegmentPool.recycle(head);
+        }
+    }
+
+    final <T> T withWritableTail(final int minimumCapacity,
+                                 final @NonNull Function<@NonNull Segment, T> writeAction) {
         assert writeAction != null;
         assert minimumCapacity > 0;
         assert minimumCapacity <= Segment.SIZE;
 
-        final var currentTail = tailVolatile();
+        final var currentTail = tail();
         if (currentTail == null || !currentTail.tryWrite()) {
             return withNewWritableSegment(writeAction, null);
         }
@@ -102,25 +249,23 @@ sealed class SegmentQueue implements AutoCloseable
         if (currentTail.owner && previousLimit + minimumCapacity <= Segment.SIZE) {
             var written = 0;
             try {
-                final var result = writeAction.applyAsBoolean(currentTail);
+                final var result = writeAction.apply(currentTail);
                 written = currentTail.limit() - previousLimit;
                 return result;
             } finally {
                 currentTail.finishWrite();
-                if (written > 0) {
-                    incrementSize(written);
-                }
+                incrementSize(written);
             }
         }
 
         return withNewWritableSegment(writeAction, currentTail);
     }
 
-    private boolean withNewWritableSegment(final @NonNull ToBooleanFunction<@NonNull Segment> writeAction,
-                                           final @Nullable Segment currentTail) {
+    private <T> T withNewWritableSegment(final @NonNull Function<@NonNull Segment, T> writeAction,
+                                         final @Nullable Segment currentTail) {
         // acquire a new empty segment to fill up.
         final var newTail = SegmentPool.take();
-        final var result = writeAction.applyAsBoolean(newTail);
+        final var result = writeAction.apply(newTail);
         final var written = newTail.limit();
         if (written > 0) {
             try {
@@ -152,7 +297,7 @@ sealed class SegmentQueue implements AutoCloseable
     }
 
     final @Nullable Segment nonRemovedTailOrNull() {
-        final var currentTail = tailVolatile();
+        final var currentTail = tail();
         if (currentTail == null) {
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE,
@@ -186,7 +331,7 @@ sealed class SegmentQueue implements AutoCloseable
     final @NonNull Segment addWritableTail(final @Nullable Segment currentTail,
                                            final @NonNull Segment newTail,
                                            final boolean finishWriteInSegments) {
-        Objects.requireNonNull(newTail);
+        assert newTail != null;
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, """
                             SegmentQueue#{0}: addWritableTail. currentTail :
@@ -242,10 +387,18 @@ sealed class SegmentQueue implements AutoCloseable
     }
 
     final void incrementSize(final @NonNegative long increment) {
+        assert increment >= 0;
+        if (increment == 0L) {
+            return;
+        }
         size.add(increment);
     }
 
     final void decrementSize(final @NonNegative long decrement) {
+        assert decrement >= 0;
+        if (decrement == 0L) {
+            return;
+        }
         size.add(-decrement);
     }
 
@@ -254,7 +407,7 @@ sealed class SegmentQueue implements AutoCloseable
      */
     final void forEach(final @NonNull Consumer<Segment> action) {
         Objects.requireNonNull(action);
-        var s = headVolatile();
+        var s = head();
         while (s != null) {
             action.accept(s);
             s = s.nextVolatile();
@@ -273,16 +426,5 @@ sealed class SegmentQueue implements AutoCloseable
                 ", head=" + head + System.lineSeparator() +
                 ", tail=" + tail +
                 '}';
-    }
-
-    @FunctionalInterface
-    interface ToBooleanFunction<T> {
-        /**
-         * Applies this function to the given argument.
-         *
-         * @param value the function argument
-         * @return the function result
-         */
-        boolean applyAsBoolean(T value);
     }
 }

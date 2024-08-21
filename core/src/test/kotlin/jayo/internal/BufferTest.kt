@@ -754,18 +754,18 @@ class BufferTest {
     @Test
     fun cloneMultipleSegments() {
         val original = RealBuffer()
-        original.writeUtf8("a".repeat(SEGMENT_SIZE * 3))
+        original.writeUtf8("a".repeat(Segment.SIZE * 3))
         val clone: Buffer = original.copy()
-        original.writeUtf8("b".repeat(SEGMENT_SIZE * 3))
-        clone.writeUtf8("c".repeat(SEGMENT_SIZE * 3))
+        original.writeUtf8("b".repeat(Segment.SIZE * 3))
+        clone.writeUtf8("c".repeat(Segment.SIZE * 3))
 
         assertEquals(
-            "a".repeat(SEGMENT_SIZE * 3) + "b".repeat(SEGMENT_SIZE * 3),
-            original.readUtf8String((SEGMENT_SIZE * 6).toLong())
+            "a".repeat(Segment.SIZE * 3) + "b".repeat(Segment.SIZE * 3),
+            original.readUtf8String((Segment.SIZE * 6).toLong())
         )
         assertEquals(
-            "a".repeat(SEGMENT_SIZE * 3) + "c".repeat(SEGMENT_SIZE * 3),
-            clone.readUtf8String((SEGMENT_SIZE * 6).toLong())
+            "a".repeat(Segment.SIZE * 3) + "c".repeat(Segment.SIZE * 3),
+            clone.readUtf8String((Segment.SIZE * 6).toLong())
         )
     }
 
@@ -804,14 +804,14 @@ class BufferTest {
     @Test
     fun copyToSkippingSegments() {
         val reader = RealBuffer()
-        reader.writeUtf8("a".repeat(SEGMENT_SIZE * 2))
-        reader.writeUtf8("b".repeat(SEGMENT_SIZE * 2))
+        reader.writeUtf8("a".repeat(Segment.SIZE * 2))
+        reader.writeUtf8("b".repeat(Segment.SIZE * 2))
         val out = ByteArrayOutputStream()
-        reader.copyTo(out, SEGMENT_SIZE * 2 + 1L, 3L)
+        reader.copyTo(out, Segment.SIZE * 2 + 1L, 3L)
         assertEquals("bbb", out.toString())
         assertEquals(
-            "a".repeat(SEGMENT_SIZE * 2) + "b".repeat(SEGMENT_SIZE * 2),
-            reader.readUtf8String(SEGMENT_SIZE * 4L)
+            "a".repeat(Segment.SIZE * 2) + "b".repeat(Segment.SIZE * 2),
+            reader.readUtf8String(Segment.SIZE * 4L)
         )
     }
 
@@ -828,13 +828,13 @@ class BufferTest {
     @Test
     fun writeToSpanningSegments() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("a".repeat(SEGMENT_SIZE * 2))
-        buffer.writeUtf8("b".repeat(SEGMENT_SIZE * 2))
+        buffer.writeUtf8("a".repeat(Segment.SIZE * 2))
+        buffer.writeUtf8("b".repeat(Segment.SIZE * 2))
         val out = ByteArrayOutputStream()
         buffer.skip(10)
-        buffer.readTo(out, SEGMENT_SIZE * 3L)
-        assertEquals("a".repeat(SEGMENT_SIZE * 2 - 10) + "b".repeat(SEGMENT_SIZE + 10), out.toString())
-        assertEquals("b".repeat(SEGMENT_SIZE - 10), buffer.readUtf8String(buffer.byteSize()))
+        buffer.readTo(out, Segment.SIZE * 3L)
+        assertEquals("a".repeat(Segment.SIZE * 2 - 10) + "b".repeat(Segment.SIZE + 10), out.toString())
+        assertEquals("b".repeat(Segment.SIZE - 10), buffer.readUtf8String(buffer.byteSize()))
     }
 
     @Test
@@ -859,10 +859,10 @@ class BufferTest {
     @Test
     fun readFromSpanningSegments() {
         val input: InputStream = ByteArrayInputStream("hello, world!".toByteArray(Charsets.UTF_8))
-        val buffer = RealBuffer().also { it.writeUtf8("a".repeat(SEGMENT_SIZE - 10)) }
+        val buffer = RealBuffer().also { it.writeUtf8("a".repeat(Segment.SIZE - 10)) }
         buffer.transferFrom(input)
         val out = buffer.readUtf8String()
-        assertEquals("a".repeat(SEGMENT_SIZE - 10) + "hello, world!", out)
+        assertEquals("a".repeat(Segment.SIZE - 10) + "hello, world!", out)
     }
 
     @Test
@@ -893,7 +893,7 @@ class BufferTest {
     @Test
     fun readFromDoesNotLeaveEmptyTailSegment() {
         val buffer = RealBuffer()
-        buffer.transferFrom(ByteArrayInputStream(ByteArray(SEGMENT_SIZE)))
+        buffer.transferFrom(ByteArrayInputStream(ByteArray(Segment.SIZE)))
         assertNoEmptySegments(buffer)
     }
 

@@ -27,7 +27,7 @@ import jayo.Utf8
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)
-    var segment: Segment? = buffer.segmentQueue.headVolatile() ?: return emptyList()
+    var segment: Segment? = buffer.segmentQueue.head() ?: return emptyList()
 
     val sizes = mutableListOf(segment!!.limit() - segment.pos)
     segment = segment.nextVolatile()
@@ -59,7 +59,6 @@ fun makeSegments(reader: ByteString): ByteString {
             tail.data[tail.pos] = reader.getByte(i)
             val limit = tail.limit()
             tail.limit(limit + 1)
-            true
         }
     }
     return buffer.snapshot()

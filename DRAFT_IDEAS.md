@@ -2,8 +2,7 @@
 * Jayo loves Kotlin !
   * Support Kotlin specific types like `Sequence<T>`, `kotlin.time.DurationUnit`, and maybe some coroutine's stuff
 like `Flow<T>` must only be implemented as extension functions (= Java will not see it).
-  * If any Kotlin specific dependency has to be supported (
-[kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) ?), it must be declared as `compileOnly` in gradle
+  * If any Kotlin specific dependency has to be supported by core features, it must be declared as `compileOnly` in gradle
 build.
   * Expose [Type-safe Builders](https://kotlinlang.org/docs/type-safe-builders.html) for Kotlin to configure client and
 server options

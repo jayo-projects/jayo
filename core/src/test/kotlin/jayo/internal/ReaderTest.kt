@@ -475,8 +475,8 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.flush()
 
         reader.request(1)
-        val buffer = RealBuffer().also { it.write(ByteArray(SEGMENT_SIZE - expectedReadSize)) }
-        assertEquals(expectedReadSize.toLong(), reader.readAtMostTo(buffer, SEGMENT_SIZE.toLong()))
+        val buffer = RealBuffer().also { it.write(ByteArray(Segment.SIZE - expectedReadSize)) }
+        assertEquals(expectedReadSize.toLong(), reader.readAtMostTo(buffer, Segment.SIZE.toLong()))
 
         assertTrue(reader.exhausted())
         writer.write(ByteArray(expectedReadSize))
@@ -1366,8 +1366,9 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         reader.transferTo(discardingWriter())
 
         // Skip the rest of the buffered data
+        peek.skip(getBufferFromReader(peek).byteSize())
         assertFailsWith<RuntimeException> {
-            peek.skip(getBufferFromReader(peek).byteSize())
+            peek.readByte()
         }
     }
 
@@ -2101,10 +2102,10 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     /** Note that this test crashes the VM on Android.  */
     @Test
     open fun readLargeNioBufferOnlyReadsOneSegment() {
-        val expected: String = "a".repeat(SEGMENT_SIZE)
-        writer.writeUtf8("a".repeat(SEGMENT_SIZE * 4))
+        val expected: String = "a".repeat(Segment.SIZE)
+        writer.writeUtf8("a".repeat(Segment.SIZE * 4))
         writer.emit()
-        val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(SEGMENT_SIZE * 3)
+        val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(Segment.SIZE * 3)
         val byteCount: Int = reader.readAtMostTo(nioByteBuffer)
         assertEquals(expected.length, byteCount)
         assertEquals(expected.length, nioByteBuffer.position())
@@ -2155,7 +2156,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Disabled
     fun readIntoNonemptyWriter() {
         val toWrite = "God help us, we're in the hands of engineers.".encodeToByteString()
-        for (i in 0 until SEGMENT_SIZE) {
+        for (i in 0 until Segment.SIZE) {
             before()
             val buffer = Buffer().writeUtf8("a".repeat(i))
             writer.write(toWrite)

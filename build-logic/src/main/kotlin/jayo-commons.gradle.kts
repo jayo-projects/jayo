@@ -35,7 +35,8 @@ kotlin {
         explicitApi = Strict
         freeCompilerArgs.addAll(
             "-Xjvm-default=all",
-            "-Xnullability-annotations=@org.jspecify.annotations:strict" // not really sure if this helps ;)
+            "-Xnullability-annotations=@org.jspecify.annotations:strict", // not really sure if this helps ;)
+            "-opt-in=kotlin.contracts.ExperimentalContracts",
         )
     }
 

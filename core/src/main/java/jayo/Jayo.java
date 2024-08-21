@@ -57,7 +57,7 @@ public final class Jayo {
      * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
      * segment(s), if any.
      * <p>
-     * Actual write operations to the raw {@code writer} are processed <b>synchronously</b>.
+     * Write operations to the raw {@code writer} are processed <b>synchronously</b>.
      * <p>
      * Use this wherever you synchronously write to a raw writer to get an ergonomic and efficient access to data.
      */
@@ -70,7 +70,7 @@ public final class Jayo {
      * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
      * segment(s), if any.
      * <p>
-     * Actual write operations to the raw {@code writer} are seamlessly processed <b>asynchronously</b> by a virtual
+     * Write operations to the raw {@code writer} are seamlessly processed <b>asynchronously</b> by a virtual
      * thread.
      * <p>
      * Use this wherever you asynchronously write to a raw writer to get an ergonomic and efficient access to data.
@@ -83,7 +83,7 @@ public final class Jayo {
      * @return a new reader that buffers reads from the raw {@code reader}. The returned reader will perform bulk reads
      * into its underlying buffer.
      * <p>
-     * Actual read operations from the raw {@code reader} are processed <b>synchronously</b>.
+     * Read operations from the raw {@code reader} are processed <b>synchronously</b>.
      * <p>
      * Use this wherever you synchronously read from a raw reader to get an ergonomic and efficient access to data.
      */
@@ -95,7 +95,7 @@ public final class Jayo {
      * @return a new reader that buffers reads from the raw {@code reader}. The returned reader will perform bulk reads
      * into its underlying buffer.
      * <p>
-     * Actual read operations from the raw {@code reader} are seamlessly processed <b>asynchronously</b> by a virtual
+     * Read operations from the raw {@code reader} are seamlessly processed <b>asynchronously</b> by a virtual
      * thread.
      * <p>
      * Use this wherever you asynchronously read from a raw reader to get an ergonomic and efficient access to data.

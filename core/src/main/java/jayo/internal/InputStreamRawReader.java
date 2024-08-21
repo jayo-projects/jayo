@@ -44,9 +44,10 @@ public final class InputStreamRawReader implements RawReader {
     }
 
     /**
-     * execute a single read from the InputStream, that reads up to byteCount bytes of data from the input stream.
+     * Execute a single read from the InputStream, that reads up to byteCount bytes of data from the input stream.
      * A smaller number may be read.
-     * Returns the number of bytes actually read as a long.
+     *
+     * @return the number of bytes actually read.
      */
     @Override
     public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
@@ -67,31 +68,31 @@ public final class InputStreamRawReader implements RawReader {
 
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "InputStreamRawReader: Start reading up to {0} bytes from the InputStream to " +
-                            "Buffer(SegmentQueue#{1}; size={2}){3}",
-                    byteCount, _writer.segmentQueue.hashCode(), _writer.byteSize(), System.lineSeparator());
+                            "{1}Buffer(SegmentQueue={2}){3}",
+                    byteCount, System.lineSeparator(), _writer.segmentQueue, System.lineSeparator());
         }
 
-        final var bytesRead = new Wrapper.Int();
-        _writer.segmentQueue.withWritableTail(1, tail -> {
+        final var bytesRead = _writer.segmentQueue.withWritableTail(1, tail -> {
             final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
+            final int read;
             try {
-                bytesRead.value = in.read(tail.data, tail.limit(), toRead);
+                read = in.read(tail.data, tail.limit(), toRead);
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }
-            if (bytesRead.value > 0) {
-                tail.incrementLimitVolatile(bytesRead.value);
+            if (read > 0) {
+                tail.incrementLimitVolatile(read);
             }
-            return true;
+            return read;
         });
 
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "InputStreamRawReader: Finished reading {0}/{1} bytes from the InputStream to " +
-                            "Buffer(SegmentQueue={2}){3}",
-                    bytesRead.value, byteCount, _writer.segmentQueue, System.lineSeparator());
+                            "{2}Buffer(SegmentQueue={3}){4}",
+                    bytesRead, byteCount, System.lineSeparator(), _writer.segmentQueue, System.lineSeparator());
         }
 
-        return bytesRead.value;
+        return bytesRead;
     }
 
     @Override

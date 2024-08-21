@@ -10,114 +10,102 @@ import jayo.buffered
 import jayo.encodeToByteString
 import jayo.reader
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.RepeatedTest
 import java.io.InputStream
 import java.time.Duration
 import kotlin.random.Random
 
 // these tests are a good race-condition test, do them several times !
 class ReaderAsyncTests {
-    @Test
+    @RepeatedTest(10)
     fun readerSlowProducerFastConsumer() {
-        repeat(10) {
-            val inputStream: InputStream = inputStream(true)
+        val inputStream: InputStream = inputStream(true)
 
-            inputStream.reader().buffered().use { reader ->
-                assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
-            }
+        inputStream.reader().buffered().use { reader ->
+            assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
         }
     }
 
-    @Test
+    @RepeatedTest(10)
     fun asyncReaderSlowProducerFastConsumer() {
-        repeat(10) {
-            val inputStream: InputStream = inputStream(true)
+        val inputStream: InputStream = inputStream(true)
 
-            inputStream.reader().buffered(true).use { reader ->
-                assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
-            }
+        inputStream.reader().buffered(true).use { reader ->
+            assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
         }
     }
 
-    @Test
+    @RepeatedTest(10)
     fun readerFastProducerSlowConsumer() {
-        repeat(10) {
-            val inputStream: InputStream = inputStream(false)
+        val inputStream: InputStream = inputStream(false)
 
-            val bytes = ByteArray(EXPECTED_SIZE)
-            var offset = 0
-            inputStream.reader().buffered().use { reader ->
-                while (offset < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
-                    offset += CHUNKS_BYTE_SIZE * 2
-                }
-                assertThat(bytes).hasSize(EXPECTED_SIZE)
-                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+        val bytes = ByteArray(EXPECTED_SIZE)
+        var offset = 0
+        inputStream.reader().buffered().use { reader ->
+            while (offset < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
+                offset += CHUNKS_BYTE_SIZE * 2
             }
+            assertThat(bytes).hasSize(EXPECTED_SIZE)
+            assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
         }
     }
 
-    @Test
+    @RepeatedTest(10)
     fun asyncReaderFastProducerSlowConsumer() {
-        repeat(10) {
-            val inputStream: InputStream = inputStream(false)
+        val inputStream: InputStream = inputStream(false)
 
-            val bytes = ByteArray(EXPECTED_SIZE)
-            var offset = 0
-            inputStream.reader().buffered(true).use { reader ->
-                while (offset < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
-                    offset += CHUNKS_BYTE_SIZE * 2
-                }
-                assertThat(bytes).hasSize(EXPECTED_SIZE)
-                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+        val bytes = ByteArray(EXPECTED_SIZE)
+        var offset = 0
+        inputStream.reader().buffered(true).use { reader ->
+            while (offset < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
+                offset += CHUNKS_BYTE_SIZE * 2
             }
+            assertThat(bytes).hasSize(EXPECTED_SIZE)
+            assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
         }
     }
 
-    @Test
+    @RepeatedTest(10)
     fun readerSlowProducerSlowConsumer() {
-        repeat(10) {
-            val inputStream: InputStream = inputStream(true)
+        val inputStream: InputStream = inputStream(true)
 
-            val bytes = ByteArray(EXPECTED_SIZE)
-            var offset = 0
-            inputStream.reader().buffered().use { reader ->
-                while (offset < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
-                    offset += CHUNKS_BYTE_SIZE / 2
-                }
-                assertThat(bytes).hasSize(EXPECTED_SIZE)
-                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+        val bytes = ByteArray(EXPECTED_SIZE)
+        var offset = 0
+        inputStream.reader().buffered().use { reader ->
+            while (offset < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
+                offset += CHUNKS_BYTE_SIZE / 2
             }
+            assertThat(bytes).hasSize(EXPECTED_SIZE)
+            assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
         }
     }
 
-    @Test
+    @RepeatedTest(30)
     fun asyncReaderSlowProducerSlowConsumer() {
-        repeat(30) {
-            val inputStream: InputStream = inputStream(true)
+        val inputStream: InputStream = inputStream(true)
 
-            val bytes = ByteArray(EXPECTED_SIZE)
-            var offset = 0
-            Jayo.bufferAsync(inputStream.reader()).use { reader ->
-                while (offset < EXPECTED_SIZE) {
-                    Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
-                    reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
-                    offset += CHUNKS_BYTE_SIZE / 2
-                }
-                assertThat(bytes).hasSize(EXPECTED_SIZE)
-                assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
+        val bytes = ByteArray(EXPECTED_SIZE)
+        var offset = 0
+        Jayo.bufferAsync(inputStream.reader()).use { reader ->
+            while (offset < EXPECTED_SIZE) {
+                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
+                offset += CHUNKS_BYTE_SIZE / 2
             }
+            assertThat(bytes).hasSize(EXPECTED_SIZE)
+            assertThat(bytes.decodeToString()).isEqualTo('a'.repeat(EXPECTED_SIZE))
         }
     }
 
     companion object {
         private const val CHUNKS = 16
-        const val CHUNKS_BYTE_SIZE = 32 * 1024
+        const val CHUNKS_BYTE_SIZE = 4 * Segment.SIZE
         const val EXPECTED_SIZE = CHUNKS * CHUNKS_BYTE_SIZE
         val ARRAY = ByteArray(CHUNKS_BYTE_SIZE) { 0x61 }
     }

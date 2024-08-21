@@ -24,6 +24,7 @@ package jayo.internal;
 import jayo.Reader;
 import org.jspecify.annotations.NonNull;
 
+import javax.net.ssl.SSLEngineResult;
 import java.lang.Thread.Builder;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -45,14 +46,14 @@ final class Utils {
      * returns when it reaches a result in the trie, when it mismatches in the trie, and when the buffer is exhausted.
      */
     static int selectPrefix(final RealBuffer buffer, final RealOptions options) {
-        var segment = buffer.segmentQueue.headVolatile();
+        var segment = buffer.segmentQueue.head();
         if (segment == null) {
             return -1;
         }
 
         var data = segment.data;
         var pos = segment.pos;
-        var limit = segment.limit();
+        var limit = segment.limitVolatile();
 
         final var trie = options.trie;
         var triePos = 0;
@@ -89,7 +90,7 @@ final class Utils {
                         if (segment != null) {
                             pos = segment.pos;
                             data = segment.data;
-                            limit = segment.limit();
+                            limit = segment.limitVolatile();
                         } else {
                             if (!scanComplete) {
                                 break navigateTrie; // We were exhausted before the scan completed.
@@ -126,7 +127,7 @@ final class Utils {
                     if (segment != null) {
                         pos = segment.pos;
                         data = segment.data;
-                        limit = segment.limit();
+                        limit = segment.limitVolatile();
                     }
                     // else : no more segments! The next trie node will be our last.
                 }
@@ -230,5 +231,20 @@ final class Utils {
         return Thread.ofVirtual()
                 .name(prefix, 0)
                 .inheritInheritableThreadLocals(true);
+    }
+
+    // Comes from tls-channel
+    /**
+     * Convert a {@link SSLEngineResult} into a {@link String}, this is needed because the supplied
+     * method includes a log-breaking newline.
+     *
+     * @param result the SSLEngineResult
+     * @return the resulting string
+     */
+    static @NonNull String resultToString(final @NonNull SSLEngineResult result) {
+        assert result != null;
+        return String.format(
+                "status=%s,handshakeStatus=%s,bytesProduced=%d,bytesConsumed=%d",
+                result.getStatus(), result.getHandshakeStatus(), result.bytesProduced(), result.bytesConsumed());
     }
 }

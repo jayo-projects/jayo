@@ -30,8 +30,6 @@ import java.io.ObjectOutputStream
 import java.io.Serializable
 import java.util.*
 
-val SEGMENT_SIZE = Segment.SIZE
-
 object TestUtil {
     // Necessary to make an internal member visible to Java.
     @JvmField
@@ -156,7 +154,7 @@ object TestUtil {
         }
 
         original.segmentQueue.forEach { segment ->
-            val bufferTailNode = result.segmentQueue.tailVolatile()
+            val bufferTailNode = result.segmentQueue.tail()
             result.segmentQueue.addWritableTail(bufferTailNode, segment.unsharedCopy(), false)
         }
         result.segmentQueue.incrementSize(original.byteSize())

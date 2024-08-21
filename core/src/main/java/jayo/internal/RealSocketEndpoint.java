@@ -39,7 +39,6 @@ import java.net.Socket;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.WARNING;
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 
 public final class RealSocketEndpoint implements SocketEndpoint {
     private static final System.Logger LOGGER_TIMEOUT = System.getLogger("jayo.SocketEndpointTimeout");
@@ -84,15 +83,13 @@ public final class RealSocketEndpoint implements SocketEndpoint {
             final var in = socket.getInputStream();
             if (reader == null) {
                 reader = new SocketEndpointRawReader(this, asyncTimeout.reader(new InputStreamRawReader(in)));
+                if (!READER.compareAndSet(this, null, reader)) {
+                    reader = this.reader;
+                }
             }
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
-
-        if (!READER.compareAndSet(this, null, reader)) {
-            reader = this.reader;
-        }
-
         return reader;
     }
 
@@ -104,15 +101,13 @@ public final class RealSocketEndpoint implements SocketEndpoint {
             final var out = socket.getOutputStream();
             if (writer == null) {
                 writer = new SocketEndpointRawWriter(this, asyncTimeout.writer(new OutputStreamRawWriter(out)));
+                if (!WRITER.compareAndSet(this, null, writer)) {
+                    writer = this.writer;
+                }
             }
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
-
-        if (!WRITER.compareAndSet(this, null, writer)) {
-            writer = this.writer;
-        }
-
         return writer;
     }
 
@@ -147,14 +142,8 @@ public final class RealSocketEndpoint implements SocketEndpoint {
      */
     private record SocketEndpointRawReader(@NonNull RealSocketEndpoint parent,
                                            @NonNull RawReader reader) implements RawReader {
-
         @Override
         public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
-            Objects.requireNonNull(writer);
-            if (byteCount < 0L) {
-                throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
-            }
-
             try {
                 return reader.readAtMostTo(writer, byteCount);
             } catch (JayoTimeoutException e) {
@@ -180,12 +169,8 @@ public final class RealSocketEndpoint implements SocketEndpoint {
      */
     private record SocketEndpointRawWriter(@NonNull RealSocketEndpoint parent,
                                            @NonNull RawWriter writer) implements RawWriter {
-
         @Override
         public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
-            Objects.requireNonNull(reader);
-            checkOffsetAndCount(reader.byteSize(), 0, byteCount);
-
             try {
                 writer.write(reader, byteCount);
             } catch (JayoInterruptedIOException e) {
@@ -200,6 +185,7 @@ public final class RealSocketEndpoint implements SocketEndpoint {
 
         @Override
         public void flush() {
+            writer.flush();
         }
 
         @Override

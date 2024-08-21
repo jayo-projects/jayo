@@ -38,8 +38,8 @@ import java.nio.charset.Charset;
  * A writer that facilitates typed data writes and keeps a buffer internally so that caller can write some data without
  * sending it directly to an upstream.
  * <p>
- * Writer is the main Jayo interface to write data in client's code, any {@link RawWriter} could be turned into {@link Writer}
- * using {@link Jayo#buffer(RawWriter)}.
+ * Writer is the main Jayo interface to write data in client's code, any {@link RawWriter} could be turned into
+ * {@link Writer} using {@code Jayo.buffer(myRawWriter)}.
  * <p>
  * Depending on the kind of upstream and the number of bytes written, buffering may improve the performance by hiding
  * the latency of small writes.

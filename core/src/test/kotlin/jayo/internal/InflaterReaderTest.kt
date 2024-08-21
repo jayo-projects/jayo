@@ -51,7 +51,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
 
     @BeforeEach
     fun before() {
-       val pipe = bufferFactory.pipe()
+        val pipe = bufferFactory.pipe()
         deflatedWriter = pipe.writer
         deflatedReader = pipe.reader
     }
@@ -114,19 +114,16 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
 
     @Test
     fun inflateIntoNonemptyWriter() {
-        // fixme inflater reader does not like async Readers !
-        if (bufferFactory != ReaderFactory.REAL_ASYNC_SOURCE) {
-            for (i in 0 until SEGMENT_SIZE) {
-                before()
-                val inflated = Buffer().writeUtf8("a".repeat(i))
-                deflate("God help us, we're in the hands of engineers.".encodeToByteString())
-                val reader = deflatedReader.inflate()
-                while (reader.readAtMostTo(inflated, Int.MAX_VALUE.toLong()) != -1L) {
-                }
-                inflated.skip(i.toLong())
-                assertEquals("God help us, we're in the hands of engineers.", inflated.readUtf8String())
-                after()
+        for (i in 0 until 1024) {
+            before()
+            val inflated = Buffer().writeUtf8("a".repeat(i))
+            deflate("God help us, we're in the hands of engineers.".encodeToByteString())
+            val reader = deflatedReader.inflate()
+            while (reader.readAtMostTo(inflated, Int.MAX_VALUE.toLong()) != -1L) {
             }
+            inflated.skip(i.toLong())
+            assertEquals("God help us, we're in the hands of engineers.", inflated.readUtf8String())
+            after()
         }
     }
 

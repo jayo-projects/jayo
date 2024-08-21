@@ -14,4 +14,5 @@ module jayo {
     exports jayo.endpoints;
     exports jayo.exceptions;
     exports jayo.external;
+    exports jayo.tls;
 }

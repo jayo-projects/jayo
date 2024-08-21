@@ -27,18 +27,17 @@ import org.jspecify.annotations.Nullable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-
-import static java.lang.System.Logger.Level.ERROR;
-import static java.lang.System.Logger.Level.INFO;
 
 /**
  * A segment of a buffer.
  * <p>
- * Each segment in a buffer is a singly-linked queue node referencing the following segments in the buffer.
+ * Each segment in a {@linkplain jayo.Buffer Buffer} is a singly-linked queue node referencing the following segments in
+ * the buffer.
  * <p>
- * Each segment in the pool is a singly-linked queue node referencing the rest of segments in the pool.
+ * Each segment in the {@link SegmentPool} is a singly-linked queue node referencing the rest of segments in the pool.
  * <p>
  * The underlying byte array of segments may be shared between buffers and byte strings. When a segment's byte array
  * is shared the segment may not be recycled, nor may its byte data be changed.
@@ -47,52 +46,64 @@ import static java.lang.System.Logger.Level.INFO;
  * references are not shared.
  */
 final class Segment {
-    private static final System.Logger LOGGER = System.getLogger("jayo.Segment");
-
-    /**
-     * The default size of all segments in bytes, if no System property is provided.
-     */
-    private static final int DEFAULT_SIZE = 8 * 1024;
-
     /**
      * The size of all segments in bytes.
+     *
+     * @implNote Aligned with TLS max data size = 16_709 bytes
      */
-    static final int SIZE;
+    static final int SIZE = RealTlsEndpoint.MAX_ENCRYPTED_PACKET_BYTE_SIZE;
+
     /**
      * A segment will be shared if the data size exceeds this threshold, to avoid having to copy this many bytes.
      */
-    private static final int SHARE_MINIMUM = 1024;
+    private static final int SHARE_MINIMUM = 1024; // todo should it be more now that size is 16 KB ?
 
     /**
      * The binary data.
      */
     final byte @NonNull [] data;
+
     /**
      * The next byte of application data byte to read in this segment. This field will be exclusively modified and read
      * by the reader.
      */
     int pos = 0;
+
     /**
      * The first byte of available data ready to be written to. This field will be exclusively modified by the writer,
-     * and will be read by the reader.
+     * and will be read when needed by the reader.
      * <p>
      * <b>In the segment pool:</b> if the segment is free and linked, the field contains total byte count of this and
      * next segments.
      */
     @SuppressWarnings("FieldMayBeFinal")
     private volatile int limit = 0;
+
     /**
-     * Tracks number shared copies
+     * A lateinit on-heap {@link ByteBuffer} associated with the underlying byte array that is created on-demand for
+     * write operations.
+     */
+    private @Nullable ByteBuffer writeByteBuffer = null;
+
+    /**
+     * A lateinit on-heap {@link ByteBuffer} associated with the underlying byte array that is created on-demand for
+     * read operations.
+     */
+    private @Nullable ByteBuffer readByteBuffer = null;
+
+    /**
+     * Tracks number shared copies.
      */
     @SuppressWarnings("FieldMayBeFinal")
-    private volatile Segment. @Nullable CopyTracker copyTracker;
+    private volatile @Nullable CopyTracker copyTracker;
 
     /**
      * True if this segment owns the byte array and can append to it, extending `limit`.
      */
     boolean owner;
+
     /**
-     * Next segment in the queue.
+     * A reference to the next segment in the queue.
      */
     @SuppressWarnings("FieldMayBeFinal")
     private volatile @Nullable Segment next = null;
@@ -122,27 +133,6 @@ final class Segment {
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
-
-        // Segment.SIZE System property overriding.
-        String systemSegmentSize = null;
-        try {
-            systemSegmentSize = System.getProperty("jayo.segment.size.bytes");
-        } catch (Throwable t) { // whatever happens, recover
-            LOGGER.log(ERROR, "Exception when resolving the provided segment size, fallback to default " +
-                    "segment's SIZE = {0}", DEFAULT_SIZE);
-        } finally {
-            var segmentSize = 0;
-            if (systemSegmentSize != null && !systemSegmentSize.isBlank()) {
-                try {
-                    segmentSize = Integer.parseInt(systemSegmentSize);
-                } catch (NumberFormatException _unused) {
-                    LOGGER.log(ERROR, "{0} is not a valid size, fallback to default segment's SIZE = {1}",
-                            systemSegmentSize, DEFAULT_SIZE);
-                }
-            }
-            SIZE = (segmentSize > 0) ? segmentSize : DEFAULT_SIZE;
-            LOGGER.log(INFO, "Jayo will use segments of SIZE = {0} bytes", SIZE);
-        }
     }
 
     Segment() {
@@ -155,20 +145,27 @@ final class Segment {
     Segment(final byte @NonNull [] data,
             final int pos,
             final int limit,
-            final Segment.@Nullable CopyTracker copyTracker,
+            final @Nullable ByteBuffer writeByteBuffer,
+            final @Nullable ByteBuffer readByteBuffer,
+            final @Nullable CopyTracker copyTracker,
             final boolean owner) {
-        this(data, pos, limit, copyTracker, owner, WRITING);
+        this(data, pos, limit, writeByteBuffer, readByteBuffer, copyTracker, owner, WRITING);
     }
 
     Segment(final byte @NonNull [] data,
             final int pos,
             final int limit,
-            final Segment.@Nullable CopyTracker copyTracker,
+            final @Nullable ByteBuffer writeByteBuffer,
+            final @Nullable ByteBuffer readByteBuffer,
+            final @Nullable CopyTracker copyTracker,
             final boolean owner,
             final byte status) {
-        this.data = Objects.requireNonNull(data);
+        assert data != null;
+        this.data = data;
         this.pos = pos;
         this.limit = limit;
+        this.writeByteBuffer = writeByteBuffer;
+        this.readByteBuffer = readByteBuffer;
         this.copyTracker = copyTracker;
         this.owner = owner;
         this.status = status;
@@ -276,7 +273,14 @@ final class Segment {
             }
         }
         ct.addCopy();
-        return new Segment(data, pos, limitVolatile(), ct, false);
+        return new Segment(
+                data,
+                pos,
+                limitVolatile(),
+                (writeByteBuffer != null) ? writeByteBuffer.duplicate() : null,
+                (readByteBuffer != null) ? readByteBuffer.duplicate() : null,
+                ct, false
+        );
     }
 
     /**
@@ -284,7 +288,7 @@ final class Segment {
      */
     @NonNull
     Segment unsharedCopy() {
-        return new Segment(data.clone(), pos, limitVolatile(), null, true, AVAILABLE);
+        return new Segment(data.clone(), pos, limitVolatile(), null, null, null, true, AVAILABLE);
     }
 
     /**
@@ -317,7 +321,7 @@ final class Segment {
         if (!NEXT.compareAndSet(prefix, null, this)) {
             throw new IllegalStateException("Could set next segment of prefix");
         }
-        // stop transferring suffix
+        // stop transferring the current segment = the suffix
         finishTransfer(wasWriting);
 
         return prefix;
@@ -328,15 +332,11 @@ final class Segment {
      */
     void writeTo(final @NonNull Segment targetSegment, final @NonNegative int byteCount) {
         Objects.requireNonNull(targetSegment);
-        if (!targetSegment.owner) {
-            throw new IllegalStateException("only owner can write");
-        }
+        assert targetSegment.owner;
         var writerCurrentLimit = targetSegment.limit();
         if (writerCurrentLimit + byteCount > SIZE) {
             // We can't fit byteCount bytes at the writer's current position. Shift writer first.
-            if (targetSegment.isShared()) {
-                throw new IllegalArgumentException("cannot write in a shared Segment");
-            }
+            assert !targetSegment.isShared();
             final var writerCurrentPos = targetSegment.pos;
             if (writerCurrentLimit + byteCount - writerCurrentPos > SIZE) {
                 throw new IllegalArgumentException("not enough space in writer segment to write " + byteCount + " bytes");
@@ -354,13 +354,42 @@ final class Segment {
         pos = currentPos + byteCount;
     }
 
+    @NonNull
+    ByteBuffer asReadByteBuffer(final @NonNegative int byteCount) {
+        assert byteCount > 0;
+
+        if (readByteBuffer == null) {
+            readByteBuffer = ByteBuffer.wrap(data).asReadOnlyBuffer();
+        }
+
+        // just set position and limit, then return this BytBuffer
+        return readByteBuffer
+                .limit(pos + byteCount)
+                .position(pos);
+    }
+
+    @NonNull
+    ByteBuffer asWriteByteBuffer(final @NonNegative int byteCount) {
+        assert byteCount > 0;
+
+        if (writeByteBuffer == null) {
+            writeByteBuffer = ByteBuffer.wrap(data);
+            writeByteBuffer.limit(Segment.SIZE);
+        }
+
+        final var currentLimit = limit();
+        // just set position and limit, then return this BytBuffer
+        return writeByteBuffer
+                .limit(currentLimit + byteCount)
+                .position(currentLimit);
+    }
+
     @Override
     public String toString() {
         final var next = this.next;
-        return "Segment#" + hashCode() + "{" + System.lineSeparator() +
-                "data=[" + data.length + "]" +
+        return "Segment#" + hashCode() + " [maxSize=" + data.length + "] {" + System.lineSeparator() +
                 ", pos=" + pos +
-                ", limit=" + limit + System.lineSeparator() +
+                ", limit=" + limit +
                 ", shared=" + isShared() +
                 ", owner=" + owner +
                 ", status=" +

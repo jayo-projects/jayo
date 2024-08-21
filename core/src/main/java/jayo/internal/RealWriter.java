@@ -41,9 +41,9 @@ import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
 public final class RealWriter implements Writer {
     final @NonNull WriterSegmentQueue segmentQueue;
 
-    public RealWriter(final @NonNull RawWriter writer, final boolean async) {
+    public RealWriter(final @NonNull RawWriter writer, final boolean preferAsync) {
         Objects.requireNonNull(writer);
-        segmentQueue = newWriterSegmentQueue(writer, async);
+        segmentQueue = newWriterSegmentQueue(writer, preferAsync);
     }
 
     @Override

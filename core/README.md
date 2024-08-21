@@ -25,10 +25,10 @@ pooled `byte[]` based segments to avoid GC churn and zero-fill of the memory.
 `RawReader` and `RawWriter`, although conceptually identical, offer great improvements over `InputStream` and
 `OutputStream`
 * Create a `RawReader` for reading from or a `RawWriter` for writing to a file or a network socket, then just obtain a
-buffered `Reader` or a `Writer` from it. With them, you have access to feature rich interfaces that provide all you need,
-yet remaining relatively light with a few dozen useful functions.
-* `Reader` and `Writer` are all you need ; wether you manipulate Strings, ByteStrings, numbers, pure binary content and so
-on. No more specific readers needed here.
+buffered `Reader` or a `Writer` from it. With them, you have access to feature rich interfaces that provide all the
+features we offer, yet remaining relatively light with a few dozen useful functions.
+* `Reader` and `Writer` are all you need ; wether you manipulate Strings, ByteStrings, numbers, pure binary content and
+so on. No more specific readers needed here.
 * `RawReader` and `RawWriter` are reasonably easy to implement, feel free to try it !
 
 ## Timeouts and cancellation
@@ -39,3 +39,13 @@ bound to the current thread thanks to ThreadLocal or Scoped Values, and will aut
 timeouts to inner children threads, if any.
 
 The *CancelToken* will only apply inside its associated code block, and will be removed when the code block has ended.
+
+## TLS
+`TlsEndpoint` is a [TLS](https://tools.ietf.org/html/rfc5246) (Transport Layer Security) endpoint over a TLS connection.
+It delegates all cryptographic operations to the standard Java TLS/SSL implementation: `SSLEngine`; effectively hiding
+it behind an easy-to-use streaming API based on Jayo's reader and writer, that allows to secure JVM applications with
+minimal added complexity.
+It is based on the awesome *TLS Channel library* [1].
+
+_[1] : [TLS Channel](https://square.github.io/okio/) is a library that implements a `ByteChannel` interface over a
+[TLS](https://tools.ietf.org/html/rfc5246) (Transport Layer Security) connection._
