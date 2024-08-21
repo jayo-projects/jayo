@@ -104,6 +104,11 @@ tasks {
             showStandardStreams = true
         }
     }
+
+    withType<Javadoc> {
+        (options as StandardJavadocDocletOptions)
+            .addStringOption("Xdoclint:none", "-quiet")
+    }
 }
 
 // Generate and add javadoc and html-doc jars in jvm artefacts
