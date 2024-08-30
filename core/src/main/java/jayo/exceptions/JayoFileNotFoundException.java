@@ -20,12 +20,12 @@ public final class JayoFileNotFoundException extends JayoException {
     public JayoFileNotFoundException(final @NonNull String message) {
         super(Objects.requireNonNull(message), new EOFException(message));
     }
-    
-    JayoFileNotFoundException(final @NonNull FileNotFoundException cause) {
+
+    public JayoFileNotFoundException(final @NonNull FileNotFoundException cause) {
         super(Objects.requireNonNull(cause));
     }
 
-    JayoFileNotFoundException(final @NonNull NoSuchFileException cause) {
+    public JayoFileNotFoundException(final @NonNull NoSuchFileException cause) {
         super(Objects.requireNonNull(cause));
     }
 }
