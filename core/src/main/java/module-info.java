@@ -13,4 +13,5 @@ module jayo {
     exports jayo.crypto;
     exports jayo.exceptions;
     exports jayo.external;
+    exports jayo.endpoints;
 }

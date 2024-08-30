@@ -23,9 +23,9 @@ package jayo.internal;
 
 import jayo.Cancellable;
 import jayo.Jayo;
-import jayo.Writer;
 import jayo.Reader;
-import jayo.exceptions.JayoCancelledException;
+import jayo.Writer;
+import jayo.exceptions.JayoInterruptedIOException;
 import org.junit.jupiter.api.Test;
 
 import java.io.EOFException;
@@ -65,7 +65,7 @@ public final class SocketTimeoutTest {
                     assertThatThrownBy(() -> reader.require(ONE_MB))
                             // we may fail when expecting 1MB and socket is reading, or after the read, exception is not
                             // the same
-                            .isInstanceOf(JayoCancelledException.class);
+                            .isInstanceOf(JayoInterruptedIOException.class);
                 }
             });
         }
@@ -78,7 +78,7 @@ public final class SocketTimeoutTest {
             Cancellable.create().executeCancellable(scope -> {
                 scope.cancel();
                 assertThatThrownBy(() -> reader.require(ONE_MB))
-                        .isInstanceOf(JayoCancelledException.class);
+                        .isInstanceOf(JayoInterruptedIOException.class);
             });
         }
     }
@@ -106,7 +106,7 @@ public final class SocketTimeoutTest {
                     assertThatThrownBy(() -> {
                         writer.write(new RealBuffer().write(data), data.length);
                         writer.flush();
-                    }).isInstanceOf(JayoCancelledException.class);
+                    }).isInstanceOf(JayoInterruptedIOException.class);
                     long elapsed = System.nanoTime() - start;
                     assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) >= 50).isTrue();
                     assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) <= 500).isTrue();

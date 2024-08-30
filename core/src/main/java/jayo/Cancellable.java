@@ -10,13 +10,12 @@ import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.locks.Condition;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * This class allows to build <b>cancellable code blocks</b> via different utility methods for the most frequent
+ * This class allows to build <b>cancellable code blocks</b> via various utility methods for the most frequent
  * use-cases ({@link #withTimeout}, {@link #withCancellable}).
  * <p>
  * For advanced cancellable configuration, or of you need a cancellable instance that you can reuse to build multiple
@@ -29,16 +28,16 @@ import java.util.function.Function;
  */
 public sealed interface Cancellable permits RealCancellable {
     /**
-     * Execute {@code block} in a cancellable context, throwing a {@link CancellationException} if a cancellation
-     * occurred.
+     * Execute {@code block} in a cancellable context, throwing a
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
      * All operations invoked in this code block, and in children threads, will respect the cancel scope : timeout,
      * deadline, manual cancellation, await for {@link Condition} signal...
      */
     <T> T executeCancellable(final @NonNull Function<CancelScope, T> block);
 
     /**
-     * Execute {@code block} in a cancellable context, throwing a {@link CancellationException} if a cancellation
-     * occurred.
+     * Execute {@code block} in a cancellable context, throwing a
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
      * All operations invoked in this code block, and in children threads, will respect the cancel scope : timeout,
      * deadline, manual cancellation, await for {@link Condition} signal...
      */
@@ -48,9 +47,10 @@ public sealed interface Cancellable permits RealCancellable {
         return new RealCancellable.Builder();
     }
 
+
     /**
-     * Execute {@code block} in a cancellable context, throwing a {@link CancellationException} if a cancellation
-     * occurred.
+     * Execute {@code block} in a cancellable context, throwing a
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
      * All operations invoked in this code block, and in children threads, will respect the cancel scope : manual cancellation,
      * await for {@link Condition} signal...
      */
@@ -61,8 +61,8 @@ public sealed interface Cancellable permits RealCancellable {
     }
 
     /**
-     * Execute {@code block} in a cancellable context, throwing a {@link CancellationException} if a cancellation
-     * occurred.
+     * Execute {@code block} in a cancellable context, throwing a
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
      * All operations invoked in this code block, and in children threads, will wait at most {@code timeout} time before
      * aborting, and will also respect the cancel scope : manual cancellation, await for {@link Condition} signal...
      * <p>
@@ -77,8 +77,8 @@ public sealed interface Cancellable permits RealCancellable {
     }
 
     /**
-     * Execute {@code block} in a cancellable context, throwing a {@link CancellationException} if a cancellation
-     * occurred.
+     * Execute {@code block} in a cancellable context, throwing a
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
      * All operations invoked in this {@code block} will respect the cancel scope : manual cancellation,
      * await for {@link Condition} signal...
      */
@@ -89,8 +89,8 @@ public sealed interface Cancellable permits RealCancellable {
     }
 
     /**
-     * Execute {@code block} in a cancellable context, throwing a {@link CancellationException} if a cancellation
-     * occurred.
+     * Execute {@code block} in a cancellable context, throwing a
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
      * All operations invoked in this {@code block} will wait at most {@code timeout} time before aborting, and will
      * also respect the cancel scope : manual cancellation, await for {@link Condition} signal...
      * <p>

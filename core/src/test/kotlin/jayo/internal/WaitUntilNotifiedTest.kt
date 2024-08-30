@@ -22,8 +22,7 @@
 package jayo.internal
 
 import jayo.cancelScope
-import jayo.exceptions.JayoCancelledException
-import jayo.exceptions.JayoTimeoutException
+import jayo.exceptions.JayoInterruptedIOException
 import jayo.internal.TestUtil.assumeNotWindows
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -78,7 +77,7 @@ class WaitUntilNotifiedTest {
             assertThatThrownBy {
                 waitUntilNotified(monitor)
             }
-                .isInstanceOf(JayoTimeoutException::class.java)
+                .isInstanceOf(JayoInterruptedIOException::class.java)
                 .hasMessage("timeout elapsed before the monitor was notified")
             assertElapsed(100.0, start)
         }
@@ -90,7 +89,7 @@ class WaitUntilNotifiedTest {
         cancelScope(deadline = 100.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoCancelledException::class.java)
+                .isInstanceOf(JayoInterruptedIOException::class.java)
                 .hasMessage("timeout elapsed before the monitor was notified")
             assertElapsed(100.0, start)
         }
@@ -102,7 +101,7 @@ class WaitUntilNotifiedTest {
         cancelScope(500.milliseconds, 100.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoTimeoutException::class.java)
+                .isInstanceOf(JayoInterruptedIOException::class.java)
                 .hasMessage("timeout elapsed before the monitor was notified")
             assertElapsed(100.0, start)
         }
@@ -114,7 +113,7 @@ class WaitUntilNotifiedTest {
         cancelScope(100.milliseconds, 500.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoTimeoutException::class.java)
+                .isInstanceOf(JayoInterruptedIOException::class.java)
                 .hasMessage("timeout elapsed before the monitor was notified")
             assertElapsed(100.0, start)
         }
@@ -126,7 +125,7 @@ class WaitUntilNotifiedTest {
         cancelScope(deadline = 1.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoTimeoutException::class.java)
+                .isInstanceOf(JayoInterruptedIOException::class.java)
                 .hasMessage("timeout elapsed before the monitor was notified")
             assertElapsed(0.0, start)
         }
@@ -139,7 +138,7 @@ class WaitUntilNotifiedTest {
         Thread.currentThread().interrupt()
         cancelScope {
             assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoCancelledException::class.java)
+                .isInstanceOf(JayoInterruptedIOException::class.java)
                 .hasMessage("current thread is interrupted")
         }
         assertThat(Thread.interrupted()).isTrue

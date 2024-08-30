@@ -5,13 +5,12 @@
 
 package jayo.exceptions;
 
+import jayo.endpoints.JayoSocketTimeoutException;
 import org.jspecify.annotations.NonNull;
 
-import java.io.EOFException;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.net.ProtocolException;
+import java.net.SocketTimeoutException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
 import java.util.Objects;
@@ -65,6 +64,8 @@ public class JayoException extends UncheckedIOException {
             case NoSuchFileException noSuchFileException -> new JayoFileNotFoundException(noSuchFileException);
             case FileAlreadyExistsException faeException -> new JayoFileAlreadyExistsException(faeException);
             case ProtocolException protocolException -> new JayoProtocolException(protocolException);
+            case SocketTimeoutException stoException -> new JayoSocketTimeoutException(stoException);
+            case InterruptedIOException interuptIOException -> new JayoInterruptedIOException(interuptIOException);
             default -> new JayoException(ioException);
         };
     }

@@ -23,11 +23,10 @@ package jayo.internal;
 
 import jayo.Buffer;
 import jayo.CancelScope;
-import jayo.RawWriter;
 import jayo.RawReader;
-import jayo.exceptions.JayoCancelledException;
+import jayo.RawWriter;
 import jayo.exceptions.JayoException;
-import jayo.exceptions.JayoTimeoutException;
+import jayo.exceptions.JayoInterruptedIOException;
 import jayo.external.AsyncTimeout;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
@@ -57,7 +56,7 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
  * return value of {@link #exit} indicates whether a timeout was triggered. Note that the call to {@link #onTimeout} is
  * asynchronous, and may be called after {@link #exit}.
  */
-public final class RealAsyncTimeout implements AsyncTimeout {
+public sealed class RealAsyncTimeout implements AsyncTimeout permits SocketAsyncTimeout {
     /**
      * Don't write more than 64 KiB of data at a time, give or take 8 segments. Otherwise, slow connections may suffer
      * timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never succeed
@@ -89,7 +88,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
 
     @Override
-    public void enter(final @NonNull CancelScope cancelScope) {
+    public final void enter(final @NonNull CancelScope cancelScope) {
         if (!(Objects.requireNonNull(cancelScope) instanceof RealCancelToken cancelToken)) {
             throw new IllegalArgumentException("cancelScope must be an instance of CancelToken");
         }
@@ -102,7 +101,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public boolean exit() {
+    public final boolean exit() {
         return cancelScheduledTimeout(this);
     }
 
@@ -115,7 +114,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawWriter writer(final @NonNull RawWriter writer) {
+    public final @NonNull RawWriter writer(final @NonNull RawWriter writer) {
         Objects.requireNonNull(writer);
         return new RawWriter() {
             @Override
@@ -198,7 +197,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawReader reader(final @NonNull RawReader reader) {
+    public final @NonNull RawReader reader(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
         return new RawReader() {
             @Override
@@ -256,13 +255,13 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     /**
-     * @return a {@link JayoCancelledException} to represent a timeout. If {@code cause} is non-null it is set as the
-     * cause of the returned exception.
+     * @return a {@link JayoInterruptedIOException} to represent a timeout. If {@code cause} is non-null it is set as
+     * the cause of the returned exception.
      */
-    private JayoTimeoutException newTimeoutException(final @Nullable JayoException cause) {
-        final var e = new JayoTimeoutException("timed out");
+    @NonNull JayoInterruptedIOException newTimeoutException(final @Nullable JayoException cause) {
+        final var e = new JayoInterruptedIOException("timeout");
         if (cause != null) {
-            e.initJayoCause(cause);
+            e.initCause(cause);
         }
         return e;
     }

@@ -6,7 +6,7 @@
 package jayo.internal;
 
 import jayo.RawReader;
-import jayo.exceptions.JayoCancelledException;
+import jayo.exceptions.JayoInterruptedIOException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -140,7 +140,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Retain interrupted status.
                 close();
-                throw new JayoCancelledException("current thread is interrupted");
+                throw new JayoInterruptedIOException("current thread is interrupted");
             } finally {
                 lock.unlock();
             }

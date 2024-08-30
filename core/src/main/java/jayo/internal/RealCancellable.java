@@ -7,7 +7,6 @@ package jayo.internal;
 
 import jayo.CancelScope;
 import jayo.Cancellable;
-import jayo.exceptions.JayoCancelledException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
@@ -35,13 +34,7 @@ public final class RealCancellable implements Cancellable {
         final var cancelToken = new RealCancelToken(timeoutNanos, deadlineNanos);
         CancellableUtils.addCancelToken(cancelToken);
         try {
-            return block.apply(cancelToken);
-        } catch (JayoCancelledException cancellationException) {
-            if (cancellationException.getCause() != null) {
-                throw cancellationException.getCause();
-            }
-            // else rethrow
-            throw cancellationException;
+        return block.apply(cancelToken);
         } finally {
             CancellableUtils.finishCancelToken(cancelToken);
         }
@@ -54,12 +47,6 @@ public final class RealCancellable implements Cancellable {
         CancellableUtils.addCancelToken(cancelToken);
         try {
             block.accept(cancelToken);
-        } catch (JayoCancelledException cancellationException) {
-            if (cancellationException.getCause() != null) {
-                throw cancellationException.getCause();
-            }
-            // else rethrow
-            throw cancellationException;
         } finally {
             CancellableUtils.finishCancelToken(cancelToken);
         }
