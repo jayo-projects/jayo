@@ -28,6 +28,7 @@ package jayo;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
+import java.io.Closeable;
 import java.io.Flushable;
 import java.io.OutputStream;
 
@@ -59,29 +60,33 @@ import java.io.OutputStream;
  * @implSpec Implementors should abstain from throwing exceptions other than those that are documented for RawWriter
  * methods.
  */
-public interface RawWriter extends AutoCloseable, Flushable {
+public interface RawWriter extends Closeable, Flushable {
     /**
      * Removes {@code byteCount} bytes from {@code reader} and appends them to this writer.
      *
      * @param reader    the reader to read data from.
      * @param byteCount the number of bytes to write.
-     * @throws IndexOutOfBoundsException when the {@code reader}'s size is below {@code byteCount} or {@code byteCount}
-     *                                   is negative.
-     * @throws IllegalStateException     when this writer is closed.
+     * @throws IndexOutOfBoundsException     if the {@code reader}'s size is below {@code byteCount} or {@code byteCount}
+     *                                       is negative.
+     * @throws IllegalStateException         when this writer is closed.
+     * @throws jayo.exceptions.JayoException if an I/O error occurs.
      */
     void write(final @NonNull Buffer reader, final @NonNegative long byteCount);
 
     /**
      * Pushes all buffered bytes to their final destination.
      *
-     * @throws IllegalStateException when this writer is closed.
+     * @throws IllegalStateException         if this writer is closed.
+     * @throws jayo.exceptions.JayoException if an I/O error occurs.
      */
     @Override
     void flush();
 
     /**
-     * Pushes all buffered bytes to their final destination and releases the resourcess held by this writer. It is an error
-     * to write a closed writer. It is safe to close a writer more than once.
+     * Pushes all buffered bytes to their final destination and releases the resources held by this writer. It is an
+     * error to write to a closed writer. It is safe to close a writer more than once.
+     *
+     * @throws jayo.exceptions.JayoException if an I/O error occurs.
      */
     @Override
     void close();

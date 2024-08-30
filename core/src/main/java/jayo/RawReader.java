@@ -28,6 +28,7 @@ package jayo;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
+import java.io.Closeable;
 import java.io.InputStream;
 
 /**
@@ -66,21 +67,24 @@ import java.io.InputStream;
  * @implSpec Implementors should abstain from throwing exceptions other than those that are documented for RawReader
  * methods.
  */
-public interface RawReader extends AutoCloseable {
+public interface RawReader extends Closeable {
     /**
      * Removes at least 1, and up to {@code byteCount} bytes from this and appends them to {@code writer}.
      *
-     * @param writer      the destination to write the data from this reader.
+     * @param writer    the destination to write the data from this reader.
      * @param byteCount the number of bytes to read.
      * @return the number of bytes read, or {@code -1L} if this reader is exhausted.
-     * @throws IllegalArgumentException when {@code byteCount} is negative.
-     * @throws IllegalStateException    when the reader is closed.
+     * @throws IllegalArgumentException      if {@code byteCount} is negative.
+     * @throws IllegalStateException         if this reader is closed.
+     * @throws jayo.exceptions.JayoException if an I/O error occurs.
      */
     long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount);
 
     /**
-     * Closes this reader and releases the resourcess held by this reader. It is an error to read a closed reader. It is
-     * safe to close a reader more than once.
+     * Closes this reader and releases the resources held by this reader. It is an error to read in a closed reader. It
+     * is safe to close a reader more than once.
+     *
+     * @throws jayo.exceptions.JayoException if an I/O error occurs.
      */
     @Override
     void close();
