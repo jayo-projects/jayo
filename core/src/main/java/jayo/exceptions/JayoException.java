@@ -59,21 +59,13 @@ public class JayoException extends UncheckedIOException {
      */
     public static JayoException buildJayoException(final @NonNull IOException ioException) {
         Objects.requireNonNull(ioException);
-        if (ioException instanceof EOFException eofException) {
-            return new JayoEOFException(eofException);
-        }
-        if (ioException instanceof FileNotFoundException fileNotFoundException) {
-            return new JayoFileNotFoundException(fileNotFoundException);
-        }
-        if (ioException instanceof NoSuchFileException noSuchFileException) {
-            return new JayoFileNotFoundException(noSuchFileException);
-        }
-        if (ioException instanceof FileAlreadyExistsException fileAlreadyExistsException) {
-            return new JayoFileAlreadyExistsException(fileAlreadyExistsException);
-        }
-        if (ioException instanceof ProtocolException protocolException) {
-            return new JayoProtocolException(protocolException);
-        }
-        return new JayoException(ioException);
+        return switch (ioException) {
+            case EOFException eofException -> new JayoEOFException(eofException);
+            case FileNotFoundException fileNotFoundException -> new JayoFileNotFoundException(fileNotFoundException);
+            case NoSuchFileException noSuchFileException -> new JayoFileNotFoundException(noSuchFileException);
+            case FileAlreadyExistsException faeException -> new JayoFileAlreadyExistsException(faeException);
+            case ProtocolException protocolException -> new JayoProtocolException(protocolException);
+            default -> new JayoException(ioException);
+        };
     }
 }

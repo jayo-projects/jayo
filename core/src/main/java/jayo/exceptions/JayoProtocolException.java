@@ -14,7 +14,7 @@ import java.util.Objects;
  * Wraps a {@link ProtocolException} with an unchecked exception.
  */
 public final class JayoProtocolException extends JayoException {
-    JayoProtocolException(final @NonNull ProtocolException cause) {
+    public JayoProtocolException(final @NonNull ProtocolException cause) {
         super(Objects.requireNonNull(cause));
     }
 }
