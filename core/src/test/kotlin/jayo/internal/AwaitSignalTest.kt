@@ -22,7 +22,7 @@
 package jayo.internal
 
 import jayo.cancelScope
-import jayo.exceptions.JayoCancelledException
+import jayo.exceptions.JayoInterruptedIOException
 import jayo.exceptions.JayoTimeoutException
 import jayo.external.CancelToken
 import jayo.internal.TestUtil.assumeNotWindows
@@ -77,7 +77,7 @@ class AwaitSignalTest {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout elapsed before the monitor was notified")
+                .hasMessage("timeout or deadline elapsed before the condition was signalled")
             assertElapsed(100.0, start)
         }
     }
@@ -88,8 +88,8 @@ class AwaitSignalTest {
         cancelScope(deadline = 100.milliseconds) {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
-                .isInstanceOf(JayoCancelledException::class.java)
-                .hasMessage("timeout elapsed before the monitor was notified")
+                .isInstanceOf(JayoTimeoutException::class.java)
+                .hasMessage("timeout or deadline elapsed before the condition was signalled")
             assertElapsed(100.0, start)
         }
     }
@@ -101,7 +101,7 @@ class AwaitSignalTest {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout elapsed before the monitor was notified")
+                .hasMessage("timeout or deadline elapsed before the condition was signalled")
             assertElapsed(100.0, start)
         }
     }
@@ -113,7 +113,7 @@ class AwaitSignalTest {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout elapsed before the monitor was notified")
+                .hasMessage("timeout or deadline elapsed before the condition was signalled")
             assertElapsed(100.0, start)
         }
     }
@@ -125,7 +125,7 @@ class AwaitSignalTest {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout elapsed before the monitor was notified")
+                .hasMessage("timeout or deadline elapsed before the condition was signalled")
             assertElapsed(0.0, start)
         }
     }
@@ -137,7 +137,8 @@ class AwaitSignalTest {
         Thread.currentThread().interrupt()
         cancelScope {
             assertThatThrownBy { awaitSignal(condition) }
-                .isInstanceOf(JayoCancelledException::class.java)
+                .isInstanceOf(JayoInterruptedIOException::class.java)
+                .isNotInstanceOf(JayoTimeoutException::class.java)
                 .hasMessage("current thread is interrupted")
         }
         assertThat(Thread.interrupted()).isTrue
@@ -149,7 +150,8 @@ class AwaitSignalTest {
         assumeNotWindows()
         Thread.currentThread().interrupt()
         assertThatThrownBy { CancelToken.throwIfReached(null) }
-            .isInstanceOf(JayoCancelledException::class.java)
+            .isInstanceOf(JayoInterruptedIOException::class.java)
+            .isNotInstanceOf(JayoTimeoutException::class.java)
             .hasMessage("current thread is interrupted")
         assertThat(Thread.interrupted()).isTrue
     }

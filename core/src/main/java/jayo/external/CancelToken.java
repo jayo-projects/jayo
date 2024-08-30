@@ -5,10 +5,10 @@
 
 package jayo.external;
 
-import org.jspecify.annotations.Nullable;
-import jayo.exceptions.JayoCancelledException;
+import jayo.exceptions.JayoInterruptedIOException;
 import jayo.internal.CancellableUtils;
 import jayo.internal.RealCancelToken;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A cancellable token that may be present in Thread local. This interface is provided for implementors, so you can call
@@ -23,7 +23,7 @@ public interface CancelToken {
     }
 
     /**
-     * Throws a {@link JayoCancelledException} if a manual cancellation was done, a deadline has been reached or if the
+     * Throws a {@link JayoInterruptedIOException} if a manual cancellation was done, a deadline has been reached or if the
      * current thread has been interrupted.
      * <p>
      * This method doesn't detect timeouts; that should be implemented to asynchronously abort an in-progress operation.
@@ -38,7 +38,7 @@ public interface CancelToken {
                 }
                 _cancelToken.cancel();
             }
-            throw new JayoCancelledException("current thread is interrupted");
+            throw new JayoInterruptedIOException("current thread is interrupted");
         }
 
         if (cancelToken != null) {

@@ -22,9 +22,9 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.exceptions.JayoCancelledException;
 import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
+import jayo.exceptions.JayoInterruptedIOException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
@@ -371,7 +371,7 @@ public final class RealWriter implements Writer {
             if (buffer.byteSize() > 0) {
                 writer.write(buffer, buffer.byteSize());
             }
-        } catch (JayoCancelledException _cancelled) {
+        } catch (JayoInterruptedIOException ignored) {
             // cancellation lead to closing, ignore
         } catch (Throwable e) {
             if (thrown == null) {

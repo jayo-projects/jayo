@@ -21,12 +21,12 @@
 
 package jayo.internal;
 
-import org.jspecify.annotations.NonNull;
 import jayo.CancelScope;
-import jayo.exceptions.JayoCancelledException;
+import jayo.exceptions.JayoInterruptedIOException;
 import jayo.exceptions.JayoTimeoutException;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +78,6 @@ public final class RealCancelToken implements CancelScope, CancelToken {
         Objects.requireNonNull(condition);
         final var cancelToken = CancellableUtils.getCancelToken();
         assert cancelToken != null;
-        CancelToken.throwIfReached(cancelToken);
 
         try {
             // CancelToken is finished, shielded or there is no timeout and no deadline : wait forever.
@@ -107,15 +106,15 @@ public final class RealCancelToken implements CancelScope, CancelToken {
                 elapsedNanos = System.nanoTime() - start;
             }
 
-            // Throw if the timeout elapsed before the monitor was notified.
+            // Throw if the timeout elapsed before the condition was signalled.
             if (elapsedNanos >= waitNanos) {
                 cancel();
-                throw new JayoTimeoutException("timeout elapsed before the monitor was notified");
+                throw new JayoTimeoutException("timeout or deadline elapsed before the condition was signalled");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Retain interrupted status.
             cancel();
-            throw new JayoCancelledException("current thread is interrupted");
+            throw new JayoInterruptedIOException("current thread is interrupted");
         }
     }
 
@@ -124,7 +123,6 @@ public final class RealCancelToken implements CancelScope, CancelToken {
         Objects.requireNonNull(monitor);
         final var cancelToken = CancellableUtils.getCancelToken();
         assert cancelToken != null;
-        CancelToken.throwIfReached(cancelToken);
 
         try {
             // CancelToken is finished, shielded or there is no timeout and no deadline : wait forever.
@@ -157,12 +155,12 @@ public final class RealCancelToken implements CancelScope, CancelToken {
             // Throw if the timeout elapsed before the monitor was notified.
             if (elapsedNanos >= waitNanos) {
                 cancel();
-                throw new JayoTimeoutException("timeout elapsed before the monitor was notified");
+                throw new JayoTimeoutException("timeout or deadline elapsed before the monitor was notified");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Retain interrupted status.
             cancel();
-            throw new JayoCancelledException("current thread is interrupted");
+            throw new JayoInterruptedIOException("current thread is interrupted");
         }
     }
 
@@ -171,7 +169,7 @@ public final class RealCancelToken implements CancelScope, CancelToken {
             return;
         }
         if (cancelled) {
-            throw new JayoCancelledException("cancelled");
+            throw new JayoInterruptedIOException("cancelled");
         }
 
         if (deadlineNanoTime != 0L && (deadlineNanoTime - System.nanoTime()) <= 0) {

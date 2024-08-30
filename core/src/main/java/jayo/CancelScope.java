@@ -21,9 +21,8 @@
 
 package jayo;
 
-import org.jspecify.annotations.NonNull;
-import jayo.exceptions.JayoCancelledException;
 import jayo.internal.RealCancelToken;
+import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.locks.Condition;
 
@@ -45,9 +44,10 @@ public sealed interface CancelScope permits RealCancelToken {
     void shield();
 
     /**
-     * Waits on {@code condition} until it is signaled. Throws a {@link JayoCancelledException} if either the thread
-     * is interrupted or if this cancel scope elapses before {@code condition} is signaled.
-     * The caller must hold the lock that condition is bound to.
+     * Waits on {@code condition} until it is signaled. Throws a
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if either the thread is
+     * interrupted or if this cancel scope elapses before {@code condition} is signaled. The caller must hold the lock
+     * that condition is bound to.
      * <p>
      * Here's a sample class that uses {@code awaitSignal()} to await a specific state. Note that the call is made
      * within a loop to avoid unnecessary waiting and to mitigate spurious notifications.
@@ -90,7 +90,8 @@ public sealed interface CancelScope permits RealCancelToken {
     void awaitSignal(final @NonNull Condition condition);
 
     /**
-     * Waits on {@code monitor} until it is notified. Throws {@link JayoCancelledException} if either the thread is
+     * Waits on {@code monitor} until it is notified. Throws
+     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if either the thread is
      * interrupted or if this cancel scope elapses before {@code monitor} is notified. The caller must be synchronized
      * on {@code monitor}.
      * <p>

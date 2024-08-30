@@ -6,17 +6,19 @@
 package jayo.exceptions;
 
 import org.jspecify.annotations.NonNull;
-import jayo.Cancellable;
 
+import java.net.SocketTimeoutException;
 import java.util.Objects;
 
 /**
- * Exception indicating that a cancellable task has reached deadline, or that an I/O operation has timed out.
- *
- * @see Cancellable
+ * Signals that a timeout has occurred or a deadline has been reached.
  */
-public final class JayoTimeoutException extends JayoCancelledException {
+public final class JayoTimeoutException extends JayoInterruptedIOException {
     public JayoTimeoutException(final @NonNull String message) {
         super(Objects.requireNonNull(message));
+    }
+
+    public JayoTimeoutException(final @NonNull SocketTimeoutException cause) {
+        super(Objects.requireNonNull(cause));
     }
 }

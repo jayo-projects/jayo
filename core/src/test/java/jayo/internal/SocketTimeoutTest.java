@@ -23,9 +23,10 @@ package jayo.internal;
 
 import jayo.Cancellable;
 import jayo.Jayo;
-import jayo.Writer;
 import jayo.Reader;
-import jayo.exceptions.JayoCancelledException;
+import jayo.Writer;
+import jayo.exceptions.JayoInterruptedIOException;
+import jayo.exceptions.JayoTimeoutException;
 import org.junit.jupiter.api.Test;
 
 import java.io.EOFException;
@@ -42,8 +43,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public final class SocketTimeoutTest {
-    // The size of the socket buffers to use. Less than half the data transferred during tests to
-    // ensure send and receive buffers are flooded and any necessary blocking behavior takes place.
+    // The size of the socket buffers to use. Less than half the data transferred during tests to ensure send and
+    // receive buffers are flooded and any necessary blocking behavior takes place.
     private static final int SOCKET_BUFFER_SIZE = 256 * 1024;
     private static final int ONE_MB = 1024 * 1024;
 
@@ -65,7 +66,7 @@ public final class SocketTimeoutTest {
                     assertThatThrownBy(() -> reader.require(ONE_MB))
                             // we may fail when expecting 1MB and socket is reading, or after the read, exception is not
                             // the same
-                            .isInstanceOf(JayoCancelledException.class);
+                            .isInstanceOf(JayoTimeoutException.class);
                 }
             });
         }
@@ -78,7 +79,8 @@ public final class SocketTimeoutTest {
             Cancellable.create().executeCancellable(scope -> {
                 scope.cancel();
                 assertThatThrownBy(() -> reader.require(ONE_MB))
-                        .isInstanceOf(JayoCancelledException.class);
+                        .isInstanceOf(JayoInterruptedIOException.class)
+                        .isNotInstanceOf(JayoTimeoutException.class);
             });
         }
     }
@@ -106,7 +108,7 @@ public final class SocketTimeoutTest {
                     assertThatThrownBy(() -> {
                         writer.write(new RealBuffer().write(data), data.length);
                         writer.flush();
-                    }).isInstanceOf(JayoCancelledException.class);
+                    }).isInstanceOf(JayoTimeoutException.class);
                     long elapsed = System.nanoTime() - start;
                     assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) >= 50).isTrue();
                     assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) <= 500).isTrue();

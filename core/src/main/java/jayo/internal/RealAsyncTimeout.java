@@ -23,9 +23,8 @@ package jayo.internal;
 
 import jayo.Buffer;
 import jayo.CancelScope;
-import jayo.RawWriter;
 import jayo.RawReader;
-import jayo.exceptions.JayoCancelledException;
+import jayo.RawWriter;
 import jayo.exceptions.JayoException;
 import jayo.exceptions.JayoTimeoutException;
 import jayo.external.AsyncTimeout;
@@ -256,13 +255,13 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     /**
-     * @return a {@link JayoCancelledException} to represent a timeout. If {@code cause} is non-null it is set as the
+     * @return a {@link JayoTimeoutException} to represent a timeout. If {@code cause} is non-null it is set as the
      * cause of the returned exception.
      */
-    private JayoTimeoutException newTimeoutException(final @Nullable JayoException cause) {
-        final var e = new JayoTimeoutException("timed out");
+    private @NonNull JayoTimeoutException newTimeoutException(final @Nullable JayoException cause) {
+        final var e = new JayoTimeoutException("timeout");
         if (cause != null) {
-            e.initJayoCause(cause);
+            e.initCause(cause);
         }
         return e;
     }
