@@ -45,7 +45,7 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
  * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to implement
  * timeouts where they aren't supported natively, such as to sockets or channels that are blocked on writing.
  * <p>
- * Subclasses should override {@link #onTimeout} to take action when a timeout occurs. This method will be invoked by
+ * Subclasses should provide {@link #onTimeout} to take action when a timeout occurs. This method will be invoked by
  * the shared watchdog thread, so it should not do any long-running operations. Otherwise, we risk starving other
  * timeouts from being triggered.
  * <p>
@@ -133,9 +133,6 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     return;
                 }
 
-                // call throwIfReached to fail fast
-                cancelToken.throwIfReached();
-
                 var remaining = byteCount;
                 while (remaining > 0L) {
                     // Count how many bytes to write. This loop guarantees we split on a segment boundary.
@@ -203,6 +200,9 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             @Override
             public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
                 Objects.requireNonNull(writer);
+                if (byteCount < 0L) {
+                    throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
+                }
                 final var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
                     return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));

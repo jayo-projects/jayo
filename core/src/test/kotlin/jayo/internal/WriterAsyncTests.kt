@@ -5,6 +5,7 @@
 
 package jayo.internal
 
+import jayo.Jayo
 import jayo.buffered
 import jayo.writer
 import org.assertj.core.api.Assertions.assertThat
@@ -34,7 +35,7 @@ class WriterAsyncTests {
         repeat(10) {
             val outputStream = outputStream(true)
 
-            outputStream.writer().buffered(true).use { writer ->
+            Jayo.bufferAsync(outputStream.writer()).use { writer ->
                 writer.writeUtf8('a'.repeat(EXPECTED_SIZE))
             }
             assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
@@ -69,7 +70,7 @@ class WriterAsyncTests {
             val outputStream = outputStream(false)
 
             var written = 0
-            outputStream.writer().buffered().use { writer ->
+            outputStream.writer().buffered(/*todo true*/).use { writer ->
                 val toWrite = CHUNKS_BYTE_SIZE
                 val bytes = ByteArray(toWrite)
                 while (written < EXPECTED_SIZE) {
@@ -111,7 +112,7 @@ class WriterAsyncTests {
             val outputStream = outputStream(true)
 
             var written = 0
-            outputStream.writer().buffered().use { writer ->
+            outputStream.writer().buffered(/*todo true*/).use { writer ->
                 val toWrite = CHUNKS_BYTE_SIZE
                 val bytes = ByteArray(toWrite)
                 while (written < EXPECTED_SIZE) {

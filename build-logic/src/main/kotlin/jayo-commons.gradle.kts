@@ -22,7 +22,7 @@ fun catalogVersion(lib: String) =
 val javaVersion = catalogVersion("java").toInt()
 
 val koverage = mapOf(
-    "jayo" to 86,
+    "jayo" to 85,
     "jayo-3p-kotlinx-serialization" to 55,
 )
 

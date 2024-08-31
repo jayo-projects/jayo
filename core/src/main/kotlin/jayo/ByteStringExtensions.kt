@@ -27,17 +27,13 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
-/**
- * Returns a new [ByteString] containing a copy of `byteCount` bytes of this `ByteArray` starting at `offset`.
- */
+/** @return a new [ByteString] containing a copy of `byteCount` bytes of this `ByteArray` starting at `offset`. */
 public fun ByteArray.toByteString(
     offset: Int = 0,
     byteCount: Int = size
-): ByteString {
-    return ByteString.of(this, offset, byteCount)
-}
+): ByteString = ByteString.of(this, offset, byteCount)
 
-/** Returns a [ByteString] containing a copy of the content of this [ByteBuffer]. */
+/** @return a [ByteString] containing a copy of the content of this [ByteBuffer]. */
 public fun ByteBuffer.toByteString(): ByteString = ByteString.of(this)
 
 /**

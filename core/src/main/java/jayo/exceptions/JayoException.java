@@ -5,10 +5,15 @@
 
 package jayo.exceptions;
 
+import jayo.endpoints.JayoClosedEndpointException;
+import jayo.endpoints.JayoEndpointException;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
 import java.net.ProtocolException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
 import java.util.Objects;
@@ -17,6 +22,7 @@ import java.util.Objects;
  * Wraps an {@link IOException} with an unchecked exception.
  */
 public class JayoException extends UncheckedIOException {
+    private static final @NonNull String CLOSED_SOCKET_MESSAGE = "Socket is closed";
 
     /**
      * Constructs a {@link JayoException} with the specified detail message.
@@ -62,7 +68,18 @@ public class JayoException extends UncheckedIOException {
             case NoSuchFileException noSuchFileException -> new JayoFileNotFoundException(noSuchFileException);
             case FileAlreadyExistsException faeException -> new JayoFileAlreadyExistsException(faeException);
             case ProtocolException protocolException -> new JayoProtocolException(protocolException);
+            case SocketTimeoutException stoException -> new JayoTimeoutException(stoException);
             case InterruptedIOException interuptIOException -> new JayoInterruptedIOException(interuptIOException);
+
+            // Endpoint related exceptions
+            case ClosedChannelException closedChanException -> new JayoClosedEndpointException(closedChanException);
+            case SocketException socketException -> {
+                if (CLOSED_SOCKET_MESSAGE.equals(socketException.getMessage())) {
+                    yield new JayoClosedEndpointException(socketException);
+                }
+                yield new JayoEndpointException(socketException);
+            }
+
             default -> new JayoException(ioException);
         };
     }

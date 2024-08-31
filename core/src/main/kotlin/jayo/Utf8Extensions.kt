@@ -26,17 +26,13 @@ package jayo
 import java.io.InputStream
 import java.nio.ByteBuffer
 
-/**
- * Returns a new [ByteString] containing a copy of `byteCount` bytes of this `ByteArray` starting at `offset`.
- */
+/** @return a new [ByteString] containing a copy of `byteCount` bytes of this `ByteArray` starting at `offset`. */
 public fun ByteArray.toUtf8(
     offset: Int = 0,
     byteCount: Int = size
-): Utf8 {
-    return Utf8.ofUtf8(this, offset, byteCount)
-}
+): Utf8 = Utf8.ofUtf8(this, offset, byteCount)
 
-/** Returns a [ByteString] containing a copy of the content of this [ByteBuffer]. */
+/** @return a [ByteString] containing a copy of the content of this [ByteBuffer]. */
 public fun ByteBuffer.toUtf8(): Utf8 = Utf8.ofUtf8(this)
 
 /**
@@ -46,10 +42,11 @@ public fun ByteBuffer.toUtf8(): Utf8 = Utf8.ofUtf8(this)
  */
 public fun InputStream.readUtf8(byteCount: Int): Utf8 = Utf8.readUtf8(this, byteCount)
 
-/** Returns a new [Utf8] containing the UTF-8-encoded bytes of this [String]. */
+/** @return a new [Utf8] containing the UTF-8-encoded bytes of this [String]. */
 public fun String.encodeToUtf8(): Utf8 = Utf8.encodeUtf8(this)
 
 /**
- * Returns the number of bytes used to encode the slice of `string` as UTF-8 when using [Writer.writeString].
+ * @return the number of bytes that would be used to encode the slice of `string` as UTF-8 when using
+ * `writer.writeUtf8(myCharSequence)`.
  */
 public fun CharSequence.utf8Size(): Long = Utf8Utils.size(this)

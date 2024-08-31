@@ -5,6 +5,7 @@
 
 package jayo.internal
 
+import jayo.Jayo
 import jayo.buffered
 import jayo.encodeToByteString
 import jayo.reader
@@ -102,7 +103,7 @@ class ReaderAsyncTests {
 
             val bytes = ByteArray(EXPECTED_SIZE)
             var offset = 0
-            inputStream.reader().buffered(true).use { reader ->
+            Jayo.bufferAsync(inputStream.reader()).use { reader ->
                 while (offset < EXPECTED_SIZE) {
                     Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
                     reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)

@@ -2,10 +2,9 @@ package jayo.benchmarks
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import jayo.buffered
+import jayo.endpoints.endpoint
 import jayo.kotlinx.serialization.decodeFromReader
 import jayo.kotlinx.serialization.encodeToWriter
-import jayo.writer
-import jayo.reader
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.okio.decodeFromBufferedSource
@@ -91,9 +90,8 @@ open class TcpAndJsonSerializationBenchmark {
 
     @Benchmark
     fun readerJayo() {
-        Socket().use { socket ->
-            socket.connect(senderServer.localSocketAddress)
-            socket.reader().buffered().use { reader ->
+        Socket().apply { connect(senderServer.localSocketAddress) }.endpoint().use { socketEndpoint ->
+            socketEndpoint.reader.buffered().use { reader ->
                 val decoded = kotlinxSerializationMapper.decodeFromReader(
                     JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
                     reader
@@ -119,26 +117,26 @@ open class TcpAndJsonSerializationBenchmark {
 
     @Benchmark
     fun senderJayo() {
-        val socket = Socket()
-        socket.connect(receiverServer.localSocketAddress)
-        socket.writer().buffered().use { writer ->
-            kotlinxSerializationMapper.encodeToWriter(
-                JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
-                defaultPixelEvent,
-                writer
-            )
-            writer.flush()
+        Socket().apply { connect(receiverServer.localSocketAddress) }.endpoint().use { socketEndpoint ->
+            socketEndpoint.writer.buffered().use { writer ->
+                kotlinxSerializationMapper.encodeToWriter(
+                    JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
+                    defaultPixelEvent,
+                    writer
+                )
+                writer.flush()
+            }
         }
     }
 
     @Benchmark
     fun senderJayoJackson() {
-        val socket = Socket()
-        socket.connect(receiverServer.localSocketAddress)
-        socket.writer().buffered().use { writer ->
-            val output = writer.asOutputStream()
-            objectMapper.writeValue(output, defaultPixelEvent)
-            output.flush()
+        Socket().apply { connect(receiverServer.localSocketAddress) }.endpoint().use { socketEndpoint ->
+            socketEndpoint.writer.buffered().use { writer ->
+                val output = writer.asOutputStream()
+                objectMapper.writeValue(output, defaultPixelEvent)
+                output.flush()
+            }
         }
     }
 

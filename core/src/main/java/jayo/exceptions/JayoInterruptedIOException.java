@@ -8,6 +8,7 @@ package jayo.exceptions;
 import org.jspecify.annotations.NonNull;
 
 import java.io.InterruptedIOException;
+import java.net.SocketTimeoutException;
 import java.util.Objects;
 
 /**
@@ -19,6 +20,10 @@ import java.util.Objects;
 public sealed class JayoInterruptedIOException extends JayoException permits JayoTimeoutException {
     public JayoInterruptedIOException(final @NonNull String message) {
         super(Objects.requireNonNull(message), new InterruptedIOException(message));
+    }
+
+    public JayoInterruptedIOException(final @NonNull String message, final @NonNull SocketTimeoutException cause) {
+        super(Objects.requireNonNull(message), cause);
     }
 
     public JayoInterruptedIOException(final @NonNull InterruptedIOException cause) {

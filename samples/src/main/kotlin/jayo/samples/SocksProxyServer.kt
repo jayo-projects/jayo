@@ -22,6 +22,10 @@
 package jayo.samples
 
 import jayo.*
+import jayo.endpoints.SocketEndpoint
+import jayo.endpoints.endpoint
+import jayo.exceptions.JayoException
+import jayo.exceptions.JayoProtocolException
 import java.io.IOException
 import java.net.*
 import java.util.*
@@ -66,7 +70,7 @@ class KotlinSocksProxyServer {
             while (true) {
                 val from = serverSocket.accept()
                 openSockets.add(from)
-                executor.execute { handleSocket(from) }
+                executor.execute { handleSocket(from.endpoint()) }
             }
         } catch (e: IOException) {
             println("shutting down: $e")
@@ -77,22 +81,24 @@ class KotlinSocksProxyServer {
         }
     }
 
-    private fun handleSocket(fromSocket: Socket) {
-        val fromReader = fromSocket.reader().buffered()
-        val fromWriter = fromSocket.writer().buffered()
+    private fun handleSocket(fromSocketEndpoint: SocketEndpoint) {
+        val fromReader = fromSocketEndpoint.reader.buffered()
+        val fromWriter = fromSocketEndpoint.writer.buffered()
         try {
             // Read the hello.
             val socksVersion = fromReader.readByte()
             if (socksVersion != VERSION_5) {
-                throw ProtocolException()
+                throw JayoProtocolException("Socks version must be 5, is $socksVersion")
             }
             val methodCount = fromReader.readByte()
             var foundSupportedMethod = false
-            for (i in 0 until methodCount) {
+            repeat(methodCount.toInt()) {
                 val method = fromReader.readByte()
                 foundSupportedMethod = foundSupportedMethod or (method == METHOD_NO_AUTHENTICATION_REQUIRED)
             }
-            if (!foundSupportedMethod) throw ProtocolException()
+            if (!foundSupportedMethod) {
+                throw JayoProtocolException("Method 'No authentication required' is not supported")
+            }
 
             // Respond to hello.
             fromWriter.writeByte(VERSION_5)
@@ -104,7 +110,7 @@ class KotlinSocksProxyServer {
             val command = fromReader.readByte()
             val reserved = fromReader.readByte()
             if (version != VERSION_5 || command != COMMAND_CONNECT || reserved != 0.toByte()) {
-                throw ProtocolException()
+                throw JayoProtocolException("Failed to read a command")
             }
 
             // Read an address.
@@ -116,7 +122,7 @@ class KotlinSocksProxyServer {
                     InetAddress.getByName(fromReader.readUtf8String(domainNameLength.toLong()))
                 }
 
-                else -> throw ProtocolException()
+                else -> throw JayoProtocolException("Unknown address type $addressType")
             }
             val port = fromReader.readShort().toInt() and 0xffff
 
@@ -124,7 +130,9 @@ class KotlinSocksProxyServer {
             val toSocket = Socket(inetAddress, port)
             openSockets.add(toSocket)
             val localAddress = toSocket.localAddress.address
-            if (localAddress.size != 4) throw ProtocolException()
+            if (localAddress.size != 4) {
+                throw JayoProtocolException("Caller's specified host local address must be IPv4")
+            }
 
             // Write the reply.
             fromWriter.writeByte(VERSION_5)
@@ -135,23 +143,24 @@ class KotlinSocksProxyServer {
                 .writeShort(toSocket.localPort.toShort())
                 .emit()
 
+            val toSocketEndpoint = toSocket.endpoint()
             // Connect readers to writers in both directions.
-            val toWriter = toSocket.writer()
-            executor.execute { transfer(fromSocket, fromReader, toWriter) }
-            val toReader = toSocket.reader()
-            executor.execute { transfer(toSocket, toReader, fromWriter) }
-        } catch (e: IOException) {
-            fromSocket.close()
-            openSockets.remove(fromSocket)
-            println("connect failed for $fromSocket: $e")
+            val toWriter = toSocketEndpoint.writer
+            executor.execute { transfer(fromSocketEndpoint, fromReader, toWriter) }
+            val toReader = toSocketEndpoint.reader
+            executor.execute { transfer(toSocketEndpoint, toReader, fromWriter) }
+        } catch (e: JayoException) {
+            fromSocketEndpoint.close()
+            openSockets.remove(fromSocketEndpoint.underlying)
+            println("connect failed for $fromSocketEndpoint: $e")
         }
     }
 
     /**
-     * Read data from `reader` and write it to `writer`. This doesn't use [Writer.transferFrom] because that method doesn't
-     * flush aggressively, and we need that.
+     * Read data from `reader` and write it to `writer`. This doesn't use [Writer.transferFrom] because that method
+     * doesn't flush aggressively, and we need that.
      */
-    private fun transfer(readerSocket: Socket, reader: RawReader, writer: RawWriter) {
+    private fun transfer(readerSocketEndpoint: SocketEndpoint, reader: RawReader, writer: RawWriter) {
         try {
             val buffer = Buffer()
             var byteCount: Long
@@ -162,8 +171,8 @@ class KotlinSocksProxyServer {
         } finally {
             writer.close()
             reader.close()
-            readerSocket.close()
-            openSockets.remove(readerSocket)
+            readerSocketEndpoint.close()
+            openSockets.remove(readerSocketEndpoint.underlying)
         }
     }
 }

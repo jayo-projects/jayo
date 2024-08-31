@@ -6,6 +6,7 @@
 package jayo.internal;
 
 import jayo.Jayo;
+import jayo.endpoints.Endpoint;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -21,8 +22,8 @@ public class SocketTest {
         var freePortNumber = 54321;
         var serverThread = Thread.startVirtualThread(() -> {
             try (var serverSocket = new ServerSocket(freePortNumber);
-                 var acceptedSocket = serverSocket.accept();
-                 var serverWriter = Jayo.buffer(Jayo.writer(acceptedSocket))) {
+                 var acceptedSocketEndpoint = Endpoint.from(serverSocket.accept());
+                 var serverWriter = Jayo.buffer(acceptedSocketEndpoint.getWriter())) {
                 serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
                         .writeUtf8CodePoint('4')
                         .writeUtf8CodePoint('2');
@@ -30,8 +31,8 @@ public class SocketTest {
                 fail("Unexpected exception", e);
             }
         });
-        try (var clientSocket = new Socket("localhost", freePortNumber);
-             var clientReader = Jayo.buffer(Jayo.reader(clientSocket))) {
+        try (var clientSocketEndpoint = Endpoint.from(new Socket("localhost", freePortNumber));
+             var clientReader = Jayo.buffer(clientSocketEndpoint.getReader())) {
             assertThat(clientReader.readUtf8String()).isEqualTo("The Answer to the Ultimate Question of Life is 42");
         }
         serverThread.join();

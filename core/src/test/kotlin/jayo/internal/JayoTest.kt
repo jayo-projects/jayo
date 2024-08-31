@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import jayo.writer
 import jayo.reader
+import jayo.endpoints.endpoint
 import org.junit.jupiter.api.assertThrows
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -130,8 +131,10 @@ class JayoTest {
         val baos = ByteArrayOutputStream()
         val socket = object : Socket() {
             override fun getOutputStream() = baos
+            override fun isConnected() = true
         }
-        val writer = socket.writer()
+        val socketEndpoint = socket.endpoint()
+        val writer = socketEndpoint.writer
         writer.write(RealBuffer().writeUtf8("a"), 1L)
         assertThat(baos.toByteArray()).isEqualTo(byteArrayOf(0x61))
     }
@@ -141,8 +144,10 @@ class JayoTest {
         val bais = ByteArrayInputStream(byteArrayOf(0x61))
         val socket = object : Socket() {
             override fun getInputStream() = bais
+            override fun isConnected() = true
         }
-        val reader = socket.reader()
+        val socketEndpoint = socket.endpoint()
+        val reader = socketEndpoint.reader
         val buffer = RealBuffer()
         reader.readAtMostTo(buffer, 1L)
         assertThat(buffer.readUtf8String()).isEqualTo("a")

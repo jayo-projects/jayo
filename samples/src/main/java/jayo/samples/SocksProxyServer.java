@@ -22,6 +22,10 @@
 package jayo.samples;
 
 import jayo.*;
+import jayo.endpoints.Endpoint;
+import jayo.endpoints.SocketEndpoint;
+import jayo.exceptions.JayoException;
+import jayo.exceptions.JayoProtocolException;
 
 import java.io.IOException;
 import java.net.*;
@@ -67,7 +71,7 @@ public final class SocksProxyServer {
             while (true) {
                 final Socket from = serverSocket.accept();
                 openSockets.add(from);
-                executor.execute(() -> handleSocket(from));
+                executor.execute(() -> handleSocket(Endpoint.from(from)));
             }
         } catch (IOException e) {
             System.out.println("shutting down because of: " + e);
@@ -78,14 +82,14 @@ public final class SocksProxyServer {
         }
     }
 
-    private void handleSocket(final Socket fromSocket) {
-        final Reader fromReader = Jayo.buffer(Jayo.reader(fromSocket));
-        final Writer fromWriter = Jayo.buffer(Jayo.writer(fromSocket));
+    private void handleSocket(final SocketEndpoint fromSocketEndpoint) {
+        final Reader fromReader = Jayo.buffer(fromSocketEndpoint.getReader());
+        final Writer fromWriter = Jayo.buffer(fromSocketEndpoint.getWriter());
         try {
             // Read the hello.
-            int socksVersion = fromReader.readByte();
+            final int socksVersion = fromReader.readByte();
             if (socksVersion != VERSION_5) {
-                throw new ProtocolException();
+                throw new JayoProtocolException("Socks version must be 5, is " + socksVersion);
             }
             int methodCount = fromReader.readByte();
             boolean foundSupportedMethod = false;
@@ -94,7 +98,7 @@ public final class SocksProxyServer {
                 foundSupportedMethod |= method == METHOD_NO_AUTHENTICATION_REQUIRED;
             }
             if (!foundSupportedMethod) {
-                throw new ProtocolException();
+                throw new JayoProtocolException("Method 'No authentication required' is not supported");
             }
 
             // Respond to hello.
@@ -107,15 +111,16 @@ public final class SocksProxyServer {
             final var command = fromReader.readByte();
             final var reserved = fromReader.readByte();
             if (version != VERSION_5 || command != COMMAND_CONNECT || reserved != 0) {
-                throw new ProtocolException();
+                throw new JayoProtocolException("Failed to read a command");
             }
 
             // Read an address.
             final var addressType = fromReader.readByte();
             final var inetAddress = switch (addressType) {
                 case ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromReader.readByteArray(4L));
-                case ADDRESS_TYPE_DOMAIN_NAME -> InetAddress.getByName(fromReader.readUtf8String(fromReader.readByte()));
-                default -> throw new ProtocolException();
+                case ADDRESS_TYPE_DOMAIN_NAME ->
+                        InetAddress.getByName(fromReader.readUtf8String(fromReader.readByte()));
+                default -> throw new JayoProtocolException("Unknown address type " + addressType);
             };
             int port = fromReader.readShort() & 0xffff;
 
@@ -124,7 +129,7 @@ public final class SocksProxyServer {
             openSockets.add(toSocket);
             byte[] localAddress = toSocket.getLocalAddress().getAddress();
             if (localAddress.length != 4) {
-                throw new ProtocolException();
+                throw new JayoProtocolException("Caller's specified host local address must be IPv4");
             }
 
             // Write the reply.
@@ -136,15 +141,16 @@ public final class SocksProxyServer {
                     .writeShort((short) toSocket.getLocalPort())
                     .flush();
 
+            final var toSocketEndpoint = Endpoint.from(toSocket);
             // Connect readers to writers in both directions.
-            final var toWriter = Jayo.writer(toSocket);
-            executor.execute(() -> transfer(fromSocket, fromReader, toWriter));
-            final var toReader = Jayo.reader(toSocket);
-            executor.execute(() -> transfer(toSocket, toReader, fromWriter));
-        } catch (IOException e) {
-            closeQuietly(fromSocket);
-            openSockets.remove(fromSocket);
-            System.out.println("connect failed for " + fromSocket + ": " + e);
+            final var toWriter = toSocketEndpoint.getWriter();
+            executor.execute(() -> transfer(fromSocketEndpoint, fromReader, toWriter));
+            final var toReader = toSocketEndpoint.getReader();
+            executor.execute(() -> transfer(toSocketEndpoint, toReader, fromWriter));
+        } catch (JayoException | IOException e) {
+            closeQuietly(fromSocketEndpoint);
+            openSockets.remove(fromSocketEndpoint.getUnderlying());
+            System.out.println("connect failed for " + fromSocketEndpoint + ": " + e);
         }
     }
 
@@ -152,7 +158,7 @@ public final class SocksProxyServer {
      * Read data from {@code reader} and write it to {@code writer}. This doesn't use {@link Writer#transferFrom(RawReader)}
      * because that method doesn't flush aggressively, and we need that.
      */
-    private void transfer(Socket readerSocket, RawReader reader, RawWriter writer) {
+    private void transfer(SocketEndpoint readerSocketEndpoint, RawReader reader, RawWriter writer) {
         try {
             Buffer buffer = Buffer.create();
             for (long byteCount; (byteCount = reader.readAtMostTo(buffer, 8192L)) != -1; ) {
@@ -162,8 +168,8 @@ public final class SocksProxyServer {
         } finally {
             closeQuietly(writer);
             closeQuietly(reader);
-            closeQuietly(readerSocket);
-            openSockets.remove(readerSocket);
+            closeQuietly(readerSocketEndpoint);
+            openSockets.remove(readerSocketEndpoint.getUnderlying());
         }
     }
 

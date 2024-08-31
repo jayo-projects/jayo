@@ -19,6 +19,6 @@ public final class JayoTimeoutException extends JayoInterruptedIOException {
     }
 
     public JayoTimeoutException(final @NonNull SocketTimeoutException cause) {
-        super(Objects.requireNonNull(cause));
+        super("Socket timeout", Objects.requireNonNull(cause));
     }
 }

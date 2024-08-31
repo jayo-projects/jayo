@@ -7,7 +7,6 @@ package jayo.exceptions;
 
 import org.jspecify.annotations.NonNull;
 
-import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.nio.file.NoSuchFileException;
 import java.util.Objects;
@@ -18,7 +17,7 @@ import java.util.Objects;
 public final class JayoFileNotFoundException extends JayoException {
     @SuppressWarnings("unused")
     public JayoFileNotFoundException(final @NonNull String message) {
-        super(Objects.requireNonNull(message), new EOFException(message));
+        super(Objects.requireNonNull(message), new FileNotFoundException(message));
     }
 
     public JayoFileNotFoundException(final @NonNull FileNotFoundException cause) {
