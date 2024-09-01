@@ -70,7 +70,7 @@ class WriterAsyncTests {
             val outputStream = outputStream(false)
 
             var written = 0
-            outputStream.writer().buffered(/*todo true*/).use { writer ->
+            outputStream.writer().buffered(true).use { writer ->
                 val toWrite = CHUNKS_BYTE_SIZE
                 val bytes = ByteArray(toWrite)
                 while (written < EXPECTED_SIZE) {
@@ -108,11 +108,11 @@ class WriterAsyncTests {
 
     @Test
     fun asyncWriterSlowProducerSlowEmitter() {
-        repeat(10) {
+        repeat(30) {
             val outputStream = outputStream(true)
 
             var written = 0
-            outputStream.writer().buffered(/*todo true*/).use { writer ->
+            outputStream.writer().buffered(true).use { writer ->
                 val toWrite = CHUNKS_BYTE_SIZE
                 val bytes = ByteArray(toWrite)
                 while (written < EXPECTED_SIZE) {

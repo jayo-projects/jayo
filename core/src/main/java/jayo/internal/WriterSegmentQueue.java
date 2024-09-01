@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.System.Logger.Level.DEBUG;
@@ -64,8 +65,16 @@ sealed class WriterSegmentQueue extends SegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.WriterSegmentQueue");
         private final static Thread.Builder SINK_EMITTER_THREAD_BUILDER = Utils.threadBuilder("JayoWriterEmitter#");
 
+        /**
+         * A specific STOP event that will be sent to {@link #emitEvents} queue
+         * to trigger the end of the async emitter thread
+         */
+        private final static EmitEvent STOP_EMITTER_THREAD = new EmitEvent(
+                new Segment(new byte[0], 0, 0, null, false),
+                false, -42, false);
+
         private volatile @Nullable RuntimeException exception = null;
-        boolean closed = false;
+        private boolean closed = false;
 
         private final @NonNull Thread writerEmitterThread;
 
@@ -75,7 +84,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
         private boolean lastEmittedIncluding = false;
 
         private volatile boolean isSegmentQueueFull = false;
-        private final ReentrantLock lock = new ReentrantLock();
+        private final Lock lock = new ReentrantLock();
         private final Condition segmentQueueNotFull = lock.newCondition();
         private final Condition pausedForFlush = lock.newCondition();
 
@@ -134,10 +143,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
             throwIfNeeded();
             final var currentTail = tailVolatile();
             if (currentTail == null) {
-                if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}: You should not emit or flush without " +
-                            "writing data first. We do nothing", hashCode());
-                }
+                // can happen when we write nothing, like writer.writeUtf8("")
                 return;
             }
             final var emitEvent = new EmitEvent(currentTail, true, currentTail.limit(), flush);
@@ -168,7 +174,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
         @Override
         public void close() {
             if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: Start close{1}",
+                LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: Start close(){1}",
                         hashCode(), System.lineSeparator());
             }
             throwIfNeeded();
@@ -177,7 +183,8 @@ sealed class WriterSegmentQueue extends SegmentQueue {
             }
             closed = true;
             if (!writerEmitterTerminated) {
-                writerEmitterThread.interrupt();
+                // send a stop event
+                emitEvents.add(STOP_EMITTER_THREAD);
                 try {
                     writerEmitterThread.join();
                 } catch (InterruptedException e) {
@@ -185,8 +192,8 @@ sealed class WriterSegmentQueue extends SegmentQueue {
                 }
             }
             if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: Finished close{1}",
-                        hashCode(), System.lineSeparator());
+                LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: Finished close.{1}Queue = {2}{3}",
+                        hashCode(), System.lineSeparator(), this, System.lineSeparator());
             }
         }
 
@@ -203,13 +210,16 @@ sealed class WriterSegmentQueue extends SegmentQueue {
             @Override
             public void run() {
                 if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}:WriterEmitter Runnable task: start", hashCode());
+                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: start", hashCode());
                 }
                 try {
                     mainLoop:
                     while (!Thread.interrupted()) {
                         try {
                             final var emitEvent = emitEvents.take();
+                            if (emitEvent == STOP_EMITTER_THREAD) {
+                                break;
+                            }
                             var segment = headVolatile();
                             if (segment != null && (emitEvent.including || segment.nextVolatile() != null)) {
                                 var toWrite = 0L;
@@ -230,6 +240,8 @@ sealed class WriterSegmentQueue extends SegmentQueue {
                                     toWrite += segment.limit() - segment.pos;
                                 }
                                 if (toWrite > 0) {
+                                    // guarding against a concurrent read that may have reduced head(s) size(s)
+                                    toWrite = Math.min(toWrite, size());
                                     writer.write(getBuffer(), toWrite);
                                 }
                             }
@@ -270,7 +282,8 @@ sealed class WriterSegmentQueue extends SegmentQueue {
                         exception = new RuntimeException(t);
                     }
                 } finally {
-                    // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
+                    // end of reader consumer thread : we mark it as terminated,
+                    // and we signal (= resume) the main thread
                     writerEmitterTerminated = true;
                     lock.lock();
                     try {
@@ -281,7 +294,7 @@ sealed class WriterSegmentQueue extends SegmentQueue {
                     }
                 }
                 if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}:WriterEmitter Runnable task: end", hashCode());
+                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: end", hashCode());
                 }
             }
         }

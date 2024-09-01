@@ -256,7 +256,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     }
                 }
                 if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncReaderSegmentQueue#{0}:ReaderConsumer Runnable task: end",
+                    LOGGER.log(DEBUG, "AsyncReaderSegmentQueue#{0}: ReaderConsumer Runnable task: end",
                             hashCode());
                 }
             }
@@ -264,7 +264,9 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             private void resumeExpectingSize() {
                 assert lock.isHeldByCurrentThread();
                 expectedSize = 0L;
-                LOGGER.log(DEBUG, "resumeExpectingSize()");
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "AsyncReaderSegmentQueue#{0}: resumeExpectingSize()", hashCode());
+                }
                 expectingSize.signal();
             }
         }

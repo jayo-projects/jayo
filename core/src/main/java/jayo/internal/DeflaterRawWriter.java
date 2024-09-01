@@ -55,12 +55,22 @@ public final class DeflaterRawWriter implements RawWriter {
 
         var remaining = byteCount;
         var head = _reader.segmentQueue.headVolatile();
-        var finished = false;
-        while (!finished) {
-            assert head != null;
-            final var currentLimit = head.limitVolatile();
+        assert head != null;
+        while (remaining > 0L) {
+            var headLimit = head.limitVolatile();
+            if (head.pos == headLimit) {
+                if (!head.tryRemove()) {
+                    throw new IllegalStateException("Non tail segment must be removable");
+                }
+                final var oldHead = head;
+                head = _reader.segmentQueue.removeHead(head);
+                assert head != null;
+                headLimit = head.limitVolatile();
+                SegmentPool.recycle(oldHead);
+            }
+
             // Share bytes from the head segment of 'reader' with the deflater.
-            final var toDeflate = (int) Math.min(remaining, currentLimit - head.pos);
+            final var toDeflate = (int) Math.min(remaining, headLimit - head.pos);
             deflater.setInput(head.data, head.pos, toDeflate);
 
             // Deflate those bytes into writer.
@@ -70,21 +80,10 @@ public final class DeflaterRawWriter implements RawWriter {
             head.pos += toDeflate;
             _reader.segmentQueue.decrementSize(toDeflate);
             remaining -= toDeflate;
-            finished = remaining == 0L;
-            if (head.pos == currentLimit) {
-                final var oldHead = head;
-                if (finished) {
-                    if (head.tryRemove() && head.validateRemove()) {
-                        _reader.segmentQueue.removeHead(head);
-                    }
-                } else {
-                    if (!head.tryRemove()) {
-                        throw new IllegalStateException("Non tail segment should be removable");
-                    }
-                    head = _reader.segmentQueue.removeHead(head);
-                }
-                SegmentPool.recycle(oldHead);
-            }
+        }
+        if (head.pos == head.limitVolatile() && head.tryRemove() && head.validateRemove()) {
+            _reader.segmentQueue.removeHead(head);
+            SegmentPool.recycle(head);
         }
     }
 

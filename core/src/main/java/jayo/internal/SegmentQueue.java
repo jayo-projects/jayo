@@ -130,19 +130,21 @@ sealed class SegmentQueue implements AutoCloseable
                             throw new IllegalStateException("Could not add new Segment after current tail, " +
                                     "next node should be null");
                         }
-                        TAIL.setVolatile(this, newTail);
                     } finally {
                         currentTail.finishWrite();
                     }
                 } else {
                     HEAD.setVolatile(this, newTail);
-                    TAIL.setVolatile(this, newTail);
                 }
+                TAIL.setVolatile(this, newTail);
             } finally {
                 newTail.finishWrite();
                 incrementSize(written);
             }
         } else {
+            if (currentTail != null) {
+                currentTail.finishWrite();
+            }
             // We allocated a tail segment, but didn't end up needing it. Recycle!
             SegmentPool.recycle(newTail);
         }

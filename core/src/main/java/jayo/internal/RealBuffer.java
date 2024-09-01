@@ -215,11 +215,21 @@ public final class RealBuffer implements Buffer {
 
         var remaining = byteCount;
         var head = segmentQueue.headVolatile();
-        var finished = false;
-        while (!finished) {
-            assert head != null;
-            final var currentLimit = head.limitVolatile();
-            final var toCopy = (int) Math.min(remaining, currentLimit - head.pos);
+        assert head != null;
+        while (remaining > 0L) {
+            var headLimit = head.limitVolatile();
+            if (head.pos == headLimit) {
+                final var oldHead = head;
+                if (!head.tryRemove()) {
+                    throw new IllegalStateException("Non tail segment must be removable");
+                }
+                head = segmentQueue.removeHead(head);
+                assert head != null;
+                headLimit = head.limitVolatile();
+                SegmentPool.recycle(oldHead);
+            }
+
+            final var toCopy = (int) Math.min(remaining, headLimit - head.pos);
             try {
                 out.write(head.data, head.pos, toCopy);
             } catch (IOException e) {
@@ -228,22 +238,10 @@ public final class RealBuffer implements Buffer {
             head.pos += toCopy;
             segmentQueue.decrementSize(toCopy);
             remaining -= toCopy;
-            finished = remaining == 0L;
-
-            if (head.pos == currentLimit) {
-                final var oldHead = head;
-                if (finished) {
-                    if (head.tryRemove() && head.validateRemove()) {
-                        segmentQueue.removeHead(head);
-                    }
-                } else {
-                    if (!head.tryRemove()) {
-                        throw new IllegalStateException("Non tail segment should be removable");
-                    }
-                    head = segmentQueue.removeHead(head);
-                }
-                SegmentPool.recycle(oldHead);
-            }
+        }
+        if (head.pos == head.limitVolatile() && head.tryRemove() && head.validateRemove()) {
+            segmentQueue.removeHead(head);
+            SegmentPool.recycle(head);
         }
 
         return this;
@@ -658,19 +656,25 @@ public final class RealBuffer implements Buffer {
             byteStringBuilder.offsets.add((int) Math.min(offset, byteCount));
             byteStringBuilder.positions.add(copyPos);
             if (offset <= byteCount) {
-                final var oldHead = head;
                 if (finished) {
+                    // if a write is ongoing, we do not remove the segment, in this case we increment its pos
                     if (head.tryRemove()) {
+                        segmentQueue.decrementSize(segmentSize);
                         segmentQueue.removeHead(head);
+                        SegmentPool.recycle(head);
+                    } else {
+                        head.pos += segmentSize;
+                        segmentQueue.decrementSize(segmentSize);
                     }
                 } else {
                     if (!head.tryRemove()) {
-                        throw new IllegalStateException("Non tail segment should be removable");
+                        throw new IllegalStateException("Non tail segment must be removable");
                     }
+                    segmentQueue.decrementSize(segmentSize);
+                    final var oldHead = head;
                     head = segmentQueue.removeHead(head);
+                    SegmentPool.recycle(oldHead);
                 }
-                segmentQueue.decrementSize(segmentSize);
-                SegmentPool.recycle(oldHead);
             } else {
                 final var toRead = (int) (offset - byteCount);
                 head.pos += toRead;
@@ -1102,29 +1106,28 @@ public final class RealBuffer implements Buffer {
         }
         var remaining = byteCount;
         var head = segmentQueue.headVolatile();
-        var finished = false;
-        while (!finished) {
-            assert head != null;
-            final var currentLimit = head.limitVolatile();
-            var toSkipInSegment = (int) Math.min(remaining, currentLimit - head.pos);
-            head.pos += toSkipInSegment;
-            segmentQueue.decrementSize(toSkipInSegment);
-
-            remaining -= toSkipInSegment;
-            finished = remaining == 0;
-
-            if (head.limitVolatile() == head.pos) {
+        assert head != null;
+        var headLimit = head.limitVolatile();
+        while (remaining > 0L) {
+            if (head.pos == headLimit) {
                 if (!head.tryRemove()) {
-                    if (LOGGER.isLoggable(WARNING)) {
-                        LOGGER.log(WARNING, "Non tail segment should be removable {0}{1}",
-                                head, System.lineSeparator());
-                    }
-                    throw new IllegalStateException("Non tail segment should be removable");
+                    throw new IllegalStateException("Non tail segment must be removable");
                 }
                 final var oldHead = head;
                 head = segmentQueue.removeHead(head);
+                assert head != null;
+                headLimit = head.limitVolatile();
                 SegmentPool.recycle(oldHead);
             }
+
+            var toSkipInSegment = (int) Math.min(remaining, headLimit - head.pos);
+            head.pos += toSkipInSegment;
+            segmentQueue.decrementSize(toSkipInSegment);
+            remaining -= toSkipInSegment;
+        }
+        if (head.pos == head.limitVolatile() && head.tryRemove()) {
+            segmentQueue.removeHead(head);
+            SegmentPool.recycle(head);
         }
 
         if (LOGGER.isLoggable(TRACE)) {

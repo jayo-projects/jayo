@@ -70,20 +70,30 @@ public final class OutputStreamRawWriter implements RawWriter {
         }
 
         if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "OutputStreamRawWriter: Start writing {0} bytes to Buffer(SegmentQueue#{1}) from" +
-                            " the OutputStream{2}",
-                    byteCount, _reader.segmentQueue.hashCode(), System.lineSeparator());
+            LOGGER.log(TRACE, "OutputStreamRawWriter: Start writing {0} bytes from Buffer(SegmentQueue#{1}; " +
+                            "size={2}) to the OutputStream{3}",
+                    byteCount, _reader.segmentQueue.hashCode(), _reader.byteSize(), System.lineSeparator());
         }
 
         var remaining = byteCount;
         var head = _reader.segmentQueue.headVolatile();
-        var finished = false;
-        while (!finished) {
+        assert head != null;
+        while (remaining > 0L) {
             CancelToken.throwIfReached(cancelToken);
 
-            assert head != null;
-            final var currentLimit = head.limitVolatile();
-            final var toWrite = (int) Math.min(remaining, currentLimit - head.pos);
+            var headLimit = head.limitVolatile();
+            if (head.pos == headLimit) {
+                final var oldHead = head;
+                if (!head.tryRemove()) {
+                    throw new IllegalStateException("Non tail segment must be removable");
+                }
+                head = _reader.segmentQueue.removeHead(head);
+                assert head != null;
+                headLimit = head.limitVolatile();
+                SegmentPool.recycle(oldHead);
+            }
+
+            final var toWrite = (int) Math.min(remaining, headLimit - head.pos);
             try {
                 out.write(head.data, head.pos, toWrite);
             } catch (IOException e) {
@@ -92,26 +102,16 @@ public final class OutputStreamRawWriter implements RawWriter {
             head.pos += toWrite;
             _reader.segmentQueue.decrementSize(toWrite);
             remaining -= toWrite;
-            finished = remaining == 0;
-            if (head.pos == currentLimit) {
-                final var oldHead = head;
-                if (finished) {
-                    if (head.tryRemove() && head.validateRemove()) {
-                        _reader.segmentQueue.removeHead(head);
-                    }
-                } else {
-                    if (!head.tryRemove()) {
-                        throw new IllegalStateException("Non tail segment should be removable");
-                    }
-                    head = _reader.segmentQueue.removeHead(head);
-                }
-                SegmentPool.recycle(oldHead);
-            }
         }
+        if (head.pos == head.limitVolatile() && head.tryRemove() && head.validateRemove()) {
+            _reader.segmentQueue.removeHead(head);
+            SegmentPool.recycle(head);
+        }
+
         if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "OutputStreamRawWriter: Finished writing {0}/{1} bytes to Buffer(SegmentQueue#{2}) " +
-                            "from the OutputStream{2}",
-                    byteCount - remaining, byteCount, _reader.segmentQueue.hashCode(), System.lineSeparator());
+            LOGGER.log(TRACE, "OutputStreamRawWriter: Finished writing {0}/{1} bytes from " +
+                            "Buffer(SegmentQueue={2}{3}) to the OutputStream{4}",
+                    byteCount - remaining, byteCount, System.lineSeparator(), _reader.segmentQueue, System.lineSeparator());
         }
     }
 
