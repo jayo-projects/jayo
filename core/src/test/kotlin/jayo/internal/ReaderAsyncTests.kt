@@ -98,7 +98,7 @@ class ReaderAsyncTests {
 
     @Test
     fun asyncReaderSlowProducerSlowConsumer() {
-        repeat(10) {
+        repeat(30) {
             val inputStream: InputStream = inputStream(true)
 
             val bytes = ByteArray(EXPECTED_SIZE)

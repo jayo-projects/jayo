@@ -32,7 +32,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
+import static java.lang.System.Logger.Level.TRACE;
+
 public final class InputStreamRawReader implements RawReader {
+    private static final System.Logger LOGGER = System.getLogger("jayo.InputStreamRawReader");
+
     private final @NonNull InputStream in;
 
     public InputStreamRawReader(final @NonNull InputStream in) {
@@ -61,6 +65,12 @@ public final class InputStreamRawReader implements RawReader {
             return 0L;
         }
 
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, "InputStreamRawReader: Start reading up to {0} bytes from the InputStream to " +
+                            "Buffer(SegmentQueue#{1}; size={2}){3}",
+                    byteCount, _writer.segmentQueue.hashCode(), _writer.byteSize(), System.lineSeparator());
+        }
+
         final var bytesRead = new Wrapper.Int();
         _writer.segmentQueue.withWritableTail(1, tail -> {
             final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
@@ -74,6 +84,13 @@ public final class InputStreamRawReader implements RawReader {
             }
             return true;
         });
+
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, "InputStreamRawReader: Finished reading {0}/{1} bytes from the InputStream to " +
+                            "Buffer(SegmentQueue={2}){3}",
+                    bytesRead.value, byteCount, _writer.segmentQueue, System.lineSeparator());
+        }
+
         return bytesRead.value;
     }
 

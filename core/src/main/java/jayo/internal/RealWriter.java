@@ -176,42 +176,42 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public @NonNull Writer write(final byte @NonNull [] reader) {
-        Objects.requireNonNull(reader);
+    public @NonNull Writer write(final byte @NonNull [] source) {
+        Objects.requireNonNull(source);
         if (closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.write(reader);
+        buffer.write(source);
         return emitCompleteSegments();
     }
 
     @Override
-    public @NonNull Writer write(final byte @NonNull [] reader,
+    public @NonNull Writer write(final byte @NonNull [] source,
                                  final @NonNegative int offset,
                                  final @NonNegative int byteCount) {
-        Objects.requireNonNull(reader);
+        Objects.requireNonNull(source);
         if (closed) {
             throw new IllegalStateException("closed");
         }
-        return writePrivate(reader, offset, byteCount);
+        return writePrivate(source, offset, byteCount);
     }
 
-    private @NonNull Writer writePrivate(final byte @NonNull [] reader,
+    private @NonNull Writer writePrivate(final byte @NonNull [] source,
                                          final @NonNegative int offset,
                                          final @NonNegative int byteCount) {
         segmentQueue.pauseIfFull();
-        buffer.write(reader, offset, byteCount);
+        buffer.write(source, offset, byteCount);
         return emitCompleteSegments();
     }
 
     @Override
-    public @NonNegative int transferFrom(final @NonNull ByteBuffer reader) {
-        Objects.requireNonNull(reader);
+    public @NonNegative int transferFrom(final @NonNull ByteBuffer source) {
+        Objects.requireNonNull(source);
         if (closed) {
             throw new IllegalStateException("closed");
         }
-        return transferFromPrivate(reader);
+        return transferFromPrivate(source);
     }
 
     private @NonNegative int transferFromPrivate(final @NonNull ByteBuffer reader) {
@@ -368,8 +368,9 @@ public final class RealWriter implements Writer {
         }
 
         try {
-            if (buffer.byteSize() > 0) {
-                writer.write(buffer, buffer.byteSize());
+            final var size = buffer.byteSize();
+            if (size > 0) {
+                writer.write(buffer, size);
             }
         } catch (JayoInterruptedIOException ignored) {
             // cancellation lead to closing, ignore

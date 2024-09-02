@@ -1062,14 +1062,17 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertEquals(0xabcdL, reader.readHexadecimalUnsignedLong())
     }
 
+    // this test is a good race-condition test, do it several times !
     @Test
     fun longHexAlphabet() {
+        // todo repeat(50) {
         writer.writeUtf8("7896543210abcdef")
         writer.emit()
         assertEquals(0x7896543210abcdefL, reader.readHexadecimalUnsignedLong())
         writer.writeUtf8("ABCDEF")
         writer.emit()
         assertEquals(0xabcdefL, reader.readHexadecimalUnsignedLong())
+        //}
     }
 
     @Test
@@ -1627,7 +1630,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readTooShortUnsignedLongThrows() {
         assertFailsWith<JayoEOFException> { reader.readULong() }
-        for (i in 0 until 7) {
+        repeat(7) {
             writer.writeByte(0)
             writer.flush()
             assertFailsWith<JayoEOFException> { reader.readULong() }
@@ -1638,7 +1641,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readTooShortUnsignedLongLeThrows() {
         assertFailsWith<JayoEOFException> { reader.readULongLe() }
-        for (i in 0 until 7) {
+        repeat(7) {
             writer.writeByte(0)
             writer.flush()
             assertFailsWith<JayoEOFException> { reader.readULongLe() }

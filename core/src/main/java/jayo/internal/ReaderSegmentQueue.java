@@ -149,7 +149,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         @Override
         public void close() {
             if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: Start close{1}",
+                LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: Start close(){1}",
                         hashCode(), System.lineSeparator());
             }
             if (closed) {
