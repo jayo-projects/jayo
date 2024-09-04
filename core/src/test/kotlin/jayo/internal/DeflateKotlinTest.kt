@@ -22,11 +22,18 @@
 package jayo.internal
 
 import jayo.*
+import jayo.exceptions.JayoException
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import java.util.zip.Deflater
 import java.util.zip.Inflater
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/**
+ * Non factory based tests for deflate and inflate
+ */
 class DeflateKotlinTest {
     @Test
     fun deflate() {
@@ -42,6 +49,49 @@ class DeflateKotlinTest {
         val deflater = (data as RawWriter).deflate(Deflater(0, true))
         deflater.buffered().writeUtf8("Hi!").close()
         assertEquals("010300fcff486921", data.readByteString().hex())
+    }
+
+    /**
+     * This test confirms that we swallow NullPointerException from Deflater and
+     * rethrow as an IOException.
+     */
+    @Test
+    fun rethrowNullPointerAsIOException() {
+        val deflater = Deflater()
+        // Close to cause a NullPointerException
+        deflater.end()
+
+        val data = Buffer().writeUtf8("They're moving in herds. They do move in herds.")
+        val deflaterWriter = DeflaterRawWriter(Buffer(), deflater)
+
+        val ioe = assertThrows(JayoException::class.java) {
+            deflaterWriter.write(data, data.byteSize())
+        }
+
+        assertTrue(ioe.cause!!.cause is NullPointerException)
+    }
+
+    /**
+     * This test deflates a single segment of without compression because that's
+     * the easiest way to force close() to emit a large amount of data to the
+     * underlying writer.
+     */
+    @Test
+    fun closeWithExceptionWhenWritingAndClosing() {
+        val mockWriter = MockWriter()
+        mockWriter.scheduleThrow(0, JayoException("first"))
+        mockWriter.scheduleThrow(1, JayoException("second"))
+        val deflater = Deflater()
+        deflater.setLevel(Deflater.NO_COMPRESSION)
+        val deflaterWriter = DeflaterRawWriter(mockWriter, deflater)
+        deflaterWriter.write(Buffer().writeUtf8("a".repeat(SEGMENT_SIZE)), SEGMENT_SIZE.toLong())
+        try {
+            deflaterWriter.close()
+            fail()
+        } catch (expected: JayoException) {
+            assertEquals("first", expected.message)
+        }
+        mockWriter.assertLogContains("close()")
     }
 
     @Test

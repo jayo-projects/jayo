@@ -33,16 +33,17 @@ import java.util.Objects;
 import java.util.zip.Deflater;
 
 import static jayo.external.JayoUtils.checkOffsetAndCount;
+import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
 
 public final class DeflaterRawWriter implements RawWriter {
-    private final @NonNull RealWriter writer;
+    private final @NonNull WriterSegmentQueue segmentQueue;
     private final @NonNull Deflater deflater;
     private boolean closed = false;
 
     public DeflaterRawWriter(final @NonNull RawWriter writer, final @NonNull Deflater deflater) {
         this.deflater = Objects.requireNonNull(deflater);
         Objects.requireNonNull(writer);
-        this.writer = new RealWriter(writer, false);
+        this.segmentQueue = newWriterSegmentQueue(writer, false);
     }
 
     @Override
@@ -90,7 +91,7 @@ public final class DeflaterRawWriter implements RawWriter {
     @Override
     public void flush() {
         deflate(true);
-        writer.flush();
+        segmentQueue.emit(true);
     }
 
     @Override
@@ -99,8 +100,8 @@ public final class DeflaterRawWriter implements RawWriter {
             return;
         }
 
-        // Emit deflated data to the underlying writer. If this fails, we still need to close the deflater and the writer;
-        // otherwise we risk leaking resources.
+        // Emit deflated data to the underlying writer. If this fails, we still need to close the deflater and the
+        // segment queue; otherwise we risk leaking resources.
         Throwable thrown = null;
         try {
             finishDeflate();
@@ -117,7 +118,7 @@ public final class DeflaterRawWriter implements RawWriter {
         }
 
         try {
-            writer.close();
+            segmentQueue.close();
         } catch (Throwable e) {
             if (thrown == null) {
                 thrown = e;
@@ -136,7 +137,7 @@ public final class DeflaterRawWriter implements RawWriter {
 
     @Override
     public String toString() {
-        return "DeflaterRawWriter(" + writer + ")";
+        return "DeflaterRawWriter(" + segmentQueue + ")";
     }
 
     void finishDeflate() {
@@ -145,7 +146,7 @@ public final class DeflaterRawWriter implements RawWriter {
     }
 
     private void deflate(final boolean syncFlush) {
-        final var segmentQueue = writer.buffer.segmentQueue;
+        final var segmentQueue = this.segmentQueue.buffer.segmentQueue;
 
         var continueLoop = true;
         while (continueLoop) {
@@ -160,7 +161,7 @@ public final class DeflaterRawWriter implements RawWriter {
 
                 if (deflated > 0) {
                     tail.incrementLimitVolatile(deflated);
-                    writer.emitCompleteSegments();
+                    this.segmentQueue.emitCompleteSegments();
                     return true;
                 } else {
                     return !deflater.needsInput();

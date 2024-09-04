@@ -142,13 +142,10 @@ final class Utils {
     }
 
     static RealBuffer getBufferFromReader(final Reader reader) {
-        if (reader instanceof RealBuffer _buffer) {
-            return _buffer;
-        }
-        if (reader instanceof RealReader _reader) {
-            return _reader.buffer;
-        }
-        throw new IllegalArgumentException("Reader must be an instance of RealBuffer or RealReader");
+        return switch (reader) {
+            case RealBuffer _buffer -> _buffer;
+            case RealReader _reader -> _reader.segmentQueue.buffer;
+        };
     }
 
     static String toHexString(final byte b) {

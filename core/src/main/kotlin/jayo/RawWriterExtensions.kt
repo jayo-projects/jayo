@@ -34,7 +34,7 @@ import java.util.zip.Deflater
  *
  * Use this wherever you write to a writer to get an ergonomic and efficient access to data.
  */
-public fun RawWriter.buffered(async: Boolean = false): Writer = RealWriter.buffer(this, async)
+public fun RawWriter.buffered(async: Boolean = false): Writer = RealWriter(this, async)
 
 /**
  * Returns a [RawWriter] that DEFLATE-compresses data to this [RawWriter] while writing.

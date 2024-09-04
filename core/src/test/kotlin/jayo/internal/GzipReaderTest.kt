@@ -161,7 +161,7 @@ class GzipReaderTest {
         val gzippedReader = Buffer()
             .write("1f8b08000000000000004b4c4a0600c241243503000000".decodeHex()) // 'abc'
         val exhaustableReader = ExhaustableReader(gzippedReader)
-        val gunzippedReader = GzipRawReader(exhaustableReader).buffered()
+        val gunzippedReader = exhaustableReader.gzip().buffered()
         assertEquals('a'.code.toLong(), gunzippedReader.readByte().toLong())
         assertEquals('b'.code.toLong(), gunzippedReader.readByte().toLong())
         assertEquals('c'.code.toLong(), gunzippedReader.readByte().toLong())
@@ -175,7 +175,7 @@ class GzipReaderTest {
         val gzippedReader = Buffer()
             .write("1f8b08000000000000004b4c4a0600c241243503000000".decodeHex()) // 'abc'
         gzippedReader.writeByte('d'.code.toByte()) // This byte shouldn't be here!
-        val gunzippedReader = GzipRawReader(gzippedReader).buffered()
+        val gunzippedReader = gzippedReader.gzip().buffered()
         assertEquals('a'.code.toLong(), gunzippedReader.readByte().toLong())
         assertEquals('b'.code.toLong(), gunzippedReader.readByte().toLong())
         assertEquals('c'.code.toLong(), gunzippedReader.readByte().toLong())

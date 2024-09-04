@@ -32,6 +32,7 @@ import jayo.internal.Utils.getBufferFromReader
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -91,20 +92,17 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     private lateinit var writer: Writer
     private lateinit var reader: Reader
-    private var originReader: RawReader? = null
 
     @BeforeEach
     fun before() {
         val pipe = factory.pipe()
         writer = pipe.writer
         reader = pipe.reader
-        originReader = pipe.originReader
     }
 
     @AfterEach
     fun after() {
         try {
-            //originReader?.close()
             reader.close()
             writer.close()
         } catch (_: Exception) { /*ignored*/
@@ -2153,5 +2151,21 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
             reader.readString(4, Charsets.US_ASCII)
         }
         assertEquals("abc", reader.readUtf8String()) // The read shouldn't consume any data.
+    }
+
+    @Test
+    @Disabled
+    fun readIntoNonemptyWriter() {
+        val toWrite = "God help us, we're in the hands of engineers.".encodeToByteString()
+        for (i in 0 until SEGMENT_SIZE) {
+            before()
+            val buffer = Buffer().writeUtf8("a".repeat(i))
+            writer.write(toWrite)
+            while (reader.readAtMostTo(buffer, Int.MAX_VALUE.toLong()) != -1L) {
+            }
+            buffer.skip(i.toLong())
+            assertEquals("God help us, we're in the hands of engineers.", buffer.readUtf8String())
+            after()
+        }
     }
 }

@@ -37,7 +37,6 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertSame
 
 class BufferWriterTest : AbstractWriterTest(WriterFactory.BUFFER)
 
@@ -702,12 +701,5 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         writer.writeString(LATIN1, Charsets.ISO_8859_1)
         writer.flush()
         assertArrayEquals(LATIN1.toByteArray(Charsets.ISO_8859_1), data.readByteArray())
-    }
-
-    @Test
-    fun bufferRealWriterReturnsSameObject() {
-        val writer1 = (Buffer() as RawWriter).buffered()
-        val writer2 = writer1.buffered()
-        assertSame(writer1, writer2)
     }
 }

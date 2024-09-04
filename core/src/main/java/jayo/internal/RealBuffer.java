@@ -1075,7 +1075,7 @@ public final class RealBuffer implements Buffer {
                             {2}{3}""",
                     segmentQueue.hashCode(), size, segmentQueue, System.lineSeparator());
         }
-        skipPrivate(size);
+        skipInternal(size);
     }
 
     @Override
@@ -1088,13 +1088,13 @@ public final class RealBuffer implements Buffer {
         }
         final var size = segmentQueue.expectSize(byteCount);
         final var toSkip = Math.min(byteCount, size);
-        skipPrivate(toSkip);
+        skipInternal(toSkip);
         if (toSkip < byteCount) {
             throw new JayoEOFException("could not skip " + byteCount + " bytes, skipped: " + toSkip);
         }
     }
 
-    public void skipPrivate(final @NonNegative long byteCount) {
+    void skipInternal(final @NonNegative long byteCount) {
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, """
                             Buffer(SegmentQueue#{0}) : Start skipping {1} bytes from this
@@ -2488,8 +2488,8 @@ public final class RealBuffer implements Buffer {
                 if (byteCount < 0L) {
                     return 0L;
                 }
-                final var toSkip = Math.min(byteCount, segmentQueue.size());
-                skipPrivate(toSkip);
+                final var toSkip = Math.min(byteCount, segmentQueue.expectSize(byteCount));
+                skipInternal(toSkip);
                 return toSkip;
             }
 

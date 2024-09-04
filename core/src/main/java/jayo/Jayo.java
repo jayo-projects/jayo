@@ -54,21 +54,21 @@ public final class Jayo {
 
     /**
      * @return a new writer that buffers writes to the raw {@code writer}. The returned writer will batch writes to
-     * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete segment(s),
-     * if any.
+     * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
+     * segment(s), if any.
      * <p>
      * Actual write operations to the raw {@code writer} are processed <b>synchronously</b>.
      * <p>
      * Use this wherever you synchronously write to a raw writer to get an ergonomic and efficient access to data.
      */
     public static @NonNull Writer buffer(final @NonNull RawWriter writer) {
-        return RealWriter.buffer(writer, false);
+        return new RealWriter(writer, false);
     }
 
     /**
      * @return a new writer that buffers writes to the raw {@code writer}. The returned writer will batch writes to
-     * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete segment(s),
-     * if any.
+     * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
+     * segment(s), if any.
      * <p>
      * Actual write operations to the raw {@code writer} are seamlessly processed <b>asynchronously</b> by a virtual
      * thread.
@@ -76,7 +76,7 @@ public final class Jayo {
      * Use this wherever you asynchronously write to a raw writer to get an ergonomic and efficient access to data.
      */
     public static @NonNull Writer bufferAsync(final @NonNull RawWriter writer) {
-        return RealWriter.buffer(writer, true);
+        return new RealWriter(writer, true);
     }
 
     /**
@@ -88,7 +88,7 @@ public final class Jayo {
      * Use this wherever you synchronously read from a raw reader to get an ergonomic and efficient access to data.
      */
     public static @NonNull Reader buffer(final @NonNull RawReader reader) {
-        return RealReader.buffer(reader, false);
+        return new RealReader(reader, false);
     }
 
     /**
@@ -101,7 +101,7 @@ public final class Jayo {
      * Use this wherever you asynchronously read from a raw reader to get an ergonomic and efficient access to data.
      */
     public static @NonNull Reader bufferAsync(final @NonNull RawReader reader) {
-        return RealReader.buffer(reader, true);
+        return new RealReader(reader, true);
     }
 
     /**
@@ -139,6 +139,16 @@ public final class Jayo {
         return writer(path, optionsSet);
     }
 
+    private static @NonNull RawWriter writer(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
+        Objects.requireNonNull(path);
+        try {
+            final var bc = Files.newByteChannel(path, options.toArray(new OpenOption[0]));
+            return new OutputStreamRawWriter(Channels.newOutputStream(bc), bc);
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
+    }
+
     /**
      * @return a raw reader that reads from {@code path}. {@code options} allow to specify how the file is opened.
      * @implNote We always add the {@code StandardOpenOption.READ} option to the options Set, so we ensure we can read
@@ -161,6 +171,15 @@ public final class Jayo {
         }
         optionsSet.add(StandardOpenOption.READ); // a reader needs the READ option
         return reader(path, optionsSet);
+    }
+
+    private static RawReader reader(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
+        Objects.requireNonNull(path);
+        try {
+            return new InputStreamRawReader(Files.newInputStream(path, options.toArray(new OpenOption[0])));
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
     }
 
     /**
@@ -195,7 +214,7 @@ public final class Jayo {
      * Consumes all this reader and return its hash.
      *
      * @param reader the reader
-     * @param digest    the chosen message digest algorithm to use for hashing.
+     * @param digest the chosen message digest algorithm to use for hashing.
      * @return the hash of this reader.
      */
     public static @NonNull ByteString hash(final @NonNull RawReader reader, final @NonNull Digest digest) {
@@ -206,8 +225,8 @@ public final class Jayo {
      * Consumes all this reader and return its MAC result.
      *
      * @param reader the reader
-     * @param hMac      the chosen "Message Authentication Code" (MAC) algorithm to use.
-     * @param key       the key to use for this MAC operation.
+     * @param hMac   the chosen "Message Authentication Code" (MAC) algorithm to use.
+     * @param key    the key to use for this MAC operation.
      * @return the MAC result of this reader.
      */
     public static @NonNull ByteString hmac(final @NonNull RawReader reader,
@@ -232,7 +251,6 @@ public final class Jayo {
 
     /**
      * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading.
-     * @see InflaterRawReader
      */
     public static @NonNull InflaterRawReader inflate(final @NonNull RawReader reader) {
         return inflate(reader, new Inflater());
@@ -240,7 +258,6 @@ public final class Jayo {
 
     /**
      * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading.
-     * @see InflaterRawReader
      */
     public static @NonNull InflaterRawReader inflate(final @NonNull RawReader reader,
                                                      final @NonNull Inflater inflater) {
@@ -249,7 +266,6 @@ public final class Jayo {
 
     /**
      * @return a {@link RawReader} that gzip-decompresses this {@code reader} while reading.
-     * @see GzipRawReader
      */
     public static @NonNull RawReader gzip(final @NonNull RawReader reader) {
         return new GzipRawReader(reader);
@@ -260,25 +276,6 @@ public final class Jayo {
      */
     public static @NonNull RawWriter discardingWriter() {
         return new DiscardingWriter();
-    }
-
-    private static @NonNull RawWriter writer(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
-        Objects.requireNonNull(path);
-        try {
-            final var bc = Files.newByteChannel(path, options.toArray(new OpenOption[0]));
-            return new OutputStreamRawWriter(Channels.newOutputStream(bc), bc);
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    private static RawReader reader(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
-        Objects.requireNonNull(path);
-        try {
-            return new InputStreamRawReader(Files.newInputStream(path, options.toArray(new OpenOption[0])));
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
     }
 
     private static final class DiscardingWriter implements RawWriter {

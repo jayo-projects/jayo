@@ -37,7 +37,7 @@ import java.util.zip.Inflater
  *
  * Use this wherever you read a reader to get an ergonomic and efficient access to data.
  */
-public fun RawReader.buffered(async: Boolean = false): Reader = RealReader.buffer(this, async)
+public fun RawReader.buffered(async: Boolean = false): Reader = RealReader(this, async)
 
 /**
  * Consumes all this reader and return its hash.
@@ -58,14 +58,10 @@ public fun RawReader.hmac(hMac: Hmac, key: ByteString): ByteString = Jayo.hmac(t
 
 /**
  * @return an [InflaterRawReader] that DEFLATE-decompresses this [RawReader] while reading.
- *
- * @see InflaterRawReader
  */
 public fun RawReader.inflate(inflater: Inflater = Inflater()): InflaterRawReader = Jayo.inflate(this, inflater)
 
 /**
  * Returns a [RawReader] that gzip-decompresses this [Reader] while reading.
- *
- * @see jayo.internal.GzipRawReader
  */
 public fun RawReader.gzip(): RawReader = Jayo.gzip(this)

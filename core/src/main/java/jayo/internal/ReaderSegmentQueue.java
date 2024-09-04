@@ -19,6 +19,26 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 
 sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.Async {
+
+    static @NonNull ReaderSegmentQueue newReaderSegmentQueue(final @NonNull RawReader reader,
+                                                             final boolean preferAsync) {
+        Objects.requireNonNull(reader);
+
+        // If reader is a RealReader, we return its existing segment queue as is (async or sync).
+        if (reader instanceof RealReader realReader) {
+            return realReader.segmentQueue;
+        }
+
+        if (preferAsync) {
+            if (reader instanceof PeekRawReader) {
+                throw new IllegalArgumentException("PeekRawReader does not support the 'async' option");
+            }
+            return new ReaderSegmentQueue.Async(reader);
+        }
+
+        return new ReaderSegmentQueue(reader);
+    }
+
     final @NonNull RawReader reader;
     final @NonNull RealBuffer buffer;
     boolean closed = false;
@@ -56,18 +76,15 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             return;
         }
         closed = true;
-    }
 
-    @NonNull
-    final RealBuffer getBuffer() {
-        return buffer;
+        reader.close();
+        buffer.clear();
     }
 
     final static class Async extends ReaderSegmentQueue {
+        private static final System.Logger LOGGER = System.getLogger("jayo.AsyncReaderSegmentQueue");
         private final static Thread.Builder SOURCE_CONSUMER_THREAD_BUILDER =
                 Utils.threadBuilder("JayoReaderConsumer#");
-
-        private static final System.Logger LOGGER = System.getLogger("jayo.AsyncReaderSegmentQueue");
 
         private final @NonNull Thread readerConsumerThread;
 
@@ -80,7 +97,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         private final Condition readerConsumerPaused = lock.newCondition();
         private volatile boolean readerConsumerTerminated = false;
 
-        Async(final @NonNull RawReader reader) {
+        private Async(final @NonNull RawReader reader) {
             super(reader);
             readerConsumerThread = SOURCE_CONSUMER_THREAD_BUILDER.start(new ReaderConsumer());
         }
@@ -156,6 +173,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                 return;
             }
             closed = true;
+
             if (!readerConsumerTerminated) {
                 readerConsumerThread.interrupt();
                 try {
@@ -164,6 +182,9 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     // ignore
                 }
             }
+            reader.close();
+            buffer.clear();
+
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: Finished close{1}",
                         hashCode(), System.lineSeparator());

@@ -24,7 +24,6 @@ package jayo.internal;
 import jayo.*;
 import jayo.exceptions.JayoEOFException;
 import jayo.exceptions.JayoException;
-import jayo.exceptions.JayoInterruptedIOException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
@@ -36,56 +35,36 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
+import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
+
 @SuppressWarnings("resources")
 public final class RealWriter implements Writer {
-    private final @NonNull RawWriter writer;
-    private final @NonNull WriterSegmentQueue segmentQueue;
-    final @NonNull RealBuffer buffer;
-    private boolean closed = false;
+    final @NonNull WriterSegmentQueue segmentQueue;
 
-    public static @NonNull Writer buffer(final @NonNull RawWriter writer, final boolean async) {
+    public RealWriter(final @NonNull RawWriter writer, final boolean async) {
         Objects.requireNonNull(writer);
-        if (writer instanceof RealWriter realWriter) {
-            final var isAsync = realWriter.segmentQueue instanceof WriterSegmentQueue.Async;
-            if (isAsync == async) {
-                return realWriter;
-            }
-        }
-        return new RealWriter(writer, async);
-    }
-
-    RealWriter(final @NonNull RawWriter writer, final boolean async) {
-        this.writer = writer;
-        if (async) {
-            final var asyncWriterSegmentQueue = new WriterSegmentQueue.Async(writer);
-            segmentQueue = asyncWriterSegmentQueue;
-            buffer = asyncWriterSegmentQueue.getBuffer();
-        } else {
-            final var syncWriterSegmentQueue = new WriterSegmentQueue(writer);
-            segmentQueue = syncWriterSegmentQueue;
-            buffer = syncWriterSegmentQueue.getBuffer();
-        }
+        segmentQueue = newWriterSegmentQueue(writer, async);
     }
 
     @Override
     public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
         Objects.requireNonNull(reader);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.write(reader, byteCount);
+        segmentQueue.buffer.write(reader, byteCount);
         emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer write(final @NonNull ByteString byteString) {
         Objects.requireNonNull(byteString);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.write(byteString);
+        segmentQueue.buffer.write(byteString);
         return emitCompleteSegments();
     }
 
@@ -94,11 +73,11 @@ public final class RealWriter implements Writer {
                                  final @NonNegative int offset,
                                  final @NonNegative int byteCount) {
         Objects.requireNonNull(byteString);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.write(byteString, offset, byteCount);
+        segmentQueue.buffer.write(byteString, offset, byteCount);
         return emitCompleteSegments();
     }
 
@@ -117,11 +96,11 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeUtf8(final @NonNull CharSequence charSequence) {
         Objects.requireNonNull(charSequence);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeUtf8(charSequence);
+        segmentQueue.buffer.writeUtf8(charSequence);
         return emitCompleteSegments();
     }
 
@@ -130,21 +109,21 @@ public final class RealWriter implements Writer {
                                      final @NonNegative int startIndex,
                                      final @NonNegative int endIndex) {
         Objects.requireNonNull(charSequence);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeUtf8(charSequence, startIndex, endIndex);
+        segmentQueue.buffer.writeUtf8(charSequence, startIndex, endIndex);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeUtf8CodePoint(final @NonNegative int codePoint) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeUtf8CodePoint(codePoint);
+        segmentQueue.buffer.writeUtf8CodePoint(codePoint);
         return emitCompleteSegments();
     }
 
@@ -152,11 +131,11 @@ public final class RealWriter implements Writer {
     public @NonNull Writer writeString(final @NonNull String string, final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeString(string, charset);
+        segmentQueue.buffer.writeString(string, charset);
         return emitCompleteSegments();
     }
 
@@ -167,22 +146,22 @@ public final class RealWriter implements Writer {
                                        final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeString(string, startIndex, endIndex, charset);
+        segmentQueue.buffer.writeString(string, startIndex, endIndex, charset);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer write(final byte @NonNull [] source) {
         Objects.requireNonNull(source);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.write(source);
+        segmentQueue.buffer.write(source);
         return emitCompleteSegments();
     }
 
@@ -191,7 +170,7 @@ public final class RealWriter implements Writer {
                                  final @NonNegative int offset,
                                  final @NonNegative int byteCount) {
         Objects.requireNonNull(source);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return writePrivate(source, offset, byteCount);
@@ -201,14 +180,14 @@ public final class RealWriter implements Writer {
                                          final @NonNegative int offset,
                                          final @NonNegative int byteCount) {
         segmentQueue.pauseIfFull();
-        buffer.write(source, offset, byteCount);
+        segmentQueue.buffer.write(source, offset, byteCount);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNegative int transferFrom(final @NonNull ByteBuffer source) {
         Objects.requireNonNull(source);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return transferFromPrivate(source);
@@ -216,7 +195,7 @@ public final class RealWriter implements Writer {
 
     private @NonNegative int transferFromPrivate(final @NonNull ByteBuffer reader) {
         segmentQueue.pauseIfFull();
-        final var totalBytesRead = buffer.transferFrom(reader);
+        final var totalBytesRead = segmentQueue.buffer.transferFrom(reader);
         emitCompleteSegments();
         return totalBytesRead;
     }
@@ -227,11 +206,11 @@ public final class RealWriter implements Writer {
         Objects.requireNonNull(reader);
         var totalBytesRead = 0L;
         while (true) {
-            if (closed) {
+            if (segmentQueue.closed) {
                 throw new IllegalStateException("closed");
             }
             segmentQueue.pauseIfFull();
-            final var readCount = reader.readAtMostTo(buffer, Segment.SIZE);
+            final var readCount = reader.readAtMostTo(segmentQueue.buffer, Segment.SIZE);
             if (readCount == -1L) {
                 break;
             }
@@ -249,11 +228,11 @@ public final class RealWriter implements Writer {
         }
         var _byteCount = byteCount;
         while (_byteCount > 0L) {
-            if (closed) {
+            if (segmentQueue.closed) {
                 throw new IllegalStateException("closed");
             }
             segmentQueue.pauseIfFull();
-            final var read = reader.readAtMostTo(buffer, _byteCount);
+            final var read = reader.readAtMostTo(segmentQueue.buffer, _byteCount);
             if (read == -1L) {
                 throw new JayoEOFException();
             }
@@ -265,7 +244,7 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer writeByte(final byte b) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return writeBytePrivate(b);
@@ -273,63 +252,63 @@ public final class RealWriter implements Writer {
 
     private @NonNull Writer writeBytePrivate(final byte b) {
         segmentQueue.pauseIfFull();
-        buffer.writeByte(b);
+        segmentQueue.buffer.writeByte(b);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeShort(final short s) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeShort(s);
+        segmentQueue.buffer.writeShort(s);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeInt(final int i) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeInt(i);
+        segmentQueue.buffer.writeInt(i);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeLong(final long l) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeLong(l);
+        segmentQueue.buffer.writeLong(l);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeDecimalLong(final long l) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeDecimalLong(l);
+        segmentQueue.buffer.writeDecimalLong(l);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeHexadecimalUnsignedLong(final long l) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        buffer.writeHexadecimalUnsignedLong(l);
+        segmentQueue.buffer.writeHexadecimalUnsignedLong(l);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer emitCompleteSegments() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.emitCompleteSegments();
@@ -338,7 +317,7 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer emit() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.emit(false);
@@ -347,7 +326,7 @@ public final class RealWriter implements Writer {
 
     @Override
     public void flush() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.emit(true);
@@ -355,52 +334,12 @@ public final class RealWriter implements Writer {
 
     @Override
     public void close() {
-        if (closed) {
-            return;
-        }
-        // Emit buffered data to the underlying writer. If this fails, we still need
-        // to close the writer; otherwise we risk leaking resourcess.
-        Throwable thrown = null;
-        try {
-            segmentQueue.close();
-        } catch (Throwable e) {
-            thrown = e;
-        }
-
-        try {
-            final var size = buffer.byteSize();
-            if (size > 0) {
-                writer.write(buffer, size);
-            }
-        } catch (JayoInterruptedIOException ignored) {
-            // cancellation lead to closing, ignore
-        } catch (Throwable e) {
-            if (thrown == null) {
-                thrown = e;
-            }
-        }
-
-        try {
-            writer.close();
-        } catch (Throwable e) {
-            if (thrown == null) {
-                thrown = e;
-            }
-        }
-
-        closed = true;
-
-        if (thrown != null) {
-            if (thrown instanceof RuntimeException runtime) {
-                throw runtime;
-            }
-            throw (Error) thrown;
-        }
+        segmentQueue.close();
     }
 
     @Override
     public String toString() {
-        return "buffered(" + writer + ")";
+        return "buffered(" + segmentQueue.writer + ")";
     }
 
     @Override
@@ -408,7 +347,7 @@ public final class RealWriter implements Writer {
         return new OutputStream() {
             @Override
             public void write(final int b) throws IOException {
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying writer is closed.");
                 }
                 try {
@@ -421,7 +360,7 @@ public final class RealWriter implements Writer {
             @Override
             public void write(final byte @NonNull [] data, final int offset, final int byteCount) throws IOException {
                 Objects.requireNonNull(data);
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying writer is closed.");
                 }
                 try {
@@ -433,7 +372,7 @@ public final class RealWriter implements Writer {
 
             @Override
             public void flush() throws IOException {
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying writer is closed.");
                 }
                 try {
@@ -465,7 +404,7 @@ public final class RealWriter implements Writer {
             @Override
             public int write(final @NonNull ByteBuffer reader) throws IOException {
                 Objects.requireNonNull(reader);
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new ClosedChannelException();
                 }
                 try {
@@ -477,7 +416,7 @@ public final class RealWriter implements Writer {
 
             @Override
             public boolean isOpen() {
-                return !closed;
+                return !segmentQueue.closed;
             }
 
             @Override

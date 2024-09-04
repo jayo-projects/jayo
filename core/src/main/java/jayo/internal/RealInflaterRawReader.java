@@ -36,44 +36,86 @@ import java.util.Objects;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import static jayo.internal.ReaderSegmentQueue.newReaderSegmentQueue;
+
 public final class RealInflaterRawReader implements InflaterRawReader {
-    private final @NonNull RealReader reader;
+    private final @NonNull ReaderSegmentQueue segmentQueue;
     private final @NonNull Inflater inflater;
     /**
      * When we call Inflater.setInput(), the inflater keeps our byte array until it needs input again.
      * This tracks how many bytes the inflater is currently holding on to.
      */
-    private int bufferBytesHeldByInflater = 0;
-    private @Nullable Segment currentSegment = null;
+    private int bytesHeldByInflater = 0;
+    private @Nullable Segment currentHead = null;
     private boolean closed = false;
 
     public RealInflaterRawReader(final @NonNull RawReader reader, final @NonNull Inflater inflater) {
-        this(new RealReader(Objects.requireNonNull(reader), false), inflater);
+        this(newReaderSegmentQueue(Objects.requireNonNull(reader), false), inflater);
     }
 
     /**
      * This internal constructor shares a buffer with its trusted caller. In general, we can't share a {@code Reader}
      * because the inflater holds input bytes until they are inflated.
      */
-    RealInflaterRawReader(final @NonNull RealReader reader, final @NonNull Inflater inflater) {
-        this.reader = Objects.requireNonNull(reader);
-        this.inflater = Objects.requireNonNull(inflater);
+    RealInflaterRawReader(final @NonNull ReaderSegmentQueue segmentQueue, final @NonNull Inflater inflater) {
+        assert segmentQueue != null;
+        assert inflater != null;
+
+        this.segmentQueue = segmentQueue;
+        this.inflater = inflater;
     }
 
     @Override
     public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
-        while (true) {
-            final var bytesInflated = readOrInflateAtMostTo(writer, byteCount);
-            if (bytesInflated > 0) {
-                return bytesInflated;
-            }
-            if (inflater.finished() || inflater.needsDictionary()) {
-                return -1L;
-            }
-            if (reader.exhausted()) {
-                throw new JayoEOFException("reader exhausted prematurely");
-            }
+        Objects.requireNonNull(writer);
+        if (byteCount < 0L) {
+            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
+        if (!(writer instanceof RealBuffer _writer)) {
+            throw new IllegalArgumentException("writer must be an instance of RealBuffer");
+        }
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
+        if (byteCount == 0L) {
+            return 0L;
+        }
+
+        final var bytesInflated = new Wrapper.Int();
+        // Prepare the destination that we'll write into.
+        _writer.segmentQueue.withWritableTail(1, tail -> {
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
+
+            while (true) {
+                // Prepare the reader that we'll read from.
+                refill();
+                try {
+                    // Decompress the inflater's compressed data into the writer.
+                    bytesInflated.value = inflater.inflate(tail.data, tail.limit(), toRead);
+                } catch (DataFormatException e) {
+                    throw new JayoException(new IOException(e));
+                }
+                // Release consumed bytes from the reader.
+                releaseBytesAfterInflate();
+
+                // Track produced bytes in the destination.
+                if (bytesInflated.value > 0) {
+                    tail.incrementLimitVolatile(bytesInflated.value);
+                    return true;
+                }
+
+                if (inflater.finished() || inflater.needsDictionary()) {
+                    bytesInflated.value = -1;
+                    return true;
+                }
+
+                if (segmentQueue.expectSize(1L) == 0) {
+                    throw new JayoEOFException("reader exhausted prematurely");
+                }
+            }
+        });
+
+        return bytesInflated.value;
     }
 
     @Override
@@ -127,71 +169,53 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         }
 
         // If there are no further bytes in the reader, we cannot refill.
-        if (reader.exhausted()) {
+        if (segmentQueue.expectSize(Segment.SIZE) == 0) {
             return true;
         }
 
-        resetCurrentSegmentIfPresent();
         // Assign buffer bytes to the inflater.
-        final var head = reader.buffer.segmentQueue.headVolatile();
-        assert head != null;
-        currentSegment = head;
-        bufferBytesHeldByInflater = head.limitVolatile() - head.pos;
-        inflater.setInput(head.data, head.pos, bufferBytesHeldByInflater);
+        currentHead = segmentQueue.headVolatile();
+        assert currentHead != null;
+        bytesHeldByInflater = currentHead.limitVolatile() - currentHead.pos;
+        inflater.setInput(currentHead.data, currentHead.pos, bytesHeldByInflater);
+
         return false;
     }
 
     @Override
     public void close() {
-        resetCurrentSegmentIfPresent();
         if (closed) {
             return;
         }
         inflater.end();
         closed = true;
-        reader.close();
+        segmentQueue.close();
     }
 
     @Override
     public String toString() {
-        return "InflaterRawReader(" + reader + ")";
+        return "InflaterRawReader(" + segmentQueue.reader + ")";
     }
 
     /**
      * When the inflater has processed compressed data, remove it from the buffer.
      */
     private void releaseBytesAfterInflate() {
-        try {
-            if (bufferBytesHeldByInflater == 0) {
-                return;
-            }
-
-            final var toRelease = bufferBytesHeldByInflater - inflater.getRemaining();
-            if (currentSegment != null) {
-                currentSegment.pos += toRelease;
-                if (currentSegment.pos < 0) {
-                    throw new RuntimeException();
-                }
-                reader.buffer.segmentQueue.decrementSize(toRelease);
-
-                if (currentSegment.pos == currentSegment.limitVolatile() && currentSegment.tryRemove()
-                        && currentSegment.validateRemove()) {
-                    reader.buffer.segmentQueue.removeHead(currentSegment);
-                    SegmentPool.recycle(currentSegment);
-                    currentSegment = null;
-                }
-            } else {
-                reader.skip(toRelease);
-            }
-            bufferBytesHeldByInflater -= toRelease;
-        } finally {
-            resetCurrentSegmentIfPresent();
+        if (bytesHeldByInflater == 0) {
+            return;
         }
-    }
 
-    private void resetCurrentSegmentIfPresent() {
-        if (currentSegment != null) {
-            currentSegment = null;
+        assert currentHead != null;
+        final var toRelease = bytesHeldByInflater - inflater.getRemaining();
+        currentHead.pos += toRelease;
+        segmentQueue.decrementSize(toRelease);
+
+        if (currentHead.pos == currentHead.limitVolatile() && currentHead.tryRemove()
+                && currentHead.validateRemove()) {
+            segmentQueue.removeHead(currentHead);
+            SegmentPool.recycle(currentHead);
+            currentHead = null;
         }
+        bytesHeldByInflater -= toRelease;
     }
 }

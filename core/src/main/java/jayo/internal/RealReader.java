@@ -38,40 +38,16 @@ import java.nio.charset.Charset;
 import java.util.Objects;
 
 import static jayo.external.JayoUtils.checkOffsetAndCount;
+import static jayo.internal.ReaderSegmentQueue.newReaderSegmentQueue;
 
 public final class RealReader implements Reader {
     private static final long INTEGER_MAX_PLUS_1 = (long) Integer.MAX_VALUE + 1;
 
-    private final @NonNull RawReader reader;
-    private final @NonNull ReaderSegmentQueue segmentQueue;
-    final @NonNull RealBuffer buffer;
-    private boolean closed = false;
+    final @NonNull ReaderSegmentQueue segmentQueue;
 
-    public static @NonNull Reader buffer(final @NonNull RawReader reader, final boolean async) {
+    public RealReader(final @NonNull RawReader reader, final boolean async) {
         Objects.requireNonNull(reader);
-        if (reader instanceof RealReader realReader) {
-            final var isAsync = realReader.segmentQueue instanceof ReaderSegmentQueue.Async;
-            if (isAsync == async) {
-                return realReader;
-            }
-        }
-        return new RealReader(reader, async);
-    }
-
-    RealReader(final @NonNull RawReader reader, final boolean async) {
-        this.reader = Objects.requireNonNull(reader);
-        if (async) {
-            if (reader instanceof PeekRawReader) {
-                throw new IllegalArgumentException("PeekRawReader does not support the 'async' option");
-            }
-            final var asyncReaderSegmentQueue = new ReaderSegmentQueue.Async(reader);
-            segmentQueue = asyncReaderSegmentQueue;
-            buffer = asyncReaderSegmentQueue.getBuffer();
-        } else {
-            final var syncReaderSegmentQueue = new ReaderSegmentQueue(reader);
-            segmentQueue = syncReaderSegmentQueue;
-            buffer = syncReaderSegmentQueue.getBuffer();
-        }
+        segmentQueue = newReaderSegmentQueue(reader, async);
     }
 
     @Override
@@ -80,59 +56,59 @@ public final class RealReader implements Reader {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
 
-        if (segmentQueue.expectSize(1L) == 0L) {
+        if (segmentQueue.expectSize(Segment.SIZE) == 0L) {
             return -1;
         }
 
-        return buffer.readAtMostTo(writer, byteCount);
+        return segmentQueue.buffer.readAtMostTo(writer, byteCount);
     }
 
     @Override
     public @NonNull ByteString readByteString() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
-        return buffer.readByteString();
+        return segmentQueue.buffer.readByteString();
     }
 
     @Override
     public @NonNull ByteString readByteString(final @NonNegative long byteCount) {
         require(byteCount);
-        return buffer.readByteString(byteCount);
+        return segmentQueue.buffer.readByteString(byteCount);
     }
 
     @Override
     public @NonNull Utf8 readUtf8() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
-        return buffer.readUtf8();
+        return segmentQueue.buffer.readUtf8();
     }
 
     @Override
     public @NonNull Utf8 readUtf8(long byteCount) {
         require(byteCount);
-        return buffer.readUtf8(byteCount);
+        return segmentQueue.buffer.readUtf8(byteCount);
     }
 
     @Override
     public int select(final @NonNull Options options) {
         Objects.requireNonNull(options);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
-        return buffer.select(options);
+        return segmentQueue.buffer.select(options);
     }
 
     @Override
     public byte @NonNull [] readByteArray() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return readByteArrayPrivate();
@@ -140,7 +116,7 @@ public final class RealReader implements Reader {
 
     private byte @NonNull [] readByteArrayPrivate() {
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
-        return buffer.readByteArray();
+        return segmentQueue.buffer.readByteArray();
     }
 
     @Override
@@ -148,7 +124,7 @@ public final class RealReader implements Reader {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return readByteArrayPrivate(byteCount);
@@ -156,7 +132,7 @@ public final class RealReader implements Reader {
 
     private byte @NonNull [] readByteArrayPrivate(final @NonNegative long byteCount) {
         require(byteCount);
-        return buffer.readByteArray(byteCount);
+        return segmentQueue.buffer.readByteArray(byteCount);
     }
 
     @Override
@@ -167,9 +143,9 @@ public final class RealReader implements Reader {
     @Override
     public void readTo(final byte @NonNull [] writer, final @NonNegative int offset, final @NonNegative int byteCount) {
         checkOffsetAndCount(Objects.requireNonNull(writer).length, offset, byteCount);
-        // can fail if not enough bytes, then buffer.readTo will read as many bytes as possible and throw EOF
+        // can fail if not enough bytes, then segmentQueue.buffer.readTo will read as many bytes as possible and throw EOF
         request(byteCount);
-        buffer.readTo(writer, offset, byteCount);
+        segmentQueue.buffer.readTo(writer, offset, byteCount);
     }
 
     @Override
@@ -183,7 +159,7 @@ public final class RealReader implements Reader {
                             final @NonNegative int byteCount) {
         Objects.requireNonNull(writer);
         checkOffsetAndCount(writer.length, offset, byteCount);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return readAtMostToPrivate(writer, offset, byteCount);
@@ -192,26 +168,26 @@ public final class RealReader implements Reader {
     private int readAtMostToPrivate(final byte @NonNull [] writer,
                                     final @NonNegative int offset,
                                     final @NonNegative int byteCount) {
-        if (segmentQueue.expectSize(1L) == 0L) {
+        if (segmentQueue.expectSize(Segment.SIZE) == 0L) {
             return -1;
         }
-        return buffer.readAtMostTo(writer, offset, byteCount);
+        return segmentQueue.buffer.readAtMostTo(writer, offset, byteCount);
     }
 
     @Override
     public int readAtMostTo(final @NonNull ByteBuffer writer) {
         Objects.requireNonNull(writer);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return readAtMostToPrivate(writer);
     }
 
     private int readAtMostToPrivate(final @NonNull ByteBuffer writer) {
-        if (segmentQueue.expectSize(1L) == 0L) {
+        if (segmentQueue.expectSize(Segment.SIZE) == 0L) {
             return -1;
         }
-        return buffer.readAtMostTo(writer);
+        return segmentQueue.buffer.readAtMostTo(writer);
     }
 
     @Override
@@ -220,18 +196,18 @@ public final class RealReader implements Reader {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         var remaining = byteCount;
         while (remaining > 0L) {
-            // trying to read Segment.SIZE, so we have at least one complete segment in the buffer
+            // trying to read Segment.SIZE, so we have at least one complete segment in the segmentQueue.buffer
             final var size = segmentQueue.expectSize(Segment.SIZE);
             if (size == 0L) {
                 // The underlying reader is exhausted.
                 throw new JayoEOFException("could not read " + byteCount + " bytes from reader");
             }
-            final var emitByteCount = buffer.completeSegmentByteCount();
+            final var emitByteCount = segmentQueue.buffer.completeSegmentByteCount();
             final long toWrite;
             if (emitByteCount > 0L) {
                 toWrite = Math.min(remaining, emitByteCount);
@@ -239,7 +215,7 @@ public final class RealReader implements Reader {
                 // write the last uncompleted segment, if any
                 toWrite = Math.min(remaining, size);
             }
-            writer.write(buffer, toWrite);
+            writer.write(segmentQueue.buffer, toWrite);
             remaining -= toWrite;
         }
     }
@@ -247,34 +223,34 @@ public final class RealReader implements Reader {
     @Override
     public @NonNegative long transferTo(final @NonNull RawWriter writer) {
         Objects.requireNonNull(writer);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         var written = 0L;
         while (segmentQueue.expectSize(Segment.SIZE) > 0L) {
-            final var emitByteCount = buffer.completeSegmentByteCount();
+            final var emitByteCount = segmentQueue.buffer.completeSegmentByteCount();
             if (emitByteCount == 0L) {
                 break;
             }
             written += emitByteCount;
-            writer.write(buffer, emitByteCount);
+            writer.write(segmentQueue.buffer, emitByteCount);
         }
         // write the last remaining bytes in the last uncompleted segment, if any
         final var remaining = segmentQueue.size();
         if (remaining > 0L) {
             written += remaining;
-            writer.write(buffer, remaining);
+            writer.write(segmentQueue.buffer, remaining);
         }
         return written;
     }
 
     @Override
     public @NonNull String readUtf8String() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
-        return buffer.readUtf8String();
+        return segmentQueue.buffer.readUtf8String();
     }
 
     @Override
@@ -283,17 +259,17 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
         require(byteCount);
-        return buffer.readUtf8String(byteCount);
+        return segmentQueue.buffer.readUtf8String(byteCount);
     }
 
     @Override
     public @NonNull String readString(final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
-        return buffer.readString(charset);
+        return segmentQueue.buffer.readString(charset);
     }
 
     @Override
@@ -303,7 +279,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
         require(byteCount);
-        return buffer.readString(byteCount, charset);
+        return segmentQueue.buffer.readString(byteCount, charset);
     }
 
     @Override
@@ -319,7 +295,7 @@ public final class RealReader implements Reader {
             }
         }
 
-        return Utf8Utils.readUtf8Line(buffer, newline);
+        return Utf8Utils.readUtf8Line(segmentQueue.buffer, newline);
     }
 
     @Override
@@ -335,17 +311,17 @@ public final class RealReader implements Reader {
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1;
         final var newline = indexOf((byte) ((int) '\n'), 0, scanLength);
         if (newline != -1L) {
-            return Utf8Utils.readUtf8Line(buffer, newline);
+            return Utf8Utils.readUtf8Line(segmentQueue.buffer, newline);
         }
         if (scanLength < Long.MAX_VALUE &&
-                request(scanLength) && buffer.getByte(scanLength - 1) == (byte) ((int) '\r') &&
-                request(scanLength + 1) && buffer.getByte(scanLength) == (byte) ((int) '\n')
+                request(scanLength) && segmentQueue.buffer.getByte(scanLength - 1) == (byte) ((int) '\r') &&
+                request(scanLength + 1) && segmentQueue.buffer.getByte(scanLength) == (byte) ((int) '\n')
         ) {
-            return Utf8Utils.readUtf8Line(buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
+            return Utf8Utils.readUtf8Line(segmentQueue.buffer, scanLength); // The line was 'limit' UTF-8 bytes followed by \r\n.
         }
         final var data = new RealBuffer();
         final var size = segmentQueue.size();
-        buffer.copyTo(data, 0, Math.min(32, size));
+        segmentQueue.buffer.copyTo(data, 0, Math.min(32, size));
         throw new JayoEOFException(
                 "\\n not found: limit=" + Math.min(size, limit) +
                         " content=" + data.readByteString().hex() + '…'
@@ -356,7 +332,7 @@ public final class RealReader implements Reader {
     public @NonNegative int readUtf8CodePoint() {
         require(1L);
 
-        final var b0 = (int) buffer.getByte(0);
+        final var b0 = (int) segmentQueue.buffer.getByte(0);
         if ((b0 & 0xe0) == 0xc0) {
             require(2L);
         } else if ((b0 & 0xf0) == 0xe0) {
@@ -365,12 +341,12 @@ public final class RealReader implements Reader {
             require(4L);
         }
 
-        return buffer.readUtf8CodePoint();
+        return segmentQueue.buffer.readUtf8CodePoint();
     }
 
     @Override
     public boolean exhausted() {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         return segmentQueue.expectSize(1L) == 0L;
@@ -381,7 +357,7 @@ public final class RealReader implements Reader {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         if (byteCount == 0) {
@@ -400,37 +376,37 @@ public final class RealReader implements Reader {
     @Override
     public byte readByte() {
         require(1);
-        return buffer.readByte();
+        return segmentQueue.buffer.readByte();
     }
 
     @Override
     public short readShort() {
         require(2L);
-        return buffer.readShort();
+        return segmentQueue.buffer.readShort();
     }
 
     @Override
     public int readInt() {
         require(4L);
-        return buffer.readInt();
+        return segmentQueue.buffer.readInt();
     }
 
     @Override
     public long readLong() {
         require(8L);
-        return buffer.readLong();
+        return segmentQueue.buffer.readLong();
     }
 
     @Override
     public long readDecimalLong() {
         request(20L);
-        return buffer.readDecimalLong();
+        return segmentQueue.buffer.readDecimalLong();
     }
 
     @Override
     public long readHexadecimalUnsignedLong() {
         request(17L);
-        return buffer.readHexadecimalUnsignedLong();
+        return segmentQueue.buffer.readHexadecimalUnsignedLong();
     }
 
     @Override
@@ -438,7 +414,7 @@ public final class RealReader implements Reader {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         final var skipped = skipPrivate(byteCount);
@@ -456,7 +432,7 @@ public final class RealReader implements Reader {
                 break;
             }
             final var toSkip = Math.min(remaining, size);
-            buffer.skip(toSkip);
+            segmentQueue.buffer.skipInternal(toSkip);
             remaining -= toSkip;
         }
         return byteCount - remaining;
@@ -474,7 +450,7 @@ public final class RealReader implements Reader {
 
     @Override
     public long indexOf(final byte b, final @NonNegative long startIndex, final @NonNegative long endIndex) {
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         if (startIndex < 0L || startIndex > endIndex) {
@@ -484,16 +460,16 @@ public final class RealReader implements Reader {
         final var expected = Math.max(1L, startIndex);
         var lastBufferSize = segmentQueue.expectSize(expected);
         if (lastBufferSize < startIndex) {
-            return -1; // there is not enough bytes in the buffer
+            return -1; // there is not enough bytes in the segmentQueue.buffer
         }
         var _startIndex = startIndex;
         while (_startIndex < endIndex) {
-            final var result = buffer.indexOf(b, _startIndex, endIndex);
+            final var result = segmentQueue.buffer.indexOf(b, _startIndex, endIndex);
             if (result != -1L) {
                 return result;
             }
 
-            // The byte wasn't in the buffer. Give up if we've already reached our target size.
+            // The byte wasn't in the segmentQueue.buffer. Give up if we've already reached our target size.
             if (lastBufferSize >= endIndex) {
                 return -1L;
             }
@@ -519,7 +495,7 @@ public final class RealReader implements Reader {
     @Override
     public long indexOf(final @NonNull ByteString byteString, final @NonNegative long startIndex) {
         Objects.requireNonNull(byteString);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         if (startIndex < 0L) {
@@ -530,11 +506,11 @@ public final class RealReader implements Reader {
         final var expected = Math.max(1L, minSearchSize);
         var lastBufferSize = segmentQueue.expectSize(expected);
         if (lastBufferSize < minSearchSize) {
-            return -1; // there is not enough bytes in the buffer
+            return -1; // there is not enough bytes in the segmentQueue.buffer
         }
         var _startIndex = startIndex;
         while (true) {
-            final var result = buffer.indexOf(byteString, _startIndex);
+            final var result = segmentQueue.buffer.indexOf(byteString, _startIndex);
             if (result != -1L) {
                 return result;
             }
@@ -559,7 +535,7 @@ public final class RealReader implements Reader {
     @Override
     public long indexOfElement(final @NonNull ByteString targetBytes, final @NonNegative long startIndex) {
         Objects.requireNonNull(targetBytes);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         if (startIndex < 0L) {
@@ -569,12 +545,12 @@ public final class RealReader implements Reader {
         final var expected = Math.max(1L, startIndex);
         var lastBufferSize = segmentQueue.expectSize(expected);
         if (lastBufferSize < startIndex) {
-            return -1; // there is not enough bytes in the buffer
+            return -1; // there is not enough bytes in the segmentQueue.buffer
         }
 
         var _startIndex = startIndex;
         while (true) {
-            final var result = buffer.indexOfElement(targetBytes, _startIndex);
+            final var result = segmentQueue.buffer.indexOfElement(targetBytes, _startIndex);
             if (result != -1L) {
                 return result;
             }
@@ -603,7 +579,7 @@ public final class RealReader implements Reader {
                                final @NonNegative int bytesOffset,
                                final @NonNegative int byteCount) {
         Objects.requireNonNull(byteString);
-        if (closed) {
+        if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
 
@@ -619,7 +595,7 @@ public final class RealReader implements Reader {
             if (!request(bufferOffset + 1)) {
                 return false;
             }
-            if (buffer.getByte(bufferOffset) != byteString.getByte(bytesOffset + i)) {
+            if (segmentQueue.buffer.getByte(bufferOffset) != byteString.getByte(bytesOffset + i)) {
                 return false;
             }
         }
@@ -633,18 +609,12 @@ public final class RealReader implements Reader {
 
     @Override
     public void close() {
-        if (closed) {
-            return;
-        }
-        closed = true;
         segmentQueue.close();
-        reader.close();
-        buffer.clear();
     }
 
     @Override
     public String toString() {
-        return "buffered(" + reader + ")";
+        return "buffered(" + segmentQueue.reader + ")";
     }
 
     @Override
@@ -652,14 +622,14 @@ public final class RealReader implements Reader {
         return new InputStream() {
             @Override
             public int read() throws IOException {
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
                 try {
                     if (exhausted()) {
                         return -1;
                     }
-                    return buffer.readByte() & 0xff;
+                    return segmentQueue.buffer.readByte() & 0xff;
                 } catch (JayoException e) {
                     throw e.getCause();
                 }
@@ -669,7 +639,7 @@ public final class RealReader implements Reader {
             public int read(final byte @NonNull [] data, final int offset, final int byteCount) throws IOException {
                 Objects.requireNonNull(data);
                 checkOffsetAndCount(data.length, offset, byteCount);
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
                 try {
@@ -681,7 +651,7 @@ public final class RealReader implements Reader {
 
             @Override
             public byte @NonNull [] readAllBytes() throws IOException {
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
                 try {
@@ -696,7 +666,7 @@ public final class RealReader implements Reader {
                 if (len < 0) {
                     throw new IllegalArgumentException("invalid length: " + len);
                 }
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
                 try {
@@ -708,7 +678,7 @@ public final class RealReader implements Reader {
 
             @Override
             public @NonNegative long skip(final @NonNegative long byteCount) throws IOException {
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
                 if (byteCount < 0L) {
@@ -723,7 +693,7 @@ public final class RealReader implements Reader {
 
             @Override
             public int available() throws IOException {
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
                 try {
@@ -745,24 +715,24 @@ public final class RealReader implements Reader {
             @Override
             public @NonNegative long transferTo(final @NonNull OutputStream out) throws IOException {
                 Objects.requireNonNull(out);
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
                 try {
                     var written = 0L;
                     while (segmentQueue.expectSize(Segment.SIZE) > 0L) {
-                        final var emitByteCount = buffer.completeSegmentByteCount();
+                        final var emitByteCount = segmentQueue.buffer.completeSegmentByteCount();
                         if (emitByteCount == 0L) {
                             break;
                         }
                         written += emitByteCount;
-                        buffer.readTo(out, emitByteCount);
+                        segmentQueue.buffer.readTo(out, emitByteCount);
                     }
                     // write the last remaining bytes in the last uncompleted segment, if any
                     final var remaining = segmentQueue.size();
                     if (remaining > 0L) {
                         written += remaining;
-                        buffer.readTo(out, remaining);
+                        segmentQueue.buffer.readTo(out, remaining);
                     }
                     return written;
                 } catch (JayoException e) {
@@ -783,7 +753,7 @@ public final class RealReader implements Reader {
             @Override
             public int read(final @NonNull ByteBuffer writer) throws IOException {
                 Objects.requireNonNull(writer);
-                if (closed) {
+                if (segmentQueue.closed) {
                     throw new ClosedChannelException();
                 }
                 try {
@@ -795,7 +765,7 @@ public final class RealReader implements Reader {
 
             @Override
             public boolean isOpen() {
-                return !closed;
+                return !segmentQueue.closed;
             }
 
             @Override

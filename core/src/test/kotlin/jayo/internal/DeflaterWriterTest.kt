@@ -22,76 +22,78 @@
 package jayo.internal
 
 import jayo.Buffer
-import jayo.exceptions.JayoException
-import org.junit.jupiter.api.Assertions.*
+import jayo.Writer
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.zip.Deflater
 import java.util.zip.Inflater
 import java.util.zip.InflaterInputStream
+import kotlin.test.assertEquals
 
-class DeflaterWriterTest {
+class BufferDeflaterWriterTest : AbstractDeflaterWriterTest(WriterFactory.BUFFER)
+
+class RealDeflaterWriterTest : AbstractDeflaterWriterTest(WriterFactory.REAL_BUFFERED_SINK)
+
+class RealAsyncDeflaterWriterTest : AbstractDeflaterWriterTest(WriterFactory.REAL_ASYNC_BUFFERED_SINK)
+
+abstract class AbstractDeflaterWriterTest internal constructor(private val factory: WriterFactory) {
+
+    private val data: Buffer = RealBuffer()
+    private lateinit var writer: Writer
+
+    @BeforeEach
+    fun before() {
+        writer = factory.create(data)
+    }
+
+    @AfterEach
+    fun after() {
+        writer.close()
+    }
+
     @Test
     fun deflateWithClose() {
-        val data = Buffer()
         val original = "They're moving in herds. They do move in herds."
-        data.writeUtf8(original)
-        val writer = Buffer()
+        val clearText = Buffer().writeUtf8(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(data, data.byteSize())
+        deflaterWriter.write(clearText, clearText.byteSize())
         deflaterWriter.close()
-        val inflated = inflate(writer)
+        val inflated = inflate(data)
         assertEquals(original, inflated.readUtf8String())
     }
 
     @Test
     fun deflateWithSyncFlush() {
         val original = "Yes, yes, yes. That's why we're taking extreme precautions."
-        val data = Buffer()
-        data.writeUtf8(original)
-        val writer = Buffer()
+        val clearText = Buffer().writeUtf8(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(data, data.byteSize())
+        deflaterWriter.write(clearText, clearText.byteSize())
         deflaterWriter.flush()
-        val inflated = inflate(writer)
+        val inflated = inflate(data)
         assertEquals(original, inflated.readUtf8String())
     }
 
     @Test
     fun deflateWellCompressed() {
         val original = "a".repeat(1024 * 1024)
-        val data = Buffer()
-        data.writeUtf8(original)
-        val writer = Buffer()
+        val clearText = Buffer().writeUtf8(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(data, data.byteSize())
+        deflaterWriter.write(clearText, clearText.byteSize())
         deflaterWriter.close()
-        val inflated = inflate(writer)
+        val inflated = inflate(data)
         assertEquals(original, inflated.readUtf8String())
     }
 
     @Test
     fun deflatePoorlyCompressed() {
         val original = randomBytes(1024 * 1024)
-        val data = Buffer()
-        data.write(original)
-        val writer = Buffer()
+        val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(data, data.byteSize())
+        deflaterWriter.write(clearText, clearText.byteSize())
         deflaterWriter.close()
-        val inflated = inflate(writer)
+        val inflated = inflate(data)
         assertEquals(original, inflated.readByteString())
-    }
-
-    @Test
-    fun multipleSegmentsWithoutCompression() {
-        val buffer = Buffer()
-        val deflater = Deflater()
-        deflater.setLevel(Deflater.NO_COMPRESSION)
-        val deflaterWriter = DeflaterRawWriter(buffer, deflater)
-        val byteCount = SEGMENT_SIZE * 4
-        deflaterWriter.write(Buffer().writeUtf8("a".repeat(byteCount)), byteCount.toLong())
-        deflaterWriter.close()
-        assertEquals("a".repeat(byteCount), inflate(buffer).readUtf8String(byteCount.toLong()))
     }
 
     @Test
@@ -100,60 +102,28 @@ class DeflaterWriterTest {
 
         // Exercise all possible offsets for the outgoing segment.
         for (i in 0 until SEGMENT_SIZE) {
-            val data = Buffer().writeUtf8(original)
-            val writer = Buffer().writeUtf8("a".repeat(i))
+            before()
+            val clearText = Buffer().writeUtf8(original)
+            writer.writeUtf8("a".repeat(i))
             val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-            deflaterWriter.write(data, data.byteSize())
+            deflaterWriter.write(clearText, clearText.byteSize())
             deflaterWriter.close()
-            writer.skip(i.toLong())
-            val inflated = inflate(writer)
+            data.skip(i.toLong())
+            val inflated = inflate(data)
             assertEquals(original, inflated.readUtf8String())
+            after()
         }
     }
 
-    /**
-     * This test deflates a single segment of without compression because that's
-     * the easiest way to force close() to emit a large amount of data to the
-     * underlying writer.
-     */
     @Test
-    fun closeWithExceptionWhenWritingAndClosing() {
-        val mockWriter = MockWriter()
-        mockWriter.scheduleThrow(0, JayoException("first"))
-        mockWriter.scheduleThrow(1, JayoException("second"))
+    fun multipleSegmentsWithoutCompression() {
         val deflater = Deflater()
         deflater.setLevel(Deflater.NO_COMPRESSION)
-        val deflaterWriter = DeflaterRawWriter(mockWriter, deflater)
-        deflaterWriter.write(Buffer().writeUtf8("a".repeat(SEGMENT_SIZE)), SEGMENT_SIZE.toLong())
-        try {
-            deflaterWriter.close()
-            fail()
-        } catch (expected: JayoException) {
-            assertEquals("first", expected.message)
-        }
-        mockWriter.assertLogContains("close()")
-    }
-
-    /**
-     * This test confirms that we swallow NullPointerException from Deflater and
-     * rethrow as an IOException.
-     */
-    @Test
-    fun rethrowNullPointerAsIOException() {
-        val deflater = Deflater()
-        // Close to cause a NullPointerException
-        deflater.end()
-
-        val data = Buffer().apply {
-            writeUtf8("They're moving in herds. They do move in herds.")
-        }
-        val deflaterWriter = DeflaterRawWriter(Buffer(), deflater)
-
-        val ioe = assertThrows(JayoException::class.java) {
-            deflaterWriter.write(data, data.byteSize())
-        }
-
-        assertTrue(ioe.cause!!.cause is NullPointerException)
+        val deflaterWriter = DeflaterRawWriter(writer, deflater)
+        val byteCount = SEGMENT_SIZE * 4
+        deflaterWriter.write(Buffer().writeUtf8("a".repeat(byteCount)), byteCount.toLong())
+        deflaterWriter.close()
+        assertEquals("a".repeat(byteCount), inflate(data).readUtf8String(byteCount.toLong()))
     }
 
     /**

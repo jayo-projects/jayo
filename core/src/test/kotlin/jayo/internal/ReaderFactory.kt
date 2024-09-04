@@ -30,8 +30,7 @@ import jayo.*
 interface ReaderFactory {
     class Pipe(
         var writer: Writer,
-        var reader: Reader,
-        var originReader: RawReader? = null
+        var reader: Reader
     )
 
     fun pipe(): Pipe
@@ -86,8 +85,7 @@ interface ReaderFactory {
                 val origin = (buffer as RawReader).buffered()
                 return Pipe(
                     buffer,
-                    origin.peek(),
-                    origin
+                    origin.peek()
                 )
             }
         }
@@ -99,8 +97,7 @@ interface ReaderFactory {
                 val origin = (buffer as RawReader).buffered(true)
                 return Pipe(
                     buffer,
-                    origin.peek(),
-                    origin
+                    origin.peek()
                 )
             }
         }
@@ -112,8 +109,7 @@ interface ReaderFactory {
                 val origin = (buffer as RawReader).buffered()
                 return Pipe(
                     buffer,
-                    origin.buffered(),
-                    origin
+                    origin.buffered()
                 )
             }
         }
@@ -125,8 +121,7 @@ interface ReaderFactory {
                 val origin = (buffer as RawReader).buffered(true)
                 return Pipe(
                     buffer,
-                    origin.buffered(true),
-                    origin
+                    origin.buffered(true)
                 )
             }
         }

@@ -24,7 +24,9 @@ package jayo.internal
 import jayo.*
 import jayo.exceptions.JayoEOFException
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.assertThrows
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.Inflater
@@ -35,6 +37,8 @@ class BufferInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.BUFFER
 
 class RealInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.REAL_SOURCE)
 
+class RealAsyncInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.REAL_ASYNC_SOURCE)
+
 class PeekInflaterBufferTest : AbstractInflaterReaderTest(ReaderFactory.PEEK_BUFFER)
 
 class PeekInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.PEEK_SOURCE)
@@ -42,18 +46,23 @@ class PeekInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.PEEK_SOU
 class BufferedInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.BUFFERED_SOURCE)
 
 abstract class AbstractInflaterReaderTest internal constructor(private val bufferFactory: ReaderFactory) {
-
     private lateinit var deflatedWriter: Writer
     private lateinit var deflatedReader: Reader
 
-    init {
-        resetDeflatedReaderAndWriter()
-    }
-
-    private fun resetDeflatedReaderAndWriter() {
-        val pipe = bufferFactory.pipe()
+    @BeforeEach
+    fun before() {
+       val pipe = bufferFactory.pipe()
         deflatedWriter = pipe.writer
         deflatedReader = pipe.reader
+    }
+
+    @AfterEach
+    fun after() {
+        try {
+            deflatedReader.close()
+            deflatedWriter.close()
+        } catch (_: Exception) { /*ignored*/
+        }
     }
 
     @Test
@@ -106,16 +115,17 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
     @Test
     fun inflateIntoNonemptyWriter() {
         // fixme inflater reader does not like async Readers !
-        if (bufferFactory == ReaderFactory.BUFFER || bufferFactory == ReaderFactory.PEEK_BUFFER) {
+        if (bufferFactory != ReaderFactory.REAL_ASYNC_SOURCE) {
             for (i in 0 until SEGMENT_SIZE) {
-                resetDeflatedReaderAndWriter()
+                before()
                 val inflated = Buffer().writeUtf8("a".repeat(i))
                 deflate("God help us, we're in the hands of engineers.".encodeToByteString())
-                val reader = RealInflaterRawReader(deflatedReader, Inflater())
+                val reader = deflatedReader.inflate()
                 while (reader.readAtMostTo(inflated, Int.MAX_VALUE.toLong()) != -1L) {
                 }
                 inflated.skip(i.toLong())
                 assertEquals("God help us, we're in the hands of engineers.", inflated.readUtf8String())
+                after()
             }
         }
     }
@@ -124,7 +134,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
     fun inflateSingleByte() {
         val inflated = Buffer()
         decodeBase64("eJxzz09RyEjNKVAoLdZRKE9VL0pVyMxTKMlIVchIzEspVshPU0jNS8/MS00tKtYDAF6CD5s=")
-        val reader = RealInflaterRawReader(deflatedReader, Inflater())
+        val reader = deflatedReader.inflate()
         reader.readOrInflateAtMostTo(inflated, 1)
         reader.close()
         assertEquals("G", inflated.readUtf8String())
@@ -135,7 +145,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
     fun inflateByteCount() {
         val inflated = Buffer()
         decodeBase64("eJxzz09RyEjNKVAoLdZRKE9VL0pVyMxTKMlIVchIzEspVshPU0jNS8/MS00tKtYDAF6CD5s=")
-        val reader = RealInflaterRawReader(deflatedReader, Inflater())
+        val reader = deflatedReader.inflate()
         reader.readAtMostTo(inflated, 11)
         reader.close()
         assertEquals("God help us", inflated.readUtf8String())
@@ -147,8 +157,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
         // Deflate 0 bytes of data that lacks the in-stream terminator.
         decodeBase64("eJwAAAD//w==")
         val inflated = Buffer()
-        val inflater = Inflater()
-        val reader = RealInflaterRawReader(deflatedReader, inflater)
+        val reader = deflatedReader.inflate()
         assertThat(deflatedReader.exhausted()).isFalse
         try {
             reader.readAtMostTo(inflated, Long.MAX_VALUE)
@@ -172,7 +181,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
         val deflatedByteCount = 7
         val inflated = Buffer()
         val inflater = Inflater()
-        val reader = RealInflaterRawReader(deflatedReader, inflater)
+        val reader = deflatedReader.inflate(inflater)
         //assertThat(deflatedReader.exhausted()).isFalse
         assertThat(reader.readOrInflateAtMostTo(inflated, Long.MAX_VALUE)).isEqualTo(0L)
         assertThat(inflater.bytesRead).isEqualTo(deflatedByteCount.toLong())

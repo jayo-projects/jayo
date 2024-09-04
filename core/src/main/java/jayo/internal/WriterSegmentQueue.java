@@ -22,8 +22,22 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 
 sealed class WriterSegmentQueue extends SegmentQueue {
+
+    static @NonNull WriterSegmentQueue newWriterSegmentQueue(final @NonNull RawWriter writer,
+                                                             final boolean preferAsync) {
+        Objects.requireNonNull(writer);
+
+        // If writer is a RealWriter, we return its existing segment queue as is (async or sync).
+        if (writer instanceof RealWriter realWriter) {
+            return realWriter.segmentQueue;
+        }
+
+        return preferAsync ? new WriterSegmentQueue.Async(writer) : new WriterSegmentQueue(writer);
+    }
+
     final @NonNull RawWriter writer;
     final @NonNull RealBuffer buffer;
+    boolean closed = false;
 
     WriterSegmentQueue(final @NonNull RawWriter writer) {
         this.writer = Objects.requireNonNull(writer);
@@ -53,7 +67,39 @@ sealed class WriterSegmentQueue extends SegmentQueue {
 
     @Override
     public void close() {
-        // nop
+        if (closed) {
+            return;
+        }
+        // Emit buffered data to the underlying writer. If this fails, we still need to close the writer;
+        // otherwise we risk leaking resources.
+        Throwable thrown = null;
+        try {
+            final var size = buffer.byteSize();
+            if (size > 0) {
+                writer.write(buffer, size);
+            }
+        } catch (JayoInterruptedIOException ignored) {
+            // cancellation lead to closing, ignore
+        } catch (Throwable e) {
+            thrown = e;
+        }
+
+        try {
+            writer.close();
+        } catch (Throwable e) {
+            if (thrown == null) {
+                thrown = e;
+            }
+        }
+
+        closed = true;
+
+        if (thrown != null) {
+            if (thrown instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw (Error) thrown;
+        }
     }
 
     @NonNull
@@ -74,7 +120,6 @@ sealed class WriterSegmentQueue extends SegmentQueue {
                 false, -42, false);
 
         private volatile @Nullable RuntimeException exception = null;
-        private boolean closed = false;
 
         private final @NonNull Thread writerEmitterThread;
 
@@ -181,7 +226,6 @@ sealed class WriterSegmentQueue extends SegmentQueue {
             if (closed) {
                 return;
             }
-            closed = true;
             if (!writerEmitterTerminated) {
                 // send a stop event
                 emitEvents.add(STOP_EMITTER_THREAD);
@@ -191,6 +235,9 @@ sealed class WriterSegmentQueue extends SegmentQueue {
                     // ignore
                 }
             }
+
+            super.close();
+
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: Finished close.{1}Queue = {2}{3}",
                         hashCode(), System.lineSeparator(), this, System.lineSeparator());
