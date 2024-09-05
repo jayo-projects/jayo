@@ -25,7 +25,7 @@ import jayo.Cancellable;
 import jayo.Jayo;
 import jayo.Reader;
 import jayo.Writer;
-import jayo.endpoints.Endpoint;
+import jayo.endpoints.SocketEndpoint;
 import jayo.exceptions.JayoInterruptedIOException;
 import jayo.exceptions.JayoTimeoutException;
 import org.junit.jupiter.api.Test;
@@ -51,17 +51,20 @@ public final class SocketTimeoutTest {
 
     @Test
     public void readWithoutTimeout() throws Exception {
-        try (var socketEndpoint = Endpoint.from(socket(ONE_MB, 0));
-             Reader reader = Jayo.buffer(socketEndpoint.getReader())) {
-            Cancellable.withTimeout(Duration.ofMillis(500), _scope -> {
-                reader.require(ONE_MB);
-            });
+        try (var socket = socket(ONE_MB, 0)) {
+            var socketEndpoint = SocketEndpoint.from(socket);
+            try (Reader reader = Jayo.buffer(socketEndpoint.getReader())) {
+                Cancellable.withTimeout(Duration.ofMillis(500), _scope -> {
+                    reader.require(ONE_MB);
+                });
+            }
         }
     }
 
     @Test
     public void readWithTimeout() throws Exception {
-        try (var socketEndpoint = Endpoint.from(socket(0, 0))) {
+        try (var socket = socket(0, 0)) {
+            var socketEndpoint = SocketEndpoint.from(socket);
             Cancellable.withTimeout(Duration.ofMillis(25), _scope -> {
                 try (Reader reader = Jayo.buffer(socketEndpoint.getReader())) {
                     assertThatThrownBy(() -> reader.require(ONE_MB))
@@ -75,20 +78,23 @@ public final class SocketTimeoutTest {
 
     @Test
     public void readWitManualCancellation() throws Exception {
-        try (var socketEndpoint = Endpoint.from(socket(ONE_MB, 0));
-             Reader reader = Jayo.buffer(socketEndpoint.getReader())) {
-            Cancellable.create().executeCancellable(scope -> {
-                scope.cancel();
-                assertThatThrownBy(() -> reader.require(ONE_MB))
-                        .isInstanceOf(JayoInterruptedIOException.class)
-                        .isNotInstanceOf(JayoTimeoutException.class);
-            });
+        try (var socket = socket(ONE_MB, 0)) {
+            var socketEndpoint = SocketEndpoint.from(socket);
+            try (Reader reader = Jayo.buffer(socketEndpoint.getReader())) {
+                Cancellable.create().executeCancellable(scope -> {
+                    scope.cancel();
+                    assertThatThrownBy(() -> reader.require(ONE_MB))
+                            .isInstanceOf(JayoInterruptedIOException.class)
+                            .isNotInstanceOf(JayoTimeoutException.class);
+                });
+            }
         }
     }
 
     @Test
     public void writeWithoutTimeout() throws Exception {
-        try (var socketEndpoint = Endpoint.from(socket(0, ONE_MB))) {
+        try (var socket = socket(0, ONE_MB)) {
+            var socketEndpoint = SocketEndpoint.from(socket);
             Cancellable.withTimeout(Duration.ofMillis(50), _scope -> {
                 try (Writer writer = Jayo.buffer(socketEndpoint.getWriter())) {
                     byte[] data = new byte[ONE_MB];
@@ -101,7 +107,8 @@ public final class SocketTimeoutTest {
 
     @Test
     public void writeWithTimeout() throws Exception {
-        try (var socketEndpoint = Endpoint.from(socket(0, 0))) {
+        try (var socket = socket(ONE_MB, 0)) {
+            var socketEndpoint = SocketEndpoint.from(socket);
             Cancellable.withTimeout(Duration.ofMillis(50), _scope -> {
                 try (Writer writer = Jayo.buffer(socketEndpoint.getWriter())) {
                     byte[] data = new byte[ONE_MB];

@@ -90,7 +90,9 @@ open class TcpAndJsonSerializationBenchmark {
 
     @Benchmark
     fun readerJayo() {
-        Socket().apply { connect(senderServer.localSocketAddress) }.endpoint().use { socketEndpoint ->
+        Socket().use { socket ->
+            socket.connect(senderServer.localSocketAddress)
+            val socketEndpoint = socket.endpoint()
             socketEndpoint.reader.buffered().use { reader ->
                 val decoded = kotlinxSerializationMapper.decodeFromReader(
                     JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
@@ -117,26 +119,28 @@ open class TcpAndJsonSerializationBenchmark {
 
     @Benchmark
     fun senderJayo() {
-        Socket().apply { connect(receiverServer.localSocketAddress) }.endpoint().use { socketEndpoint ->
-            socketEndpoint.writer.buffered().use { writer ->
-                kotlinxSerializationMapper.encodeToWriter(
-                    JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
-                    defaultPixelEvent,
-                    writer
-                )
-                writer.flush()
-            }
+        val socket = Socket()
+        socket.connect(receiverServer.localSocketAddress)
+        val socketEndpoint = socket.endpoint()
+        socketEndpoint.writer.buffered().use { writer ->
+            kotlinxSerializationMapper.encodeToWriter(
+                JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
+                defaultPixelEvent,
+                writer
+            )
+            writer.flush()
         }
     }
 
     @Benchmark
     fun senderJayoJackson() {
-        Socket().apply { connect(receiverServer.localSocketAddress) }.endpoint().use { socketEndpoint ->
-            socketEndpoint.writer.buffered().use { writer ->
-                val output = writer.asOutputStream()
-                objectMapper.writeValue(output, defaultPixelEvent)
-                output.flush()
-            }
+        val socket = Socket()
+        socket.connect(receiverServer.localSocketAddress)
+        val socketEndpoint = socket.endpoint()
+        socketEndpoint.writer.buffered().use { writer ->
+            val output = writer.asOutputStream()
+            objectMapper.writeValue(output, defaultPixelEvent)
+            output.flush()
         }
     }
 

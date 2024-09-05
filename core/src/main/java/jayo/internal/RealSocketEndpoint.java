@@ -83,7 +83,7 @@ public final class RealSocketEndpoint implements SocketEndpoint {
             // always get the input stream from socket that does some checks
             final var in = socket.getInputStream();
             if (reader == null) {
-                reader = new SocketEndpointRawReader(this, asyncTimeout.reader(new InputStreamRawReader(in)));
+                reader = new SocketEndpointRawReader(asyncTimeout.reader(new InputStreamRawReader(in)));
             }
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
@@ -103,7 +103,7 @@ public final class RealSocketEndpoint implements SocketEndpoint {
             // always get the output stream from socket that does some checks
             final var out = socket.getOutputStream();
             if (writer == null) {
-                writer = new SocketEndpointRawWriter(this, asyncTimeout.writer(new OutputStreamRawWriter(out)));
+                writer = new SocketEndpointRawWriter(asyncTimeout.writer(new OutputStreamRawWriter(out)));
             }
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
@@ -117,27 +117,6 @@ public final class RealSocketEndpoint implements SocketEndpoint {
     }
 
     @Override
-    public void close() {
-        final var cancelToken = CancellableUtils.getCancelToken();
-        if (cancelToken != null) {
-            asyncTimeout.withTimeout(cancelToken, () -> {
-                closePrivate();
-                return null;
-            });
-            return;
-        }
-        closePrivate();
-    }
-
-    private void closePrivate() {
-        try {
-            socket.close();
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    @Override
     public @NonNull Socket getUnderlying() {
         return socket;
     }
@@ -145,8 +124,7 @@ public final class RealSocketEndpoint implements SocketEndpoint {
     /**
      * This raw reader must respect Socket behavior regarding interrupted exceptions
      */
-    private record SocketEndpointRawReader(@NonNull RealSocketEndpoint parent,
-                                           @NonNull RawReader reader) implements RawReader {
+    private record SocketEndpointRawReader(@NonNull RawReader reader) implements RawReader {
 
         @Override
         public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
@@ -162,7 +140,7 @@ public final class RealSocketEndpoint implements SocketEndpoint {
             } catch (JayoInterruptedIOException e) {
                 Thread thread = Thread.currentThread();
                 if (thread.isVirtual() && thread.isInterrupted()) {
-                    parent.closePrivate();
+                    close();
                     throw new JayoClosedEndpointException();
                 }
                 throw e;
@@ -171,15 +149,14 @@ public final class RealSocketEndpoint implements SocketEndpoint {
 
         @Override
         public void close() {
-            parent.close();
+            reader.close();
         }
     }
 
     /**
      * This raw writer must respect Socket behavior regarding interrupted exceptions
      */
-    private record SocketEndpointRawWriter(@NonNull RealSocketEndpoint parent,
-                                           @NonNull RawWriter writer) implements RawWriter {
+    private record SocketEndpointRawWriter(@NonNull RawWriter writer) implements RawWriter {
 
         @Override
         public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
@@ -191,7 +168,7 @@ public final class RealSocketEndpoint implements SocketEndpoint {
             } catch (JayoInterruptedIOException e) {
                 Thread thread = Thread.currentThread();
                 if (thread.isVirtual() && thread.isInterrupted()) {
-                    parent.closePrivate();
+                    close();
                     throw new JayoClosedEndpointException();
                 }
                 throw e;
@@ -204,7 +181,7 @@ public final class RealSocketEndpoint implements SocketEndpoint {
 
         @Override
         public void close() {
-            parent.close();
+            writer.close();
         }
     }
 }

@@ -70,7 +70,7 @@ class KotlinSocksProxyServer {
             while (true) {
                 val from = serverSocket.accept()
                 openSockets.add(from)
-                executor.execute { handleSocket(from.endpoint()) }
+                executor.execute { handleSocket(from) }
             }
         } catch (e: IOException) {
             println("shutting down: $e")
@@ -81,7 +81,8 @@ class KotlinSocksProxyServer {
         }
     }
 
-    private fun handleSocket(fromSocketEndpoint: SocketEndpoint) {
+    private fun handleSocket(fromSocket: Socket) {
+        val fromSocketEndpoint = fromSocket.endpoint()
         val fromReader = fromSocketEndpoint.reader.buffered()
         val fromWriter = fromSocketEndpoint.writer.buffered()
         try {
@@ -150,7 +151,7 @@ class KotlinSocksProxyServer {
             val toReader = toSocketEndpoint.reader
             executor.execute { transfer(toSocketEndpoint, toReader, fromWriter) }
         } catch (e: JayoException) {
-            fromSocketEndpoint.close()
+            fromSocket.close()
             openSockets.remove(fromSocketEndpoint.underlying)
             println("connect failed for $fromSocketEndpoint: $e")
         }
@@ -171,7 +172,6 @@ class KotlinSocksProxyServer {
         } finally {
             writer.close()
             reader.close()
-            readerSocketEndpoint.close()
             openSockets.remove(readerSocketEndpoint.underlying)
         }
     }

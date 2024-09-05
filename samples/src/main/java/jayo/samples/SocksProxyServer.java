@@ -22,7 +22,6 @@
 package jayo.samples;
 
 import jayo.*;
-import jayo.endpoints.Endpoint;
 import jayo.endpoints.SocketEndpoint;
 import jayo.exceptions.JayoException;
 import jayo.exceptions.JayoProtocolException;
@@ -71,7 +70,7 @@ public final class SocksProxyServer {
             while (true) {
                 final Socket from = serverSocket.accept();
                 openSockets.add(from);
-                executor.execute(() -> handleSocket(Endpoint.from(from)));
+                executor.execute(() -> handleSocket(from));
             }
         } catch (IOException e) {
             System.out.println("shutting down because of: " + e);
@@ -82,7 +81,8 @@ public final class SocksProxyServer {
         }
     }
 
-    private void handleSocket(final SocketEndpoint fromSocketEndpoint) {
+    private void handleSocket(final Socket fromSocket) {
+        final SocketEndpoint fromSocketEndpoint = SocketEndpoint.from(fromSocket);
         final Reader fromReader = Jayo.buffer(fromSocketEndpoint.getReader());
         final Writer fromWriter = Jayo.buffer(fromSocketEndpoint.getWriter());
         try {
@@ -141,14 +141,14 @@ public final class SocksProxyServer {
                     .writeShort((short) toSocket.getLocalPort())
                     .flush();
 
-            final var toSocketEndpoint = Endpoint.from(toSocket);
+            final var toSocketEndpoint = SocketEndpoint.from(toSocket);
             // Connect readers to writers in both directions.
             final var toWriter = toSocketEndpoint.getWriter();
             executor.execute(() -> transfer(fromSocketEndpoint, fromReader, toWriter));
             final var toReader = toSocketEndpoint.getReader();
             executor.execute(() -> transfer(toSocketEndpoint, toReader, fromWriter));
         } catch (JayoException | IOException e) {
-            closeQuietly(fromSocketEndpoint);
+            closeQuietly(fromSocket);
             openSockets.remove(fromSocketEndpoint.getUnderlying());
             System.out.println("connect failed for " + fromSocketEndpoint + ": " + e);
         }
@@ -168,7 +168,7 @@ public final class SocksProxyServer {
         } finally {
             closeQuietly(writer);
             closeQuietly(reader);
-            closeQuietly(readerSocketEndpoint);
+            closeQuietly(readerSocketEndpoint.getUnderlying());
             openSockets.remove(readerSocketEndpoint.getUnderlying());
         }
     }

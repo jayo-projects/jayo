@@ -19,7 +19,5 @@ import java.net.Socket
  *
  * @throws IllegalArgumentException if the socket is not [connected][Socket.isConnected] or is [closed][Socket.isClosed]
  */
-public fun Socket.endpoint(): SocketEndpoint {
-    return Endpoint.from(this)
-}
+public fun Socket.endpoint() = SocketEndpoint.from(this)
     

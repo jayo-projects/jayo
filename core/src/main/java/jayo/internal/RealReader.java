@@ -60,7 +60,7 @@ public final class RealReader implements Reader {
             throw new IllegalStateException("closed");
         }
 
-        if (segmentQueue.expectSize(Segment.SIZE) == 0L) {
+        if (segmentQueue.expectSize(1L) == 0L) {
             return -1;
         }
 
@@ -168,7 +168,7 @@ public final class RealReader implements Reader {
     private int readAtMostToPrivate(final byte @NonNull [] writer,
                                     final @NonNegative int offset,
                                     final @NonNegative int byteCount) {
-        if (segmentQueue.expectSize(Segment.SIZE) == 0L) {
+        if (segmentQueue.expectSize(1L) == 0L) {
             return -1;
         }
         return segmentQueue.buffer.readAtMostTo(writer, offset, byteCount);
@@ -184,7 +184,7 @@ public final class RealReader implements Reader {
     }
 
     private int readAtMostToPrivate(final @NonNull ByteBuffer writer) {
-        if (segmentQueue.expectSize(Segment.SIZE) == 0L) {
+        if (segmentQueue.expectSize(1L) == 0L) {
             return -1;
         }
         return segmentQueue.buffer.readAtMostTo(writer);
