@@ -38,12 +38,12 @@ import java.nio.channels.ReadableByteChannel;
  * {@link ByteBuffer#wrap(byte[], int, int) ByteBuffer.wrap()} along with access to Buffer segments,
  * a ReadableByteChannel can be given direct access to Buffer data without having to copy the data.
  */
-final class ByteChannelReader implements RawReader {
+final class ByteChannelRawReader implements RawReader {
     private final ReadableByteChannel channel;
 
     private final Buffer.UnsafeCursor cursor = Buffer.UnsafeCursor.create();
 
-    ByteChannelReader(ReadableByteChannel channel) {
+    ByteChannelRawReader(ReadableByteChannel channel) {
         this.channel = channel;
     }
 
