@@ -27,16 +27,21 @@ open class SlowWriterBenchmark {
     private lateinit var okioSink: BufferedSink
 
     companion object {
-        private const val CHUNKS = 256
-        private const val CHUNKS_BYTE_SIZE = 8 * 1024
-        const val EXPECTED_SIZE = CHUNKS * CHUNKS_BYTE_SIZE
-        private val ARRAY = ByteArray(EXPECTED_SIZE) { 0x61 }
+        private const val JAYO_CHUNKS = 127
+        private const val JAYO_CHUNKS_BYTE_SIZE = 16_709
+        const val JAYO_EXPECTED_SIZE = JAYO_CHUNKS * JAYO_CHUNKS_BYTE_SIZE
+        private val JAYO_ARRAY = ByteArray(JAYO_EXPECTED_SIZE) { 0x61 }
+
+        private const val OKIO_CHUNKS = 128
+        private const val OKIO_CHUNKS_BYTE_SIZE = 16 * 1024
+        const val OKIO_EXPECTED_SIZE = OKIO_CHUNKS * OKIO_CHUNKS_BYTE_SIZE
+        private val OKIO_ARRAY = ByteArray(OKIO_EXPECTED_SIZE) { 0x61 }
     }
 
     @Setup(Level.Trial)
     fun setup() {
-        val delayedOutputStream = object : OutputStream() {
-            val bytes = ByteArray(EXPECTED_SIZE)
+        val delayedOutputStreamJayo = object : OutputStream() {
+            val bytes = ByteArray(JAYO_EXPECTED_SIZE)
             var offset = 0
 
             override fun write(b: Int) {
@@ -44,7 +49,25 @@ open class SlowWriterBenchmark {
             }
 
             override fun write(b: ByteArray, off: Int, len: Int) {
-                if (offset >= EXPECTED_SIZE) {
+                if (offset >= JAYO_EXPECTED_SIZE) {
+                    offset = 0
+                }
+                randomSleep()
+                b.copyInto(bytes, offset, off, len)
+                offset += len
+            }
+        }
+
+        val delayedOutputStreamOkio = object : OutputStream() {
+            val bytes = ByteArray(OKIO_EXPECTED_SIZE)
+            var offset = 0
+
+            override fun write(b: Int) {
+                throw Exception("Purposely not implemented")
+            }
+
+            override fun write(b: ByteArray, off: Int, len: Int) {
+                if (offset >= OKIO_EXPECTED_SIZE) {
                     offset = 0
                 }
                 randomSleep()
@@ -55,11 +78,11 @@ open class SlowWriterBenchmark {
 
         when (type) {
             "jayo" -> {
-                jayoWriter = delayedOutputStream.writer().buffered(true)
+                jayoWriter = delayedOutputStreamJayo.writer().buffered(true)
             }
 
             "okio" -> {
-                okioSink = delayedOutputStream.sink().buffer()
+                okioSink = delayedOutputStreamOkio.sink().buffer()
             }
 
             else -> throw IllegalStateException("Unknown type: $type")
@@ -82,24 +105,24 @@ open class SlowWriterBenchmark {
     @Benchmark
     fun writerJayo() {
         var written = 0
-        val bytes = ByteArray(CHUNKS_BYTE_SIZE)
-        while (written < EXPECTED_SIZE) {
+        val bytes = ByteArray(JAYO_CHUNKS_BYTE_SIZE)
+        while (written < JAYO_EXPECTED_SIZE) {
             randomSleep()
-            ARRAY.copyInto(bytes, 0, 0, CHUNKS_BYTE_SIZE)
+            JAYO_ARRAY.copyInto(bytes, 0, 0, JAYO_CHUNKS_BYTE_SIZE)
             jayoWriter.write(bytes)
-            written += CHUNKS_BYTE_SIZE
+            written += JAYO_CHUNKS_BYTE_SIZE
         }
     }
 
     @Benchmark
     fun sinkOkio() {
         var written = 0
-        val bytes = ByteArray(CHUNKS_BYTE_SIZE)
-        while (written < EXPECTED_SIZE) {
+        val bytes = ByteArray(OKIO_CHUNKS_BYTE_SIZE)
+        while (written < OKIO_EXPECTED_SIZE) {
             randomSleep()
-            ARRAY.copyInto(bytes, 0, 0, CHUNKS_BYTE_SIZE)
+            OKIO_ARRAY.copyInto(bytes, 0, 0, OKIO_CHUNKS_BYTE_SIZE)
             okioSink.write(bytes)
-            written += CHUNKS_BYTE_SIZE
+            written += OKIO_CHUNKS_BYTE_SIZE
         }
     }
 }
