@@ -726,19 +726,13 @@ public final class RealReader implements Reader {
                 }
                 try {
                     var written = 0L;
-                    while (segmentQueue.expectSize(Segment.SIZE) > 0L) {
-                        final var emitByteCount = segmentQueue.buffer.completeSegmentByteCount();
-                        if (emitByteCount == 0L) {
+                    while (true) {
+                        final var size = segmentQueue.expectSize(Segment.SIZE);
+                        if (size == 0) {
                             break;
                         }
-                        written += emitByteCount;
-                        segmentQueue.buffer.readTo(out, emitByteCount);
-                    }
-                    // write the last remaining bytes in the last uncompleted segment, if any
-                    final var remaining = segmentQueue.size();
-                    if (remaining > 0L) {
-                        written += remaining;
-                        segmentQueue.buffer.readTo(out, remaining);
+                        written += size;
+                        segmentQueue.buffer.readTo(out, size);
                     }
                     return written;
                 } catch (JayoException e) {
