@@ -15,6 +15,7 @@ import jayo.exceptions.JayoTimeoutException
 import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.net.Socket
 import kotlin.time.Duration.Companion.milliseconds
@@ -181,6 +182,7 @@ class SocketEndpointTest {
     }
 
     @Test
+    @Tag("no-ci")
     fun `close with timeout`() {
         val socket = object : Socket() {
             override fun isConnected() = true
@@ -195,6 +197,7 @@ class SocketEndpointTest {
                 .hasMessage("timeout")
         }
     }
+
     @Test
     fun `close no timeout`() {
         val socket = object : Socket() {

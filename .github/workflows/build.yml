@@ -1,0 +1,26 @@
+name: Build Jayo on every push
+
+on: [push]
+
+jobs:
+  Gradle-Build:
+    strategy:
+      matrix:
+        os: [ 'macos-latest', 'ubuntu-latest' ] # Windows tests are not working for now : 'windows-latest'
+        distribution: [ 'oracle', 'temurin', 'zulu' ]
+        java: [ '21', '22' ] # replace '22' with '23' when JMH & Kotlin support it
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup java
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ matrix.distribution }}
+          java-version: ${{ matrix.java }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Execute Gradle build, including slow tests
+        run: ./gradlew build -PisCI

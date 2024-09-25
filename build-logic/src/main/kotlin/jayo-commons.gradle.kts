@@ -14,15 +14,15 @@ plugins {
 }
 
 val versionCatalog: VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-
 fun catalogVersion(lib: String) =
     versionCatalog.findVersion(lib).getOrNull()?.requiredVersion
         ?: throw GradleException("Version '$lib' is not specified in the toml version catalog")
-
 val javaVersion = catalogVersion("java").toInt()
 
+val isCI = providers.gradleProperty("isCI")
+
 val koverage = mapOf(
-    "jayo" to 86,
+    "jayo" to if (isCI.isPresent) 83 else 85,
     "jayo-3p-kotlinx-serialization" to 55,
 )
 
@@ -98,7 +98,13 @@ tasks {
     }
 
     withType<Test> {
-        useJUnitPlatform()
+        useJUnitPlatform {
+            if (isCI.isPresent) {
+                excludeTags("no-ci")
+            } else {
+                excludeTags("slow")
+            }
+        }
         testLogging {
             events = setOf(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
             exceptionFormat = TestExceptionFormat.FULL

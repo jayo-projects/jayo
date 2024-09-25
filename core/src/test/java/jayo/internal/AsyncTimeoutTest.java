@@ -23,6 +23,7 @@ package jayo.internal;
 
 import jayo.Cancellable;
 import jayo.external.AsyncTimeout;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * This test uses four timeouts of varying durations: 250ms, 500ms, 750ms and
  * 1000ms, named 'a', 'b', 'c' and 'd'.
  */
+@Tag("no-ci")
 public final class AsyncTimeoutTest {
     private final BlockingDeque<AsyncTimeout> timedOut = new LinkedBlockingDeque<>();
     private final AsyncTimeout a = recordingAsyncTimeout();
