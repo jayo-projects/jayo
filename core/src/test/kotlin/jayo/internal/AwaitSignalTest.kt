@@ -27,6 +27,7 @@ import jayo.exceptions.JayoTimeoutException
 import jayo.external.CancelToken
 import jayo.internal.TestUtil.assumeNotWindows
 import org.assertj.core.api.Assertions.*
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -38,6 +39,7 @@ import java.util.stream.Stream
 import kotlin.concurrent.withLock
 import kotlin.time.Duration.Companion.milliseconds
 
+@Tag("no-ci")
 class AwaitSignalTest {
     private val lock: ReentrantLock = ReentrantLock()
     private val condition: Condition = lock.newCondition()

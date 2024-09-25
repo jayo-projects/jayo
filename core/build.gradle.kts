@@ -14,3 +14,12 @@ dependencies {
 
     testImplementation("org.apache.tomcat.embed:tomcat-embed-core:10.1.28")
 }
+
+tasks {
+    withType<Test> {
+        useJUnitPlatform {
+            // override security properties enabling all options
+            systemProperty("java.security.properties", "java.security.override")
+        }
+    }
+}
