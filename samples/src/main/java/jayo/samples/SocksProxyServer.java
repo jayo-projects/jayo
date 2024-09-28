@@ -70,7 +70,7 @@ public final class SocksProxyServer {
             while (true) {
                 final Socket from = serverSocket.accept();
                 openSockets.add(from);
-                executor.execute(() -> handleSocket(from));
+                executor.execute(() -> handleSocket(SocketEndpoint.from(from)));
             }
         } catch (IOException e) {
             System.out.println("shutting down because of: " + e);
@@ -81,8 +81,7 @@ public final class SocksProxyServer {
         }
     }
 
-    private void handleSocket(final Socket fromSocket) {
-        final SocketEndpoint fromSocketEndpoint = SocketEndpoint.from(fromSocket);
+    private void handleSocket(final SocketEndpoint fromSocketEndpoint) {
         final Reader fromReader = Jayo.buffer(fromSocketEndpoint.getReader());
         final Writer fromWriter = Jayo.buffer(fromSocketEndpoint.getWriter());
         try {
@@ -148,7 +147,7 @@ public final class SocksProxyServer {
             final var toReader = toSocketEndpoint.getReader();
             executor.execute(() -> transfer(toSocketEndpoint, toReader, fromWriter));
         } catch (JayoException | IOException e) {
-            closeQuietly(fromSocket);
+            closeQuietly(fromSocketEndpoint);
             openSockets.remove(fromSocketEndpoint.getUnderlying());
             System.out.println("connect failed for " + fromSocketEndpoint + ": " + e);
         }
@@ -168,7 +167,7 @@ public final class SocksProxyServer {
         } finally {
             closeQuietly(writer);
             closeQuietly(reader);
-            closeQuietly(readerSocketEndpoint.getUnderlying());
+            closeQuietly(readerSocketEndpoint);
             openSockets.remove(readerSocketEndpoint.getUnderlying());
         }
     }

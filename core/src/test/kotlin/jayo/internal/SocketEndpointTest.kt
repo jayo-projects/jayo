@@ -11,11 +11,13 @@ import jayo.cancelScope
 import jayo.endpoints.JayoClosedEndpointException
 import jayo.endpoints.endpoint
 import jayo.exceptions.JayoInterruptedIOException
+import jayo.exceptions.JayoTimeoutException
 import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import java.net.Socket
+import kotlin.time.Duration.Companion.milliseconds
 
 class SocketEndpointTest {
     @Test
@@ -176,5 +178,28 @@ class SocketEndpointTest {
             }.join()
         }
         throwableAssert!!.isInstanceOf(JayoClosedEndpointException::class.java)
+    }
+
+    @Test
+    fun `close with timeout`() {
+        val socket = object : Socket() {
+            override fun isConnected() = true
+            override fun close() {
+                Thread.sleep(2)
+            }
+        }
+        cancelScope(1.milliseconds) {
+            assertThatThrownBy {
+                socket.endpoint().close()
+            }.isInstanceOf(JayoTimeoutException::class.java)
+                .hasMessage("timeout")
+        }
+    }
+    @Test
+    fun `close no timeout`() {
+        val socket = object : Socket() {
+            override fun isConnected() = true
+        }
+        socket.endpoint().close()
     }
 }
