@@ -97,18 +97,19 @@ public final class SocketTimeoutTest {
 
     @Test
     public void writeWithTimeout() throws Exception {
-        try (var socketEndpoint = SocketEndpoint.from(socket(ONE_MB, 0));
-             var writer = Jayo.buffer(socketEndpoint.getWriter())) {
+        try (var socketEndpoint = SocketEndpoint.from(socket(ONE_MB, 0))) {
             Cancellable.withTimeout(Duration.ofMillis(50), _scope -> {
-                byte[] data = new byte[ONE_MB];
-                long start = System.nanoTime();
-                assertThatThrownBy(() -> {
-                    writer.write(new RealBuffer().write(data), data.length);
-                    writer.flush();
-                }).isInstanceOf(JayoTimeoutException.class);
-                long elapsed = System.nanoTime() - start;
-                assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) >= 50).isTrue();
-                assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) <= 500).isTrue();
+                try (var writer = Jayo.buffer(socketEndpoint.getWriter())) {
+                    byte[] data = new byte[ONE_MB];
+                    long start = System.nanoTime();
+                    assertThatThrownBy(() -> {
+                        writer.write(new RealBuffer().write(data), data.length);
+                        writer.flush();
+                    }).isInstanceOf(JayoTimeoutException.class);
+                    long elapsed = System.nanoTime() - start;
+                    assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) >= 50).isTrue();
+                    assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) <= 500).isTrue();
+                }
             });
         }
     }
