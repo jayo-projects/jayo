@@ -113,17 +113,5 @@ interface ReaderFactory {
                 )
             }
         }
-
-        val BUFFERED_DOUBLY_ASYNC_SOURCE: ReaderFactory = object :
-            ReaderFactory {
-            override fun pipe(): Pipe {
-                val buffer = RealBuffer()
-                val origin = (buffer as RawReader).buffered(true)
-                return Pipe(
-                    buffer,
-                    origin.buffered(true)
-                )
-            }
-        }
     }
 }

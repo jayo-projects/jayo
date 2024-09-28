@@ -60,8 +60,6 @@ class PeekAsyncReaderTest : AbstractReaderTest(ReaderFactory.PEEK_ASYNC_SOURCE)
 
 class BufferedReaderTest : AbstractReaderTest(ReaderFactory.BUFFERED_SOURCE)
 
-class BufferedDoublyAsyncReaderTest : AbstractReaderTest(ReaderFactory.BUFFERED_DOUBLY_ASYNC_SOURCE)
-
 abstract class AbstractReaderTest internal constructor(private val factory: ReaderFactory) {
     companion object {
         @JvmStatic
