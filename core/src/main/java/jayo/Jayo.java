@@ -29,8 +29,10 @@ import jayo.internal.*;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
-import java.nio.channels.Channels;
-import java.nio.file.Files;
+import java.nio.channels.FileChannel;
+import java.nio.channels.GatheringByteChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -121,6 +123,30 @@ public final class Jayo {
     }
 
     /**
+     * @return a raw writer that writes to {@code out} gathering byte channel.
+     */
+    public static @NonNull RawWriter writer(final @NonNull GatheringByteChannel out) {
+        Objects.requireNonNull(out);
+        return new GatheringByteChannelRawWriter(out);
+    }
+
+    /**
+     * @return a raw writer that writes to {@code out} writable byte channel.
+     */
+    public static @NonNull RawWriter writer(final @NonNull WritableByteChannel out) {
+        Objects.requireNonNull(out);
+        return new WritableByteChannelRawWriter(out);
+    }
+
+    /**
+     * @return a raw reader that reads from {@code in} readable byte channel.
+     */
+    public static @NonNull RawReader reader(final @NonNull ReadableByteChannel in) {
+        Objects.requireNonNull(in);
+        return new ReadableByteChannelRawReader(in);
+    }
+
+    /**
      * @return a raw writer that writes to {@code path}. {@code options} allow to specify how the file is opened.
      * @implNote We always add the {@code StandardOpenOption.WRITE} option to the options Set, so we ensure we can write
      * in this {@code path}.
@@ -142,8 +168,7 @@ public final class Jayo {
     private static @NonNull RawWriter writer(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
         Objects.requireNonNull(path);
         try {
-            final var bc = Files.newByteChannel(path, options.toArray(new OpenOption[0]));
-            return new OutputStreamRawWriter(Channels.newOutputStream(bc), bc);
+            return new GatheringByteChannelRawWriter(FileChannel.open(path, options));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -176,7 +201,7 @@ public final class Jayo {
     private static RawReader reader(final @NonNull Path path, final @NonNull Set<OpenOption> options) {
         Objects.requireNonNull(path);
         try {
-            return new InputStreamRawReader(Files.newInputStream(path, options.toArray(new OpenOption[0])));
+            return new ReadableByteChannelRawReader(FileChannel.open(path, options));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }

@@ -33,8 +33,7 @@ public class BlockingTest {
 
     // Test a half-duplex interaction, with renegotiation before reversing the direction of the flow (as in HTTP)
     @TestFactory
-    public Collection<DynamicTest> testHalfDuplexWireRenegotiations() {
-        System.out.println("testHalfDuplexWireRenegotiations():");
+    public Collection<DynamicTest> testIoHalfDuplexWireRenegotiations() {
         List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .toList();
         List<Integer> reversedSizes = sizes.reversed();
@@ -43,7 +42,7 @@ public class BlockingTest {
             int size1 = sizes.get(i);
             int size2 = reversedSizes.get(i);
             ret.add(DynamicTest.dynamicTest(
-                    String.format("testHalfDuplexWireRenegotiations() - size1=%d, size2=%d", size1, size2), () -> {
+                    String.format("testIoHalfDuplexWireRenegotiations() - size1=%d, size2=%d", size1, size2), () -> {
                         SocketPair socketPair = factory.ioIo(
                                 Optional.empty(),
                                 Optional.of(new ChunkSizeConfig(
@@ -59,8 +58,7 @@ public class BlockingTest {
 
     // Test a full-duplex interaction, without any renegotiation
     @TestFactory
-    public Collection<DynamicTest> testFullDuplex() {
-        System.out.println("testFullDuplex():");
+    public Collection<DynamicTest> testIoFullDuplex() {
         List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .collect(Collectors.toList());
         List<Integer> reversedSizes = sizes.reversed();
@@ -69,8 +67,58 @@ public class BlockingTest {
             int size1 = sizes.get(i);
             int size2 = reversedSizes.get(i);
             ret.add(DynamicTest.dynamicTest(
-                    String.format("testFullDuplex() - size1=%d, size2=%d", size1, size2), () -> {
+                    String.format("testIoFullDuplex() - size1=%d, size2=%d", size1, size2), () -> {
                         SocketPair socketPair = factory.ioIo(
+                                Optional.empty(),
+                                Optional.of(new ChunkSizeConfig(
+                                        new ChuckSizes(Optional.of(size1), Optional.of(size2)),
+                                        new ChuckSizes(Optional.of(size1), Optional.of(size2)))),
+                                false);
+                        Loops.fullDuplex(socketPair, dataSize);
+                        System.out.printf("%5d -eng-> %5d -net-> %5d -eng-> %5d\n", size1, size2, size1, size2);
+                    }));
+        }
+        return ret;
+    }
+
+    // Test a half-duplex interaction, with renegotiation before reversing the direction of the flow (as in HTTP)
+    @TestFactory
+    public Collection<DynamicTest> testNioHalfDuplexWireRenegotiations() {
+        List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+                .toList();
+        List<Integer> reversedSizes = sizes.reversed();
+        List<DynamicTest> ret = new ArrayList<>();
+        for (int i = 0; i < sizes.size(); i++) {
+            int size1 = sizes.get(i);
+            int size2 = reversedSizes.get(i);
+            ret.add(DynamicTest.dynamicTest(
+                    String.format("testNioHalfDuplexWireRenegotiations() - size1=%d, size2=%d", size1, size2), () -> {
+                        SocketPair socketPair = factory.nioNio(
+                                Optional.empty(),
+                                Optional.of(new ChunkSizeConfig(
+                                        new ChuckSizes(Optional.of(size1), Optional.of(size2)),
+                                        new ChuckSizes(Optional.of(size1), Optional.of(size2)))),
+                                false);
+                        Loops.halfDuplex(socketPair, dataSize, true);
+                        System.out.printf("%5d -eng-> %5d -net-> %5d -eng-> %5d\n", size1, size2, size1, size2);
+                    }));
+        }
+        return ret;
+    }
+
+    // Test a full-duplex interaction, without any renegotiation
+    @TestFactory
+    public Collection<DynamicTest> testNioFullDuplex() {
+        List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+                .collect(Collectors.toList());
+        List<Integer> reversedSizes = sizes.reversed();
+        List<DynamicTest> ret = new ArrayList<>();
+        for (int i = 0; i < sizes.size(); i++) {
+            int size1 = sizes.get(i);
+            int size2 = reversedSizes.get(i);
+            ret.add(DynamicTest.dynamicTest(
+                    String.format("testNioFullDuplex() - size1=%d, size2=%d", size1, size2), () -> {
+                        SocketPair socketPair = factory.nioNio(
                                 Optional.empty(),
                                 Optional.of(new ChunkSizeConfig(
                                         new ChuckSizes(Optional.of(size1), Optional.of(size2)),

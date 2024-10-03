@@ -21,17 +21,19 @@
 
 package jayo.internal
 
+import jayo.endpoints.endpoint
+import jayo.reader
+import jayo.writer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import jayo.writer
-import jayo.reader
-import jayo.endpoints.endpoint
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.io.TempDir
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.net.Socket
+import java.nio.channels.FileChannel
+import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 
 class JayoTest {
@@ -52,11 +54,12 @@ class JayoTest {
     @Test
     fun fileRawReader() {
         val file = tempDir.resolve("fileReader.txt")
-        file.writeText("a")
+        file.writeText("abc")
         val reader = file.reader()
         val buffer = RealBuffer()
         reader.readAtMostTo(buffer, 1L)
         assertThat(buffer.readUtf8String()).isEqualTo("a")
+        assertThrows<IllegalArgumentException> { reader.readAtMostTo(buffer, -42) }
     }
 
     @Test
@@ -90,11 +93,12 @@ class JayoTest {
     @Test
     fun pathRawReader() {
         val file = tempDir.resolve("pathReader.txt")
-        file.writeText("a")
+        file.writeText("abc")
         val reader = file.toPath().reader(StandardOpenOption.DELETE_ON_CLOSE)
         val buffer = RealBuffer()
         reader.readAtMostTo(buffer, 1L)
         assertThat(buffer.readUtf8String()).isEqualTo("a")
+        assertThrows<IllegalArgumentException> { reader.readAtMostTo(buffer, -42) }
     }
 
     @Test
@@ -122,8 +126,7 @@ class JayoTest {
         val buffer = RealBuffer()
         reader.readAtMostTo(buffer, 1)
         assertThat(buffer.readUtf8String()).isEqualTo("a")
-
-        assertThrows<IllegalArgumentException> { reader.readAtMostTo(buffer, -42)}
+        assertThrows<IllegalArgumentException> { reader.readAtMostTo(buffer, -42) }
     }
 
     @Test
@@ -151,5 +154,46 @@ class JayoTest {
         val buffer = RealBuffer()
         reader.readAtMostTo(buffer, 1L)
         assertThat(buffer.readUtf8String()).isEqualTo("a")
+    }
+
+    @Test
+    fun writableByteChannelRawWriter() {
+        val file = tempDir.resolve("writableByteChannelRawWriter.txt")
+        file.createNewFile()
+        val writer = Files.newByteChannel(file.toPath(), StandardOpenOption.WRITE).writer()
+        writer.write(RealBuffer().writeUtf8("a"), 1L)
+        writer.flush()
+        assertThat(file.readText()).isEqualTo("a")
+    }
+
+    @Test
+    fun gatheringByteChannelRawWriterOneSegment() {
+        val file = tempDir.resolve("gatheringByteChannelRawWriter1.txt")
+        file.createNewFile()
+        val writer = FileChannel.open(file.toPath(), StandardOpenOption.WRITE).writer()
+        writer.write(RealBuffer().writeUtf8("a"), 1L)
+        writer.flush()
+        assertThat(file.readText()).isEqualTo("a")
+    }
+
+    @Test
+    fun gatheringByteChannelRawWriterTwoSegment() {
+        val file = tempDir.resolve("gatheringByteChannelRawWriter2.txt")
+        file.createNewFile()
+        val writer = FileChannel.open(file.toPath(), StandardOpenOption.WRITE).writer()
+        writer.write(RealBuffer().writeUtf8("a".repeat(Segment.SIZE + 2)), Segment.SIZE + 1L)
+        writer.flush()
+        assertThat(file.readText()).isEqualTo("a".repeat(Segment.SIZE + 1))
+    }
+
+    @Test
+    fun readableByteChannelRawReader() {
+        val file = tempDir.resolve("readableByteChannelRawReader.txt")
+        file.writeText("abc")
+        val reader = Files.newByteChannel(file.toPath()).reader()
+        val buffer = RealBuffer()
+        reader.readAtMostTo(buffer, 1L)
+        assertThat(buffer.readUtf8String()).isEqualTo("a")
+        assertThrows<IllegalArgumentException> { reader.readAtMostTo(buffer, -42) }
     }
 }

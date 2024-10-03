@@ -10,6 +10,7 @@ import org.openjdk.jmh.annotations.*
 import java.io.OutputStream
 import java.net.ServerSocket
 import java.net.Socket
+import java.nio.channels.SocketChannel
 import java.util.concurrent.TimeUnit
 
 @State(Scope.Thread)
@@ -20,11 +21,12 @@ import java.util.concurrent.TimeUnit
 @BenchmarkMode(Mode.Throughput)
 @Fork(value = 1)
 open class SocketReaderBenchmark {
-    @Param("jayo", "okio")
+    @Param("jayo-io", "jayo-nio", "okio")
     private lateinit var type: String
 
     private lateinit var serverSocket: ServerSocket
     private lateinit var clientSocket: Socket
+    private lateinit var clientSocketChannel: SocketChannel
     private lateinit var clientOutputStream: OutputStream
 
     private lateinit var jayoReader: Reader
@@ -68,11 +70,18 @@ open class SocketReaderBenchmark {
             }
         }
         clientSocket = Socket("localhost", serverSocket.localPort)
+        clientSocketChannel = SocketChannel.open(serverSocket.localSocketAddress)
         val clientSocketEndpoint = clientSocket.endpoint()
-        when (type) {
-            "jayo" -> {
+        val clientSocketChannelEndpoint = clientSocketChannel.endpoint()
+            when (type) {
+            "jayo-io" -> {
                 clientOutputStream = clientSocket.getOutputStream()
                 jayoReader = clientSocketEndpoint.reader.buffered()
+            }
+
+            "jayo-nio" -> {
+                clientOutputStream = clientSocketChannelEndpoint.writer.buffered().asOutputStream()
+                jayoReader = clientSocketChannelEndpoint.reader.buffered()
             }
 
             "okio" -> {
@@ -88,6 +97,7 @@ open class SocketReaderBenchmark {
     fun tearDown() {
         clientOutputStream.close()
         clientSocket.close()
+        clientSocketChannel.close()
     }
 
     @Benchmark

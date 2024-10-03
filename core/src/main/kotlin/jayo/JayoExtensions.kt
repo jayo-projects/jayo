@@ -26,14 +26,26 @@ package jayo
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.channels.GatheringByteChannel
+import java.nio.channels.ReadableByteChannel
+import java.nio.channels.WritableByteChannel
 import java.nio.file.OpenOption
 import java.nio.file.Path
 
 /** @return a writer that writes to this [OutputStream]. */
 public fun OutputStream.writer(): RawWriter = Jayo.writer(this)
 
-/** @return a writer that reads from this [InputStream]. */
+/** @return a reader that reads from this [InputStream]. */
 public fun InputStream.reader(): RawReader = Jayo.reader(this)
+
+/** @return a writer that writes to this [GatheringByteChannel]. */
+public fun GatheringByteChannel.writer(): RawWriter = Jayo.writer(this)
+
+/** @return a writer that writes to this [WritableByteChannel]. */
+public fun WritableByteChannel.writer(): RawWriter = Jayo.writer(this)
+
+/** @return a reader that reads from this [ReadableByteChannel]. */
+public fun ReadableByteChannel.reader(): RawReader = Jayo.reader(this)
 
 /**
  * @return a writer that writes to this [Path]. options allow to specify how the file is opened.
@@ -43,7 +55,7 @@ public fun InputStream.reader(): RawReader = Jayo.reader(this)
 public fun Path.writer(vararg options: OpenOption): RawWriter = Jayo.writer(this, *options)
 
 /**
- * @return a writer that writes to this [Path]. options allow to specify how the file is opened.
+ * @return a reader that reads from this [Path]. options allow to specify how the file is opened.
  *
  * Note : we always add the `StandardOpenOption.READ` option to the options Set, so we ensure we can read from this path
  */
