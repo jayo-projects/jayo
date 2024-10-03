@@ -187,4 +187,52 @@ public class InteroperabilityTest {
                 new SSLSocketWriter(socketPair.client),
                 new EndpointReader(socketPair.server.tls));
     }
+
+    // NIO -> OLD IO
+
+    // nio -> old-io (half duplex)
+    @Test
+    public void testNioToOldHalfDuplex() throws IOException, InterruptedException {
+        SocketGroups.IoOldSocketPair socketPair = factory.nioOld(Optional.empty());
+        halfDuplexStream(
+                new SSLSocketWriter(socketPair.server),
+                new EndpointReader(socketPair.client.tls),
+                new TlsEndpointWriter(socketPair.client.tls),
+                new SocketReader(socketPair.server));
+    }
+
+    // nio -> old-io (full duplex)
+    @Test
+    public void testNioToOldFullDuplex() throws IOException, InterruptedException {
+        SocketGroups.IoOldSocketPair socketPair = factory.nioOld(Optional.empty());
+        fullDuplexStream(
+                new SSLSocketWriter(socketPair.server),
+                new EndpointReader(socketPair.client.tls),
+                new TlsEndpointWriter(socketPair.client.tls),
+                new SocketReader(socketPair.server));
+    }
+
+    // OLD IO -> IO
+
+    // old-io -> nio (half duplex)
+    @Test
+    public void testOldToNioHalfDuplex() throws IOException, InterruptedException {
+        SocketGroups.OldIoSocketPair socketPair = factory.oldNio(Optional.empty());
+        halfDuplexStream(
+                new TlsEndpointWriter(socketPair.server.tls),
+                new SocketReader(socketPair.client),
+                new SSLSocketWriter(socketPair.client),
+                new EndpointReader(socketPair.server.tls));
+    }
+
+    // old-io -> nio (full duplex)
+    @Test
+    public void testOldToNioFullDuplex() throws IOException, InterruptedException {
+        SocketGroups.OldIoSocketPair socketPair = factory.oldNio(Optional.empty());
+        fullDuplexStream(
+                new TlsEndpointWriter(socketPair.server.tls),
+                new SocketReader(socketPair.client),
+                new SSLSocketWriter(socketPair.client),
+                new EndpointReader(socketPair.server.tls));
+    }
 }

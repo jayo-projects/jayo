@@ -44,13 +44,12 @@ public class NullEngineTest {
 
     // null engine - half duplex - heap buffers
     @TestFactory
-    public Collection<DynamicTest> testHalfDuplexHeapBuffers() {
-        System.out.println("testHalfDuplexHeapBuffers():");
+    public Collection<DynamicTest> testIoHalfDuplexHeapBuffers() {
         List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .toList();
         List<DynamicTest> tests = new ArrayList<>();
         for (int size1 : sizes) {
-            DynamicTest test = DynamicTest.dynamicTest(String.format("Testing sizes: size1=%s", size1), () -> {
+            DynamicTest test = DynamicTest.dynamicTest(String.format("testIoHalfDuplexHeapBuffers() - Testing sizes: size1=%s", size1), () -> {
                 SocketGroups.SocketPair socketPair = factory.ioIo(
                         Optional.of(NULL_CIPHER),
                         Optional.of(new ChunkSizeConfig(
@@ -67,14 +66,57 @@ public class NullEngineTest {
 
     // null engine - half duplex - direct buffers
     @TestFactory
-    public Collection<DynamicTest> testHalfDuplexDirectBuffers() {
-        System.out.println("testHalfDuplexDirectBuffers():");
+    public Collection<DynamicTest> testIoHalfDuplexDirectBuffers() {
         List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .toList();
         List<DynamicTest> tests = new ArrayList<>();
         for (int size1 : sizes) {
-            DynamicTest test = DynamicTest.dynamicTest(String.format("Testing sizes: size1=%s", size1), () -> {
+            DynamicTest test = DynamicTest.dynamicTest(String.format("testIoHalfDuplexDirectBuffers() - Testing sizes: size1=%s", size1), () -> {
                 SocketGroups.SocketPair socketPair = factory.ioIo(
+                        Optional.of(NULL_CIPHER),
+                        Optional.of(new ChunkSizeConfig(
+                                new ChuckSizes(Optional.of(size1), Optional.empty()),
+                                new ChuckSizes(Optional.of(size1), Optional.empty()))),
+                        false);
+                Loops.halfDuplex(socketPair, dataSize, false);
+                System.out.printf("-eng-> %5d -net-> %5d -eng->\n", size1, size1);
+            });
+            tests.add(test);
+        }
+        return tests;
+    }
+
+    // null engine - half duplex - heap buffers
+    @TestFactory
+    public Collection<DynamicTest> testNioHalfDuplexHeapBuffers() {
+        List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+                .toList();
+        List<DynamicTest> tests = new ArrayList<>();
+        for (int size1 : sizes) {
+            DynamicTest test = DynamicTest.dynamicTest(String.format("testNioHalfDuplexHeapBuffers() - Testing sizes: size1=%s", size1), () -> {
+                SocketGroups.SocketPair socketPair = factory.nioNio(
+                        Optional.of(NULL_CIPHER),
+                        Optional.of(new ChunkSizeConfig(
+                                new ChuckSizes(Optional.of(size1), Optional.empty()),
+                                new ChuckSizes(Optional.of(size1), Optional.empty()))),
+                        false);
+                Loops.halfDuplex(socketPair, dataSize, false);
+                System.out.printf("-eng-> %5d -net-> %5d -eng->\n", size1, size1);
+            });
+            tests.add(test);
+        }
+        return tests;
+    }
+
+    // null engine - half duplex - direct buffers
+    @TestFactory
+    public Collection<DynamicTest> testNioHalfDuplexDirectBuffers() {
+        List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+                .toList();
+        List<DynamicTest> tests = new ArrayList<>();
+        for (int size1 : sizes) {
+            DynamicTest test = DynamicTest.dynamicTest(String.format("testNioHalfDuplexDirectBuffers() - Testing sizes: size1=%s", size1), () -> {
+                SocketGroups.SocketPair socketPair = factory.nioNio(
                         Optional.of(NULL_CIPHER),
                         Optional.of(new ChunkSizeConfig(
                                 new ChuckSizes(Optional.of(size1), Optional.empty()),

@@ -42,14 +42,13 @@ public class CipherTest {
 
     // Test a half-duplex interaction, with renegotiation before reversing the direction of the flow (as in HTTP)
     @TestFactory
-    public Collection<DynamicTest> testHalfDuplexWithRenegotiation() {
-        System.out.println("testHalfDuplexWithRenegotiation():");
+    public Collection<DynamicTest> testIoHalfDuplexWithRenegotiation() {
         List<DynamicTest> tests = new ArrayList<>();
         for (String protocol : protocols) {
             SslContextFactory ctxFactory = new SslContextFactory(protocol);
             for (String cipher : ctxFactory.getAllCiphers()) {
                 tests.add(DynamicTest.dynamicTest(
-                        String.format("testHalfDuplexWithRenegotiation() - protocol: %s, cipher: %s", protocol, cipher),
+                        String.format("testIoHalfDuplexWithRenegotiation() - protocol: %s, cipher: %s", protocol, cipher),
                         () -> {
                             SocketPairFactory socketFactory = new SocketPairFactory(ctxFactory.getDefaultContext());
                             SocketPair socketPair = socketFactory.ioIo(
@@ -71,15 +70,70 @@ public class CipherTest {
 
     // Test a full-duplex interaction, without any renegotiation
     @TestFactory
-    public Collection<DynamicTest> testFullDuplex() {
+    public Collection<DynamicTest> testIoFullDuplex() {
         List<DynamicTest> tests = new ArrayList<>();
         for (String protocol : protocols) {
             SslContextFactory ctxFactory = new SslContextFactory(protocol);
             for (String cipher : ctxFactory.getAllCiphers()) {
                 tests.add(DynamicTest.dynamicTest(
-                        String.format("testFullDuplex() - protocol: %s, cipher: %s", protocol, cipher), () -> {
+                        String.format("testIoFullDuplex() - protocol: %s, cipher: %s", protocol, cipher), () -> {
                             SocketPairFactory socketFactory = new SocketPairFactory(ctxFactory.getDefaultContext());
                             SocketPair socketPair = socketFactory.ioIo(
+                                    Optional.of(cipher), Optional.empty(), false);
+                            Loops.fullDuplex(socketPair, dataSize);
+                            String actualProtocol = socketPair
+                                    .client
+                                    .tls
+                                    .getSslEngine()
+                                    .getSession()
+                                    .getProtocol();
+                            String p = String.format("%s (%s)", protocol, actualProtocol);
+                            System.out.printf("%-18s %-50s\n", p, cipher);
+                        }));
+            }
+        }
+        return tests;
+    }
+
+    // Test a half-duplex interaction, with renegotiation before reversing the direction of the flow (as in HTTP)
+    @TestFactory
+    public Collection<DynamicTest> testNioHalfDuplexWithRenegotiation() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (String protocol : protocols) {
+            SslContextFactory ctxFactory = new SslContextFactory(protocol);
+            for (String cipher : ctxFactory.getAllCiphers()) {
+                tests.add(DynamicTest.dynamicTest(
+                        String.format("testNioHalfDuplexWithRenegotiation() - protocol: %s, cipher: %s", protocol, cipher),
+                        () -> {
+                            SocketPairFactory socketFactory = new SocketPairFactory(ctxFactory.getDefaultContext());
+                            SocketPair socketPair = socketFactory.nioNio(
+                                    Optional.of(cipher), Optional.empty(), false);
+                            Loops.halfDuplex(socketPair, dataSize, protocol.compareTo("TLSv1.2") < 0);
+                            String actualProtocol = socketPair
+                                    .client
+                                    .tls
+                                    .getSslEngine()
+                                    .getSession()
+                                    .getProtocol();
+                            String p = String.format("%s (%s)", protocol, actualProtocol);
+                            System.out.printf("%-18s %-50s\n", p, cipher);
+                        }));
+            }
+        }
+        return tests;
+    }
+
+    // Test a full-duplex interaction, without any renegotiation
+    @TestFactory
+    public Collection<DynamicTest> testNioFullDuplex() {
+        List<DynamicTest> tests = new ArrayList<>();
+        for (String protocol : protocols) {
+            SslContextFactory ctxFactory = new SslContextFactory(protocol);
+            for (String cipher : ctxFactory.getAllCiphers()) {
+                tests.add(DynamicTest.dynamicTest(
+                        String.format("testNioFullDuplex() - protocol: %s, cipher: %s", protocol, cipher), () -> {
+                            SocketPairFactory socketFactory = new SocketPairFactory(ctxFactory.getDefaultContext());
+                            SocketPair socketPair = socketFactory.nioNio(
                                     Optional.of(cipher), Optional.empty(), false);
                             Loops.fullDuplex(socketPair, dataSize);
                             String actualProtocol = socketPair
