@@ -71,8 +71,6 @@ public final class OutputStreamRawWriter implements RawWriter {
         var head = _reader.segmentQueue.head();
         assert head != null;
         while (remaining > 0L) {
-            CancelToken.throwIfReached(cancelToken);
-
             var headLimit = head.limitVolatile();
             if (head.pos == headLimit) {
                 final var oldHead = head;
@@ -84,6 +82,8 @@ public final class OutputStreamRawWriter implements RawWriter {
                 headLimit = head.limitVolatile();
                 SegmentPool.recycle(oldHead);
             }
+
+            CancelToken.throwIfReached(cancelToken);
 
             final var toWrite = (int) Math.min(remaining, headLimit - head.pos);
             try {
@@ -103,7 +103,8 @@ public final class OutputStreamRawWriter implements RawWriter {
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "OutputStreamRawWriter: Finished writing {0}/{1} bytes from " +
                             "Buffer(SegmentQueue={2}{3}) to the OutputStream{4}",
-                    byteCount - remaining, byteCount, System.lineSeparator(), _reader.segmentQueue, System.lineSeparator());
+                    byteCount - remaining, byteCount, System.lineSeparator(), _reader.segmentQueue,
+                    System.lineSeparator());
         }
     }
 
