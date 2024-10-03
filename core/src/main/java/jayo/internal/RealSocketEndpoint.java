@@ -24,7 +24,6 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.endpoints.JayoClosedEndpointException;
 import jayo.endpoints.SocketEndpoint;
 import jayo.exceptions.JayoException;
 import jayo.exceptions.JayoInterruptedIOException;
@@ -41,7 +40,7 @@ import java.util.Objects;
 import static java.lang.System.Logger.Level.WARNING;
 
 public final class RealSocketEndpoint implements SocketEndpoint {
-    private static final System.Logger LOGGER_TIMEOUT = System.getLogger("jayo.SocketEndpointTimeout");
+    private static final System.Logger LOGGER_TIMEOUT = System.getLogger("jayo.SocketEndpoint");
     private final @NonNull Socket socket;
     private final @NonNull RealAsyncTimeout asyncTimeout;
 
@@ -152,7 +151,6 @@ public final class RealSocketEndpoint implements SocketEndpoint {
                 Thread thread = Thread.currentThread();
                 if (thread.isVirtual() && thread.isInterrupted()) {
                     parent.closePrivate();
-                    throw new JayoClosedEndpointException();
                 }
                 throw e;
             }
@@ -177,7 +175,6 @@ public final class RealSocketEndpoint implements SocketEndpoint {
                 Thread thread = Thread.currentThread();
                 if (thread.isVirtual() && thread.isInterrupted()) {
                     parent.closePrivate();
-                    throw new JayoClosedEndpointException();
                 }
                 throw e;
             }

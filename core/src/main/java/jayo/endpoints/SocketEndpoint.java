@@ -32,11 +32,11 @@ public sealed interface SocketEndpoint extends Endpoint permits RealSocketEndpoi
      */
     static @NonNull SocketEndpoint from(final @NonNull Socket socket) {
         Objects.requireNonNull(socket);
-        if (!socket.isConnected()) {
-            throw new IllegalArgumentException("Socket is not connected");
-        }
         if (socket.isClosed()) {
             throw new IllegalArgumentException("Socket is closed");
+        }
+        if (!socket.isConnected()) {
+            throw new IllegalArgumentException("Socket is not connected");
         }
         return new RealSocketEndpoint(socket);
     }

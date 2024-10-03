@@ -383,10 +383,6 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals('a', data.readByte().toInt().toChar())
     }
 
-    /**
-     * This test hard codes the results of Long.toString() because that function rounds large values
-     * when using Kotlin/JS IR. https://youtrack.jetbrains.com/issue/KT-39891
-     */
     @Test
     fun longDecimalString() {
         assertLongDecimalString("0", 0)

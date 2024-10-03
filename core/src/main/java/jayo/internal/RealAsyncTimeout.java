@@ -58,9 +58,9 @@ import static jayo.external.JayoUtils.checkOffsetAndCount;
  */
 public final class RealAsyncTimeout implements AsyncTimeout {
     /**
-     * Don't write more than 4 segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer timeouts
-     * even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never succeed on a
-     * sufficiently slow connection.
+     * Don't write more than 4 full segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer
+     * timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never succeed
+     * on a sufficiently slow connection.
      */
     static final int TIMEOUT_WRITE_SIZE = 4 * Segment.SIZE;
 

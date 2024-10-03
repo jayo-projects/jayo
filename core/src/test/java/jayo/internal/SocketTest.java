@@ -20,22 +20,23 @@ public class SocketTest {
     @Test
     void socketTest() throws InterruptedException, IOException {
         var freePortNumber = 54321;
-        var serverThread = Thread.startVirtualThread(() -> {
-            try (var serverSocket = new ServerSocket(freePortNumber);
-                 var acceptedSocketEndpoint = SocketEndpoint.from(serverSocket.accept());
-                 var serverWriter = Jayo.buffer(acceptedSocketEndpoint.getWriter())) {
-                serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
-                        .writeUtf8CodePoint('4')
-                        .writeUtf8CodePoint('2');
-            } catch (IOException e) {
-                fail("Unexpected exception", e);
+        try (var serverSocket = new ServerSocket(freePortNumber)) {
+            var serverThread = Thread.startVirtualThread(() -> {
+                try (var acceptedSocketEndpoint = SocketEndpoint.from(serverSocket.accept());
+                     var serverWriter = Jayo.buffer(acceptedSocketEndpoint.getWriter())) {
+                    serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
+                            .writeUtf8CodePoint('4')
+                            .writeUtf8CodePoint('2');
+                } catch (IOException e) {
+                    fail("Unexpected exception", e);
+                }
+            });
+            try (var clientSocketEndpoint = SocketEndpoint.from(new Socket("localhost", freePortNumber));
+                 var clientReader = Jayo.buffer(clientSocketEndpoint.getReader())) {
+                assertThat(clientReader.readUtf8String())
+                        .isEqualTo("The Answer to the Ultimate Question of Life is 42");
             }
-        });
-        try (var clientSocketEndpoint = SocketEndpoint.from(new Socket("localhost", freePortNumber));
-             var clientReader = Jayo.buffer(clientSocketEndpoint.getReader())) {
-            assertThat(clientReader.readUtf8String())
-                    .isEqualTo("The Answer to the Ultimate Question of Life is 42");
+            serverThread.join();
         }
-        serverThread.join();
     }
 }
