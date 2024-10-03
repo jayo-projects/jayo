@@ -8,7 +8,6 @@ package jayo.internal
 import jayo.Buffer
 import jayo.buffered
 import jayo.cancelScope
-import jayo.endpoints.JayoClosedEndpointException
 import jayo.endpoints.endpoint
 import jayo.exceptions.JayoInterruptedIOException
 import jayo.exceptions.JayoTimeoutException
@@ -35,7 +34,7 @@ class SocketEndpointTest {
     @Test
     fun `socket is closed throws IllegalArgumentException`() {
         val socket = object : Socket() {
-            override fun isConnected() = true
+            override fun isConnected() = false
             override fun isClosed() = true
         }
         assertThatThrownBy {
@@ -131,7 +130,8 @@ class SocketEndpointTest {
                 throwableAssert = assertThatThrownBy { reader.readByte() }
             }.join()
         }
-        throwableAssert!!.isInstanceOf(JayoClosedEndpointException::class.java)
+        throwableAssert!!.isInstanceOf(JayoInterruptedIOException::class.java)
+            .hasMessage("current thread is interrupted")
     }
 
     @Test
@@ -178,7 +178,8 @@ class SocketEndpointTest {
                 }
             }.join()
         }
-        throwableAssert!!.isInstanceOf(JayoClosedEndpointException::class.java)
+        throwableAssert!!.isInstanceOf(JayoInterruptedIOException::class.java)
+            .hasMessage("current thread is interrupted")
     }
 
     @Test
