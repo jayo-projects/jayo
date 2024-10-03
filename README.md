@@ -4,12 +4,13 @@
 
 # Jayo
 
-A fast and simple synchronous I/O library for the JVM that relies on Java 21+ virtual threads, see
+A fast synchronous I/O library for the JVM that relies on Java 21+ virtual threads, see
 [Project Loom](https://openjdk.org/projects/loom/).
 
-Virtual threads allow to run as many threads as we need without requiring thread pools or event-loop. With blocking IO
-that runs inside virtual threads, Jayo offers great performances and scalability, leading to simple, readable and
-debuggable code.
+Synchronous APIs are easier to work with than asynchronous and non-blocking APIs; the code is easier to write, easier to
+read, and easier to debug (with stack traces that make sense!). \
+Virtual threads allow to run as many threads as we need without requiring thread pools or event-loop. With synchronous
+IO that runs inside virtual threads, Jayo offers great performances and scalability.
 
 Jayo is available on Maven Central.
 
@@ -34,23 +35,24 @@ dependencies {
 
 ```java
 var freePortNumber = 54321;
-var serverThread = Thread.startVirtualThread(() -> {
-    try (var serverSocket = new ServerSocket(freePortNumber);
-        var acceptedSocket = serverSocket.accept();
-        var serverWriter = Jayo.buffer(Jayo.writer(acceptedSocket))) {
-        serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
-            .writeUtf8CodePoint('4')
-            .writeUtf8CodePoint('2');
+try (var serverSocket = new ServerSocket(freePortNumber)) {
+     var serverThread = Thread.startVirtualThread(() -> {
+    try (var acceptedSocketEndpoint = SocketEndpoint.from(serverSocket.accept());
+         var serverWriter = Jayo.buffer(acceptedSocketEndpoint.getWriter())) {
+      serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
+        .writeUtf8CodePoint('4')
+        .writeUtf8CodePoint('2');
     } catch (IOException e) {
-        fail("Unexpected exception", e);
+      fail("Unexpected exception", e);
     }
-});
-try (var clientSocket = new Socket("localhost", freePortNumber);
-    var clientReader = Jayo.buffer(Jayo.reader(clientSocket))) {
+  });
+  try (var clientSocketEndpoint = SocketEndpoint.from(new Socket("localhost", freePortNumber));
+       var clientReader = Jayo.buffer(clientSocketEndpoint.getReader())) {
     assertThat(clientReader.readUtf8String())
-        .isEqualTo("The Answer to the Ultimate Question of Life is 42");
+      .isEqualTo("The Answer to the Ultimate Question of Life is 42");
+  }
+  serverThread.join();
 }
-serverThread.join();
 ```
 
 Jayo is written in Java without any external dependencies, to stay as light as possible.
