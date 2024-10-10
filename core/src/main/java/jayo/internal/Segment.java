@@ -239,14 +239,16 @@ final class Segment {
         return switch (previousState) {
             case AVAILABLE -> false;
             case WRITING -> true;
-            default -> throw new IllegalStateException("Unexpected state " + previousState + ". The head queue " +
-                    "node should be in 'AVAILABLE' or 'WRITING' state before transferring.");
+            default -> throw new IllegalStateException("Unexpected state " + previousState + ". The head queue node " +
+                    "should be in 'AVAILABLE' or 'WRITING' state before transferring.");
         };
     }
 
-    void finishTransfer(final boolean wasWriting) {
-        if (!wasWriting) {
-            STATUS.compareAndSet(this, TRANSFERRING, AVAILABLE);
+    void finishTransfer() {
+        final var previousState = (byte) STATUS.compareAndExchange(this, TRANSFERRING, AVAILABLE);
+        if (previousState != TRANSFERRING && previousState != AVAILABLE && previousState != WRITING) {
+            throw new IllegalStateException("Unexpected state " + previousState + ". The head queue node should be in" +
+                    " 'AVAILABLE', 'TRANSFERRING' or 'WRITING' state before ending the transfer.");
         }
     }
 
@@ -299,7 +301,7 @@ final class Segment {
      * @return the new head of the queue.
      */
     @NonNull
-    Segment splitHead(final @NonNegative int byteCount, final boolean wasWriting) {
+    Segment splitHead(final @NonNegative int byteCount) {
         final Segment prefix;
 
         // We have two competing performance goals:
@@ -321,8 +323,9 @@ final class Segment {
         if (!NEXT.compareAndSet(prefix, null, this)) {
             throw new IllegalStateException("Could set next segment of prefix");
         }
+
         // stop transferring the current segment = the suffix
-        finishTransfer(wasWriting);
+        finishTransfer();
 
         return prefix;
     }

@@ -100,6 +100,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
 
         private volatile @Nullable RuntimeException exception = null;
 
+        // non-volatile because always used inside the lock
         private @NonNegative long expectedSize = 0;
         private final ReentrantLock lock = new ReentrantLock();
         private final Condition expectingSize = lock.newCondition();
@@ -157,7 +158,17 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                 // resume reader consumer thread if needed, then await on expected size
                 readerConsumerPaused.signal();
                 expectingSize.await();
-                currentSize = size();
+                // consumer thread may have not read all data, continue here in current thread
+                final var stillExpectingSize = this.expectedSize;
+                if (stillExpectingSize > 0) {
+                    this.expectedSize = 0L;
+                    currentSize = super.expectSize(stillExpectingSize);
+                    // resume reader consumer thread to continue reading asynchronously
+                    readerConsumerPaused.signal();
+                } else {
+                    currentSize = size();
+                }
+
                 if (LOGGER.isLoggable(DEBUG)) {
                     LOGGER.log(DEBUG, "AsyncReaderSegmentQueue#{0}: expectSize({1}) resumed expecting more " +
                                     "bytes, current size = {2}{3}",
@@ -212,20 +223,11 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     var currentExpectedSize = 0L;
                     while (!Thread.interrupted()) {
                         try {
-                            var readSuccess = true;
+                            final boolean readSuccess;
                             if (currentExpectedSize != 0L) {
-                                final var currentSize = size();
-                                if (currentSize < currentExpectedSize) {
-                                    var remaining = currentExpectedSize - currentSize;
-                                    while (remaining > 0L) {
-                                        final var toRead = Math.max(remaining, Segment.SIZE);
-                                        final var read = reader.readAtMostTo(buffer, toRead);
-                                        if (read == -1) {
-                                            break;
-                                        }
-                                        remaining -= read;
-                                    }
-                                }
+                                // if size is already reached -> success, else must continue to call the reader in the
+                                // calling thread to ensure no race occurs
+                                readSuccess = size() >= currentExpectedSize;
                             } else {
                                 readSuccess = reader.readAtMostTo(buffer, Segment.SIZE) > 0L;
                             }
@@ -238,9 +240,10 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                                         if (!readSuccess) {
                                             LOGGER.log(DEBUG,
                                                     "AsyncReaderSegmentQueue#{0}:ReaderConsumer Runnable task:" +
-                                                            " reader is exhausted, expected size = {1}, pausing" +
-                                                            " consumer thread{2}",
-                                                    hashCode(), currentExpectedSize, System.lineSeparator());
+                                                            " last read did not return any result, expected size = " +
+                                                            "{1}, current size = {2} pausing consumer thread{3}",
+                                                    hashCode(), currentExpectedSize, currentSize,
+                                                    System.lineSeparator());
                                         } else {
                                             LOGGER.log(DEBUG,
                                                     "AsyncReaderSegmentQueue#{0}:ReaderConsumer Runnable task:" +
@@ -249,18 +252,18 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                                                     hashCode(), currentSize, MAX_BYTE_SIZE, System.lineSeparator());
                                         }
                                     }
-                                    // if read did not return any result or buffer reached max capacity,
-                                    // resume expecting size, then pause consumer thread
-                                    currentExpectedSize = 0L;
+                                    // if read did not return any result or buffer reached max capacity, resume
+                                    // expecting size, then pause consumer thread
                                     resumeExpectingSize();
                                     readerConsumerPaused.await();
+                                    currentExpectedSize = 0L;
                                 }
 
                                 if (currentExpectedSize == 0L) {
                                     currentExpectedSize = expectedSize;
-                                    expectedSize = 0L;
                                 } else {
                                     currentExpectedSize = 0L;
+                                    expectedSize = 0L;
                                     resumeExpectingSize();
                                 }
                             } finally {
@@ -294,7 +297,6 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
 
             private void resumeExpectingSize() {
                 assert lock.isHeldByCurrentThread();
-                expectedSize = 0L;
                 if (LOGGER.isLoggable(DEBUG)) {
                     LOGGER.log(DEBUG, "AsyncReaderSegmentQueue#{0}: resumeExpectingSize()", hashCode());
                 }

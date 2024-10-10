@@ -253,8 +253,8 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
                 written = currentTail.limit() - previousLimit;
                 return result;
             } finally {
-                currentTail.finishWrite();
                 incrementSize(written);
+                currentTail.finishWrite();
             }
         }
 
@@ -270,21 +270,18 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         if (written > 0) {
             try {
                 if (currentTail != null) {
-                    try {
-                        if (!Segment.NEXT.compareAndSet(currentTail, null, newTail)) {
-                            throw new IllegalStateException("Could not add new Segment after current tail, " +
-                                    "next node should be null");
-                        }
-                    } finally {
-                        currentTail.finishWrite();
+                    if (!Segment.NEXT.compareAndSet(currentTail, null, newTail)) {
+                        throw new IllegalStateException("Could not add new Segment after current tail, " +
+                                "next node should be null");
                     }
+                    currentTail.finishWrite();
                 } else {
                     HEAD.setVolatile(this, newTail);
                 }
                 TAIL.setVolatile(this, newTail);
             } finally {
-                newTail.finishWrite();
                 incrementSize(written);
+                newTail.finishWrite();
             }
         } else {
             if (currentTail != null) {

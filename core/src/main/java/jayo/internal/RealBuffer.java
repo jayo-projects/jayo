@@ -49,7 +49,6 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static java.lang.System.Logger.Level.WARNING;
 import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Segment.TRANSFERRING;
 import static jayo.internal.Segment.WRITING;
@@ -464,13 +463,11 @@ public final class RealBuffer implements Buffer {
 
         var overflowDigit = OVERFLOW_DIGIT_START;
         while (!done) {
-            if (seen == currentSize) {
-                segmentQueue.expectSize(20L);
-            }
-            final var head = segmentQueue.head();
-            if (head == null) {
+            if (seen >= currentSize && segmentQueue.expectSize(20L) == 0L) {
                 break;
             }
+            final var head = segmentQueue.head();
+            assert head != null;
             final var data = head.data;
             var pos = head.pos;
             final var currentLimit = head.limitVolatile();
@@ -540,13 +537,11 @@ public final class RealBuffer implements Buffer {
         var done = false;
 
         while (!done) {
-            if (seen == currentSize) {
-                segmentQueue.expectSize(17L);
-            }
-            final var head = segmentQueue.head();
-            if (head == null) {
+            if (seen >= currentSize && segmentQueue.expectSize(17L) == 0L) {
                 break;
             }
+            final var head = segmentQueue.head();
+            assert head != null;
             final var data = head.data;
             var pos = head.pos;
             final var currentLimit = head.limitVolatile();
@@ -1683,47 +1678,41 @@ public final class RealBuffer implements Buffer {
         var tail = segmentQueue.nonRemovedTailOrNull();
         var readerHead = _reader.segmentQueue.head();
         Segment nextReaderHead = null;
-        var readerHeadIsWriting = false;
         try {
             while (remaining > 0) {
                 if (nextReaderHead != null) {
                     readerHead = nextReaderHead;
                 }
-                if (readerHead == null) {
-                    LOGGER.log(WARNING, "readerHead == null, should not !\n" + _reader.segmentQueue);
-                    throw new IllegalStateException("readerHead == null, should not !");
-                }
+                assert readerHead != null;
 
                 // Is a prefix of the reader's head segment all that we need to move?
-                assert readerHead != null;
                 var currentLimit = readerHead.limitVolatile();
                 var bytesInReader = currentLimit - readerHead.pos;
-                var split = readerHeadIsWriting;
+                var split = false;
                 if (remaining < bytesInReader) {
-                    if (tail != null && tail.owner &&
-                            remaining + tail.limit() - ((tail.isShared()) ? 0 : tail.pos) <= Segment.SIZE
-                    ) {
-                        try {
-                            // Our existing segments are sufficient. Transfer bytes from reader's head to our tail.
-                            readerHead.writeTo(tail, (int) remaining);
-                            if (LOGGER.isLoggable(TRACE)) {
-                                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : transferred {1} bytes from reader " +
-                                                "Segment#{2} to target Segment#{3}{4}",
-                                        segmentQueue.hashCode(), remaining, readerHead.hashCode(), tail.hashCode(),
-                                        System.lineSeparator());
-                            }
-                            _reader.segmentQueue.decrementSize(remaining);
-                            segmentQueue.incrementSize(remaining);
-                            return;
-                        } finally {
-                            readerHead.finishTransfer(readerHeadIsWriting);
-                        }
+                    if (tryTransferBytes(tail, readerHead, _reader, remaining)) {
+                        return;
                     }
                     split = true;
                 }
 
                 if (!split) {
                     split = readerHead.startTransfer();
+                    if (!split) {
+                        // check after switching to Transferring state
+                        final var newLimit = readerHead.limitVolatile();
+                        if (newLimit != currentLimit) {
+                            bytesInReader = newLimit - readerHead.pos;
+                            if (remaining < bytesInReader) {
+                                if (tryTransferBytes(tail, readerHead, _reader, remaining)) {
+                                    return;
+                                }
+                                split = true;
+                            } else {
+                                currentLimit = newLimit;
+                            }
+                        }
+                    }
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE,
                                 "reader SegmentQueue#{0} : head Segment#{1} is writing = {2}{3}",
@@ -1733,12 +1722,12 @@ public final class RealBuffer implements Buffer {
                 }
 
                 if (split) {
-                    // We're going to need another segment. Split the reader's head segment in two, then we will
-                    // move the first of those two to this buffer.
+                    // We're going to need another segment. Split the reader's head segment in two, then we will move
+                    // the first of those two to this buffer.
                     nextReaderHead = readerHead;
 
                     bytesInReader = (int) Math.min(bytesInReader, remaining);
-                    readerHead = readerHead.splitHead(bytesInReader, readerHeadIsWriting);
+                    readerHead = readerHead.splitHead(bytesInReader);
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE,
                                 "reader SegmentQueue#{0} : splitHead. prefix Segment#{1}, suffix Segment#{2}{3}",
@@ -1779,15 +1768,16 @@ public final class RealBuffer implements Buffer {
                                 segmentQueue.hashCode(), newTail.hashCode(), movedByteCount, _reader.segmentQueue.hashCode(), System.lineSeparator());
                     }
 
+                    segmentQueue.incrementSize(movedByteCount);
                     if (tail != null) {
                         tail.finishWrite();
                     }
                     tail = newTail;
                 } else {
+                    segmentQueue.incrementSize(movedByteCount);
                     readerHead = null;
                 }
 
-                segmentQueue.incrementSize(movedByteCount);
                 if (LOGGER.isLoggable(TRACE)) {
                     LOGGER.log(TRACE,
                             "Buffer(SegmentQueue#{0}) : incremented {1} bytes of this segment queue{2}{3}",
@@ -1809,6 +1799,28 @@ public final class RealBuffer implements Buffer {
                             {3}{4}""",
                     segmentQueue.hashCode(), byteCount, _reader.segmentQueue, segmentQueue, System.lineSeparator());
         }
+    }
+
+    private boolean tryTransferBytes(Segment tail, Segment readerHead, RealBuffer reader, long byteCount) {
+        if (tail != null && tail.owner &&
+                byteCount + tail.limit() - ((tail.isShared()) ? 0 : tail.pos) <= Segment.SIZE) {
+            try {
+                // Our existing segments are sufficient. Transfer bytes from reader's head to our tail.
+                readerHead.writeTo(tail, (int) byteCount);
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : transferred {1} bytes from reader " +
+                                    "Segment#{2} to target Segment#{3}{4}",
+                            segmentQueue.hashCode(), byteCount, readerHead.hashCode(), tail.hashCode(),
+                            System.lineSeparator());
+                }
+                reader.segmentQueue.decrementSize(byteCount);
+                segmentQueue.incrementSize(byteCount);
+                return true;
+            } finally {
+                readerHead.finishTransfer();
+            }
+        }
+        return false;
     }
 
     /**
@@ -2304,7 +2316,7 @@ public final class RealBuffer implements Buffer {
 //            node = segmentQueue.tail();
 //            while (true) {
 //                assert node != null;
-//                offset -= (segment.limit - segment.pos);
+//                offset -= (segment.limitVolatile() - segment.pos);
 //                if (offset <= startIndex || node.prev() == null) {
 //                    break;
 //                }
