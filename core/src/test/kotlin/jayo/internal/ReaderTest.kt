@@ -32,7 +32,7 @@ import jayo.internal.Utils.getBufferFromReader
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -47,19 +47,19 @@ import java.nio.charset.Charset
 import java.util.stream.Stream
 import kotlin.test.*
 
+class RealAsyncReaderTest : AbstractReaderTest(ReaderFactory.REAL_ASYNC_SOURCE)
+
 class BufferReaderTest : AbstractReaderTest(ReaderFactory.BUFFER)
 
-class RealReaderTest : AbstractReaderTest(ReaderFactory.REAL_SOURCE)
+class BufferedReaderTest : AbstractReaderTest(ReaderFactory.BUFFERED_SOURCE)
 
-class RealAsyncReaderTest : AbstractReaderTest(ReaderFactory.REAL_ASYNC_SOURCE)
+class RealReaderTest : AbstractReaderTest(ReaderFactory.REAL_SOURCE)
 
 class PeekBufferTest : AbstractReaderTest(ReaderFactory.PEEK_BUFFER)
 
 class PeekReaderTest : AbstractReaderTest(ReaderFactory.PEEK_SOURCE)
 
 class PeekAsyncReaderTest : AbstractReaderTest(ReaderFactory.PEEK_ASYNC_SOURCE)
-
-class BufferedReaderTest : AbstractReaderTest(ReaderFactory.BUFFERED_SOURCE)
 
 abstract class AbstractReaderTest internal constructor(private val factory: ReaderFactory) {
     companion object {
@@ -104,7 +104,8 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         try {
             reader.close()
             writer.close()
-        } catch (_: Exception) { /*ignored*/
+        } catch (e: Exception) { /*ignored*/
+            e.printStackTrace()
         }
     }
 
@@ -861,7 +862,9 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertFailsWith<IllegalArgumentException> { reader.skip(-1) }
     }
 
-    @Test
+    // this test is a good race-condition test, do it several times !
+    @RepeatedTest(50)
+    @Tag("no-ci")
     fun indexOf() {
         // The segment is empty.
         assertEquals(-1, reader.indexOf('a'.code.toByte()))
@@ -1011,7 +1014,8 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertFailsWith<IllegalArgumentException> { reader.require(-1) }
     }
 
-    @Test
+    // this test is a good race-condition test, do it several times !
+    @RepeatedTest(50)
     fun longHexString() {
         assertLongHexString("8000000000000000", Long.MIN_VALUE)
         assertLongHexString("fffffffffffffffe", -0x2L)
@@ -1060,16 +1064,14 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     // this test is a good race-condition test, do it several times !
-    @Test
+    @RepeatedTest(50)
     fun longHexAlphabet() {
-        // todo repeat(50) {
         writer.writeUtf8("7896543210abcdef")
         writer.emit()
         assertEquals(0x7896543210abcdefL, reader.readHexadecimalUnsignedLong())
         writer.writeUtf8("ABCDEF")
         writer.emit()
         assertEquals(0xabcdefL, reader.readHexadecimalUnsignedLong())
-        //}
     }
 
     @Test
@@ -1104,7 +1106,8 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertFailsWith<JayoEOFException> { reader.readHexadecimalUnsignedLong() }
     }
 
-    @Test
+    // this test is a good race-condition test, do it several times !
+    @RepeatedTest(50)
     fun longDecimalString() {
         assertLongDecimalString("-9223372036854775808", Long.MIN_VALUE)
         assertLongDecimalString("-1", -1L)
@@ -1123,6 +1126,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         val actual = reader.readDecimalLong()
         assertEquals(expected, actual, "$s --> $expected")
         assertEquals("zzz", reader.readUtf8String())
+        assertTrue(reader.exhausted())
     }
 
     @Test
@@ -2154,17 +2158,15 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     @Test
-    @Disabled
     fun readIntoNonemptyWriter() {
-        val toWrite = "God help us, we're in the hands of engineers.".encodeToByteString()
         for (i in 0 until Segment.SIZE) {
             before()
-            val buffer = Buffer().writeUtf8("a".repeat(i))
-            writer.write(toWrite)
-            while (reader.readAtMostTo(buffer, Int.MAX_VALUE.toLong()) != -1L) {
-            }
+            val toWrite = "God help us, we're in the hands of engineers ($i)."
+            writer.writeUtf8(toWrite)
+            val buffer = Buffer().writeUtf8("a".repeat(i)).emit()
+            reader.readAtMostTo(buffer, Int.MAX_VALUE.toLong())
             buffer.skip(i.toLong())
-            assertEquals("God help us, we're in the hands of engineers.", buffer.readUtf8String())
+            assertEquals(toWrite, buffer.readUtf8String())
             after()
         }
     }

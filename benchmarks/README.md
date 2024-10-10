@@ -123,8 +123,8 @@ JsonSerializationBenchmark.kotlinxToStream       thrpt    5    914737.943 ±  86
 ## SlowReaderBenchmark
 
 Benchmark                       (type)   Mode  Cnt  Score   Error  Units
-SlowReaderBenchmark.readerJayo    jayo  thrpt    5  1.386 ± 0.071  ops/s
-SlowReaderBenchmark.sourceOkio    okio  thrpt    5  0.732 ± 0.035  ops/s
+SlowReaderBenchmark.readerJayo    jayo  thrpt    5  1.401 ± 0.092  ops/s
+SlowReaderBenchmark.sourceOkio    okio  thrpt    5  0.717 ± 0.080  ops/s
 
 ## SlowWriterBenchmark
 
