@@ -485,7 +485,7 @@ public final class RealBuffer implements Buffer {
                             if (!negative) {
                                 buffer.readByte(); // Skip negative sign.
                             }
-                            throw new NumberFormatException("Number too large: " + buffer.readUtf8String());
+                            throw new NumberFormatException("Number too large: " + buffer.readString());
                         }
                     }
                     value *= 10L;
@@ -570,7 +570,7 @@ public final class RealBuffer implements Buffer {
                 if ((value & -0x1000000000000000L) != 0L) {
                     try (final var buffer = new RealBuffer()) {
                         buffer.writeHexadecimalUnsignedLong(value).writeByte(b);
-                        throw new NumberFormatException("Number too large: " + buffer.readUtf8String());
+                        throw new NumberFormatException("Number too large: " + buffer.readString());
                     }
                 }
 
@@ -649,12 +649,12 @@ public final class RealBuffer implements Buffer {
             byteStringBuilder.positions.add(copyPos);
             if (offset <= byteCount) {
                 if (finished) {
-                    // if a write is ongoing, we do not remove the segment, in this case we increment its pos
                     if (head.tryRemove()) {
                         segmentQueue.decrementSize(segmentSize);
                         segmentQueue.removeHead(head);
                         SegmentPool.recycle(head);
                     } else {
+                        // if a write is ongoing, we do not remove the segment, in this case we increment its pos
                         head.pos += segmentSize;
                         segmentQueue.decrementSize(segmentSize);
                     }
@@ -688,6 +688,19 @@ public final class RealBuffer implements Buffer {
     }
 
     public @NonNull Utf8 readUtf8(final @NonNegative long byteCount) {
+        return readUtf8Private(byteCount, false);
+    }
+
+    @Override
+    public @NonNull Utf8 readAscii() {
+        return readAscii(segmentQueue.size());
+    }
+
+    public @NonNull Utf8 readAscii(final @NonNegative long byteCount) {
+        return readUtf8Private(byteCount, true);
+    }
+
+    private @NonNull Utf8 readUtf8Private(final @NonNegative long byteCount, final boolean isAscii) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
@@ -712,14 +725,9 @@ public final class RealBuffer implements Buffer {
                 directory[i] = byteStringBuilder.offsets.get(i);
                 directory[i + size] = byteStringBuilder.positions.get(i);
             }
-            return new SegmentedUtf8(segments, directory);
+            return new SegmentedUtf8(segments, directory, isAscii);
         } else {
-            if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8({1}), will return a " +
-                                "byte array based non-segmented Utf8{2}",
-                        segmentQueue.hashCode(), byteCount, System.lineSeparator());
-            }
-            return new RealUtf8(readByteArray(byteCount), false);
+            return new RealUtf8(readByteArray(byteCount), isAscii);
         }
     }
 
@@ -766,12 +774,12 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull String readUtf8String() {
+    public @NonNull String readString() {
         return readString(segmentQueue.size(), StandardCharsets.UTF_8);
     }
 
     @Override
-    public @NonNull String readUtf8String(final @NonNegative long byteCount) {
+    public @NonNull String readString(final @NonNegative long byteCount) {
         return readString(byteCount, StandardCharsets.UTF_8);
     }
 
@@ -815,26 +823,26 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @Nullable String readUtf8Line() {
+    public @Nullable String readLine() {
         final var newline = indexOf((byte) ((int) '\n'));
 
         if (newline != -1L) {
             return Utf8Utils.readUtf8Line(this, newline);
         }
         if (segmentQueue.size() != 0L) {
-            return readUtf8String(segmentQueue.size());
+            return readString(segmentQueue.size());
         }
 
         return null;
     }
 
     @Override
-    public @NonNull String readUtf8LineStrict() {
-        return readUtf8LineStrict(Long.MAX_VALUE);
+    public @NonNull String readLineStrict() {
+        return readLineStrict(Long.MAX_VALUE);
     }
 
     @Override
-    public @NonNull String readUtf8LineStrict(final @NonNegative long limit) {
+    public @NonNull String readLineStrict(final @NonNegative long limit) {
         if (limit < 0L) {
             throw new IllegalArgumentException("limit < 0: " + limit);
         }
@@ -1146,26 +1154,14 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer writeUtf8(final @NonNull Utf8 utf8) {
-        return write(utf8);
+    public @NonNull Buffer write(final @NonNull CharSequence charSequence) {
+        return write(charSequence, 0, charSequence.length());
     }
 
     @Override
-    public @NonNull Buffer writeUtf8(final @NonNull Utf8 utf8,
-                                     final @NonNegative int offset,
-                                     final @NonNegative int byteCount) {
-        return write(utf8, offset, byteCount);
-    }
-
-    @Override
-    public @NonNull Buffer writeUtf8(final @NonNull CharSequence charSequence) {
-        return writeUtf8(charSequence, 0, charSequence.length());
-    }
-
-    @Override
-    public @NonNull Buffer writeUtf8(final @NonNull CharSequence charSequence,
-                                     final @NonNegative int startIndex,
-                                     final @NonNegative int endIndex) {
+    public @NonNull Buffer write(final @NonNull CharSequence charSequence,
+                                 final @NonNegative int startIndex,
+                                 final @NonNegative int endIndex) {
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start writeUtf8 {1} bytes{2}",
                     segmentQueue.hashCode(), endIndex - startIndex, System.lineSeparator());
@@ -1310,15 +1306,15 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer writeString(final @NonNull String string, final @NonNull Charset charset) {
-        return writeString(string, 0, string.length(), charset);
+    public @NonNull Buffer write(final @NonNull String string, final @NonNull Charset charset) {
+        return this.write(string, 0, string.length(), charset);
     }
 
     @Override
-    public @NonNull Buffer writeString(final @NonNull String string,
-                                       final @NonNegative int startIndex,
-                                       final @NonNegative int endIndex,
-                                       final @NonNull Charset charset) {
+    public @NonNull Buffer write(final @NonNull String string,
+                                 final @NonNegative int startIndex,
+                                 final @NonNegative int endIndex,
+                                 final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         if (startIndex < 0) {
             throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
@@ -1331,7 +1327,7 @@ public final class RealBuffer implements Buffer {
         }
         // fast-path#1 for UTF-8 encoding
         if (charset == StandardCharsets.UTF_8) {
-            return writeUtf8(string, startIndex, endIndex);
+            return write(string, startIndex, endIndex);
         }
 
         // fast-path#2 for ISO_8859_1 encoding
@@ -1495,7 +1491,7 @@ public final class RealBuffer implements Buffer {
         if (_l < 0L) {
             _l = -_l;
             if (_l < 0L) { // Only true for Long.MIN_VALUE.
-                return writeUtf8("-9223372036854775808");
+                return write("-9223372036854775808");
             }
             negative = true;
         }

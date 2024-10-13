@@ -33,7 +33,7 @@ public final class ReadPathLineByLine {
     public void readLines(Path path) {
         try (final var fileReader = Jayo.buffer(Jayo.reader(path))) {
             while (true) {
-                String line = fileReader.readUtf8Line();
+                String line = fileReader.readLine();
                 if (line == null) {
                     break;
                 }

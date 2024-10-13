@@ -41,45 +41,45 @@ class BufferTest {
     @Test
     fun copyToBuffer() {
         val reader = RealBuffer()
-        reader.write("party".encodeToByteString())
+        reader.write("party".encodeToUtf8())
 
         val target = RealBuffer()
         reader.copyTo(target)
-        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("party")
-        assertThat(reader.readByteString().decodeToUtf8()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToString()).isEqualTo("party")
+        assertThat(reader.readByteString().decodeToString()).isEqualTo("party")
     }
 
     @Test
     fun copyToBufferWithOffset() {
         val reader = RealBuffer()
-        reader.write("party".encodeToByteString())
+        reader.write("party".encodeToUtf8())
 
         val target = RealBuffer()
         reader.copyTo(target, 2L)
-        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("rty")
-        assertThat(reader.readByteString().decodeToUtf8()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToString()).isEqualTo("rty")
+        assertThat(reader.readByteString().decodeToString()).isEqualTo("party")
     }
 
     @Test
     fun copyToBufferWithByteCount() {
         val reader = RealBuffer()
-        reader.write("party".encodeToByteString())
+        reader.write("party".encodeToUtf8())
 
         val target = RealBuffer()
         reader.copyTo(target, 0L, 3L)
-        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("par")
-        assertThat(reader.readByteString().decodeToUtf8()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToString()).isEqualTo("par")
+        assertThat(reader.readByteString().decodeToString()).isEqualTo("party")
     }
 
     @Test
     fun copyToBufferWithOffsetAndByteCount() {
         val reader = RealBuffer()
-        reader.write("party".encodeToByteString())
+        reader.write("party".encodeToUtf8())
 
         val target = RealBuffer()
         reader.copyTo(target, 1L, 3L)
-        assertThat(target.readByteString().decodeToUtf8()).isEqualTo("art")
-        assertThat(reader.readByteString().decodeToUtf8()).isEqualTo("party")
+        assertThat(target.readByteString().decodeToString()).isEqualTo("art")
+        assertThat(reader.readByteString().decodeToString()).isEqualTo("party")
     }
 
     @Test
@@ -91,20 +91,20 @@ class BufferTest {
     @Test
     fun completeSegmentByteCountOnBufferWithFullSegments() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("a".repeat(Segment.SIZE * 4))
+        buffer.write("a".repeat(Segment.SIZE * 4))
         assertThat(buffer.completeSegmentByteCount()).isEqualTo(Segment.SIZE * 4L)
     }
 
     @Test
     fun completeSegmentByteCountOnBufferWithIncompleteTailSegment() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("a".repeat(Segment.SIZE * 4 - 10))
+        buffer.write("a".repeat(Segment.SIZE * 4 - 10))
         assertThat(buffer.completeSegmentByteCount()).isEqualTo(Segment.SIZE * 3L)
     }
 
     @Test
     fun testHash() {
-        val buffer = RealBuffer().apply { write("Kevin".encodeToByteString()) }
+        val buffer = RealBuffer().apply { write("Kevin".encodeToUtf8()) }
         with(buffer) {
             assertThat(hash(Digests.MD5).hex()).isEqualTo("f1cd318e412b5f7226e5f377a9544ff7")
             assertThat(hash(Digests.SHA_1).hex()).isEqualTo("e043899daa0c7add37bc99792b2c045d6abbc6dc")
@@ -141,8 +141,8 @@ class BufferTest {
 
     @Test
     fun testHMac() {
-        val buffer = RealBuffer().apply { write("Kevin".encodeToByteString()) }
-        val key = "Brandon".encodeToByteString()
+        val buffer = RealBuffer().apply { write("Kevin".encodeToUtf8()) }
+        val key = "Brandon".encodeToUtf8()
         with(buffer) {
             assertThat(hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo("cd5478da9993e894de891a6d680a88fb")
             assertThat(hmac(Hmacs.HMAC_SHA_1, key).hex()).isEqualTo("46eedc331e6f92c801808fd5bfc5424afe659402")
@@ -179,7 +179,7 @@ class BufferTest {
 
     @Test
     fun getByte() {
-        val actual = RealBuffer().writeUtf8("abc")
+        val actual = RealBuffer().write("abc")
         assertThat(actual.getByte(0)).isEqualTo('a'.code.toByte())
         assertThat(actual.getByte(1)).isEqualTo('b'.code.toByte())
         assertThat(actual.getByte(2)).isEqualTo('c'.code.toByte())
@@ -192,59 +192,59 @@ class BufferTest {
     @Test
     fun copyToOutputStream() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream())
-        assertThat(target.readUtf8String()).isEqualTo("party")
-        assertThat(reader.readUtf8String()).isEqualTo("party")
+        assertThat(target.readString()).isEqualTo("party")
+        assertThat(reader.readString()).isEqualTo("party")
     }
 
     @Test
     fun copyToOutputStreamWithOffset() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 2L)
-        assertThat(target.readUtf8String()).isEqualTo("rty")
-        assertThat(reader.readUtf8String()).isEqualTo("party")
+        assertThat(target.readString()).isEqualTo("rty")
+        assertThat(reader.readString()).isEqualTo("party")
     }
 
     @Test
     fun copyToOutputStreamWithByteCount() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 0L, 3L)
-        assertThat(target.readUtf8String()).isEqualTo("par")
-        assertThat(reader.readUtf8String()).isEqualTo("party")
+        assertThat(target.readString()).isEqualTo("par")
+        assertThat(reader.readString()).isEqualTo("party")
     }
 
     @Test
     fun copyToOutputStreamWithOffsetAndByteCount() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 1L, 3L)
-        assertThat(target.readUtf8String()).isEqualTo("art")
-        assertThat(reader.readUtf8String()).isEqualTo("party")
+        assertThat(target.readString()).isEqualTo("art")
+        assertThat(reader.readString()).isEqualTo("party")
     }
 
     @Test
     fun copyToOutputStreamMultiSegments() {
         val reader = RealBuffer()
-        reader.writeUtf8(
+        reader.write(
             "a".repeat(Segment.SIZE + 5) +
                     "b".repeat(Segment.SIZE) + 5
         )
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 5L, Segment.SIZE.toLong())
-        assertThat(target.readUtf8String()).isEqualTo("a".repeat(Segment.SIZE))
-        assertThat(reader.readUtf8String()).isEqualTo(
+        assertThat(target.readString()).isEqualTo("a".repeat(Segment.SIZE))
+        assertThat(reader.readString()).isEqualTo(
             "a".repeat(Segment.SIZE + 5) +
                     "b".repeat(Segment.SIZE) + 5
         )
@@ -253,52 +253,52 @@ class BufferTest {
     @Test
     fun writeToOutputStream() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.readTo(target.asOutputStream())
-        assertThat(target.readUtf8String()).isEqualTo("party")
-        assertThat(reader.readUtf8String()).isEqualTo("")
+        assertThat(target.readString()).isEqualTo("party")
+        assertThat(reader.readString()).isEqualTo("")
     }
 
     @Test
     fun writeToOutputStreamWithByteCount() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.readTo(target.asOutputStream(), 3L)
-        assertThat(target.readUtf8String()).isEqualTo("par")
-        assertThat(reader.readUtf8String()).isEqualTo("ty")
+        assertThat(target.readString()).isEqualTo("par")
+        assertThat(reader.readString()).isEqualTo("ty")
     }
 
     @Test
     fun writeToOutputStreamMultiSegments() {
         val reader = RealBuffer()
-        reader.writeUtf8(
+        reader.write(
             "a".repeat(Segment.SIZE + 5) +
                     "b".repeat(Segment.SIZE + 5)
         )
 
         val target = RealBuffer()
         reader.readTo(target.asOutputStream(), Segment.SIZE.toLong())
-        assertThat(target.readUtf8String()).isEqualTo("a".repeat(Segment.SIZE))
-        assertThat(reader.readUtf8String()).isEqualTo("aaaaa" + "b".repeat(Segment.SIZE + 5))
+        assertThat(target.readString()).isEqualTo("a".repeat(Segment.SIZE))
+        assertThat(reader.readString()).isEqualTo("aaaaa" + "b".repeat(Segment.SIZE + 5))
     }
 
     @Test
     fun readAndWriteUtf8() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("ab")
+        buffer.write("ab")
         assertEquals(2, buffer.byteSize())
-        buffer.writeUtf8("cdef")
+        buffer.write("cdef")
         assertEquals(6, buffer.byteSize())
-        assertEquals("abcd", buffer.readUtf8String(4))
+        assertEquals("abcd", buffer.readString(4))
         assertEquals(2, buffer.byteSize())
-        assertEquals("ef", buffer.readUtf8String(2))
+        assertEquals("ef", buffer.readString(2))
         assertEquals(0, buffer.byteSize())
         assertFailsWith<JayoEOFException> {
-            buffer.readUtf8String(1)
+            buffer.readString(1)
         }
     }
 
@@ -308,12 +308,12 @@ class BufferTest {
 
         assertEquals(
             "Buffer(size=10 hex=610d0a620a630d645c65)",
-            RealBuffer().also { it.writeUtf8("a\r\nb\nc\rd\\e") }.toString()
+            RealBuffer().also { it.write("a\r\nb\nc\rd\\e") }.toString()
         )
 
         assertEquals(
             "Buffer(size=11 hex=547972616e6e6f73617572)",
-            RealBuffer().also { it.writeUtf8("Tyrannosaur") }.toString()
+            RealBuffer().also { it.write("Tyrannosaur") }.toString()
         )
 
         assertEquals(
@@ -337,19 +337,19 @@ class BufferTest {
     @Test
     fun multipleSegmentBuffers() {
         val buffer = RealBuffer()
-        buffer.writeUtf8('a'.repeat(1000))
-        buffer.writeUtf8('b'.repeat(2500))
-        buffer.writeUtf8('c'.repeat(5000))
-        buffer.writeUtf8('d'.repeat(10000))
-        buffer.writeUtf8('e'.repeat(25000))
-        buffer.writeUtf8('f'.repeat(50000))
+        buffer.write('a'.repeat(1000))
+        buffer.write('b'.repeat(2500))
+        buffer.write('c'.repeat(5000))
+        buffer.write('d'.repeat(10000))
+        buffer.write('e'.repeat(25000))
+        buffer.write('f'.repeat(50000))
 
-        assertEquals('a'.repeat(999), buffer.readUtf8String(999)) // a...a
-        assertEquals("a" + 'b'.repeat(2500) + "c", buffer.readUtf8String(2502)) // ab...bc
-        assertEquals('c'.repeat(4998), buffer.readUtf8String(4998)) // c...c
-        assertEquals("c" + 'd'.repeat(10000) + "e", buffer.readUtf8String(10002)) // cd...de
-        assertEquals('e'.repeat(24998), buffer.readUtf8String(24998)) // e...e
-        assertEquals("e" + 'f'.repeat(50000), buffer.readUtf8String(50001)) // ef...f
+        assertEquals('a'.repeat(999), buffer.readString(999)) // a...a
+        assertEquals("a" + 'b'.repeat(2500) + "c", buffer.readString(2502)) // ab...bc
+        assertEquals('c'.repeat(4998), buffer.readString(4998)) // c...c
+        assertEquals("c" + 'd'.repeat(10000) + "e", buffer.readString(10002)) // cd...de
+        assertEquals('e'.repeat(24998), buffer.readString(24998)) // e...e
+        assertEquals("e" + 'f'.repeat(50000), buffer.readString(50001)) // ef...f
         assertEquals(0, buffer.byteSize())
     }
 
@@ -385,12 +385,12 @@ class BufferTest {
         val buffer = RealBuffer()
         for (s in contents) {
             val reader = RealBuffer()
-            reader.writeUtf8(s)
+            reader.write(s)
             buffer.transferFrom(reader)
             expected.append(s)
         }
         val segmentSizes = segmentSizes(buffer)
-        assertEquals(expected.toString(), buffer.readUtf8String(expected.length.toLong()))
+        assertEquals(expected.toString(), buffer.readString(expected.length.toLong()))
         return segmentSizes
     }
 
@@ -400,10 +400,10 @@ class BufferTest {
         val writeSize = Segment.SIZE / 2 + 1
 
         val writer = RealBuffer()
-        writer.writeUtf8('b'.repeat(Segment.SIZE - 10))
+        writer.write('b'.repeat(Segment.SIZE - 10))
 
         val reader = RealBuffer()
-        reader.writeUtf8('a'.repeat(Segment.SIZE * 2))
+        reader.write('a'.repeat(Segment.SIZE * 2))
         writer.write(reader, writeSize.toLong())
 
         assertEquals(listOf(Segment.SIZE - 10, writeSize), segmentSizes(writer))
@@ -416,10 +416,10 @@ class BufferTest {
         val writeSize = Segment.SIZE / 2 - 1
 
         val writer = RealBuffer()
-        writer.writeUtf8('b'.repeat(Segment.SIZE - 10))
+        writer.write('b'.repeat(Segment.SIZE - 10))
 
         val reader = RealBuffer()
-        reader.writeUtf8('a'.repeat(Segment.SIZE * 2))
+        reader.write('a'.repeat(Segment.SIZE * 2))
         writer.write(reader, writeSize.toLong())
 
         assertEquals(listOf(Segment.SIZE - 10, writeSize), segmentSizes(writer))
@@ -429,10 +429,10 @@ class BufferTest {
     @Test
     fun writePrefixDoesntSplit() {
         val writer = RealBuffer()
-        writer.writeUtf8('b'.repeat(10))
+        writer.write('b'.repeat(10))
 
         val reader = RealBuffer()
-        reader.writeUtf8('a'.repeat(Segment.SIZE * 2))
+        reader.write('a'.repeat(Segment.SIZE * 2))
         writer.write(reader, 20)
 
         assertEquals(listOf(30), segmentSizes(writer))
@@ -444,11 +444,11 @@ class BufferTest {
     @Test
     fun writePrefixDoesntSplitButRequiresCompact() {
         val writer = RealBuffer()
-        writer.writeUtf8('b'.repeat(Segment.SIZE - 10)) // limit = size - 10
-        writer.readUtf8String((Segment.SIZE - 20).toLong()) // pos = size = 20
+        writer.write('b'.repeat(Segment.SIZE - 10)) // limit = size - 10
+        writer.readString((Segment.SIZE - 20).toLong()) // pos = size = 20
 
         val reader = RealBuffer()
-        reader.writeUtf8('a'.repeat(Segment.SIZE * 2))
+        reader.write('a'.repeat(Segment.SIZE * 2))
         writer.write(reader, 20)
 
         assertEquals(listOf(30), segmentSizes(writer))
@@ -468,39 +468,39 @@ class BufferTest {
     @Test
     fun moveAllRequestedBytesWithRead() {
         val writer = RealBuffer()
-        writer.writeUtf8('a'.repeat(10))
+        writer.write('a'.repeat(10))
 
         val reader = RealBuffer()
-        reader.writeUtf8('b'.repeat(15))
+        reader.write('b'.repeat(15))
 
         assertEquals(10, reader.readAtMostTo(writer, 10))
         assertEquals(20, writer.byteSize())
         assertEquals(5, reader.byteSize())
-        assertEquals('a'.repeat(10) + 'b'.repeat(10), writer.readUtf8String(20))
+        assertEquals('a'.repeat(10) + 'b'.repeat(10), writer.readString(20))
     }
 
     @Test
     fun moveFewerThanRequestedBytesWithRead() {
         val writer = RealBuffer()
-        writer.writeUtf8('a'.repeat(10))
+        writer.write('a'.repeat(10))
 
         val reader = RealBuffer()
-        reader.writeUtf8('b'.repeat(20))
+        reader.write('b'.repeat(20))
 
         assertEquals(20, reader.readAtMostTo(writer, 25))
         assertEquals(30, writer.byteSize())
         assertEquals(0, reader.byteSize())
-        assertEquals('a'.repeat(10) + 'b'.repeat(20), writer.readUtf8String(30))
+        assertEquals('a'.repeat(10) + 'b'.repeat(20), writer.readString(30))
     }
 
     @Test
     fun indexOfWithOffset() {
         val buffer = RealBuffer()
         val halfSegment = Segment.SIZE / 2
-        buffer.writeUtf8('a'.repeat(halfSegment))
-        buffer.writeUtf8('b'.repeat(halfSegment))
-        buffer.writeUtf8('c'.repeat(halfSegment))
-        buffer.writeUtf8('d'.repeat(halfSegment))
+        buffer.write('a'.repeat(halfSegment))
+        buffer.write('b'.repeat(halfSegment))
+        buffer.write('c'.repeat(halfSegment))
+        buffer.write('d'.repeat(halfSegment))
         assertEquals(0, buffer.indexOf('a'.code.toByte(), 0))
         assertEquals((halfSegment - 1).toLong(), buffer.indexOf('a'.code.toByte(), (halfSegment - 1).toLong()))
         assertEquals(halfSegment.toLong(), buffer.indexOf('b'.code.toByte(), (halfSegment - 1).toLong()))
@@ -514,9 +514,9 @@ class BufferTest {
     @Test
     fun byteAt() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("a")
-        buffer.writeUtf8('b'.repeat(Segment.SIZE))
-        buffer.writeUtf8("c")
+        buffer.write("a")
+        buffer.write('b'.repeat(Segment.SIZE))
+        buffer.write("c")
         assertEquals('a'.code.toLong(), buffer.getByte(0).toLong())
         assertEquals('a'.code.toLong(), buffer.getByte(0).toLong()) // getByte doesn't mutate!
         assertEquals('c'.code.toLong(), buffer.getByte(buffer.byteSize() - 1).toLong())
@@ -544,21 +544,21 @@ class BufferTest {
     fun writePrefixToEmptyBuffer() {
         val writer = RealBuffer()
         val reader = RealBuffer()
-        reader.writeUtf8("abcd")
+        reader.write("abcd")
         writer.write(reader, 2)
-        assertEquals("ab", writer.readUtf8String(2))
+        assertEquals("ab", writer.readString(2))
     }
 
     // Buffer don't override equals and hashCode
     @Test
     fun equalsAndHashCode() {
-        val a = RealBuffer().also { it.writeUtf8("dog") }
+        val a = RealBuffer().also { it.write("dog") }
         assertEquals(a, a)
 
-        val b = RealBuffer().also { it.writeUtf8("hotdog") }
+        val b = RealBuffer().also { it.write("hotdog") }
         assertTrue(a != b)
 
-        b.readUtf8String(3) // Leaves b containing 'dog'.
+        b.readString(3) // Leaves b containing 'dog'.
         assertTrue(a != b)
     }
 
@@ -569,14 +569,14 @@ class BufferTest {
     @Test
     fun readAllWritesAllSegmentsAtOnce() {
         val write1 = RealBuffer()
-        write1.writeUtf8(
+        write1.write(
             'a'.repeat(Segment.SIZE) +
                     'b'.repeat(Segment.SIZE) +
                     'c'.repeat(Segment.SIZE)
         )
 
         val reader = RealBuffer()
-        reader.writeUtf8(
+        reader.write(
             'a'.repeat(Segment.SIZE) +
                     'b'.repeat(Segment.SIZE) +
                     'c'.repeat(Segment.SIZE)
@@ -591,59 +591,59 @@ class BufferTest {
 
     @Test
     fun writeAllMultipleSegments() {
-        val reader = RealBuffer().also { it.writeUtf8('a'.repeat(Segment.SIZE * 3)) }
+        val reader = RealBuffer().also { it.write('a'.repeat(Segment.SIZE * 3)) }
         val writer = RealBuffer()
 
         assertEquals((Segment.SIZE * 3).toLong(), writer.transferFrom(reader))
         assertEquals(0, reader.byteSize())
-        assertEquals('a'.repeat(Segment.SIZE * 3), writer.readUtf8String())
+        assertEquals('a'.repeat(Segment.SIZE * 3), writer.readString())
     }
 
     @Test
     fun copyTo() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target, 1, 3)
 
-        assertEquals("art", target.readUtf8String())
-        assertEquals("party", reader.readUtf8String())
+        assertEquals("art", target.readString())
+        assertEquals("party", reader.readString())
     }
 
     @Test
     fun copyToAll() {
         val reader = RealBuffer()
-        reader.writeUtf8("hello")
+        reader.write("hello")
 
         val target = RealBuffer()
         reader.copyTo(target)
 
-        assertEquals("hello", reader.readUtf8String())
-        assertEquals("hello", target.readUtf8String())
+        assertEquals("hello", reader.readString())
+        assertEquals("hello", target.readString())
     }
 
     @Test
     fun copyToWithOnlyStartIndex() {
         val reader = RealBuffer()
-        reader.writeUtf8("hello")
+        reader.write("hello")
 
         val target = RealBuffer()
         reader.copyTo(target, 1, reader.byteSize() - 1)
 
-        assertEquals("hello", reader.readUtf8String())
-        assertEquals("ello", target.readUtf8String())
+        assertEquals("hello", reader.readString())
+        assertEquals("ello", target.readString())
     }
 
     @Test
     fun copyToWithOnlyEndIndex() {
         val reader = RealBuffer()
-        reader.writeUtf8("hello")
+        reader.write("hello")
 
         val target = RealBuffer()
         reader.copyTo(target, 0, 1)
-        assertEquals("hello", reader.readUtf8String())
-        assertEquals("h", target.readUtf8String())
+        assertEquals("hello", reader.readString())
+        assertEquals("h", target.readString())
     }
 
     @Test
@@ -654,15 +654,15 @@ class BufferTest {
         val ds = 'd'.repeat(Segment.SIZE)
 
         val reader = RealBuffer()
-        reader.writeUtf8(aStr)
-        reader.writeUtf8(bs)
-        reader.writeUtf8(cs)
+        reader.write(aStr)
+        reader.write(bs)
+        reader.write(cs)
 
         val target = RealBuffer()
-        target.writeUtf8(ds)
+        target.write(ds)
 
         reader.copyTo(target, aStr.length.toLong(), (bs.length + cs.length).toLong())
-        assertEquals(ds + bs + cs, target.readUtf8String())
+        assertEquals(ds + bs + cs, target.readString())
     }
 
     @Test
@@ -673,15 +673,15 @@ class BufferTest {
         val ds = 'd'.repeat(Segment.SIZE + 8)
 
         val reader = RealBuffer()
-        reader.writeUtf8(aStr)
-        reader.writeUtf8(bs)
-        reader.writeUtf8(cs)
+        reader.write(aStr)
+        reader.write(bs)
+        reader.write(cs)
 
         val target = RealBuffer()
-        target.writeUtf8(ds)
+        target.write(ds)
 
         reader.copyTo(target, aStr.length.toLong(), (bs.length + cs.length).toLong())
-        assertEquals(ds + bs + cs, target.readUtf8String())
+        assertEquals(ds + bs + cs, target.readString())
     }
 
     @Test
@@ -690,82 +690,82 @@ class BufferTest {
         val bs = 'b'.repeat(Segment.SIZE)
 
         val reader = RealBuffer()
-        reader.writeUtf8(aStr)
-        reader.writeUtf8(bs)
+        reader.write(aStr)
+        reader.write(bs)
 
         reader.copyTo(reader, 0, reader.byteSize())
-        assertEquals(aStr + bs + aStr + bs, reader.readUtf8String())
+        assertEquals(aStr + bs + aStr + bs, reader.readString())
     }
 
     @Test
     fun copyToEmptyReader() {
         val reader = RealBuffer()
-        val target = RealBuffer().also { it.writeUtf8("aaa") }
+        val target = RealBuffer().also { it.write("aaa") }
         reader.copyTo(target, 0L, 0L)
-        assertEquals("", reader.readUtf8String())
-        assertEquals("aaa", target.readUtf8String())
+        assertEquals("", reader.readString())
+        assertEquals("aaa", target.readString())
     }
 
     @Test
     fun copyToEmptyTarget() {
-        val reader = RealBuffer().also { it.writeUtf8("aaa") }
+        val reader = RealBuffer().also { it.write("aaa") }
         val target = RealBuffer()
         reader.copyTo(target, 0L, 3L)
-        assertEquals("aaa", reader.readUtf8String())
-        assertEquals("aaa", target.readUtf8String())
+        assertEquals("aaa", reader.readString())
+        assertEquals("aaa", target.readString())
     }
 
     @Test
     fun cloneDoesNotObserveWritesToOriginal() {
         val original = RealBuffer()
         val clone: Buffer = original.copy()
-        original.writeUtf8("abc")
+        original.write("abc")
         assertEquals(0, clone.byteSize())
     }
 
     @Test
     fun cloneDoesNotObserveReadsFromOriginal() {
         val original = RealBuffer()
-        original.writeUtf8("abc")
+        original.write("abc")
         val clone: Buffer = original.copy()
-        assertEquals("abc", original.readUtf8String(3))
+        assertEquals("abc", original.readString(3))
         assertEquals(3, clone.byteSize())
-        assertEquals("ab", clone.readUtf8String(2))
+        assertEquals("ab", clone.readString(2))
     }
 
     @Test
     fun originalDoesNotObserveWritesToClone() {
         val original = RealBuffer()
         val clone: Buffer = original.copy()
-        clone.writeUtf8("abc")
+        clone.write("abc")
         assertEquals(0, original.byteSize())
     }
 
     @Test
     fun originalDoesNotObserveReadsFromClone() {
         val original = RealBuffer()
-        original.writeUtf8("abc")
+        original.write("abc")
         val clone: Buffer = original.copy()
-        assertEquals("abc", clone.readUtf8String(3))
+        assertEquals("abc", clone.readString(3))
         assertEquals(3, original.byteSize())
-        assertEquals("ab", original.readUtf8String(2))
+        assertEquals("ab", original.readString(2))
     }
 
     @Test
     fun cloneMultipleSegments() {
         val original = RealBuffer()
-        original.writeUtf8("a".repeat(Segment.SIZE * 3))
+        original.write("a".repeat(Segment.SIZE * 3))
         val clone: Buffer = original.copy()
-        original.writeUtf8("b".repeat(Segment.SIZE * 3))
-        clone.writeUtf8("c".repeat(Segment.SIZE * 3))
+        original.write("b".repeat(Segment.SIZE * 3))
+        clone.write("c".repeat(Segment.SIZE * 3))
 
         assertEquals(
             "a".repeat(Segment.SIZE * 3) + "b".repeat(Segment.SIZE * 3),
-            original.readUtf8String((Segment.SIZE * 6).toLong())
+            original.readString((Segment.SIZE * 6).toLong())
         )
         assertEquals(
             "a".repeat(Segment.SIZE * 3) + "c".repeat(Segment.SIZE * 3),
-            clone.readUtf8String((Segment.SIZE * 6).toLong())
+            clone.readString((Segment.SIZE * 6).toLong())
         )
     }
 
@@ -795,8 +795,8 @@ class BufferTest {
     fun snapshot() {
         val buffer = RealBuffer()
         assertEquals(ByteString.EMPTY, buffer.snapshot())
-        buffer.writeUtf8("hello")
-        assertEquals("hello".encodeToByteString(), buffer.snapshot())
+        buffer.write("hello")
+        assertEquals("hello".encodeToUtf8(), buffer.snapshot())
         buffer.clear()
         assertEquals(ByteString.EMPTY, buffer.snapshot())
     }
@@ -804,42 +804,42 @@ class BufferTest {
     @Test
     fun copyToSkippingSegments() {
         val reader = RealBuffer()
-        reader.writeUtf8("a".repeat(Segment.SIZE * 2))
-        reader.writeUtf8("b".repeat(Segment.SIZE * 2))
+        reader.write("a".repeat(Segment.SIZE * 2))
+        reader.write("b".repeat(Segment.SIZE * 2))
         val out = ByteArrayOutputStream()
         reader.copyTo(out, Segment.SIZE * 2 + 1L, 3L)
         assertEquals("bbb", out.toString())
         assertEquals(
             "a".repeat(Segment.SIZE * 2) + "b".repeat(Segment.SIZE * 2),
-            reader.readUtf8String(Segment.SIZE * 4L)
+            reader.readString(Segment.SIZE * 4L)
         )
     }
 
     @Test
     fun copyToStream() {
-        val buffer = RealBuffer().also { it.writeUtf8("hello, world!") }
+        val buffer = RealBuffer().also { it.write("hello, world!") }
         val out = ByteArrayOutputStream()
         buffer.copyTo(out)
         val outString = String(out.toByteArray(), Charsets.UTF_8)
         assertEquals("hello, world!", outString)
-        assertEquals("hello, world!", buffer.readUtf8String())
+        assertEquals("hello, world!", buffer.readString())
     }
 
     @Test
     fun writeToSpanningSegments() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("a".repeat(Segment.SIZE * 2))
-        buffer.writeUtf8("b".repeat(Segment.SIZE * 2))
+        buffer.write("a".repeat(Segment.SIZE * 2))
+        buffer.write("b".repeat(Segment.SIZE * 2))
         val out = ByteArrayOutputStream()
         buffer.skip(10)
         buffer.readTo(out, Segment.SIZE * 3L)
         assertEquals("a".repeat(Segment.SIZE * 2 - 10) + "b".repeat(Segment.SIZE + 10), out.toString())
-        assertEquals("b".repeat(Segment.SIZE - 10), buffer.readUtf8String(buffer.byteSize()))
+        assertEquals("b".repeat(Segment.SIZE - 10), buffer.readString(buffer.byteSize()))
     }
 
     @Test
     fun writeToStream() {
-        val buffer = RealBuffer().also { it.writeUtf8("hello, world!") }
+        val buffer = RealBuffer().also { it.write("hello, world!") }
         val out = ByteArrayOutputStream()
         buffer.readTo(out)
         val outString = String(out.toByteArray(), Charsets.UTF_8)
@@ -852,16 +852,16 @@ class BufferTest {
         val input: InputStream = ByteArrayInputStream("hello, world!".toByteArray(Charsets.UTF_8))
         val buffer = RealBuffer()
         buffer.transferFrom(input)
-        val out = buffer.readUtf8String()
+        val out = buffer.readString()
         assertEquals("hello, world!", out)
     }
 
     @Test
     fun readFromSpanningSegments() {
         val input: InputStream = ByteArrayInputStream("hello, world!".toByteArray(Charsets.UTF_8))
-        val buffer = RealBuffer().also { it.writeUtf8("a".repeat(Segment.SIZE - 10)) }
+        val buffer = RealBuffer().also { it.write("a".repeat(Segment.SIZE - 10)) }
         buffer.transferFrom(input)
-        val out = buffer.readUtf8String()
+        val out = buffer.readString()
         assertEquals("a".repeat(Segment.SIZE - 10) + "hello, world!", out)
     }
 
@@ -870,7 +870,7 @@ class BufferTest {
         val input: InputStream = ByteArrayInputStream("hello, world!".toByteArray(Charsets.UTF_8))
         val buffer = RealBuffer()
         buffer.write(input, 10)
-        val out = buffer.readUtf8String()
+        val out = buffer.readString()
         assertEquals("hello, wor", out)
     }
 
@@ -900,7 +900,7 @@ class BufferTest {
     @Test
     fun bufferInputStreamByteByByte() {
         val reader = RealBuffer()
-        reader.writeUtf8("abc")
+        reader.write("abc")
         val input: InputStream = reader.asInputStream()
         assertEquals(3, input.available())
         assertEquals('a'.code, input.read())
@@ -913,7 +913,7 @@ class BufferTest {
     @Test
     fun bufferInputStreamBulkReads() {
         val reader = RealBuffer()
-        reader.writeUtf8("abc")
+        reader.write("abc")
         val byteArray = ByteArray(4)
         Arrays.fill(byteArray, (-5).toByte())
         val input: InputStream = reader.asInputStream()
@@ -927,67 +927,67 @@ class BufferTest {
     @Test
     fun copyToOutputStreamWithStartIndex() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 2)
-        assertEquals("rty", target.readUtf8String())
-        assertEquals("party", reader.readUtf8String())
+        assertEquals("rty", target.readString())
+        assertEquals("party", reader.readString())
     }
 
     @Test
     fun copyToOutputStreamWithEndIndex() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 0, 3)
-        assertEquals("par", target.readUtf8String())
-        assertEquals("party", reader.readUtf8String())
+        assertEquals("par", target.readString())
+        assertEquals("party", reader.readString())
     }
 
     @Test
     fun copyToOutputStreamWithIndices() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 1, 3)
-        assertEquals("art", target.readUtf8String())
-        assertEquals("party", reader.readUtf8String())
+        assertEquals("art", target.readString())
+        assertEquals("party", reader.readString())
     }
 
     @Test
     fun copyToOutputStreamWithEmptyRange() {
         val reader = RealBuffer()
-        reader.writeUtf8("hello")
+        reader.write("hello")
 
         val target = RealBuffer()
         reader.copyTo(target.asOutputStream(), 1, 0)
-        assertEquals("hello", reader.readUtf8String())
-        assertEquals("", target.readUtf8String())
+        assertEquals("hello", reader.readString())
+        assertEquals("", target.readString())
     }
 
     @Test
     fun readToOutputStream() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.readTo(target.asOutputStream())
-        assertEquals("party", target.readUtf8String())
-        assertEquals("", reader.readUtf8String())
+        assertEquals("party", target.readString())
+        assertEquals("", reader.readString())
     }
 
     @Test
     fun readToOutputStreamWithByteCount() {
         val reader = RealBuffer()
-        reader.writeUtf8("party")
+        reader.write("party")
 
         val target = RealBuffer()
         reader.readTo(target.asOutputStream(), 3)
-        assertEquals("par", target.readUtf8String())
-        assertEquals("ty", reader.readUtf8String())
+        assertEquals("par", target.readString())
+        assertEquals("ty", reader.readString())
     }
 
     @Test

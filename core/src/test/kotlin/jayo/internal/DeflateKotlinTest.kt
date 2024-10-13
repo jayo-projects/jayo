@@ -39,7 +39,7 @@ class DeflateKotlinTest {
     fun deflate() {
         val data = Buffer()
         val deflater = Jayo.deflate(data as RawWriter)
-        deflater.buffered().writeUtf8("Hi!").close()
+        deflater.buffered().write("Hi!").close()
         assertEquals("789cf3c854040001ce00d3", data.readByteString().hex())
     }
 
@@ -47,7 +47,7 @@ class DeflateKotlinTest {
     fun deflateWithDeflater() {
         val data = Buffer()
         val deflater = (data as RawWriter).deflate(Deflater(0, true))
-        deflater.buffered().writeUtf8("Hi!").close()
+        deflater.buffered().write("Hi!").close()
         assertEquals("010300fcff486921", data.readByteString().hex())
     }
 
@@ -61,7 +61,7 @@ class DeflateKotlinTest {
         // Close to cause a NullPointerException
         deflater.end()
 
-        val data = Buffer().writeUtf8("They're moving in herds. They do move in herds.")
+        val data = Buffer().write("They're moving in herds. They do move in herds.")
         val deflaterWriter = DeflaterRawWriter(Buffer(), deflater)
 
         val ioe = assertThrows(JayoException::class.java) {
@@ -84,7 +84,7 @@ class DeflateKotlinTest {
         val deflater = Deflater()
         deflater.setLevel(Deflater.NO_COMPRESSION)
         val deflaterWriter = DeflaterRawWriter(mockWriter, deflater)
-        deflaterWriter.write(Buffer().writeUtf8("a".repeat(Segment.SIZE)), Segment.SIZE.toLong())
+        deflaterWriter.write(Buffer().write("a".repeat(Segment.SIZE)), Segment.SIZE.toLong())
         try {
             deflaterWriter.close()
             fail()
@@ -98,13 +98,13 @@ class DeflateKotlinTest {
     fun inflate() {
         val buffer = Buffer().write("789cf3c854040001ce00d3".decodeHex())
         val inflated = (buffer as RawReader).inflate()
-        assertEquals("Hi!", inflated.buffered().readUtf8String())
+        assertEquals("Hi!", inflated.buffered().readString())
     }
 
     @Test
     fun inflateWithInflater() {
         val buffer = Buffer().write("010300fcff486921".decodeHex())
         val inflated = (buffer as Reader).inflate(Inflater(true))
-        assertEquals("Hi!", inflated.buffered().readUtf8String())
+        assertEquals("Hi!", inflated.buffered().readString())
     }
 }

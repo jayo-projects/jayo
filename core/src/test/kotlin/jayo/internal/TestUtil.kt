@@ -23,7 +23,7 @@ package jayo.internal
 
 import jayo.Buffer
 import jayo.ByteString
-import jayo.encodeToByteString
+import jayo.encodeToUtf8
 import org.junit.jupiter.api.Assertions.*
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
@@ -87,7 +87,7 @@ object TestUtil {
             assertFalse(b1 == b3)
             assertFalse(b1.hashCode() == b3.hashCode())
         } else {
-            val b3 = "a".encodeToByteString()
+            val b3 = "a".encodeToUtf8()
             assertFalse(b1 == b3)
             assertFalse(b1.hashCode() == b3.hashCode())
         }
@@ -124,7 +124,7 @@ object TestUtil {
             assertFalse(b1 == b3)
             assertFalse(b1.hashCode() == b3.hashCode())
         } else {
-            val b3 = RealBuffer().writeUtf8("a")
+            val b3 = RealBuffer().write("a")
             assertFalse(b1 == b3)
             assertFalse(b1.hashCode() == b3.hashCode())
         }

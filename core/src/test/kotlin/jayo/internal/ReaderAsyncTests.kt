@@ -5,10 +5,7 @@
 
 package jayo.internal
 
-import jayo.Jayo
-import jayo.buffered
-import jayo.encodeToByteString
-import jayo.reader
+import jayo.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.RepeatedTest
 import java.io.InputStream
@@ -22,7 +19,7 @@ class ReaderAsyncTests {
         val inputStream: InputStream = inputStream(true)
 
         inputStream.reader().buffered().use { reader ->
-            assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
+            assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToUtf8())
         }
     }
 
@@ -31,7 +28,7 @@ class ReaderAsyncTests {
         val inputStream: InputStream = inputStream(true)
 
         inputStream.reader().buffered(true).use { reader ->
-            assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToByteString())
+            assertThat(reader.readByteString()).isEqualTo('a'.repeat(EXPECTED_SIZE).encodeToUtf8())
         }
     }
 

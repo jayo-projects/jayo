@@ -349,7 +349,7 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
     }
 
     @Override
-    public final @NonNull String toString() {
+    public @NonNull String toString() {
         return toByteString().toString();
     }
 

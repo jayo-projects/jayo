@@ -49,15 +49,15 @@ public class BufferJavaTest {
     @Test
     void readAndWriteUtf8() {
         Buffer buffer = new RealBuffer();
-        buffer.writeUtf8("ab");
+        buffer.write("ab");
         assertEquals(2, buffer.byteSize());
-        buffer.writeUtf8("cdëf");
+        buffer.write("cdëf");
         assertEquals(7, buffer.byteSize());
-        assertEquals("abcd", buffer.readUtf8String(4));
+        assertEquals("abcd", buffer.readString(4));
         assertEquals(3, buffer.byteSize());
-        assertEquals("ëf", buffer.readUtf8String(3));
+        assertEquals("ëf", buffer.readString(3));
         assertEquals(0, buffer.byteSize());
-        assertThrows(JayoEOFException.class, () -> buffer.readUtf8String(1));
+        assertThrows(JayoEOFException.class, () -> buffer.readString(1));
     }
 
     /**
@@ -67,9 +67,9 @@ public class BufferJavaTest {
     void bufferToString() {
         assertEquals("Buffer(size=0)", new RealBuffer().toString());
         assertEquals("Buffer(size=10 hex=610d0a620a630d645c65)",
-                new RealBuffer().writeUtf8("a\r\nb\nc\rd\\e").toString());
+                new RealBuffer().write("a\r\nb\nc\rd\\e").toString());
         assertEquals("Buffer(size=11 hex=547972616e6e6f73617572)",
-                new RealBuffer().writeUtf8("Tyrannosaur").toString());
+                new RealBuffer().write("Tyrannosaur").toString());
         assertEquals("Buffer(size=16 hex=74c999cb8872616ec999cb8c73c3b472)", new RealBuffer()
                 .write(ByteString.decodeHex("74c999cb8872616ec999cb8c73c3b472"))
                 .toString());
@@ -84,19 +84,19 @@ public class BufferJavaTest {
     @Test
     void multipleSegmentBuffers() {
         Buffer buffer = new RealBuffer();
-        buffer.writeUtf8(repeat("a", 1000));
-        buffer.writeUtf8(repeat("b", 2500));
-        buffer.writeUtf8(repeat("c", 5000));
-        buffer.writeUtf8(repeat("d", 10000));
-        buffer.writeUtf8(repeat("e", 25000));
-        buffer.writeUtf8(repeat("f", 50000));
+        buffer.write(repeat("a", 1000));
+        buffer.write(repeat("b", 2500));
+        buffer.write(repeat("c", 5000));
+        buffer.write(repeat("d", 10000));
+        buffer.write(repeat("e", 25000));
+        buffer.write(repeat("f", 50000));
 
-        assertEquals(repeat("a", 999), buffer.readUtf8String(999)); // a...a
-        assertEquals("a" + repeat("b", 2500) + "c", buffer.readUtf8String(2502)); // ab...bc
-        assertEquals(repeat("c", 4998), buffer.readUtf8String(4998)); // c...c
-        assertEquals("c" + repeat("d", 10000) + "e", buffer.readUtf8String(10002)); // cd...de
-        assertEquals(repeat("e", 24998), buffer.readUtf8String(24998)); // e...e
-        assertEquals("e" + repeat("f", 50000), buffer.readUtf8String(50001)); // ef...f
+        assertEquals(repeat("a", 999), buffer.readString(999)); // a...a
+        assertEquals("a" + repeat("b", 2500) + "c", buffer.readString(2502)); // ab...bc
+        assertEquals(repeat("c", 4998), buffer.readString(4998)); // c...c
+        assertEquals("c" + repeat("d", 10000) + "e", buffer.readString(10002)); // cd...de
+        assertEquals(repeat("e", 24998), buffer.readString(24998)); // e...e
+        assertEquals("e" + repeat("f", 50000), buffer.readString(50001)); // ef...f
         assertEquals(0, buffer.byteSize());
     }
 
@@ -127,12 +127,12 @@ public class BufferJavaTest {
         Buffer buffer = new RealBuffer();
         for (String s : contents) {
             Buffer reader = new RealBuffer();
-            reader.writeUtf8(s);
+            reader.write(s);
             buffer.transferFrom(reader);
             expected.append(s);
         }
         final var segmentSizes = JayoTestingKt.segmentSizes(buffer);
-        assertEquals(expected.toString(), buffer.readUtf8String(expected.length()));
+        assertEquals(expected.toString(), buffer.readString(expected.length()));
         return segmentSizes;
     }
 
@@ -144,10 +144,10 @@ public class BufferJavaTest {
         long writeSize = Segment.SIZE / 2 + 1;
 
         Buffer writer = new RealBuffer();
-        writer.writeUtf8(repeat("b", Segment.SIZE - 10));
+        writer.write(repeat("b", Segment.SIZE - 10));
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(repeat("a", Segment.SIZE * 2));
+        reader.write(repeat("a", Segment.SIZE * 2));
         writer.write(reader, writeSize);
 
         assertEquals(asList(Segment.SIZE - 10, (int) writeSize), JayoTestingKt.segmentSizes(writer));
@@ -162,10 +162,10 @@ public class BufferJavaTest {
         int writeSize = Segment.SIZE / 2 - 1;
 
         Buffer writer = new RealBuffer();
-        writer.writeUtf8(repeat("b", Segment.SIZE - 10));
+        writer.write(repeat("b", Segment.SIZE - 10));
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(repeat("a", Segment.SIZE * 2));
+        reader.write(repeat("a", Segment.SIZE * 2));
         writer.write(reader, writeSize);
 
         assertEquals(asList(Segment.SIZE - 10, writeSize), JayoTestingKt.segmentSizes(writer));
@@ -175,10 +175,10 @@ public class BufferJavaTest {
     @Test
     void writePrefixDoesntSplit() {
         Buffer writer = new RealBuffer();
-        writer.writeUtf8(repeat("b", 10));
+        writer.write(repeat("b", 10));
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(repeat("a", Segment.SIZE * 2));
+        reader.write(repeat("a", Segment.SIZE * 2));
         writer.write(reader, 20);
 
         assertEquals(List.of(30), JayoTestingKt.segmentSizes(writer));
@@ -190,11 +190,11 @@ public class BufferJavaTest {
     @Test
     void writePrefixDoesntSplitButRequiresCompact() {
         Buffer writer = new RealBuffer();
-        writer.writeUtf8(repeat("b", Segment.SIZE - 10)); // limit = size - 10
-        writer.readUtf8String(Segment.SIZE - 20); // pos = size = 20
+        writer.write(repeat("b", Segment.SIZE - 10)); // limit = size - 10
+        writer.readString(Segment.SIZE - 20); // pos = size = 20
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(repeat("a", Segment.SIZE * 2));
+        reader.write(repeat("a", Segment.SIZE * 2));
         writer.write(reader, 20);
 
         assertEquals(List.of(30), JayoTestingKt.segmentSizes(writer));
@@ -206,8 +206,8 @@ public class BufferJavaTest {
     @Test
     void copyToSpanningSegments() {
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(repeat("a", Segment.SIZE * 2));
-        reader.writeUtf8(repeat("b", Segment.SIZE * 2));
+        reader.write(repeat("a", Segment.SIZE * 2));
+        reader.write(repeat("b", Segment.SIZE * 2));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         reader.copyTo(out, 10, Segment.SIZE * 3L);
@@ -216,24 +216,24 @@ public class BufferJavaTest {
 
         assertEquals(expected, inputContent);
         assertEquals(repeat("a", Segment.SIZE * 2) + repeat("b", Segment.SIZE * 2),
-                reader.readUtf8String(Segment.SIZE * 4L));
+                reader.readString(Segment.SIZE * 4L));
     }
 
     @Test
     void copyToStream() {
-        Buffer buffer = new RealBuffer().writeUtf8("hello, world!");
+        Buffer buffer = new RealBuffer().write("hello, world!");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         buffer.copyTo(out);
         String outString = out.toString(UTF_8);
         assertEquals("hello, world!", outString);
-        assertEquals("hello, world!", buffer.readUtf8String());
+        assertEquals("hello, world!", buffer.readString());
     }
 
     @Test
     void writeToSpanningSegments() {
         Buffer buffer = new RealBuffer();
-        buffer.writeUtf8(repeat("a", Segment.SIZE * 2));
-        buffer.writeUtf8(repeat("b", Segment.SIZE * 2));
+        buffer.write(repeat("a", Segment.SIZE * 2));
+        buffer.write(repeat("b", Segment.SIZE * 2));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         buffer.skip(10);
@@ -241,12 +241,12 @@ public class BufferJavaTest {
 
         assertEquals(repeat("a", Segment.SIZE * 2 - 10) + repeat("b", Segment.SIZE + 10),
                 out.toString());
-        assertEquals(repeat("b", Segment.SIZE - 10), buffer.readUtf8String(buffer.byteSize()));
+        assertEquals(repeat("b", Segment.SIZE - 10), buffer.readString(buffer.byteSize()));
     }
 
     @Test
     void writeToStream() {
-        Buffer buffer = new RealBuffer().writeUtf8("hello, world!");
+        Buffer buffer = new RealBuffer().write("hello, world!");
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         buffer.readTo(out);
         String outString = out.toString(UTF_8);
@@ -259,16 +259,16 @@ public class BufferJavaTest {
         InputStream in = new ByteArrayInputStream("hello, world!".getBytes(UTF_8));
         Buffer buffer = new RealBuffer();
         buffer.transferFrom(in);
-        String out = buffer.readUtf8String();
+        String out = buffer.readString();
         assertEquals("hello, world!", out);
     }
 
     @Test
     void readFromSpanningSegments() {
         InputStream in = new ByteArrayInputStream("hello, world!".getBytes(UTF_8));
-        Buffer buffer = new RealBuffer().writeUtf8(repeat("a", Segment.SIZE - 10));
+        Buffer buffer = new RealBuffer().write(repeat("a", Segment.SIZE - 10));
         buffer.transferFrom(in);
-        String out = buffer.readUtf8String();
+        String out = buffer.readString();
         assertEquals(repeat("a", Segment.SIZE - 10) + "hello, world!", out);
     }
 
@@ -277,7 +277,7 @@ public class BufferJavaTest {
         InputStream in = new ByteArrayInputStream("hello, world!".getBytes(UTF_8));
         Buffer buffer = new RealBuffer();
         buffer.write(in, 10);
-        String out = buffer.readUtf8String();
+        String out = buffer.readString();
         assertEquals("hello, wor", out);
     }
 
@@ -291,39 +291,39 @@ public class BufferJavaTest {
     @Test
     void moveAllRequestedBytesWithRead() {
         Buffer writer = new RealBuffer();
-        writer.writeUtf8(repeat("a", 10));
+        writer.write(repeat("a", 10));
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(repeat("b", 15));
+        reader.write(repeat("b", 15));
 
         assertEquals(10, reader.readAtMostTo(writer, 10));
         assertEquals(20, writer.byteSize());
         assertEquals(5, reader.byteSize());
-        assertEquals(repeat("a", 10) + repeat("b", 10), writer.readUtf8String(20));
+        assertEquals(repeat("a", 10) + repeat("b", 10), writer.readString(20));
     }
 
     @Test
     void moveFewerThanRequestedBytesWithRead() {
         Buffer writer = new RealBuffer();
-        writer.writeUtf8(repeat("a", 10));
+        writer.write(repeat("a", 10));
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(repeat("b", 20));
+        reader.write(repeat("b", 20));
 
         assertEquals(20, reader.readAtMostTo(writer, 25));
         assertEquals(30, writer.byteSize());
         assertEquals(0, reader.byteSize());
-        assertEquals(repeat("a", 10) + repeat("b", 20), writer.readUtf8String(30));
+        assertEquals(repeat("a", 10) + repeat("b", 20), writer.readString(30));
     }
 
     @Test
     void indexOfWithOffset() {
         Buffer buffer = new RealBuffer();
         int halfSegment = Segment.SIZE / 2;
-        buffer.writeUtf8(repeat("a", halfSegment));
-        buffer.writeUtf8(repeat("b", halfSegment));
-        buffer.writeUtf8(repeat("c", halfSegment));
-        buffer.writeUtf8(repeat("d", halfSegment));
+        buffer.write(repeat("a", halfSegment));
+        buffer.write(repeat("b", halfSegment));
+        buffer.write(repeat("c", halfSegment));
+        buffer.write(repeat("d", halfSegment));
         assertEquals(0L, buffer.indexOf((byte) 'a', 0));
         assertEquals(halfSegment - 1, buffer.indexOf((byte) 'a', halfSegment - 1));
         assertEquals(halfSegment, buffer.indexOf((byte) 'b', halfSegment - 1));
@@ -337,9 +337,9 @@ public class BufferJavaTest {
     @Test
     void byteAt() {
         Buffer buffer = new RealBuffer();
-        buffer.writeUtf8("a");
-        buffer.writeUtf8(repeat("b", Segment.SIZE));
-        buffer.writeUtf8("c");
+        buffer.write("a");
+        buffer.write(repeat("b", Segment.SIZE));
+        buffer.write("c");
         assertEquals('a', buffer.getByte(0));
         assertEquals('a', buffer.getByte(0)); // getByte doesn't mutate!
         assertEquals('c', buffer.getByte(buffer.byteSize() - 1));
@@ -360,65 +360,65 @@ public class BufferJavaTest {
     void writePrefixToEmptyBuffer() {
         Buffer writer = new RealBuffer();
         Buffer reader = new RealBuffer();
-        reader.writeUtf8("abcd");
+        reader.write("abcd");
         writer.write(reader, 2);
-        assertEquals("ab", writer.readUtf8String(2));
+        assertEquals("ab", writer.readString(2));
     }
 
     @Test
     void cloneDoesNotObserveWritesToOriginal() {
         Buffer original = new RealBuffer();
         Buffer clone = original.clone();
-        original.writeUtf8("abc");
+        original.write("abc");
         assertEquals(0, clone.byteSize());
     }
 
     @Test
     void cloneDoesNotObserveReadsFromOriginal() {
         Buffer original = new RealBuffer();
-        original.writeUtf8("abc");
+        original.write("abc");
         Buffer clone = original.clone();
-        assertEquals("abc", original.readUtf8String(3));
+        assertEquals("abc", original.readString(3));
         assertEquals(3, clone.byteSize());
-        assertEquals("ab", clone.readUtf8String(2));
+        assertEquals("ab", clone.readString(2));
     }
 
     @Test
     void originalDoesNotObserveWritesToClone() {
         Buffer original = new RealBuffer();
         Buffer clone = original.clone();
-        clone.writeUtf8("abc");
+        clone.write("abc");
         assertEquals(0, original.byteSize());
     }
 
     @Test
     void originalDoesNotObserveReadsFromClone() {
         Buffer original = new RealBuffer();
-        original.writeUtf8("abc");
+        original.write("abc");
         Buffer clone = original.clone();
-        assertEquals("abc", clone.readUtf8String(3));
+        assertEquals("abc", clone.readString(3));
         assertEquals(3, original.byteSize());
-        assertEquals("ab", original.readUtf8String(2));
+        assertEquals("ab", original.readString(2));
     }
 
     @Test
     void cloneMultipleSegments() {
         Buffer original = new RealBuffer();
-        original.writeUtf8(repeat("a", Segment.SIZE * 3));
+        original.write(repeat("a", Segment.SIZE * 3));
         Buffer clone = original.clone();
-        original.writeUtf8(repeat("b", Segment.SIZE * 3));
-        clone.writeUtf8(repeat("c", Segment.SIZE * 3));
+        original.write(repeat("b", Segment.SIZE * 3));
+        clone.write(repeat("c", Segment.SIZE * 3));
 
         assertEquals(repeat("a", Segment.SIZE * 3) + repeat("b", Segment.SIZE * 3),
-                original.readUtf8String(Segment.SIZE * 6L));
+                original.readString(Segment.SIZE * 6L));
         assertEquals(repeat("a", Segment.SIZE * 3) + repeat("c", Segment.SIZE * 3),
-                clone.readUtf8String(Segment.SIZE * 6L));
+                clone.readString(Segment.SIZE * 6L));
     }
 
     @Test
     void bufferInputStreamByteByByte() throws IOException {
         Buffer reader = new RealBuffer();
-        reader.writeUtf8("abc");
+        reader.write("abc");
 
         InputStream in = reader.asInputStream();
         assertEquals(3, in.available());
@@ -432,7 +432,7 @@ public class BufferJavaTest {
     @Test
     void bufferInputStreamBulkReads() throws IOException {
         Buffer reader = new RealBuffer();
-        reader.writeUtf8("abc");
+        reader.write("abc");
 
         byte[] byteArray = new byte[4];
 
@@ -452,12 +452,12 @@ public class BufferJavaTest {
      */
     @Test
     void readAllWritesAllSegmentsAtOnce() {
-        Buffer write1 = new RealBuffer().writeUtf8(
+        Buffer write1 = new RealBuffer().write(
                 repeat("a", Segment.SIZE)
                         + repeat("b", Segment.SIZE)
                         + repeat("c", Segment.SIZE));
 
-        Buffer reader = new RealBuffer().writeUtf8(
+        Buffer reader = new RealBuffer().write(
                 repeat("a", Segment.SIZE)
                         + repeat("b", Segment.SIZE)
                         + repeat("c", Segment.SIZE));
@@ -471,24 +471,24 @@ public class BufferJavaTest {
 
     @Test
     void writeAllMultipleSegments() {
-        Buffer reader = new RealBuffer().writeUtf8(repeat("a", Segment.SIZE * 3));
+        Buffer reader = new RealBuffer().write(repeat("a", Segment.SIZE * 3));
         Buffer writer = new RealBuffer();
 
         assertEquals(Segment.SIZE * 3L, writer.transferFrom(reader));
         assertEquals(0, reader.byteSize());
-        assertEquals(repeat("a", Segment.SIZE * 3), writer.readUtf8String());
+        assertEquals(repeat("a", Segment.SIZE * 3), writer.readString());
     }
 
     @Test
     void copyTo() {
         Buffer reader = new RealBuffer();
-        reader.writeUtf8("party");
+        reader.write("party");
 
         Buffer target = new RealBuffer();
         reader.copyTo(target, 1, 3);
 
-        assertEquals("art", target.readUtf8String());
-        assertEquals("party", reader.readUtf8String());
+        assertEquals("art", target.readString());
+        assertEquals("party", reader.readString());
     }
 
     @Test
@@ -499,15 +499,15 @@ public class BufferJavaTest {
         String ds = repeat("d", Segment.SIZE);
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(as);
-        reader.writeUtf8(bs);
-        reader.writeUtf8(cs);
+        reader.write(as);
+        reader.write(bs);
+        reader.write(cs);
 
         Buffer target = new RealBuffer();
-        target.writeUtf8(ds);
+        target.write(ds);
 
         reader.copyTo(target, as.length(), bs.length() + cs.length());
-        assertEquals(ds + bs + cs, target.readUtf8String());
+        assertEquals(ds + bs + cs, target.readString());
     }
 
     @Test
@@ -518,15 +518,15 @@ public class BufferJavaTest {
         String ds = repeat("d", Segment.SIZE + 8);
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(as);
-        reader.writeUtf8(bs);
-        reader.writeUtf8(cs);
+        reader.write(as);
+        reader.write(bs);
+        reader.write(cs);
 
         Buffer target = new RealBuffer();
-        target.writeUtf8(ds);
+        target.write(ds);
 
         reader.copyTo(target, as.length(), bs.length() + cs.length());
-        assertEquals(ds + bs + cs, target.readUtf8String());
+        assertEquals(ds + bs + cs, target.readString());
     }
 
     @Test
@@ -535,29 +535,29 @@ public class BufferJavaTest {
         String bs = repeat("b", Segment.SIZE);
 
         Buffer reader = new RealBuffer();
-        reader.writeUtf8(as);
-        reader.writeUtf8(bs);
+        reader.write(as);
+        reader.write(bs);
 
         reader.copyTo(reader, 0, reader.byteSize());
-        assertEquals(as + bs + as + bs, reader.readUtf8String());
+        assertEquals(as + bs + as + bs, reader.readString());
     }
 
     @Test
     void copyToEmptyReader() {
         Buffer reader = new RealBuffer();
-        Buffer target = new RealBuffer().writeUtf8("aaa");
+        Buffer target = new RealBuffer().write("aaa");
         reader.copyTo(target, 0L, 0L);
-        assertEquals("", reader.readUtf8String());
-        assertEquals("aaa", target.readUtf8String());
+        assertEquals("", reader.readString());
+        assertEquals("aaa", target.readString());
     }
 
     @Test
     void copyToEmptyTarget() {
-        Buffer reader = new RealBuffer().writeUtf8("aaa");
+        Buffer reader = new RealBuffer().write("aaa");
         Buffer target = new RealBuffer();
         reader.copyTo(target, 0L, 3L);
-        assertEquals("aaa", reader.readUtf8String());
-        assertEquals("aaa", target.readUtf8String());
+        assertEquals("aaa", reader.readString());
+        assertEquals("aaa", target.readString());
     }
 
     @Test

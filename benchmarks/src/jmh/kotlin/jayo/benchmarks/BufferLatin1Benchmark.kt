@@ -61,7 +61,7 @@ open class BufferLatin1Benchmark {
         // Prepare a string and ByteString for encoding and decoding with Okio and Jayo
         jayoBuffer = Buffer()
         val tempJayoIo = Buffer()
-        tempJayoIo.writeString(encode, Charsets.ISO_8859_1)
+        tempJayoIo.write(encode, Charsets.ISO_8859_1)
         jayoDecode = tempJayoIo.snapshot()
 
         okioBuffer = okio.Buffer()
@@ -84,13 +84,13 @@ open class BufferLatin1Benchmark {
 
     @Benchmark
     fun writeLatin1Jayo() {
-        jayoBuffer.writeString(encode, Charsets.ISO_8859_1)
+        jayoBuffer.write(encode, Charsets.ISO_8859_1)
         jayoBuffer.clear()
     }
 
     @Benchmark
     fun readLatin1Jayo(): String {
-        jayoBuffer.writeString(encode, Charsets.ISO_8859_1)
+        jayoBuffer.write(encode, Charsets.ISO_8859_1)
         return jayoBuffer.readString(Charsets.ISO_8859_1)
     }
 }

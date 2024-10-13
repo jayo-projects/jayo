@@ -173,7 +173,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         void emitCompleteSegments() {
             var currentTail = tail();
             if (currentTail == null) {
-                // can happen when we write nothing, like writer.writeUtf8("")
+                // can happen when we write nothing, like writer.write("")
                 return;
             }
 
@@ -195,7 +195,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             throwIfNeeded();
             final var currentTail = tail();
             if (currentTail == null) {
-                // can happen when we write nothing, like writer.writeUtf8("")
+                // can happen when we write nothing, like writer.write("")
                 return;
             }
             final var emitEvent = new EmitEvent(currentTail, true, currentTail.limit(), flush);

@@ -58,6 +58,7 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * <b>Immutability is guaranteed:</b> ByteString copies data on creation as well as on conversion back to {@code byte[]}
  * , thus guaranteeing that subsequent modification of source data or data returned from {@link #toByteArray()} won't
  * mutate the byte string itself.
+ *
  * @see Utf8 a UTF-8 specific implementation of {@code ByteString}.
  */
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
@@ -84,7 +85,9 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
      *                                   {@code data} indices.
      */
-    static @NonNull ByteString of(final byte @NonNull [] data, final int offset, final int byteCount) {
+    static @NonNull ByteString of(final byte @NonNull [] data,
+                                  final @NonNegative int offset,
+                                  final @NonNegative int byteCount) {
         return new RealByteString(data, offset, byteCount);
     }
 
@@ -109,6 +112,39 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     }
 
     /**
+     * Decodes the Base64-encoded bytes from {@code charSequence} and wraps them into a byte string. Returns
+     * {@code null} if this is not a valid Base64-encoded sequence of bytes.
+     * <p>
+     * The symbols for decoding are not required to be padded by the padding character {@code '='}, but it is accepted.
+     *
+     * @param charSequence the char sequence to decode Base64-encoded bytes from.
+     */
+    static @Nullable ByteString decodeBase64(final @NonNull CharSequence charSequence) {
+        final var decoded = decodeBase64ToArray(charSequence);
+        return (decoded != null) ? new RealByteString(decoded) : null;
+    }
+
+    /**
+     * Decodes the hexadecimal-encoded bytes from {@code charSequence} and wraps them into a byte string.
+     *
+     * @param charSequence the char sequence to decode Base64-encoded bytes from.
+     * @throws IllegalArgumentException if {@code charSequence} is not a valid hexadecimal-encoded char sequence.
+     */
+    static @NonNull ByteString decodeHex(final @NonNull CharSequence charSequence) {
+        if (charSequence.length() % 2 != 0) {
+            throw new IllegalArgumentException("Unexpected hexadecimal-encoded char sequence: " + charSequence);
+        }
+
+        final var result = new byte[charSequence.length() / 2];
+        for (var i = 0; i < result.length; i++) {
+            final var d1 = decodeHexDigit(charSequence.charAt(i * 2)) << 4;
+            final var d2 = decodeHexDigit(charSequence.charAt(i * 2 + 1));
+            result[i] = (byte) (d1 + d2);
+        }
+        return new RealByteString(result);
+    }
+
+    /**
      * Reads {@code byteCount} bytes from {@code in} and wraps them into a byte string.
      *
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
@@ -127,44 +163,11 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     }
 
     /**
-     * Decodes the Base64-encoded bytes from {@code charSequence} and wraps them into a byte string. Returns
-     * {@code null} if this is not a valid Base64-encoded sequence of bytes.
-     * <p>
-     * The symbols for decoding are not required to be padded by the padding character {@code '='}, but it is accepted.
-     *
-     * @param charSequence the char sequence to decode Base64-encoded bytes from.
-     */
-    static @Nullable ByteString decodeBase64(final @NonNull CharSequence charSequence) {
-        final var decoded = decodeBase64ToArray(charSequence);
-        return (decoded != null) ? new RealByteString(decoded) : null;
-    }
-
-    /**
-     * Decodes the Hex-encoded bytes from {@code charSequence} and wraps them into a byte string.
-     *
-     * @param charSequence the char sequence to decode Base64-encoded bytes from.
-     * @throws IllegalArgumentException if {@code charSequence} is not a valid Hex char sequence.
-     */
-    static @NonNull ByteString decodeHex(final @NonNull CharSequence charSequence) {
-        if (charSequence.length() % 2 != 0) {
-            throw new IllegalArgumentException("Unexpected Hex char sequence: " + charSequence);
-        }
-
-        final var result = new byte[charSequence.length() / 2];
-        for (var i = 0; i < result.length; i++) {
-            final var d1 = decodeHexDigit(charSequence.charAt(i * 2)) << 4;
-            final var d2 = decodeHexDigit(charSequence.charAt(i * 2 + 1));
-            result[i] = (byte) (d1 + d2);
-        }
-        return new RealByteString(result);
-    }
-
-    /**
-     * @return either a new String by decoding all the bytes from this byte string using UTF-8, or the cached one
+     * @return either a new String by decoding all the bytes from this byte string using UTF-8, or the cached one if
      * available.
      */
     @NonNull
-    String decodeToUtf8();
+    String decodeToString();
 
     /**
      * Constructs a new String by decoding all the bytes from this byte string using {@code charset}.
@@ -424,14 +427,14 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex);
 
     /**
-     * Returns a string representation of this byte string. A string representation consists of {@code size} and a
+     * @return a string representation of this byte string. A string representation consists of {@code size} and a
      * hexadecimal-encoded string of the bytes wrapped by this byte string.
      * <p>
      * The string representation has the following format {@code ByteString(size=3 hex=ABCDEF)}, for empty strings it's
      * always {@code ByteString(size=0)}.
      * <p>
      * Note that a string representation includes the whole byte string content encoded. Due to limitations exposed for
-     * the maximum string length, an attempt to return a string representation of too long byte string may fail.
+     * the maximum string length, an attempt to return a string representation of a too long byte string may fail.
      */
     @Override
     @NonNull
@@ -445,7 +448,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
         } else if (c >= 'A' && c <= 'F') {
             return c - 'A' + 10;
         } else {
-            throw new IllegalArgumentException("Unexpected hex digit: " + c);
+            throw new IllegalArgumentException("Unexpected hexadecimal-encoded digit: " + c);
         }
     }
 }

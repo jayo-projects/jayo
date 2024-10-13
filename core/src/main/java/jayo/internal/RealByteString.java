@@ -65,7 +65,8 @@ public sealed class RealByteString implements ByteString permits RealUtf8, Segme
     public RealByteString(final byte @NonNull [] data,
                           final @NonNegative int offset,
                           final @NonNegative int byteCount) {
-        checkOffsetAndCount(Objects.requireNonNull(data).length, offset, byteCount);
+        Objects.requireNonNull(data);
+        checkOffsetAndCount(data.length, offset, byteCount);
         this.data = Arrays.copyOfRange(data, offset, offset + byteCount);
         utf8 = null;
     }
@@ -79,7 +80,7 @@ public sealed class RealByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public @NonNull String decodeToUtf8() {
+    public @NonNull String decodeToString() {
         var utf8String = utf8;
         if (utf8String == null) {
             // We don't care if we double-allocate in racy code.
@@ -93,7 +94,7 @@ public sealed class RealByteString implements ByteString permits RealUtf8, Segme
     public @NonNull String decodeToString(final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
         if (charset == StandardCharsets.UTF_8) {
-            return decodeToUtf8();
+            return decodeToString();
         }
         return new String(data, charset);
     }

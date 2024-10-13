@@ -70,7 +70,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
     fun inflate() {
         decodeBase64("eJxzz09RyEjNKVAoLdZRKE9VL0pVyMxTKMlIVchIzEspVshPU0jNS8/MS00tKtYDAF6CD5s=")
         val inflated = inflate(deflatedReader)
-        assertEquals("God help us, we're in the hands of engineers.", inflated.readUtf8String())
+        assertEquals("God help us, we're in the hands of engineers.", inflated.readString())
     }
 
     @Test
@@ -100,9 +100,9 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
                     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB8BtFeWvE=",
         )
         val original = "a".repeat(1024 * 1024)
-        deflate(original.encodeToByteString())
+        deflate(original.encodeToUtf8())
         val inflated = inflate(deflatedReader)
-        assertEquals(original, inflated.readUtf8String())
+        assertEquals(original, inflated.readString())
     }
 
     @Test
@@ -118,13 +118,13 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
     fun inflateIntoNonemptyWriter() {
         for (i in 0 until 1024) {
             before()
-            val inflated = Buffer().writeUtf8("a".repeat(i))
-            deflate("God help us, we're in the hands of engineers.".encodeToByteString())
+            val inflated = Buffer().write("a".repeat(i))
+            deflate("God help us, we're in the hands of engineers.".encodeToUtf8())
             val reader = deflatedReader.inflate()
             while (reader.readAtMostTo(inflated, Int.MAX_VALUE.toLong()) != -1L) {
             }
             inflated.skip(i.toLong())
-            assertEquals("God help us, we're in the hands of engineers.", inflated.readUtf8String())
+            assertEquals("God help us, we're in the hands of engineers.", inflated.readString())
             after()
         }
     }
@@ -136,7 +136,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
         val reader = deflatedReader.inflate()
         reader.readOrInflateAtMostTo(inflated, 1)
         reader.close()
-        assertEquals("G", inflated.readUtf8String())
+        assertEquals("G", inflated.readString())
         assertEquals(0, inflated.byteSize())
     }
 
@@ -147,7 +147,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
         val reader = deflatedReader.inflate()
         reader.readAtMostTo(inflated, 11)
         reader.close()
-        assertEquals("God help us", inflated.readUtf8String())
+        assertEquals("God help us", inflated.readString())
         assertEquals(0, inflated.byteSize())
     }
 

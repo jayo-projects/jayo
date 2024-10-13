@@ -98,9 +98,24 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull Utf8 readUtf8(long byteCount) {
+    public @NonNull Utf8 readUtf8(final @NonNegative long byteCount) {
         require(byteCount);
         return segmentQueue.buffer.readUtf8(byteCount);
+    }
+
+    @Override
+    public @NonNull Utf8 readAscii() {
+        if (segmentQueue.closed) {
+            throw new IllegalStateException("closed");
+        }
+        segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
+        return segmentQueue.buffer.readAscii();
+    }
+
+    @Override
+    public @NonNull Utf8 readAscii(final @NonNegative long byteCount) {
+        require(byteCount);
+        return segmentQueue.buffer.readAscii(byteCount);
     }
 
     @Override
@@ -251,21 +266,21 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull String readUtf8String() {
+    public @NonNull String readString() {
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
-        return segmentQueue.buffer.readUtf8String();
+        return segmentQueue.buffer.readString();
     }
 
     @Override
-    public @NonNull String readUtf8String(final @NonNegative long byteCount) {
+    public @NonNull String readString(final @NonNegative long byteCount) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
         require(byteCount);
-        return segmentQueue.buffer.readUtf8String(byteCount);
+        return segmentQueue.buffer.readString(byteCount);
     }
 
     @Override
@@ -289,13 +304,13 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @Nullable String readUtf8Line() {
+    public @Nullable String readLine() {
         final var newline = indexOf((byte) ((int) '\n'));
 
         if (newline == -1L) {
             final var size = segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
             if (size != 0L) {
-                return readUtf8String(size);
+                return readString(size);
             } else {
                 return null;
             }
@@ -305,12 +320,12 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull String readUtf8LineStrict() {
-        return readUtf8LineStrict(Long.MAX_VALUE);
+    public @NonNull String readLineStrict() {
+        return readLineStrict(Long.MAX_VALUE);
     }
 
     @Override
-    public @NonNull String readUtf8LineStrict(final @NonNegative long limit) {
+    public @NonNull String readLineStrict(final @NonNegative long limit) {
         if (limit < 0) {
             throw new IllegalArgumentException("limit < 0: " + limit);
         }

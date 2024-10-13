@@ -55,34 +55,34 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
     @Test
     fun deflateWithClose() {
         val original = "They're moving in herds. They do move in herds."
-        val clearText = Buffer().writeUtf8(original)
+        val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
         deflaterWriter.write(clearText, clearText.byteSize())
         deflaterWriter.close()
         val inflated = inflate(data)
-        assertEquals(original, inflated.readUtf8String())
+        assertEquals(original, inflated.readString())
     }
 
     @Test
     fun deflateWithSyncFlush() {
         val original = "Yes, yes, yes. That's why we're taking extreme precautions."
-        val clearText = Buffer().writeUtf8(original)
+        val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
         deflaterWriter.write(clearText, clearText.byteSize())
         deflaterWriter.flush()
         val inflated = inflate(data)
-        assertEquals(original, inflated.readUtf8String())
+        assertEquals(original, inflated.readString())
     }
 
     @Test
     fun deflateWellCompressed() {
         val original = "a".repeat(1024 * 1024)
-        val clearText = Buffer().writeUtf8(original)
+        val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
         deflaterWriter.write(clearText, clearText.byteSize())
         deflaterWriter.close()
         val inflated = inflate(data)
-        assertEquals(original, inflated.readUtf8String())
+        assertEquals(original, inflated.readString())
     }
 
     @Test
@@ -103,14 +103,14 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         // Exercise all possible offsets for the outgoing segment.
         for (i in 0 until Segment.SIZE) {
             before()
-            val clearText = Buffer().writeUtf8(original)
-            writer.writeUtf8("a".repeat(i))
+            val clearText = Buffer().write(original)
+            writer.write("a".repeat(i))
             val deflaterWriter = DeflaterRawWriter(writer, Deflater())
             deflaterWriter.write(clearText, clearText.byteSize())
             deflaterWriter.close()
             data.skip(i.toLong())
             val inflated = inflate(data)
-            assertEquals(original, inflated.readUtf8String())
+            assertEquals(original, inflated.readString())
             after()
         }
     }
@@ -121,9 +121,9 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         deflater.setLevel(Deflater.NO_COMPRESSION)
         val deflaterWriter = DeflaterRawWriter(writer, deflater)
         val byteCount = Segment.SIZE * 4
-        deflaterWriter.write(Buffer().writeUtf8("a".repeat(byteCount)), byteCount.toLong())
+        deflaterWriter.write(Buffer().write("a".repeat(byteCount)), byteCount.toLong())
         deflaterWriter.close()
-        assertEquals("a".repeat(byteCount), inflate(data).readUtf8String(byteCount.toLong()))
+        assertEquals("a".repeat(byteCount), inflate(data).readString(byteCount.toLong()))
     }
 
     /**

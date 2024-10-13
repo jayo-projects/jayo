@@ -27,7 +27,7 @@ abstract class JsonTestBase {
     ): String {
         val buffer = Buffer()
         encodeToWriter(serializer, value, buffer)
-        return buffer.readUtf8String()
+        return buffer.readString()
     }
 
     internal inline fun <reified T : Any> Json.decodeFromStringWithJayo(reader: String): T {
@@ -40,7 +40,7 @@ abstract class JsonTestBase {
         reader: String,
     ): T {
         val buffer = Buffer()
-        buffer.writeUtf8(reader)
+        buffer.write(reader)
         return decodeFromReader(deserializer, buffer)
     }
 

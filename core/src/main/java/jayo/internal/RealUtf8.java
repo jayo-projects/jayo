@@ -45,16 +45,21 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
     public RealUtf8(final byte @NonNull [] data, final boolean isAscii, final boolean allowCompactString) {
         super(data);
         this.allowCompactString = allowCompactString;
+        this.isAscii = isAscii;
         if (isAscii) {
-            this.isAscii = true;
             length = data.length;
         }
     }
 
     public RealUtf8(final byte @NonNull [] data,
                     final @NonNegative int offset,
-                    final @NonNegative int byteCount) {
+                    final @NonNegative int byteCount,
+                    final boolean isAscii) {
         super(data, offset, byteCount);
+        this.isAscii = isAscii;
+        if (isAscii) {
+            length = byteCount;
+        }
         this.allowCompactString = UNSAFE_AVAILABLE && SUPPORT_COMPACT_STRING;
     }
 
@@ -69,7 +74,7 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
     }
 
     @Override
-    public @NonNull String decodeToUtf8() {
+    public @NonNull String decodeToString() {
         return decodeToUtf8Static(this, isAscii, allowCompactString);
     }
 
@@ -89,8 +94,8 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
             }
         } else {
             utf8 = new String(byteString.internalArray(), StandardCharsets.UTF_8);
-            byteString.length = utf8.length();
         }
+        byteString.length = utf8.length();
         byteString.utf8 = utf8;
         return utf8;
     }
@@ -220,6 +225,11 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
         return (uppercase != null) ? new RealUtf8(uppercase, isAscii, allowCompactString) : this;
     }
 
+    @Override
+    public @NonNull String toString() {
+        return decodeToString();
+    }
+
     private void fullScan() {
         var byteIndex = 0;
 
@@ -232,9 +242,9 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
             byteIndex++;
         }
 
+        this.isAscii = isAscii;
         if (isAscii) {
             length = data.length;
-            this.isAscii = true;
             return;
         }
 

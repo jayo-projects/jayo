@@ -27,7 +27,10 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
-/** @return a new [ByteString] containing a copy of `byteCount` bytes of this `ByteArray` starting at `offset`. */
+/**
+ * @return a new [ByteString] containing a copy of `byteCount` bytes of this byte array starting at `offset`. Do not
+ * provide values for `byteCount` and `offset` if you want a full copy of this byte array.
+ */
 public fun ByteArray.toByteString(
     offset: Int = 0,
     byteCount: Int = size
@@ -44,7 +47,7 @@ public fun ByteBuffer.toByteString(): ByteString = ByteString.of(this)
 public fun InputStream.readByteString(byteCount: Int): ByteString = ByteString.read(this, byteCount)
 
 /** Returns a new [ByteString] containing the `charset`-encoded bytes of this [String]. */
-public fun String.encodeToByteString(charset: Charset = Charsets.UTF_8): ByteString =
+public fun String.encodeToByteString(charset: Charset): ByteString =
     ByteString.encode(this, charset)
 
 /**

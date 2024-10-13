@@ -22,7 +22,7 @@ class WriterAsyncTests {
         val outputStream = outputStream(true)
 
         outputStream.writer().buffered().use { writer ->
-            writer.writeUtf8('a'.repeat(EXPECTED_SIZE))
+            writer.write('a'.repeat(EXPECTED_SIZE))
         }
         assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
         assertThat(outputStream.bytes).isEqualTo(ARRAY)
@@ -33,7 +33,7 @@ class WriterAsyncTests {
         val outputStream = outputStream(true)
 
         Jayo.bufferAsync(outputStream.writer()).use { writer ->
-            writer.writeUtf8('a'.repeat(EXPECTED_SIZE))
+            writer.write('a'.repeat(EXPECTED_SIZE))
         }
         assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
         assertThat(outputStream.bytes).isEqualTo(ARRAY)

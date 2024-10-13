@@ -72,6 +72,32 @@ import java.nio.charset.Charset;
  */
 public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     /**
+     * Writes all bytes from {@code source} to this writer.
+     *
+     * @param source the byte array source.
+     * @return {@code this}
+     * @throws IllegalStateException if this writer is closed.
+     */
+    @NonNull
+    Writer write(final byte @NonNull [] source);
+
+    /**
+     * Writes {@code byteCount} bytes from {@code source}, starting at {@code offset} to this writer.
+     *
+     * @param source    the byte array source.
+     * @param offset    the start offset (inclusive) in the byte array's data.
+     * @param byteCount the number of bytes to write.
+     * @return {@code this}
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
+     *                                   {@code source} indices.
+     * @throws IllegalStateException     if this writer is closed.
+     */
+    @NonNull
+    Writer write(final byte @NonNull [] source,
+                 final @NonNegative int offset,
+                 final @NonNegative int byteCount);
+
+    /**
      * Writes all bytes from {@code byteString} to this writer.
      *
      * @param byteString the byte string source.
@@ -94,100 +120,17 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      */
     @NonNull
     Writer write(final @NonNull ByteString byteString,
-                 final @NonNegative int offset, final @NonNegative int byteCount);
-
-    /**
-     * Writes all bytes from {@code utf8} to this writer.
-     *
-     * @param utf8 the UTF-8 byte string source.
-     * @return {@code this}
-     * @throws IllegalStateException if this writer is closed.
-     */
-    @NonNull
-    Writer writeUtf8(final @NonNull Utf8 utf8);
-
-    /**
-     * Writes {@code byteCount} bytes from {@code utf8}, starting at {@code offset} to this writer.
-     *
-     * @param utf8      the UTF-8 byte string source.
-     * @param offset    the start offset (inclusive) in the byte string's data.
-     * @param byteCount the number of bytes to write.
-     * @return {@code this}
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
-     *                                   {@code byteString} indices.
-     * @throws IllegalStateException     if this writer is closed.
-     */
-    @NonNull
-    Writer writeUtf8(final @NonNull Utf8 utf8,
-                     final @NonNegative int offset, final @NonNegative int byteCount);
-
-    /**
-     * Writes all bytes from {@code source} to this writer.
-     *
-     * @param source the byte array source.
-     * @return {@code this}
-     * @throws IllegalStateException if this writer is closed.
-     */
-    @NonNull
-    Writer write(final byte @NonNull [] source);
-
-    /**
-     * Writes {@code byteCount} bytes from {@code source}, starting at {@code offset} to this writer.
-     *
-     * @param source    the byte array source.
-     * @param offset    the start offset (inclusive) in the byte array's data.
-     * @param byteCount the number of bytes to write.
-     * @return {@code this}
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
-     *                                   {@code source} indices.
-     * @throws IllegalStateException     if this writer is closed.
-     */
-    @NonNull
-    Writer write(final byte @NonNull [] source, final @NonNegative int offset, final @NonNegative int byteCount);
-
-    /**
-     * Reads all remaining bytes from {@code source} byte buffer and writes them to this writer.
-     *
-     * @param source the byte buffer to read data from.
-     * @return the number of bytes read, which will be 0 if {@code source} has no remaining bytes.
-     * @throws IllegalStateException if this writer is closed.
-     */
-    @NonNegative
-    int transferFrom(final @NonNull ByteBuffer source);
-
-    /**
-     * Removes all bytes from {@code reader} and writes them to this writer.
-     *
-     * @param reader the reader to consume data from.
-     * @return the number of bytes read, which will be 0L if {@code reader} is exhausted.
-     * @throws IllegalStateException if this writer or the {@code reader} is closed.
-     */
-    @NonNegative
-    long transferFrom(final @NonNull RawReader reader);
-
-    /**
-     * Removes {@code byteCount} bytes from {@code reader} and appends them to this writer.
-     * <p>
-     * If {@code reader} will be exhausted before reading {@code byteCount} from it then an exception throws on
-     * an attempt to read remaining bytes will be propagated to a caller of this method.
-     *
-     * @param reader    the reader to consume data from.
-     * @param byteCount the number of bytes to read from {@code reader} and to write into this writer.
-     * @return {@code this}
-     * @throws IllegalArgumentException if {@code byteCount} is negative.
-     * @throws IllegalStateException    if this writer or the reader is closed.
-     */
-    @NonNull
-    Writer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
+                 final @NonNegative int offset,
+                 final @NonNegative int byteCount);
 
     /**
      * Encodes all the characters from {@code charSequence} using UTF-8 and writes them to this writer.
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
-     * buffer.writeUtf8("Uh uh uh!");
+     * buffer.write("Uh uh uh!");
      * buffer.writeByte(' ');
-     * buffer.writeUtf8("You didn't say the magic word!");
+     * buffer.write("You didn't say the magic word!");
      *
      * assertThat(buffer.readUtf8()).isEqualTo("Uh uh uh! You didn't say the magic word!");
      * }
@@ -198,7 +141,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
-    Writer writeUtf8(final @NonNull CharSequence charSequence);
+    Writer write(final @NonNull CharSequence charSequence);
 
     /**
      * Encodes the characters at {@code startIndex} up to {@code endIndex} from {@code charSequence} using UTF-8 and
@@ -206,11 +149,11 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
-     * buffer.writeUtf8("I'm a hacker!\n", 6, 12);
+     * buffer.write("I'm a hacker!\n", 6, 12);
      * buffer.writeByte(' ');
-     * buffer.writeUtf8("That's what I said: you're a nerd.\n", 29, 33);
+     * buffer.write("That's what I said: you're a nerd.\n", 29, 33);
      * buffer.writeByte(' ');
-     * buffer.writeUtf8("I prefer to be called a hacker!\n", 24, 31);
+     * buffer.write("I prefer to be called a hacker!\n", 24, 31);
      *
      * assertThat(buffer.readUtf8()).isEqualTo("hacker nerd hacker!");
      * }
@@ -226,9 +169,9 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws IllegalStateException     if this writer is closed.
      */
     @NonNull
-    Writer writeUtf8(final @NonNull CharSequence charSequence,
-                     final @NonNegative int startIndex,
-                     final @NonNegative int endIndex);
+    Writer write(final @NonNull CharSequence charSequence,
+                 final @NonNegative int startIndex,
+                 final @NonNegative int endIndex);
 
     /**
      * Encodes {@code codePoint} in UTF-8 and writes it to this writer.
@@ -245,9 +188,9 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
-     * buffer.writeString("Uh uh uh¡", StandardCharsets.ISO_8859_1);
+     * buffer.write("Uh uh uh¡", StandardCharsets.ISO_8859_1);
      * buffer.writeByte(' ');
-     * buffer.writeString("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
+     * buffer.write("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
      *
      * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You didn't say the magic word¡");
      * }
@@ -259,7 +202,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
-    Writer writeString(final @NonNull String string, final @NonNull Charset charset);
+    Writer write(final @NonNull String string, final @NonNull Charset charset);
 
     /**
      * Encodes the characters at {@code startIndex} up to {@code endIndex} from {@code string} using the provided
@@ -267,11 +210,11 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
-     * buffer.writeString("I'm a hacker!\n", 6, 12, StandardCharsets.ISO_8859_1);
+     * buffer.write("I'm a hacker!\n", 6, 12, StandardCharsets.ISO_8859_1);
      * buffer.writeByte(' ');
-     * buffer.writeString("That's what I said: you're a nerd.\n", 29, 33, StandardCharsets.ISO_8859_1);
+     * buffer.write("That's what I said: you're a nerd.\n", 29, 33, StandardCharsets.ISO_8859_1);
      * buffer.writeByte(' ');
-     * buffer.writeString("I prefer to be called a hacker!\n", 24, 31, StandardCharsets.ISO_8859_1);
+     * buffer.write("I prefer to be called a hacker!\n", 24, 31, StandardCharsets.ISO_8859_1);
      *
      * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("hacker nerd hacker!");
      * }
@@ -288,10 +231,25 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws IllegalStateException     if this writer is closed.
      */
     @NonNull
-    Writer writeString(final @NonNull String string,
-                       final @NonNegative int startIndex,
-                       final @NonNegative int endIndex,
-                       final @NonNull Charset charset);
+    Writer write(final @NonNull String string,
+                 final @NonNegative int startIndex,
+                 final @NonNegative int endIndex,
+                 final @NonNull Charset charset);
+
+    /**
+     * Removes {@code byteCount} bytes from {@code reader} and appends them to this writer.
+     * <p>
+     * If {@code reader} will be exhausted before reading {@code byteCount} from it then an exception throws on
+     * an attempt to read remaining bytes will be propagated to a caller of this method.
+     *
+     * @param reader    the reader to consume data from.
+     * @param byteCount the number of bytes to read from {@code reader} and to write into this writer.
+     * @return {@code this}
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this writer or the reader is closed.
+     */
+    @NonNull
+    Writer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
 
     /**
      * Writes a byte to this writer.
@@ -438,6 +396,26 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     Writer writeHexadecimalUnsignedLong(final long l);
 
     /**
+     * Reads all remaining bytes from {@code source} byte buffer and writes them to this writer.
+     *
+     * @param source the byte buffer to read data from.
+     * @return the number of bytes read, which will be 0 if {@code source} has no remaining bytes.
+     * @throws IllegalStateException if this writer is closed.
+     */
+    @NonNegative
+    int transferFrom(final @NonNull ByteBuffer source);
+
+    /**
+     * Removes all bytes from {@code reader} and writes them to this writer.
+     *
+     * @param reader the reader to consume data from.
+     * @return the number of bytes read, which will be 0L if {@code reader} is exhausted.
+     * @throws IllegalStateException if this writer or the {@code reader} is closed.
+     */
+    @NonNegative
+    long transferFrom(final @NonNull RawReader reader);
+
+    /**
      * Ensures to write all the buffered data that was written until this call to the underlying writer, if one exists.
      * Then the underlying writer is explicitly flushed.
      * <p>
@@ -449,7 +427,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * Writer b1 = Jayo.buffer(b0);
      * Writer b2 = Jayo.buffer(b1);
      *
-     * b2.writeString("hello");
+     * b2.write("hello");
      * assertThat(b2.buffer().byteSize()).isEqualTo(5);
      * assertThat(b1.buffer().byteSize()).isEqualTo(0);
      * assertThat(b0.buffer().byteSize()).isEqualTo(0);
@@ -482,7 +460,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * Writer b1 = Jayo.buffer(b0);
      * Writer b2 = Jayo.buffer(b1);
      *
-     * b2.writeString("hello");
+     * b2.write("hello");
      * assertThat(b2.buffer().byteSize()).isEqualTo(5);
      * assertThat(b1.buffer().byteSize()).isEqualTo(0);
      * assertThat(b0.buffer().byteSize()).isEqualTo(0);

@@ -33,7 +33,7 @@ class HashingTests {
     @Test
     fun hMacTest() {
         val bytes = ByteArray(Segment.SIZE *  2 + 1) { 'a'.code.toByte() }
-        val key = "abc".encodeToByteString()
+        val key = "abc".encodeToUtf8()
         val expectedMd5 = "2d6bd1f82825302aa6ed6cdac51771ff"
 
         // ByteString
