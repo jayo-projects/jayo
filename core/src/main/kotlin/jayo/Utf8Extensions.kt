@@ -26,27 +26,37 @@ package jayo
 import java.io.InputStream
 import java.nio.ByteBuffer
 
-/** @return a new [ByteString] containing a copy of `byteCount` bytes of this `ByteArray` starting at `offset`. */
+/**
+ * @return a new [ByteString] containing a copy of `byteCount` bytes of this byte array starting at `offset`. Do not
+ * provide values for `byteCount` and `offset` if you want a full copy of this byte array.
+ * @param isAscii if the bytes you are reading in the byte array are ASCII encoded.
+ */
 public fun ByteArray.toUtf8(
     offset: Int = 0,
-    byteCount: Int = size
-): Utf8 = Utf8.ofUtf8(this, offset, byteCount)
+    byteCount: Int = size,
+    isAscii: Boolean = false,
+): Utf8 = if (isAscii) Utf8.ofAscii(this, offset, byteCount) else Utf8.of(this, offset, byteCount)
 
-/** @return a [ByteString] containing a copy of the content of this [ByteBuffer]. */
-public fun ByteBuffer.toUtf8(): Utf8 = Utf8.ofUtf8(this)
+/**
+ * @return a [ByteString] containing a copy of the content of this [ByteBuffer].
+ * @param isAscii if the bytes you are reading in the byte buffer are ASCII encoded.
+ */
+public fun ByteBuffer.toUtf8(isAscii: Boolean = false): Utf8 =
+    if (isAscii) Utf8.ofAscii(this) else Utf8.of(this)
 
 /**
  * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
- *
+ * @param isAscii if the bytes you are reading in the input stream are ASCII encoded.
  * @throws jayo.exceptions.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
-public fun InputStream.readUtf8(byteCount: Int): Utf8 = Utf8.readUtf8(this, byteCount)
+public fun InputStream.readUtf8(byteCount: Int, isAscii: Boolean = false): Utf8 =
+    if (isAscii) Utf8.readAscii(this, byteCount) else Utf8.read(this, byteCount)
 
 /** @return a new [Utf8] containing the UTF-8-encoded bytes of this [String]. */
-public fun String.encodeToUtf8(): Utf8 = Utf8.encodeUtf8(this)
+public fun String.encodeToUtf8(): Utf8 = Utf8.encode(this)
 
 /**
  * @return the number of bytes that would be used to encode the slice of `string` as UTF-8 when using
- * `writer.writeUtf8(myCharSequence)`.
+ * `writer.write("myCharSequence)`.
  */
 public fun CharSequence.utf8Size(): Long = Utf8Utils.size(this)

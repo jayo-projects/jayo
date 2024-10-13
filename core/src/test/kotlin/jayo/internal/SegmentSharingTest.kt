@@ -43,7 +43,7 @@ class SegmentSharingTest {
         val byteString = bufferWithSegments(xs, ys, zs).snapshot()
         assertEquivalent(byteString, bufferWithSegments(xs, ys + zs).snapshot())
         assertEquivalent(byteString, bufferWithSegments(xs + ys + zs).snapshot())
-        assertEquivalent(byteString, (xs + ys + zs).encodeToByteString())
+        assertEquivalent(byteString, (xs + ys + zs).encodeToByteString(Charsets.UTF_8))
     }
 
     @Test
@@ -68,7 +68,7 @@ class SegmentSharingTest {
         val byteString = bufferWithSegments(xs, ys, zs).snapshot()
         val out = RealBuffer()
         byteString.write(out.asOutputStream())
-        assertEquals(xs + ys + zs, out.readUtf8String())
+        assertEquals(xs + ys + zs, out.readString())
     }
 
     /**
@@ -79,7 +79,7 @@ class SegmentSharingTest {
     fun snapshotSegmentsAreNotRecycled() {
         val buffer = bufferWithSegments(xs, ys, zs)
         val snapshot = buffer.snapshot()
-        assertEquals(xs + ys + zs, snapshot.decodeToUtf8())
+        assertEquals(xs + ys + zs, snapshot.decodeToString())
 
         // Confirm that clearing the buffer doesn't release its segments.
         val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
@@ -127,36 +127,36 @@ class SegmentSharingTest {
     @Test
     fun mutateAfterClone() {
         val bufferA = RealBuffer()
-        bufferA.writeUtf8("abc")
+        bufferA.write("abc")
         val bufferB = bufferA.clone()
-        bufferA.writeUtf8("def")
-        bufferB.writeUtf8("DEF")
-        assertEquals("abcdef", bufferA.readUtf8String())
-        assertEquals("abcDEF", bufferB.readUtf8String())
+        bufferA.write("def")
+        bufferB.write("DEF")
+        assertEquals("abcdef", bufferA.readString())
+        assertEquals("abcDEF", bufferB.readString())
     }
 
     @Test
     fun concatenateSegmentsCanCombine() {
-        val bufferA = RealBuffer().writeUtf8(ys).writeUtf8(us)
-        assertEquals(ys, bufferA.readUtf8String(ys.length.toLong()))
-        val bufferB = RealBuffer().writeUtf8(vs).writeUtf8(ws)
+        val bufferA = RealBuffer().write(ys).write(us)
+        assertEquals(ys, bufferA.readString(ys.length.toLong()))
+        val bufferB = RealBuffer().write(vs).write(ws)
         val bufferC = bufferA.clone()
         bufferA.write(bufferB, vs.length.toLong())
-        bufferC.writeUtf8(xs)
+        bufferC.write(xs)
 
-        assertEquals(us + vs, bufferA.readUtf8String())
-        assertEquals(ws, bufferB.readUtf8String())
-        assertEquals(us + xs, bufferC.readUtf8String())
+        assertEquals(us + vs, bufferA.readString())
+        assertEquals(ws, bufferB.readString())
+        assertEquals(us + xs, bufferC.readString())
     }
 
     @Test
     fun shareAndSplit() {
-        val bufferA = RealBuffer().writeUtf8("xxxx")
+        val bufferA = RealBuffer().write("xxxx")
         val snapshot = bufferA.snapshot() // Share the segment.
         val bufferB = RealBuffer()
         bufferB.write(bufferA, 2) // Split the shared segment in two.
-        bufferB.writeUtf8("yy") // Append to the first half of the shared segment.
-        assertEquals("xxxx", snapshot.decodeToUtf8())
+        bufferB.write("yy") // Append to the first half of the shared segment.
+        assertEquals("xxxx", snapshot.decodeToString())
     }
 
     @Test
@@ -172,9 +172,9 @@ class SegmentSharingTest {
     fun appendSnapshotToNonEmptyBuffer() {
         val bufferA = bufferWithSegments(xs, ys)
         val snapshot = bufferA.snapshot()
-        val bufferB = RealBuffer().writeUtf8(us)
+        val bufferB = RealBuffer().write(us)
         bufferB.write(snapshot)
-        assertEquivalent(bufferB, RealBuffer().writeUtf8(us + xs + ys))
+        assertEquivalent(bufferB, RealBuffer().write(us + xs + ys))
     }
 
     @Test
@@ -182,7 +182,7 @@ class SegmentSharingTest {
         val bufferA = bufferWithSegments(ws, xs + "aaaa", ys, "bbbb$zs")
         val bufferB = bufferWithSegments(us)
         bufferA.copyTo(bufferB, (ws.length + xs.length).toLong(), (4 + ys.length + 4).toLong())
-        assertEquivalent(bufferB, RealBuffer().writeUtf8(us + "aaaa" + ys + "bbbb"))
+        assertEquivalent(bufferB, RealBuffer().write(us + "aaaa" + ys + "bbbb"))
     }
 }
 

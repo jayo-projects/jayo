@@ -41,17 +41,13 @@ import static jayo.internal.UnsafeUtils.UNSAFE_AVAILABLE;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 
 public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
-    SegmentedUtf8(final @NonNull Segment[] segments, final int @NonNull [] directory) {
-        this(segments, directory, false);
-    }
-
-    private SegmentedUtf8(final @NonNull Segment[] segments, final int @NonNull [] directory, final boolean isAscii) {
+    SegmentedUtf8(final @NonNull Segment[] segments, final int @NonNull [] directory, final boolean isAscii) {
         super(segments, directory);
         this.isAscii = isAscii;
     }
 
     @Override
-    public @NonNull String decodeToUtf8() {
+    public @NonNull String decodeToString() {
         return decodeToUtf8Static(this, isAscii, UNSAFE_AVAILABLE && SUPPORT_COMPACT_STRING);
     }
 
@@ -190,7 +186,7 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
     }
 
     @Override
-    public @NonNull Utf8 substring(int startIndex, int endIndex) {
+    public @NonNull Utf8 substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
         checkSubstringParameters(startIndex, endIndex);
         if (startIndex == 0 && endIndex == byteSize()) {
             return this;
@@ -227,6 +223,11 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
         return toByteString().toAsciiUppercase();
     }
 
+    @Override
+    public @NonNull String toString() {
+        return decodeToString();
+    }
+
     /**
      * Returns a copy as a non-segmented byte string.
      */
@@ -261,9 +262,9 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
             byteIndexInSegment = directory[segments.length + segmentIndex];
         }
 
+        this.isAscii = isAscii;
         if (isAscii) {
             this.length = byteSize;
-            this.isAscii = true;
             return;
         }
 

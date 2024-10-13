@@ -45,10 +45,10 @@ import java.nio.file.StandardOpenOption
 fun writeEnv(path: Path) {
     path.writer(StandardOpenOption.CREATE).buffered().use { writer ->
         for ((key, value) in System.getenv()) {
-            writer.writeUtf8(key)
-            writer.writeUtf8("=")
-            writer.writeUtf8(value)
-            writer.writeUtf8("\n")
+            writer.write(key)
+            writer.write("=")
+            writer.write(value)
+            writer.write("\n")
         }
     }
 }

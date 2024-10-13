@@ -37,8 +37,8 @@ import java.util.Objects;
  * </tr>
  * <tr>
  * <td>Encode a string</td>
- * <td>{@link Utf8#encodeUtf8(String)}</td>
- * <td>{@link Writer#writeUtf8(CharSequence)}, {@link Writer#writeUtf8(CharSequence, int, int)}</td>
+ * <td>{@link Utf8#encode(String)}</td>
+ * <td>{@link Writer#write(CharSequence)}, {@link Writer#write(CharSequence, int, int)}</td>
  * </tr>
  * <tr>
  * <td>Encode a code point</td>
@@ -47,8 +47,8 @@ import java.util.Objects;
  * </tr>
  * <tr>
  * <td>Decode a string</td>
- * <td>{@link ByteString#decodeToUtf8()}</td>
- * <td>{@link Reader#readUtf8String()}, {@link Reader#readUtf8String(long)}</td>
+ * <td>{@link ByteString#decodeToString()}</td>
+ * <td>{@link Reader#readString()}, {@link Reader#readString(long)}</td>
  * </tr>
  * <tr>
  * <td>Decode a code point</td>
@@ -58,12 +58,12 @@ import java.util.Objects;
  * <tr>
  * <td>Decode until the next {@code \r\n} or {@code \n}</td>
  * <td></td>
- * <td>{@link Reader#readUtf8LineStrict()}, {@link Reader#readUtf8LineStrict(long)}</td>
+ * <td>{@link Reader#readLineStrict()}, {@link Reader#readLineStrict(long)}</td>
  * </tr>
  * <tr>
  * <td>Decode until the next {@code \r\n}, {@code \n}, or {@code EOF}</td>
  * <td></td>
- * <td>{@link Reader#readUtf8Line()}</td>
+ * <td>{@link Reader#readLine()}</td>
  * </tr>
  * <tr>
  * <td>Measure the number of bytes required to encode a char sequence using the UTF-8 encoding</td>
@@ -78,7 +78,7 @@ public final class Utf8Utils {
 
     /**
      * @return the number of bytes needed to encode the slice of {@code charSequence} as UTF-8 when using
-     * {@link Writer#writeUtf8(CharSequence)}.
+     * {@link Writer#write(CharSequence)}.
      */
     public static long size(final @NonNull CharSequence charSequence) {
         Objects.requireNonNull(charSequence);

@@ -35,7 +35,7 @@ public final class ExploreCharsets {
         System.out.println("        String.length: " + s.length());
         System.out.println("String.codePointCount: " + s.codePointCount(0, s.length()));
         System.out.println("            Utf8.size: " + Utf8Utils.size(s));
-        System.out.println("          UTF-8 bytes: " + Utf8.encodeUtf8(s).hex());
+        System.out.println("          UTF-8 bytes: " + Utf8.encode(s).hex());
         System.out.println();
     }
 

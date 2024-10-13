@@ -171,7 +171,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readShortSplitAcrossMultipleSegments() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 1))
+        writer.write("a".repeat(Segment.SIZE - 1))
         writer.write(byteArrayOf(0xab.toByte(), 0xcd.toByte()))
         writer.emit()
         reader.skip((Segment.SIZE - 1).toLong())
@@ -250,7 +250,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readIntSplitAcrossMultipleSegments() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 3))
+        writer.write("a".repeat(Segment.SIZE - 3))
         writer.write(byteArrayOf(0xab.toByte(), 0xcd.toByte(), 0xef.toByte(), 0x01.toByte()))
         writer.emit()
         reader.skip((Segment.SIZE - 3).toLong())
@@ -345,7 +345,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readLongSplitAcrossMultipleSegments() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 7))
+        writer.write("a".repeat(Segment.SIZE - 7))
         writer.write(
             byteArrayOf(
                 0xab.toByte(),
@@ -388,13 +388,13 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun transferTo() {
-        getBufferFromReader(reader).writeUtf8("abc")
-        writer.writeUtf8("def")
+        getBufferFromReader(reader).write("abc")
+        writer.write("def")
         writer.emit()
 
         val writer = RealBuffer()
         assertEquals(6, reader.transferTo(writer))
-        assertEquals("abcdef", writer.readUtf8String())
+        assertEquals("abcdef", writer.readString())
         assertTrue(reader.exhausted())
 
         if (reader is RealReader) {
@@ -416,7 +416,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readExhaustedReader() {
         val writer = RealBuffer()
-        writer.writeUtf8("a".repeat(10))
+        writer.write("a".repeat(10))
         assertEquals(-1, reader.readAtMostTo(writer, 10))
         assertEquals(10, writer.byteSize())
         assertTrue(reader.exhausted())
@@ -432,7 +432,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readZeroBytesFromReader() {
         val writer = RealBuffer()
-        writer.writeUtf8("a".repeat(10))
+        writer.write("a".repeat(10))
 
         // Either 0 or -1 is reasonable here. For consistency with Android's
         // ByteArrayInputStream we return 0.
@@ -500,12 +500,12 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readToWriter() {
-        writer.writeUtf8("a".repeat(10000))
+        writer.write("a".repeat(10000))
         writer.emit()
         val writer = RealBuffer()
         reader.readTo(writer, 9999)
-        assertEquals("a".repeat(9999), writer.readUtf8String())
-        assertEquals("a", reader.readUtf8String())
+        assertEquals("a".repeat(9999), writer.readString())
+        assertEquals("a", reader.readString())
 
         if (reader is RealReader) {
             reader.close()
@@ -517,7 +517,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readToWriterTooShortThrows() {
-        writer.writeUtf8("Hi")
+        writer.write("Hi")
         writer.emit()
         val writer = RealBuffer()
         assertFailsWith<JayoEOFException> {
@@ -525,7 +525,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         }
 
         // Verify we read all that we could from the reader.
-        assertEquals("Hi", writer.readUtf8String())
+        assertEquals("Hi", writer.readString())
         assertTrue(reader.exhausted())
     }
 
@@ -539,19 +539,19 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readToWriterZeroBytes() {
-        writer.writeUtf8("test")
+        writer.write("test")
         writer.flush()
         val writer = RealBuffer()
         reader.readTo(writer, 0)
         assertEquals(0, writer.byteSize())
-        assertEquals("test", reader.readUtf8String())
+        assertEquals("test", reader.readString())
     }
 
     @Test
     fun readToByteArray() {
         val data = RealBuffer()
-        data.writeUtf8("Hello")
-        data.writeUtf8("e".repeat(Segment.SIZE))
+        data.write("Hello")
+        data.write("e".repeat(Segment.SIZE))
 
         val expected = data.copy().readByteArray()
         writer.write(data, data.byteSize())
@@ -576,13 +576,13 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         val writer = ByteArray(8)
 
-        buffer.writeUtf8("hello")
+        buffer.write("hello")
         reader.readTo(writer, 0, 3)
         assertContentEquals(byteArrayOf('h'.code.toByte(), 'e'.code.toByte(), 'l'.code.toByte(), 0, 0, 0, 0, 0), writer)
-        assertEquals("lo", reader.readUtf8String())
+        assertEquals("lo", reader.readString())
 
         writer.fill(0)
-        buffer.writeUtf8("hello")
+        buffer.write("hello")
         reader.readTo(writer, 3, 5)
         assertContentEquals(
             byteArrayOf(
@@ -593,10 +593,10 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertTrue(reader.exhausted())
 
         writer.fill(0)
-        buffer.writeUtf8("hello")
+        buffer.write("hello")
         reader.readTo(writer, 3, 1)
         assertContentEquals(byteArrayOf(0, 0, 0, 'h'.code.toByte(), 0, 0, 0, 0), writer)
-        assertEquals("ello", reader.readUtf8String())
+        assertEquals("ello", reader.readString())
     }
 
     @Test
@@ -612,7 +612,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readToByteArrayTooShortThrows() {
-        writer.writeUtf8("Hello")
+        writer.write("Hello")
         writer.emit()
 
         val array = ByteArray(6)
@@ -643,7 +643,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readAtMostToByteArray() {
-        writer.writeUtf8("abcd")
+        writer.write("abcd")
         writer.emit()
 
         val writer = ByteArray(3)
@@ -662,7 +662,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readAtMostToByteArrayNotEnough() {
-        writer.writeUtf8("abcd")
+        writer.write("abcd")
         writer.emit()
 
         val writer = ByteArray(5)
@@ -675,7 +675,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readAtMostToByteArrayOffsetAndCount() {
-        writer.writeUtf8("abcd")
+        writer.write("abcd")
         writer.emit()
 
         val writer = ByteArray(7)
@@ -696,7 +696,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readAtMostToByteArrayFromOffset() {
-        writer.writeUtf8("abcd")
+        writer.write("abcd")
         writer.emit()
 
         val writer = ByteArray(7)
@@ -730,7 +730,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readByteArray() {
         val string = "abcd" + "e".repeat(Segment.SIZE)
-        writer.writeUtf8(string)
+        writer.write(string)
         writer.emit()
         assertArrayEquals(string.toByteArray(), reader.readByteArray())
 
@@ -744,10 +744,10 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readByteArrayPartial() {
-        writer.writeUtf8("abcd")
+        writer.write("abcd")
         writer.emit()
         assertEquals("[97, 98, 99]", reader.readByteArray(3).contentToString())
-        assertEquals("d", reader.readUtf8String(1))
+        assertEquals("d", reader.readString(1))
 
         if (reader is RealReader) {
             reader.close()
@@ -759,13 +759,13 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readByteArrayTooShortThrows() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         assertFailsWith<JayoEOFException> {
             reader.readByteArray(4)
         }
 
-        assertEquals("abc", reader.readUtf8String()) // The read shouldn't consume any data.
+        assertEquals("abc", reader.readString()) // The read shouldn't consume any data.
     }
 
     @Test
@@ -775,63 +775,63 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     open fun readUtf8StringSpansSegments() {
-        writer.writeUtf8("a".repeat(Segment.SIZE * 2))
+        writer.write("a".repeat(Segment.SIZE * 2))
         writer.emit()
         reader.skip((Segment.SIZE - 1).toLong())
-        assertEquals("aa", reader.readUtf8String(2))
+        assertEquals("aa", reader.readString(2))
 
         if (reader is RealReader) {
             reader.close()
             assertFailsWith<IllegalStateException> {
-                reader.readUtf8String(2)
+                reader.readString(2)
             }
         }
     }
 
     @Test
     fun readUtf8StringSegment() {
-        writer.writeUtf8("a".repeat(Segment.SIZE))
+        writer.write("a".repeat(Segment.SIZE))
         writer.emit()
-        assertEquals("a".repeat(Segment.SIZE), reader.readUtf8String(Segment.SIZE.toLong()))
+        assertEquals("a".repeat(Segment.SIZE), reader.readString(Segment.SIZE.toLong()))
     }
 
     @Test
     fun readUtf8StringPartialBuffer() {
-        writer.writeUtf8("a".repeat(Segment.SIZE + 20))
+        writer.write("a".repeat(Segment.SIZE + 20))
         writer.emit()
-        assertEquals("a".repeat(Segment.SIZE + 10), reader.readUtf8String((Segment.SIZE + 10).toLong()))
+        assertEquals("a".repeat(Segment.SIZE + 10), reader.readString((Segment.SIZE + 10).toLong()))
     }
 
     @Test
     open fun readUtf8StringEntireBuffer() {
-        writer.writeUtf8("a".repeat(Segment.SIZE * 2))
+        writer.write("a".repeat(Segment.SIZE * 2))
         writer.emit()
-        assertEquals("a".repeat(Segment.SIZE * 2), reader.readUtf8String())
+        assertEquals("a".repeat(Segment.SIZE * 2), reader.readString())
 
         if (reader is RealReader) {
             reader.close()
             assertFailsWith<IllegalStateException> {
-                reader.readUtf8String()
+                reader.readString()
             }
         }
     }
 
     @Test
     fun readUtf8StringTooShortThrows() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         assertFailsWith<JayoEOFException> {
-            reader.readUtf8String(4L)
+            reader.readString(4L)
         }
 
-        assertEquals("abc", reader.readUtf8String()) // The read shouldn't consume any data.
+        assertEquals("abc", reader.readString()) // The read shouldn't consume any data.
     }
 
     @Test
     fun skip() {
-        writer.writeUtf8("a")
-        writer.writeUtf8("b".repeat(Segment.SIZE))
-        writer.writeUtf8("c")
+        writer.write("a")
+        writer.write("b".repeat(Segment.SIZE))
+        writer.write("c")
         writer.emit()
         reader.skip(1)
         assertEquals('b'.code.toLong(), (reader.readByte() and 0xff).toLong())
@@ -850,7 +850,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun skipInsufficientData() {
-        writer.writeUtf8("a")
+        writer.write("a")
         writer.emit()
         assertFailsWith<JayoEOFException> {
             reader.skip(2)
@@ -870,13 +870,13 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertEquals(-1, reader.indexOf('a'.code.toByte()))
 
         // The segment has one value.
-        writer.writeUtf8("a") // a
+        writer.write("a") // a
         writer.emit()
         assertEquals(0, reader.indexOf('a'.code.toByte()))
         assertEquals(-1, reader.indexOf('b'.code.toByte()))
 
         // The segment has lots of data.
-        writer.writeUtf8("b".repeat(Segment.SIZE - 2)) // ab...b
+        writer.write("b".repeat(Segment.SIZE - 2)) // ab...b
         writer.emit()
         assertEquals(0, reader.indexOf('a'.code.toByte()))
         assertEquals(1, reader.indexOf('b'.code.toByte()))
@@ -889,7 +889,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertEquals(-1, reader.indexOf('c'.code.toByte()))
 
         // The segment is full.
-        writer.writeUtf8("c") // b...bc
+        writer.write("c") // b...bc
         writer.emit()
         assertEquals(-1, reader.indexOf('a'.code.toByte()))
         assertEquals(0, reader.indexOf('b'.code.toByte()))
@@ -902,7 +902,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertEquals((Segment.SIZE - 5).toLong(), reader.indexOf('c'.code.toByte()))
 
         // Two segments.
-        writer.writeUtf8("d") // b...bcd, d is in the 2nd segment.
+        writer.write("d") // b...bcd, d is in the 2nd segment.
         writer.emit()
         assertEquals((Segment.SIZE - 4).toLong(), reader.indexOf('d'.code.toByte()))
         assertEquals(-1, reader.indexOf('e'.code.toByte()))
@@ -911,9 +911,9 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun indexOfByteWithStartOffset() {
         with(writer) {
-            writeUtf8("a")
-            writeUtf8("b".repeat(Segment.SIZE))
-            writeUtf8("c")
+            write("a")
+            write("b".repeat(Segment.SIZE))
+            write("c")
             emit()
         }
         assertEquals(-1, reader.indexOf('a'.code.toByte(), 1))
@@ -948,7 +948,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun indexOfByteInvalidBoundsThrows() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         assertFailsWith<IllegalArgumentException>("Expected failure: fromIndex < 0") {
             reader.indexOf('a'.code.toByte(), -1)
@@ -960,7 +960,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun indexOfByteWithFromIndex() {
-        writer.writeUtf8("aaa")
+        writer.write("aaa")
         writer.emit()
         assertEquals(0, reader.indexOf('a'.code.toByte()))
         assertEquals(0, reader.indexOf('a'.code.toByte(), 0))
@@ -971,9 +971,9 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun request() {
         with(writer) {
-            writeUtf8("a")
-            writeUtf8("b".repeat(Segment.SIZE))
-            writeUtf8("c")
+            write("a")
+            write("b".repeat(Segment.SIZE))
+            write("c")
             emit()
         }
         assertTrue(reader.request((Segment.SIZE + 2).toLong()))
@@ -993,9 +993,9 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun require() {
         with(writer) {
-            writeUtf8("a")
-            writeUtf8("b".repeat(Segment.SIZE))
-            writeUtf8("c")
+            write("a")
+            write("b".repeat(Segment.SIZE))
+            write("c")
             emit()
         }
         reader.require((Segment.SIZE + 2).toLong())
@@ -1039,7 +1039,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     private fun assertLongHexString(s: String, expected: Long) {
-        writer.writeUtf8(s)
+        writer.write(s)
         writer.emit()
         val actual = reader.readHexadecimalUnsignedLong()
         assertEquals(expected, actual, "$s --> $expected")
@@ -1048,8 +1048,8 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun longHexStringAcrossSegment() {
         with(writer) {
-            writeUtf8("a".repeat(Segment.SIZE - 8))
-            writeUtf8("FFFFFFFFFFFFFFFF")
+            write("a".repeat(Segment.SIZE - 8))
+            write("FFFFFFFFFFFFFFFF")
             emit()
         }
         reader.skip((Segment.SIZE - 8).toLong())
@@ -1058,7 +1058,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun longHexTerminatedByNonDigit() {
-        writer.writeUtf8("abcd,")
+        writer.write("abcd,")
         writer.emit()
         assertEquals(0xabcdL, reader.readHexadecimalUnsignedLong())
     }
@@ -1066,10 +1066,10 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     // this test is a good race-condition test, do it several times !
     @RepeatedTest(50)
     fun longHexAlphabet() {
-        writer.writeUtf8("7896543210abcdef")
+        writer.write("7896543210abcdef")
         writer.emit()
         assertEquals(0x7896543210abcdefL, reader.readHexadecimalUnsignedLong())
-        writer.writeUtf8("ABCDEF")
+        writer.write("ABCDEF")
         writer.emit()
         assertEquals(0xabcdefL, reader.readHexadecimalUnsignedLong())
     }
@@ -1077,7 +1077,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun longHexStringTooLongThrows() {
         val value = "fffffffffffffffff"
-        writer.writeUtf8(value)
+        writer.write(value)
         writer.emit()
 
         val e = assertFailsWith<NumberFormatException> {
@@ -1089,19 +1089,19 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun longHexStringTooShortThrows() {
-        writer.writeUtf8(" ")
+        writer.write(" ")
         writer.emit()
 
         val e = assertFailsWith<NumberFormatException> {
             reader.readHexadecimalUnsignedLong()
         }
         assertEquals("Expected leading [0-9a-fA-F] character but was 0x20", e.message)
-        assertEquals(" ", reader.readUtf8String())
+        assertEquals(" ", reader.readString())
     }
 
     @Test
     fun longHexEmptyReaderThrows() {
-        writer.writeUtf8("")
+        writer.write("")
         writer.emit()
         assertFailsWith<JayoEOFException> { reader.readHexadecimalUnsignedLong() }
     }
@@ -1120,32 +1120,32 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     private fun assertLongDecimalString(s: String, expected: Long) {
-        writer.writeUtf8(s)
-        writer.writeUtf8("zzz")
+        writer.write(s)
+        writer.write("zzz")
         writer.emit()
         val actual = reader.readDecimalLong()
         assertEquals(expected, actual, "$s --> $expected")
-        assertEquals("zzz", reader.readUtf8String())
+        assertEquals("zzz", reader.readString())
         assertTrue(reader.exhausted())
     }
 
     @Test
     fun longDecimalStringAcrossSegment() {
         with(writer) {
-            writeUtf8("a".repeat(Segment.SIZE - 8))
-            writeUtf8("1234567890123456")
-            writeUtf8("zzz")
+            write("a".repeat(Segment.SIZE - 8))
+            write("1234567890123456")
+            write("zzz")
             emit()
         }
         reader.skip((Segment.SIZE - 8).toLong())
         assertEquals(1234567890123456L, reader.readDecimalLong())
-        assertEquals("zzz", reader.readUtf8String())
+        assertEquals("zzz", reader.readString())
     }
 
     @Test
     fun longDecimalStringTooLongThrows() {
         val value = "12345678901234567890"
-        writer.writeUtf8(value) // Too many digits.
+        writer.write(value) // Too many digits.
         writer.emit()
 
         val e = assertFailsWith<NumberFormatException> {
@@ -1158,7 +1158,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun longDecimalStringTooHighThrows() {
         val value = "9223372036854775808"
-        writer.writeUtf8(value) // Right size but cannot fit.
+        writer.write(value) // Right size but cannot fit.
         writer.emit()
 
         val e = assertFailsWith<NumberFormatException> {
@@ -1171,7 +1171,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun longDecimalStringTooLowThrows() {
         val value = "-9223372036854775809"
-        writer.writeUtf8(value) // Right size but cannot fit.
+        writer.write(value) // Right size but cannot fit.
         writer.emit()
 
         val e = assertFailsWith<NumberFormatException> {
@@ -1183,19 +1183,19 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun longDecimalStringTooShortThrows() {
-        writer.writeUtf8(" ")
+        writer.write(" ")
         writer.emit()
 
         val e = assertFailsWith<NumberFormatException> {
             reader.readDecimalLong()
         }
         assertEquals("Expected a digit or '-' but was 0x20", e.message)
-        assertEquals(" ", reader.readUtf8String())
+        assertEquals(" ", reader.readString())
     }
 
     @Test
     fun longDecimalEmptyThrows() {
-        writer.writeUtf8("")
+        writer.write("")
         writer.emit()
         assertFailsWith<JayoEOFException> {
             reader.readDecimalLong()
@@ -1204,22 +1204,22 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun longDecimalLoneDashThrows() {
-        writer.writeUtf8("-")
+        writer.write("-")
         writer.emit()
         assertFailsWith<JayoEOFException> {
             reader.readDecimalLong()
         }
-        assertEquals("", reader.readUtf8String())
+        assertEquals("", reader.readString())
     }
 
     @Test
     fun longDecimalDashFollowedByNonDigitThrows() {
-        writer.writeUtf8("- ")
+        writer.write("- ")
         writer.emit()
         assertFailsWith<NumberFormatException> {
             reader.readDecimalLong()
         }
-        assertEquals(" ", reader.readUtf8String())
+        assertEquals(" ", reader.readString())
     }
 
     @Test
@@ -1282,92 +1282,92 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun peek() {
-        writer.writeUtf8("abcdefghi")
+        writer.write("abcdefghi")
         writer.emit()
 
-        assertEquals("abc", reader.readUtf8String(3))
+        assertEquals("abc", reader.readString(3))
 
         val peek = reader.peek()
-        assertEquals("def", peek.readUtf8String(3))
-        assertEquals("ghi", peek.readUtf8String(3))
+        assertEquals("def", peek.readString(3))
+        assertEquals("ghi", peek.readString(3))
         assertFalse(peek.request(1))
 
-        assertEquals("def", reader.readUtf8String(3))
+        assertEquals("def", reader.readString(3))
     }
 
     @Test
     fun peekMultiple() {
-        writer.writeUtf8("abcdefghi")
+        writer.write("abcdefghi")
         writer.emit()
 
-        assertEquals("abc", reader.readUtf8String(3))
+        assertEquals("abc", reader.readString(3))
 
         val peek1 = reader.peek()
         val peek2 = reader.peek()
 
-        assertEquals("def", peek1.readUtf8String(3))
+        assertEquals("def", peek1.readString(3))
 
-        assertEquals("def", peek2.readUtf8String(3))
-        assertEquals("ghi", peek2.readUtf8String(3))
+        assertEquals("def", peek2.readString(3))
+        assertEquals("ghi", peek2.readString(3))
         assertFalse(peek2.request(1))
 
-        assertEquals("ghi", peek1.readUtf8String(3))
+        assertEquals("ghi", peek1.readString(3))
         assertFalse(peek1.request(1))
 
-        assertEquals("def", reader.readUtf8String(3))
+        assertEquals("def", reader.readString(3))
     }
 
     @Test
     fun peekLarge() {
-        writer.writeUtf8("abcdef")
-        writer.writeUtf8("g".repeat(2 * Segment.SIZE))
-        writer.writeUtf8("hij")
+        writer.write("abcdef")
+        writer.write("g".repeat(2 * Segment.SIZE))
+        writer.write("hij")
         writer.emit()
 
-        assertEquals("abc", reader.readUtf8String(3))
+        assertEquals("abc", reader.readString(3))
 
         val peek = reader.peek()
-        assertEquals("def", peek.readUtf8String(3))
+        assertEquals("def", peek.readString(3))
         peek.skip((2 * Segment.SIZE).toLong())
-        assertEquals("hij", peek.readUtf8String(3))
+        assertEquals("hij", peek.readString(3))
         assertFalse(peek.request(1))
 
-        assertEquals("def", reader.readUtf8String(3))
+        assertEquals("def", reader.readString(3))
         reader.skip((2 * Segment.SIZE).toLong())
-        assertEquals("hij", reader.readUtf8String(3))
+        assertEquals("hij", reader.readString(3))
     }
 
     @Test
     fun peekInvalid() {
-        writer.writeUtf8("abcdefghi")
+        writer.write("abcdefghi")
         writer.emit()
 
-        assertEquals("abc", reader.readUtf8String(3))
+        assertEquals("abc", reader.readString(3))
 
         val peek = reader.peek()
-        assertEquals("def", peek.readUtf8String(3))
-        assertEquals("ghi", peek.readUtf8String(3))
+        assertEquals("def", peek.readString(3))
+        assertEquals("ghi", peek.readString(3))
         assertFalse(peek.request(1))
 
-        assertEquals("def", reader.readUtf8String(3))
+        assertEquals("def", reader.readString(3))
 
         val e = assertFailsWith<IllegalStateException> {
-            peek.readUtf8String()
+            peek.readString()
         }
         assertEquals("Peek reader is invalid because upstream reader was used", e.message)
     }
 
     @Test
     open fun peekSegmentThenInvalid() {
-        writer.writeUtf8("abc")
-        writer.writeUtf8("d".repeat(2 * Segment.SIZE))
+        writer.write("abc")
+        writer.write("d".repeat(2 * Segment.SIZE))
         writer.emit()
 
-        assertEquals("abc", reader.readUtf8String(3))
+        assertEquals("abc", reader.readString(3))
 
         // Peek a little data and skip the rest of the upstream reader
         val peek = reader.peek()
-        assertEquals("ddd", peek.readUtf8String(3))
+        assertEquals("ddd", peek.readString(3))
         reader.transferTo(discardingWriter())
 
         // Skip the rest of the buffered data
@@ -1380,10 +1380,10 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun peekDoesntReadTooMuch() {
         // 6 bytes in reader's buffer plus 3 bytes upstream.
-        writer.writeUtf8("abcdef")
+        writer.write("abcdef")
         writer.emit()
         reader.require(6L)
-        writer.writeUtf8("ghi")
+        writer.write("ghi")
         writer.emit()
 
         val peek = reader.peek()
@@ -1392,98 +1392,98 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertTrue(peek.request(3))
         assertThat(getBufferFromReader(reader).byteSize()).isGreaterThanOrEqualTo(6L)
         assertThat(getBufferFromReader(reader).byteSize()).isGreaterThanOrEqualTo(6L)
-        assertEquals("abc", peek.readUtf8String(3L))
+        assertEquals("abc", peek.readString(3L))
 
         // Read 3 more bytes. This exhausts the buffered data.
         assertTrue(peek.request(3))
         assertThat(getBufferFromReader(reader).byteSize()).isGreaterThanOrEqualTo(6L)
         assertThat(getBufferFromReader(peek).byteSize()).isGreaterThanOrEqualTo(3L)
-        assertEquals("def", peek.readUtf8String(3L))
+        assertEquals("def", peek.readString(3L))
 
         // Read 3 more bytes. This draws new bytes.
         assertTrue(peek.request(3))
         assertEquals(9, getBufferFromReader(reader).byteSize())
         assertEquals(3, getBufferFromReader(peek).byteSize())
-        assertEquals("ghi", peek.readUtf8String(3L))
+        assertEquals("ghi", peek.readString(3L))
     }
 
     @Test
     fun factorySegmentSizes() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         reader.require(3)
         assertEquals(listOf(3), segmentSizes(getBufferFromReader(reader)))
     }
 
     @Test
-    fun readUtf8Line() {
-        writer.writeUtf8("first line\nsecond line\n")
+    fun readLine() {
+        writer.write("first line\nsecond line\n")
         writer.flush()
-        assertEquals("first line", reader.readUtf8Line())
-        assertEquals("second line\n", reader.readUtf8String())
-        assertEquals(null, reader.readUtf8Line())
+        assertEquals("first line", reader.readLine())
+        assertEquals("second line\n", reader.readString())
+        assertEquals(null, reader.readLine())
 
-        writer.writeUtf8("\nnext line\n")
+        writer.write("\nnext line\n")
         writer.flush()
-        assertEquals("", reader.readUtf8Line())
-        assertEquals("next line", reader.readUtf8Line())
+        assertEquals("", reader.readLine())
+        assertEquals("next line", reader.readLine())
 
-        writer.writeUtf8("There is no newline!")
+        writer.write("There is no newline!")
         writer.flush()
-        assertEquals("There is no newline!", reader.readUtf8Line())
+        assertEquals("There is no newline!", reader.readLine())
 
-        writer.writeUtf8("Wot do u call it?\r\nWindows")
+        writer.write("Wot do u call it?\r\nWindows")
         writer.flush()
-        assertEquals("Wot do u call it?", reader.readUtf8Line())
+        assertEquals("Wot do u call it?", reader.readLine())
         reader.transferTo(discardingWriter())
 
-        writer.writeUtf8("reo\rde\red\n")
+        writer.write("reo\rde\red\n")
         writer.flush()
-        assertEquals("reo\rde\red", reader.readUtf8Line())
+        assertEquals("reo\rde\red", reader.readLine())
     }
 
     @Test
-    fun readUtf8LineStrict() {
-        writer.writeUtf8("first line\nsecond line\n")
+    fun readLineStrict() {
+        writer.write("first line\nsecond line\n")
         writer.flush()
-        assertEquals("first line", reader.readUtf8LineStrict())
-        assertEquals("second line\n", reader.readUtf8String())
-        assertFailsWith<JayoEOFException> { reader.readUtf8LineStrict() }
+        assertEquals("first line", reader.readLineStrict())
+        assertEquals("second line\n", reader.readString())
+        assertFailsWith<JayoEOFException> { reader.readLineStrict() }
 
-        writer.writeUtf8("\nnext line\n")
+        writer.write("\nnext line\n")
         writer.flush()
-        assertEquals("", reader.readUtf8LineStrict())
-        assertEquals("next line", reader.readUtf8LineStrict())
+        assertEquals("", reader.readLineStrict())
+        assertEquals("next line", reader.readLineStrict())
 
-        writer.writeUtf8("There is no newline!")
+        writer.write("There is no newline!")
         writer.flush()
-        assertFailsWith<JayoEOFException> { reader.readUtf8LineStrict() }
-        assertEquals("There is no newline!", reader.readUtf8String())
+        assertFailsWith<JayoEOFException> { reader.readLineStrict() }
+        assertEquals("There is no newline!", reader.readString())
 
-        writer.writeUtf8("Wot do u call it?\r\nWindows")
+        writer.write("Wot do u call it?\r\nWindows")
         writer.flush()
-        assertEquals("Wot do u call it?", reader.readUtf8LineStrict())
+        assertEquals("Wot do u call it?", reader.readLineStrict())
         reader.transferTo(discardingWriter())
 
-        writer.writeUtf8("reo\rde\red\n")
+        writer.write("reo\rde\red\n")
         writer.flush()
-        assertEquals("reo\rde\red", reader.readUtf8LineStrict())
+        assertEquals("reo\rde\red", reader.readLineStrict())
 
-        writer.writeUtf8("line\n")
+        writer.write("line\n")
         writer.flush()
-        assertFailsWith<JayoEOFException> { reader.readUtf8LineStrict(3) }
-        assertEquals("line", reader.readUtf8LineStrict(4))
+        assertFailsWith<JayoEOFException> { reader.readLineStrict(3) }
+        assertEquals("line", reader.readLineStrict(4))
         assertTrue(reader.exhausted())
 
-        writer.writeUtf8("line\r\n")
+        writer.write("line\r\n")
         writer.flush()
-        assertFailsWith<JayoEOFException> { reader.readUtf8LineStrict(3) }
-        assertEquals("line", reader.readUtf8LineStrict(4))
+        assertFailsWith<JayoEOFException> { reader.readLineStrict(3) }
+        assertEquals("line", reader.readLineStrict(4))
         assertTrue(reader.exhausted())
 
-        writer.writeUtf8("line\n")
+        writer.write("line\n")
         writer.flush()
-        assertEquals("line", reader.readUtf8LineStrict(5))
+        assertEquals("line", reader.readLineStrict(5))
         assertTrue(reader.exhausted())
     }
 
@@ -1654,44 +1654,44 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readByteString() {
         with(writer) {
-            writeUtf8("abcd")
-            writeUtf8("e".repeat(Segment.SIZE))
+            write("abcd")
+            write("e".repeat(Segment.SIZE))
             emit()
         }
-        assertEquals("abcd" + "e".repeat(Segment.SIZE), reader.readByteString().decodeToUtf8())
+        assertEquals("abcd" + "e".repeat(Segment.SIZE), reader.readByteString().decodeToString())
     }
 
     @Test
     fun readByteStringPartial() {
         val eeee = "e".repeat(Segment.SIZE)
         with(writer) {
-            writeUtf8("abcd")
-            writeUtf8(eeee)
-            writeUtf8("abcd")
+            write("abcd")
+            write(eeee)
+            write("abcd")
             emit()
         }
-        assertEquals("abc", reader.readByteString(3).decodeToUtf8())
-        assertEquals("d", reader.readByteString(1).decodeToUtf8())
-        assertEquals(eeee, reader.readByteString(Segment.SIZE.toLong()).decodeToUtf8())
+        assertEquals("abc", reader.readByteString(3).decodeToString())
+        assertEquals("d", reader.readByteString(1).decodeToString())
+        assertEquals(eeee, reader.readByteString(Segment.SIZE.toLong()).decodeToString())
     }
 
     @Test
     fun readByteStringTooShortThrows() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         assertFailsWith<JayoEOFException> { reader.readByteString(4) }
 
-        assertEquals("abc", reader.readUtf8String()) // The read shouldn't consume any data.
+        assertEquals("abc", reader.readString()) // The read shouldn't consume any data.
     }
 
     @Test
     fun readUtf8String() {
         with(writer) {
-            writeUtf8("abcd")
-            writeUtf8("e".repeat(Segment.SIZE))
+            write("abcd")
+            write("e".repeat(Segment.SIZE))
             emit()
         }
-        assertThat(reader.readUtf8String().codePoints())
+        assertThat(reader.readString().codePoints())
             .containsExactly(
                 'a'.code,
                 'b'.code,
@@ -1704,19 +1704,19 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readUtf8Partial() {
         with(writer) {
-            writeUtf8("abcd")
-            writeUtf8("e".repeat(Segment.SIZE))
+            write("abcd")
+            write("e".repeat(Segment.SIZE))
             emit()
         }
-        assertThat(reader.readUtf8String(3).codePoints())
+        assertThat(reader.readString(3).codePoints())
             .containsExactly('a'.code, 'b'.code, 'c'.code)
-        assertThat(reader.readUtf8String(1).codePoints())
+        assertThat(reader.readString(1).codePoints())
             .containsExactly('d'.code)
     }
 
     @Test
     fun readUtf8TooShortThrows() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         assertFailsWith<JayoEOFException> { reader.readUtf8(4) }
 
@@ -1725,107 +1725,117 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     @Test
-    fun indexOfByteString() {
-        assertEquals(-1, reader.indexOf("flop".encodeToByteString()))
-
-        writer.writeUtf8("flip flop")
+    fun readAsciiTooShortThrows() {
+        writer.write("abc")
         writer.emit()
-        assertEquals(5, reader.indexOf("flop".encodeToByteString()))
-        reader.readUtf8String() // Clear stream.
+        assertFailsWith<JayoEOFException> { reader.readAscii(4) }
+
+        assertThat(reader.readAscii().codePoints())
+            .containsExactly('a'.code, 'b'.code, 'c'.code) // The read shouldn't consume any data.
+    }
+
+    @Test
+    fun indexOfByteString() {
+        assertEquals(-1, reader.indexOf("flop".encodeToUtf8()))
+
+        writer.write("flip flop")
+        writer.emit()
+        assertEquals(5, reader.indexOf("flop".encodeToUtf8()))
+        reader.readString() // Clear stream.
 
         // Make sure we backtrack and resume searching after partial match.
-        writer.writeUtf8("hi hi hi hey")
+        writer.write("hi hi hi hey")
         writer.emit()
-        assertEquals(3, reader.indexOf("hi hi hey".encodeToByteString()))
+        assertEquals(3, reader.indexOf("hi hi hey".encodeToUtf8()))
     }
 
     @Test
     fun indexOfByteStringAtSegmentBoundary() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 1))
-        writer.writeUtf8("bcd")
+        writer.write("a".repeat(Segment.SIZE - 1))
+        writer.write("bcd")
         writer.emit()
         assertEquals(
             (Segment.SIZE - 3).toLong(),
-            reader.indexOf("aabc".encodeToByteString(), (Segment.SIZE - 4).toLong()),
+            reader.indexOf("aabc".encodeToUtf8(), (Segment.SIZE - 4).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 3).toLong(),
-            reader.indexOf("aabc".encodeToByteString(), (Segment.SIZE - 3).toLong()),
+            reader.indexOf("aabc".encodeToUtf8(), (Segment.SIZE - 3).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("abcd".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("abcd".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("abc".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("abc".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("abc".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("abc".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("ab".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("ab".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("a".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("a".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 1).toLong(),
-            reader.indexOf("bc".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("bc".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 1).toLong(),
-            reader.indexOf("b".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("b".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             Segment.SIZE.toLong(),
-            reader.indexOf("c".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("c".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             Segment.SIZE.toLong(),
-            reader.indexOf("c".encodeToByteString(), Segment.SIZE.toLong()),
+            reader.indexOf("c".encodeToUtf8(), Segment.SIZE.toLong()),
         )
         assertEquals(
             (Segment.SIZE + 1).toLong(),
-            reader.indexOf("d".encodeToByteString(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("d".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE + 1).toLong(),
-            reader.indexOf("d".encodeToByteString(), (Segment.SIZE + 1).toLong()),
+            reader.indexOf("d".encodeToUtf8(), (Segment.SIZE + 1).toLong()),
         )
     }
 
     @Test
     fun indexOfDoesNotWrapAround() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 1))
-        writer.writeUtf8("bcd")
+        writer.write("a".repeat(Segment.SIZE - 1))
+        writer.write("bcd")
         writer.emit()
-        assertEquals(-1, reader.indexOf("abcda".encodeToByteString(), (Segment.SIZE - 3).toLong()))
+        assertEquals(-1, reader.indexOf("abcda".encodeToUtf8(), (Segment.SIZE - 3).toLong()))
     }
 
     @Test
     fun indexOfByteStringWithOffset() {
-        assertEquals(-1, reader.indexOf("flop".encodeToByteString(), 1))
+        assertEquals(-1, reader.indexOf("flop".encodeToUtf8(), 1))
 
-        writer.writeUtf8("flop flip flop")
+        writer.write("flop flip flop")
         writer.emit()
-        assertEquals(10, reader.indexOf("flop".encodeToByteString(), 1))
-        reader.readUtf8String() // Clear stream
+        assertEquals(10, reader.indexOf("flop".encodeToUtf8(), 1))
+        reader.readString() // Clear stream
 
         // Make sure we backtrack and resume searching after partial match.
-        writer.writeUtf8("hi hi hi hi hey")
+        writer.write("hi hi hi hi hey")
         writer.emit()
-        assertEquals(6, reader.indexOf("hi hi hey".encodeToByteString(), 1))
+        assertEquals(6, reader.indexOf("hi hi hey".encodeToUtf8(), 1))
     }
 
     @Test
     fun indexOfEmptyByteString() {
         assertEquals(0, reader.indexOf(ByteString.EMPTY))
 
-        writer.writeUtf8("blablabla")
+        writer.write("blablabla")
         writer.emit()
         assertEquals(0, reader.indexOf(ByteString.EMPTY))
     }
@@ -1833,68 +1843,68 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun indexOfByteStringInvalidArgumentsThrows() {
         assertFailsWith<IllegalArgumentException> {
-            reader.indexOf("hi".encodeToByteString(), -1)
+            reader.indexOf("hi".encodeToUtf8(), -1)
         }
     }
 
     @Test
     fun indexOfElement() {
-        writer.writeUtf8("a").writeUtf8("b".repeat(Segment.SIZE)).writeUtf8("c")
+        writer.write("a").write("b".repeat(Segment.SIZE)).write("c")
         writer.emit()
-        assertEquals(0, reader.indexOfElement("DEFGaHIJK".encodeToByteString()))
-        assertEquals(1, reader.indexOfElement("DEFGHIJKb".encodeToByteString()))
-        assertEquals((Segment.SIZE + 1).toLong(), reader.indexOfElement("cDEFGHIJK".encodeToByteString()))
-        assertEquals(1, reader.indexOfElement("DEFbGHIc".encodeToByteString()))
-        assertEquals(-1L, reader.indexOfElement("DEFGHIJK".encodeToByteString()))
-        assertEquals(-1L, reader.indexOfElement("".encodeToByteString()))
+        assertEquals(0, reader.indexOfElement("DEFGaHIJK".encodeToUtf8()))
+        assertEquals(1, reader.indexOfElement("DEFGHIJKb".encodeToUtf8()))
+        assertEquals((Segment.SIZE + 1).toLong(), reader.indexOfElement("cDEFGHIJK".encodeToUtf8()))
+        assertEquals(1, reader.indexOfElement("DEFbGHIc".encodeToUtf8()))
+        assertEquals(-1L, reader.indexOfElement("DEFGHIJK".encodeToUtf8()))
+        assertEquals(-1L, reader.indexOfElement("".encodeToUtf8()))
     }
 
     @Test
     fun indexOfElementWithOffset() {
-        writer.writeUtf8("a").writeUtf8("b".repeat(Segment.SIZE)).writeUtf8("c")
+        writer.write("a").write("b".repeat(Segment.SIZE)).write("c")
         writer.emit()
-        assertEquals(-1, reader.indexOfElement("DEFGaHIJK".encodeToByteString(), 1))
-        assertEquals(15, reader.indexOfElement("DEFGHIJKb".encodeToByteString(), 15))
+        assertEquals(-1, reader.indexOfElement("DEFGaHIJK".encodeToUtf8(), 1))
+        assertEquals(15, reader.indexOfElement("DEFGHIJKb".encodeToUtf8(), 15))
     }
 
     @Test
     fun rangeEquals() {
-        writer.writeUtf8("A man, a plan, a canal. Panama.")
+        writer.write("A man, a plan, a canal. Panama.")
         writer.emit()
-        assertTrue(reader.rangeEquals(7, "a plan".encodeToByteString()))
-        assertTrue(reader.rangeEquals(0, "A man".encodeToByteString()))
-        assertTrue(reader.rangeEquals(24, "Panama".encodeToByteString()))
-        assertFalse(reader.rangeEquals(24, "Panama. Panama. Panama.".encodeToByteString()))
+        assertTrue(reader.rangeEquals(7, "a plan".encodeToUtf8()))
+        assertTrue(reader.rangeEquals(0, "A man".encodeToUtf8()))
+        assertTrue(reader.rangeEquals(24, "Panama".encodeToUtf8()))
+        assertFalse(reader.rangeEquals(24, "Panama. Panama. Panama.".encodeToUtf8()))
     }
 
     @Test
     fun rangeEqualsWithOffsetAndCount() {
-        writer.writeUtf8("A man, a plan, a canal. Panama.")
+        writer.write("A man, a plan, a canal. Panama.")
         writer.emit()
-        assertTrue(reader.rangeEquals(7, "aaa plannn".encodeToByteString(), 2, 6))
-        assertTrue(reader.rangeEquals(0, "AAA mannn".encodeToByteString(), 2, 5))
-        assertTrue(reader.rangeEquals(24, "PPPanamaaa".encodeToByteString(), 2, 6))
+        assertTrue(reader.rangeEquals(7, "aaa plannn".encodeToUtf8(), 2, 6))
+        assertTrue(reader.rangeEquals(0, "AAA mannn".encodeToUtf8(), 2, 5))
+        assertTrue(reader.rangeEquals(24, "PPPanamaaa".encodeToUtf8(), 2, 6))
     }
 
     @Test
     fun rangeEqualsArgumentValidation() {
         // Negative reader offset.
-        assertFalse(reader.rangeEquals(-1, "A".encodeToByteString()))
+        assertFalse(reader.rangeEquals(-1, "A".encodeToUtf8()))
         // Negative bytes offset.
-        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), -1, 1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), -1, 1))
         // Bytes offset longer than bytes length.
-        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 2, 1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 2, 1))
         // Negative byte count.
-        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 0, -1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 0, -1))
         // Byte count longer than bytes length.
-        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 0, 2))
+        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 0, 2))
         // Bytes offset plus byte count longer than bytes length.
-        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 1, 1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 1, 1))
     }
 
     @Test
     fun inputStream() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         val bytes = byteArrayOf('z'.code.toByte(), 'z'.code.toByte(), 'z'.code.toByte())
@@ -1906,7 +1916,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamOffsetCount() {
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         val bytes =
@@ -1918,7 +1928,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamOffsetCountNBytes() {
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         val bytes =
@@ -1930,7 +1940,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamReadNbytes() {
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         val bytes: ByteArray = input.readNBytes(3)
@@ -1939,7 +1949,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamReadAllBytes() {
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         val bytes: ByteArray = input.readAllBytes()
@@ -1948,12 +1958,12 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamSkip() {
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         assertEquals(4, input.skip(4))
         assertEquals('e'.code, input.read())
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         @Suppress("KotlinConstantConditions")
         assertEquals(0, input.skip(-42L)) // Try to skip negative count.
@@ -1963,12 +1973,12 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamSkipNBytes() {
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         input.skipNBytes(4)
         assertEquals('e'.code, input.read())
-        writer.writeUtf8("abcde")
+        writer.write("abcde")
         writer.emit()
         assertFailsWith<EOFException> { input.skipNBytes(10) } // Try to skip too much.
         assertFailsWith<EOFException> { input.skipNBytes(1) } // Try to skip when exhausted.
@@ -1976,7 +1986,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamCharByChar() {
-        writer.writeUtf8("abc")
+        writer.write("abc")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         assertEquals('a'.code, input.read())
@@ -1987,7 +1997,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun writeToStream() {
-        writer.writeUtf8("hello, world!")
+        writer.write("hello, world!")
         writer.emit()
         val input: InputStream = reader.asInputStream()
         val out = ByteArrayOutputStream()
@@ -1999,7 +2009,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun inputStreamBounds() {
-        writer.writeUtf8("a".repeat(100))
+        writer.write("a".repeat(100))
         writer.emit()
         val input: InputStream = reader.asInputStream()
         assertFailsWith<IndexOutOfBoundsException> {
@@ -2091,7 +2101,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun readNioBuffer() {
         val expected = "abcdefg"
-        writer.writeUtf8("abcdefg")
+        writer.write("abcdefg")
         writer.emit()
         val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(1024)
         val byteCount: Int = reader.readAtMostTo(nioByteBuffer)
@@ -2108,7 +2118,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     open fun readLargeNioBufferOnlyReadsOneSegment() {
         val expected: String = "a".repeat(Segment.SIZE)
-        writer.writeUtf8("a".repeat(Segment.SIZE * 4))
+        writer.write("a".repeat(Segment.SIZE * 4))
         writer.emit()
         val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(Segment.SIZE * 3)
         val byteCount: Int = reader.readAtMostTo(nioByteBuffer)
@@ -2149,12 +2159,12 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun readStringTooShortThrows() {
-        writer.writeString("abc", Charsets.US_ASCII)
+        writer.write("abc", Charsets.US_ASCII)
         writer.emit()
         assertFailsWith<JayoEOFException> {
             reader.readString(4, Charsets.US_ASCII)
         }
-        assertEquals("abc", reader.readUtf8String()) // The read shouldn't consume any data.
+        assertEquals("abc", reader.readString()) // The read shouldn't consume any data.
     }
 
     @Test
@@ -2162,11 +2172,11 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         for (i in 0 until Segment.SIZE) {
             before()
             val toWrite = "God help us, we're in the hands of engineers ($i)."
-            writer.writeUtf8(toWrite)
-            val buffer = Buffer().writeUtf8("a".repeat(i)).emit()
+            writer.write(toWrite)
+            val buffer = Buffer().write("a".repeat(i)).emit()
             reader.readAtMostTo(buffer, Int.MAX_VALUE.toLong())
             buffer.skip(i.toLong())
-            assertEquals(toWrite, buffer.readUtf8String())
+            assertEquals(toWrite, buffer.readString())
             after()
         }
     }

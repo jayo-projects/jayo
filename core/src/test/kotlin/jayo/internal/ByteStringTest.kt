@@ -21,12 +21,9 @@
 
 package jayo.internal
 
-import jayo.ByteString
+import jayo.*
 import jayo.crypto.Digests
 import jayo.crypto.Hmacs
-import jayo.encodeToByteString
-import jayo.readByteString
-import jayo.toByteString
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -45,11 +42,13 @@ class ByteStringTest {
         fun parameters(): Stream<Arguments>? {
             return Stream.of(
                 Arguments.of(ByteStringFactory.BYTE_STRING, "ByteString"),
-                Arguments.of(ByteStringFactory.UTF8, "Utf8"),
                 Arguments.of(ByteStringFactory.SEGMENTED_BYTE_STRING, "SegmentedByteString"),
                 Arguments.of(ByteStringFactory.ONE_BYTE_PER_SEGMENT, "SegmentedByteString (one-byte-at-a-time)"),
+                Arguments.of(ByteStringFactory.UTF8, "Utf8"),
                 Arguments.of(ByteStringFactory.SEGMENTED_UTF8, "SegmentedUtf8"),
                 Arguments.of(ByteStringFactory.UTF8_ONE_BYTE_PER_SEGMENT, "SegmentedUtf8 (one-byte-at-a-time)"),
+                Arguments.of(ByteStringFactory.SEGMENTED_ASCII, "SegmentedAscii"),
+                Arguments.of(ByteStringFactory.ASCII_ONE_BYTE_PER_SEGMENT, "SegmentedAscii (one-byte-at-a-time)"),
             )
         }
     }
@@ -85,10 +84,10 @@ class ByteStringTest {
 
     @Test
     fun substring() {
-        val byteString = "abcdef".encodeToByteString()
-        assertEquals(byteString.substring(0, 3), "abc".encodeToByteString())
-        assertEquals(byteString.substring(3), "def".encodeToByteString())
-        assertEquals(byteString.substring(1, 5), "bcde".encodeToByteString())
+        val byteString = "abcdef".encodeToUtf8()
+        assertEquals(byteString.substring(0, 3), "abc".encodeToUtf8())
+        assertEquals(byteString.substring(3), "def".encodeToUtf8())
+        assertEquals(byteString.substring(1, 5), "bcde".encodeToUtf8())
     }
 
     @ParameterizedTest
@@ -129,7 +128,7 @@ class ByteStringTest {
     @ParameterizedTest
     @MethodSource("parameters")
     fun testHMac(factory: ByteStringFactory) = with(factory.encodeUtf8("Kevin")) {
-        val key = "Brandon".encodeToByteString()
+        val key = "Brandon".encodeToUtf8()
         assertThat(hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo("cd5478da9993e894de891a6d680a88fb")
         assertThat(hmac(Hmacs.HMAC_SHA_1, key).hex()).isEqualTo("46eedc331e6f92c801808fd5bfc5424afe659402")
         assertThat(hmac(Hmacs.HMAC_SHA_224, key).hex())

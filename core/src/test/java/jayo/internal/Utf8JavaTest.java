@@ -43,16 +43,27 @@ public final class Utf8JavaTest {
                         "Utf8 (from bytes without compact string)"),
                 Arguments.of(Utf8Factory.getSEGMENTED_UTF8(), "SegmentedUtf8"),
                 Arguments.of(Utf8Factory.getUTF8_ONE_BYTE_PER_SEGMENT(),
-                        "SegmentedUtf8 (one-byte-at-a-time)")
+                        "SegmentedUtf8 (one-byte-at-a-time)"),
+                Arguments.of(
+                        Utf8Factory.getASCII_FROM_BYTES(),
+                        "Ascii (from bytes)"),
+                Arguments.of(
+                        Utf8Factory.getASCII_FROM_BYTES_NO_COMPACT_STRING(),
+                        "Ascii (from bytes without compact string)"),
+                Arguments.of(Utf8Factory.getSEGMENTED_ASCII(), "SegmentedAscii"),
+                Arguments.of(Utf8Factory.getASCII_ONE_BYTE_PER_SEGMENT(),
+                        "SegmentedAscii (one-byte-at-a-time)")
         );
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     public void javaSerializationTestNonEmpty(Utf8Factory factory) {
-        String bronzeHorseman = "На берегу пустынных волн";
-        Utf8 byteString = factory.encodeUtf8(bronzeHorseman);
-        assertEquivalent(byteString, TestUtil.reserialize(byteString));
+        if (!factory.isAscii()) {
+            String bronzeHorseman = "На берегу пустынных волн";
+            Utf8 byteString = factory.encodeUtf8(bronzeHorseman);
+            assertEquivalent(byteString, TestUtil.reserialize(byteString));
+        }
     }
 
     @ParameterizedTest

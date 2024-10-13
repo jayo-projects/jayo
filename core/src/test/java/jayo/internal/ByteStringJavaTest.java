@@ -47,13 +47,16 @@ public final class ByteStringJavaTest {
     public static Stream<Arguments> parameters() {
         return Stream.of(
                 Arguments.of(ByteStringFactory.getBYTE_STRING(), "ByteString"),
-                Arguments.of(ByteStringFactory.getUTF8(), "Utf8"),
                 Arguments.of(ByteStringFactory.getSEGMENTED_BYTE_STRING(), "SegmentedByteString"),
                 Arguments.of(ByteStringFactory.getONE_BYTE_PER_SEGMENT(),
                         "SegmentedByteString (one-byte-at-a-time)"),
+                Arguments.of(ByteStringFactory.getUTF8(), "Utf8"),
                 Arguments.of(ByteStringFactory.getSEGMENTED_UTF8(), "SegmentedUtf8"),
                 Arguments.of(ByteStringFactory.getUTF8_ONE_BYTE_PER_SEGMENT(),
-                        "SegmentedUtf8 (one-byte-at-a-time)")
+                        "SegmentedUtf8 (one-byte-at-a-time)"),
+                Arguments.of(ByteStringFactory.getSEGMENTED_ASCII(), "SegmentedAscii"),
+                Arguments.of(ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT(),
+                        "SegmentedAscii (one-byte-at-a-time)")
         );
     }
 
@@ -63,7 +66,7 @@ public final class ByteStringJavaTest {
         ByteString byteString = ByteString.of(bytes);
         // Verify that the bytes were copied out.
         bytes[4] = (byte) 'a';
-        assertEquals("Hello, World!", byteString.decodeToUtf8());
+        assertEquals("Hello, World!", byteString.decodeToString());
     }
 
     @Test
@@ -72,7 +75,7 @@ public final class ByteStringJavaTest {
         ByteString byteString = ByteString.of(bytes, 2, 9);
         // Verify that the bytes were copied out.
         bytes[4] = (byte) 'a';
-        assertEquals("llo, Worl", byteString.decodeToUtf8());
+        assertEquals("llo, Worl", byteString.decodeToString());
     }
 
     @Test
@@ -83,7 +86,7 @@ public final class ByteStringJavaTest {
         ByteString byteString = ByteString.of(byteBuffer);
         // Verify that the bytes were copied out.
         byteBuffer.put(4, (byte) 'a');
-        assertEquals("llo, Worl", byteString.decodeToUtf8());
+        assertEquals("llo, Worl", byteString.decodeToString());
     }
 
     @ParameterizedTest
@@ -267,10 +270,13 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void utf8(ByteStringFactory factory) {
-        ByteString byteString = factory.encodeUtf8(bronzeHorseman);
-        assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(Charsets.UTF_8));
-        assertEquals(byteString, ByteString.of(bronzeHorseman.getBytes(Charsets.UTF_8)));
-        assertEquals(byteString.decodeToUtf8(), bronzeHorseman);
+        if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
+                factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
+            ByteString byteString = factory.encodeUtf8(bronzeHorseman);
+            assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(Charsets.UTF_8));
+            assertEquals(byteString, ByteString.of(bronzeHorseman.getBytes(Charsets.UTF_8)));
+            assertEquals(byteString.decodeToString(), bronzeHorseman);
+        }
     }
 
     @Test
@@ -367,8 +373,8 @@ public final class ByteStringJavaTest {
     @Test
     public void readAndToLowercase() {
         InputStream in = new ByteArrayInputStream("ABC".getBytes(Charsets.UTF_8));
-        assertEquals(Utf8.encodeUtf8("ab"), ByteString.read(in, 2).toAsciiLowercase());
-        assertEquals(Utf8.encodeUtf8("c"), ByteString.read(in, 1).toAsciiLowercase());
+        assertEquals(Utf8.encode("ab"), ByteString.read(in, 2).toAsciiLowercase());
+        assertEquals(Utf8.encode("c"), ByteString.read(in, 1).toAsciiLowercase());
         assertEquals(ByteString.EMPTY, ByteString.read(in, 0).toAsciiLowercase());
     }
 
@@ -385,27 +391,27 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiAllUppercase(ByteStringFactory factory) {
-        assertEquals(Utf8.encodeUtf8("ab"), factory.encodeUtf8("AB").toAsciiLowercase());
+        assertEquals(Utf8.encode("ab"), factory.encodeUtf8("AB").toAsciiLowercase());
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiStartsLowercaseEndsUppercase(ByteStringFactory factory) {
-        assertEquals(Utf8.encodeUtf8("abcd"), factory.encodeUtf8("aBcD").toAsciiLowercase());
+        assertEquals(Utf8.encode("abcd"), factory.encodeUtf8("aBcD").toAsciiLowercase());
     }
 
     @Test
     public void readAndToUppercase() {
         InputStream in = new ByteArrayInputStream("abc".getBytes(Charsets.UTF_8));
-        assertEquals(Utf8.encodeUtf8("AB"), ByteString.read(in, 2).toAsciiUppercase());
-        assertEquals(Utf8.encodeUtf8("C"), ByteString.read(in, 1).toAsciiUppercase());
+        assertEquals(Utf8.encode("AB"), ByteString.read(in, 2).toAsciiUppercase());
+        assertEquals(Utf8.encode("C"), ByteString.read(in, 1).toAsciiUppercase());
         assertEquals(ByteString.EMPTY, ByteString.read(in, 0).toAsciiUppercase());
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiStartsUppercaseEndsLowercase(ByteStringFactory factory) {
-        assertEquals(Utf8.encodeUtf8("ABCD"), factory.encodeUtf8("AbCd").toAsciiUppercase());
+        assertEquals(Utf8.encode("ABCD"), factory.encodeUtf8("AbCd").toAsciiUppercase());
     }
 
     @ParameterizedTest
@@ -414,9 +420,9 @@ public final class ByteStringJavaTest {
         ByteString byteString = factory.encodeUtf8("Hello, World!");
 
         assertEquals(byteString.substring(0), byteString);
-        assertEquals(byteString.substring(0, 5), Utf8.encodeUtf8("Hello"));
-        assertEquals(byteString.substring(7), Utf8.encodeUtf8("World!"));
-        assertEquals(byteString.substring(6, 6), Utf8.encodeUtf8(""));
+        assertEquals(byteString.substring(0, 5), Utf8.encode("Hello"));
+        assertEquals(byteString.substring(7), Utf8.encode("World!"));
+        assertEquals(byteString.substring(6, 6), Utf8.encode(""));
     }
 
     @ParameterizedTest
@@ -475,13 +481,13 @@ public final class ByteStringJavaTest {
 
     @Test
     public void ignoreUnnecessaryPadding() {
-        assertEquals("", ByteString.decodeBase64("====").decodeToUtf8());
-        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64("AAAA====").decodeToUtf8());
+        assertEquals("", ByteString.decodeBase64("====").decodeToString());
+        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64("AAAA====").decodeToString());
     }
 
     @Test
     public void decodeBase64() {
-        assertEquals("", ByteString.decodeBase64("").decodeToUtf8());
+        assertEquals("", ByteString.decodeBase64("").decodeToString());
         assertNull(ByteString.decodeBase64("/===")); // Can't do anything with 6 bits!
         assertEquals(ByteString.decodeHex("ff"), ByteString.decodeBase64("//=="));
         assertEquals(ByteString.decodeHex("ff"), ByteString.decodeBase64("__=="));
@@ -493,20 +499,20 @@ public final class ByteStringJavaTest {
         assertEquals(ByteString.decodeHex("ffffffffffff"), ByteString.decodeBase64("________"));
         assertEquals("What's to be scared about? It's just a little hiccup in the power...",
                 ByteString.decodeBase64("V2hhdCdzIHRvIGJlIHNjYXJlZCBhYm91dD8gSXQncyBqdXN0IGEgbGl0dGxlIGhpY2"
-                        + "N1cCBpbiB0aGUgcG93ZXIuLi4=").decodeToUtf8());
+                        + "N1cCBpbiB0aGUgcG93ZXIuLi4=").decodeToString());
         // Uses two encoding styles. Malformed, but supported as a side-effect.
         assertEquals(ByteString.decodeHex("ffffff"), ByteString.decodeBase64("__//"));
     }
 
     @Test
     public void decodeBase64WithWhitespace() {
-        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA AA ").decodeToUtf8());
-        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA A\r\nA ").decodeToUtf8());
-        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64("AA AA").decodeToUtf8());
-        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA AA ").decodeToUtf8());
-        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA A\r\nA ").decodeToUtf8());
-        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64("A    AAA").decodeToUtf8());
-        assertEquals("", ByteString.decodeBase64("    ").decodeToUtf8());
+        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA AA ").decodeToString());
+        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA A\r\nA ").decodeToString());
+        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64("AA AA").decodeToString());
+        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA AA ").decodeToString());
+        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64(" AA A\r\nA ").decodeToString());
+        assertEquals("\u0000\u0000\u0000", ByteString.decodeBase64("A    AAA").decodeToString());
+        assertEquals("", ByteString.decodeBase64("    ").decodeToString());
     }
 
     @Test
@@ -545,13 +551,17 @@ public final class ByteStringJavaTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    public void toStringOnTextWithNewlines(ByteStringFactory factory) {
-        if (factory == ByteStringFactory.getUTF8()) {
-            return;
+    public void toStringOnUtf8TextWithNewlines(ByteStringFactory factory) {
+        final var initialUtf8String = "a\r\nb\nc\rd\\e";
+        final var toString = factory.encodeUtf8(initialUtf8String).toString();
+        if (factory == ByteStringFactory.getUTF8() || factory == ByteStringFactory.getSEGMENTED_UTF8() ||
+                factory == ByteStringFactory.getUTF8_ONE_BYTE_PER_SEGMENT() || factory == ByteStringFactory.getSEGMENTED_ASCII() ||
+                factory == ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
+            assertEquals(initialUtf8String, toString);
+        } else {
+            // Instead of emitting a literal newline in the toString(), these are escaped as "\n".
+            assertEquals("ByteString(size=10 hex=610d0a620a630d645c65)", toString);
         }
-        // Instead of emitting a literal newline in the toString(), these are escaped as "\n".
-        assertEquals("ByteString(size=10 hex=610d0a620a630d645c65)",
-                factory.encodeUtf8("a\r\nb\nc\rd\\e").toString());
     }
 
     @ParameterizedTest
@@ -568,8 +578,11 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void javaSerializationTestNonEmpty(ByteStringFactory factory) {
-        ByteString byteString = factory.encodeUtf8(bronzeHorseman);
-        assertEquivalent(byteString, TestUtil.reserialize(byteString));
+        if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
+                factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
+            ByteString byteString = factory.encodeUtf8(bronzeHorseman);
+            assertEquivalent(byteString, TestUtil.reserialize(byteString));
+        }
     }
 
     @ParameterizedTest

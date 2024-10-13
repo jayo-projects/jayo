@@ -252,30 +252,6 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
 
     @Override
     @NonNull
-    Buffer write(final @NonNull ByteString byteString);
-
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     */
-    @Override
-    @NonNull
-    Buffer write(final @NonNull ByteString byteString,
-                 final @NonNegative int offset, final @NonNegative int byteCount);
-
-    @Override
-    @NonNull
-    Buffer writeUtf8(final @NonNull Utf8 utf8);
-
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     */
-    @Override
-    @NonNull
-    Buffer writeUtf8(final @NonNull Utf8 utf8,
-                     final @NonNegative int offset, final @NonNegative int byteCount);
-
-    @Override
-    @NonNull
     Buffer write(final byte @NonNull [] source);
 
     /**
@@ -284,18 +260,25 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     @Override
     @NonNull
     Buffer write(final byte @NonNull [] source,
-                 final @NonNegative int offset, final @NonNegative int byteCount);
+                 final @NonNegative int offset,
+                 final @NonNegative int byteCount);
+
+    @Override
+    @NonNull
+    Buffer write(final @NonNull ByteString byteString);
 
     /**
-     * @throws IllegalArgumentException {@inheritDoc}
+     * @throws IndexOutOfBoundsException {@inheritDoc}
      */
     @Override
     @NonNull
-    Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
+    Buffer write(final @NonNull ByteString byteString,
+                 final @NonNegative int offset,
+                 final @NonNegative int byteCount);
 
     @Override
     @NonNull
-    Buffer writeUtf8(final @NonNull CharSequence charSequence);
+    Buffer write(final @NonNull CharSequence charSequence);
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
@@ -303,9 +286,9 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @Override
     @NonNull
-    Buffer writeUtf8(final @NonNull CharSequence charSequence,
-                     final @NonNegative int startIndex,
-                     final @NonNegative int endIndex);
+    Buffer write(final @NonNull CharSequence charSequence,
+                 final @NonNegative int startIndex,
+                 final @NonNegative int endIndex);
 
     @Override
     @NonNull
@@ -313,7 +296,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
 
     @Override
     @NonNull
-    Buffer writeString(final @NonNull String string, final @NonNull Charset charset);
+    Buffer write(final @NonNull String string, final @NonNull Charset charset);
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
@@ -321,10 +304,17 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @Override
     @NonNull
-    Buffer writeString(final @NonNull String string,
-                       @NonNegative int startIndex,
-                       @NonNegative int endIndex,
-                       @NonNull Charset charset);
+    Buffer write(final @NonNull String string,
+                 final @NonNegative int startIndex,
+                 final @NonNegative int endIndex,
+                 final @NonNull Charset charset);
+
+    /**
+     * @throws IllegalArgumentException {@inheritDoc}
+     */
+    @Override
+    @NonNull
+    Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
 
     @Override
     @NonNull
@@ -489,7 +479,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * its new data there. This single segment has a byte array of 16_709 bytes but only 7 bytes of data in it:
      * <pre>
      * {@code
-     * buffer.writeUtf8("unicorn");
+     * buffer.write("unicorn");
      *
      * // [ 'u', 'n', 'i', 'c', 'o', 'r', 'n', '?', '?', '?', ...]
      * //    ^                                  ^
@@ -516,7 +506,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <pre>
      * {@code
      * val xoxo = Buffer()
-     * xoxo.writeUtf8("xo".repeat(10_000))
+     * xoxo.write("xo".repeat(10_000))
      *
      * // [ 'x', 'o', 'x', 'o', 'x', 'o', 'x', 'o', ..., 'x', 'o', 'x']
      * //    ^                                                      ^
@@ -538,7 +528,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <pre>
      * {@code
      * Buffer abc = Buffer.create();
-     * abc.writeUtf8("abc");
+     * abc.write("abc");
      *
      * // [ 'a', 'b', 'c', 'o', 'x', 'o', 'x', 'o', ...]
      * //    ^              ^
@@ -551,7 +541,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <pre>
      * {@code
      * val nana = Buffer()
-     * nana.writeUtf8("na".repeat(2_500))
+     * nana.write("na".repeat(2_500))
      * nana.readUtf8(2) // reads "na"
      *
      * // [ 'n', 'a', 'n', 'a', ..., 'n', 'a', 'n', 'a', '?', '?', '?', ...]
@@ -559,7 +549,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * //           pos = 2                         limit = 5000
      *
      * nana2 = nana.clone()
-     * nana2.writeUtf8("batman")
+     * nana2.write("batman")
      *
      * // this segment and its byte[] is shared between nana and nana2 buffers
      * //                                 ↓
@@ -576,7 +566,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * fragmentation in sharing-heavy use cases.
      *
      * <h2>Unsafe Cursor API</h2>
-     *
+     * <p>
      * This class exposes privileged access to the internal byte arrays of a buffer. A cursor either references the
      * data of a single segment, it is before the first segment ({@code offset == -1}), or it is after the last segment
      * ({@code offset == buffer.byteSize()}).

@@ -39,7 +39,7 @@ try (var serverSocket = new ServerSocket(freePortNumber)) {
      var serverThread = Thread.startVirtualThread(() -> {
     try (var acceptedSocketEndpoint = SocketEndpoint.from(serverSocket.accept());
          var serverWriter = Jayo.buffer(acceptedSocketEndpoint.getWriter())) {
-      serverWriter.writeUtf8("The Answer to the Ultimate Question of Life is ")
+      serverWriter.write("The Answer to the Ultimate Question of Life is ")
         .writeUtf8CodePoint('4')
         .writeUtf8CodePoint('2');
     } catch (IOException e) {
@@ -48,7 +48,7 @@ try (var serverSocket = new ServerSocket(freePortNumber)) {
   });
   try (var clientSocketEndpoint = SocketEndpoint.from(new Socket("localhost", freePortNumber));
        var clientReader = Jayo.buffer(clientSocketEndpoint.getReader())) {
-    assertThat(clientReader.readUtf8String())
+    assertThat(clientReader.readString())
       .isEqualTo("The Answer to the Ultimate Question of Life is 42");
   }
   serverThread.join();

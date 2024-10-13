@@ -82,38 +82,26 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public @NonNull Writer writeUtf8(final @NonNull Utf8 utf8) {
-        return write(utf8);
-    }
-
-    @Override
-    public @NonNull Writer writeUtf8(final @NonNull Utf8 utf8,
-                                     final @NonNegative int offset,
-                                     final @NonNegative int byteCount) {
-        return write(utf8, offset, byteCount);
-    }
-
-    @Override
-    public @NonNull Writer writeUtf8(final @NonNull CharSequence charSequence) {
+    public @NonNull Writer write(final @NonNull CharSequence charSequence) {
         Objects.requireNonNull(charSequence);
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeUtf8(charSequence);
+        segmentQueue.buffer.write(charSequence);
         return emitCompleteSegments();
     }
 
     @Override
-    public @NonNull Writer writeUtf8(final @NonNull CharSequence charSequence,
-                                     final @NonNegative int startIndex,
-                                     final @NonNegative int endIndex) {
+    public @NonNull Writer write(final @NonNull CharSequence charSequence,
+                                 final @NonNegative int startIndex,
+                                 final @NonNegative int endIndex) {
         Objects.requireNonNull(charSequence);
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeUtf8(charSequence, startIndex, endIndex);
+        segmentQueue.buffer.write(charSequence, startIndex, endIndex);
         return emitCompleteSegments();
     }
 
@@ -128,29 +116,29 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public @NonNull Writer writeString(final @NonNull String string, final @NonNull Charset charset) {
+    public @NonNull Writer write(final @NonNull String string, final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeString(string, charset);
+        segmentQueue.buffer.write(string, charset);
         return emitCompleteSegments();
     }
 
     @Override
-    public @NonNull Writer writeString(final @NonNull String string,
-                                       final @NonNegative int startIndex,
-                                       final @NonNegative int endIndex,
-                                       final @NonNull Charset charset) {
+    public @NonNull Writer write(final @NonNull String string,
+                                 final @NonNegative int startIndex,
+                                 final @NonNegative int endIndex,
+                                 final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
         segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeString(string, startIndex, endIndex, charset);
+        segmentQueue.buffer.write(string, startIndex, endIndex, charset);
         return emitCompleteSegments();
     }
 

@@ -75,7 +75,7 @@ class KotlinBitmapEncoder {
         val dibHeaderSize = 40
 
         // BMP Header
-        writer.writeUtf8("BM") // ID.
+        writer.write("BM") // ID.
         writer.writeIntLe(bmpHeaderSize + dibHeaderSize + pixelDataSize) // File size.
         writer.writeShortLe(0) // Unused.
         writer.writeShortLe(0) // Unused.

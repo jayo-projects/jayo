@@ -77,7 +77,7 @@ public final class Interceptors {
         };
 
         Buffer transmit = Buffer.create();
-        transmit.writeUtf8("This is not really a secure message");
+        transmit.write("This is not really a secure message");
         System.out.println("Transmit : " + transmit);
 
         writer.write(transmit, transmit.byteSize());

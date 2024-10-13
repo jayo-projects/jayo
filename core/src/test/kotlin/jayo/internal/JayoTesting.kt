@@ -44,8 +44,8 @@ fun bufferWithSegments(vararg segments: String): Buffer {
         val offsetInSegment =
             if (s.length < Segment.SIZE) (Segment.SIZE - s.length) / 2 else 0
         val buffer = RealBuffer()
-        buffer.writeUtf8('_'.repeat(offsetInSegment))
-        buffer.writeUtf8(s)
+        buffer.write('_'.repeat(offsetInSegment))
+        buffer.write(s)
         buffer.skip(offsetInSegment.toLong())
         result.write(buffer.clone(), buffer.byteSize())
     }
@@ -75,6 +75,19 @@ fun makeUtf8Segments(reader: Utf8): Utf8 {
         }
     }
     return buffer.readUtf8()
+}
+
+fun makeAsciiSegments(reader: Utf8): Utf8 {
+    val buffer = RealBuffer()
+    for (i in 0 until reader.byteSize()) {
+        buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
+            tail.data[tail.pos] = reader.getByte(i)
+            val limit = tail.limit()
+            tail.limit(limit + 1)
+            true
+        }
+    }
+    return buffer.readAscii()
 }
 
 fun Char.repeat(count: Int): String {

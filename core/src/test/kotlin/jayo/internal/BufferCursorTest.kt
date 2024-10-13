@@ -62,7 +62,7 @@ class BufferCursorTest {
             cursor.data!![cursor.pos] = 'o'.code.toByte()
             cursor.resizeBuffer(4)
         }
-        assertEquals(Buffer().writeUtf8("xoxo").readByteString(), buffer.readByteString())
+        assertEquals(Buffer().write("xoxo").readByteString(), buffer.readByteString())
     }
 
     @ParameterizedTest
@@ -162,7 +162,7 @@ class BufferCursorTest {
     fun seekWithinSegment(bufferFactory: BufferFactory) {
         assumeTrue(bufferFactory === BufferFactory.SMALL_SEGMENTED_BUFFER)
         val buffer = bufferFactory.newBuffer()
-        assertEquals("abcdefghijkl", buffer.clone().readUtf8String())
+        assertEquals("abcdefghijkl", buffer.clone().readString())
         buffer.readUnsafe().use { cursor ->
             assertEquals(2, cursor.seek(5).toLong()) // 2 for 2 bytes left in the segment: "fg".
             assertEquals(5, cursor.offset)
@@ -237,7 +237,7 @@ class BufferCursorTest {
         val buffer = bufferFactory.newBuffer()
         val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
-        expected.writeUtf8("abc")
+        expected.write("abc")
         buffer.readAndWriteUnsafe().use { cursor ->
             assertEquals(originalSize, cursor.resizeBuffer(originalSize + 3))
             cursor.seek(originalSize)
@@ -256,7 +256,7 @@ class BufferCursorTest {
         val buffer = bufferFactory.newBuffer()
         val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
-        expected.writeUtf8("x".repeat(1000000))
+        expected.write("x".repeat(1000000))
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.resizeBuffer(originalSize + 1000000)
             cursor.seek(originalSize)
@@ -327,7 +327,7 @@ class BufferCursorTest {
         assertTrue(buffer.byteSize() <= 1000000)
         val originalSize = buffer.byteSize()
         val toShrink = Buffer()
-        toShrink.writeUtf8("x".repeat(1000000))
+        toShrink.write("x".repeat(1000000))
         deepCopy(buffer).copyTo(toShrink, 0, originalSize)
         val cursor = Buffer.UnsafeCursor.create()
         toShrink.readAndWriteUnsafe(cursor)
@@ -337,7 +337,7 @@ class BufferCursorTest {
             cursor.close()
         }
         val expected = Buffer()
-        expected.writeUtf8("x".repeat(originalSize.toInt()))
+        expected.write("x".repeat(originalSize.toInt()))
         assertEquals(expected.readByteString(), toShrink.readByteString())
     }
 
@@ -379,7 +379,7 @@ class BufferCursorTest {
         val buffer = bufferFactory.newBuffer()
         val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
-        expected.writeUtf8("a")
+        expected.write("a")
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.seek(buffer.byteSize() / 2)
             assertEquals(originalSize, buffer.byteSize())
@@ -416,7 +416,7 @@ class BufferCursorTest {
         val buffer = bufferFactory.newBuffer()
         val originalSize = buffer.byteSize()
         val expected = deepCopy(buffer)
-        expected.writeUtf8("abcde")
+        expected.write("abcde")
         buffer.readAndWriteUnsafe().use { cursor ->
             cursor.expandBuffer(5)
             for (i in 0..4) {

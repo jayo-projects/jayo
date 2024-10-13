@@ -231,7 +231,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()
-     * .writeString("8675309 -123 00001");
+     * .write("8675309 -123 00001");
      *
      * assertThat(buffer.readDecimalLong()).isEqualTo(8675309L);
      * assertThat(buffer.readByte()).isEqualTo(' ');
@@ -256,7 +256,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()
-     * .writeString("ffff CAFEBABE 10");
+     * .write("ffff CAFEBABE 10");
      *
      * assertThat(buffer.readHexadecimalUnsignedLong()).isEqualTo(65535L);
      * assertThat(buffer.readByte()).isEqualTo(' ');
@@ -275,62 +275,22 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     long readHexadecimalUnsignedLong();
 
     /**
-     * Removes all bytes from this reader and returns them as a byte string.
-     *
-     * @return the byte string containing all bytes from this reader.
-     * @throws IllegalStateException if this reader is closed.
-     */
-    @NonNull ByteString readByteString();
-
-    /**
-     * Removes {@code byteCount} bytes from this and returns them as a byte string.
-     *
-     * @param byteCount the number of bytes to read from the reader.
-     * @return the byte string containing {@code byteCount} bytes from this reader.
-     * @throws JayoEOFException         if the reader is exhausted before reading {@code byteCount} bytes from it.
-     * @throws IllegalArgumentException if {@code byteCount} is negative.
-     * @throws IllegalStateException    if this reader is closed.
-     */
-    @NonNull ByteString readByteString(final @NonNegative long byteCount);
-
-    /**
-     * Removes all bytes from this reader and returns them as a UTF-8 byte string.
-     *
-     * @return the UTF-8 byte string containing all bytes from this reader.
-     * @throws IllegalStateException if this reader is closed.
-     */
-    @NonNull
-    Utf8 readUtf8();
-
-    /**
-     * Removes {@code byteCount} bytes from this and returns them as a UTF-8 byte string.
-     *
-     * @param byteCount the number of bytes to read from the reader.
-     * @return the UTF-8 byte string containing {@code byteCount} bytes from this reader.
-     * @throws JayoEOFException         if the reader is exhausted before reading {@code byteCount} bytes from it.
-     * @throws IllegalArgumentException if {@code byteCount} is negative.
-     * @throws IllegalStateException    if this reader is closed.
-     */
-    @NonNull
-    Utf8 readUtf8(final @NonNegative long byteCount);
-
-    /**
      * Finds the first string in {@code options} that is a prefix of this reader, consumes it from this
      * buffer, and returns its index. If no byte string in {@code options} is a prefix of this reader this
      * returns -1 and no bytes are consumed.
      * <p>
-     * This can be used as an alternative to {@link #readByteString} or even {@link #readUtf8String} if the set of expected
+     * This can be used as an alternative to {@link #readByteString} or even {@link #readString} if the set of expected
      * values is known in advance.
      * <pre>
      * {@code
      * Options FIELDS = Options.of(
-     * ByteString.encodeUtf8("depth="),
-     * ByteString.encodeUtf8("height="),
-     * ByteString.encodeUtf8("width="));
+     * Utf8.encode("depth="),
+     * Utf8.encode("height="),
+     * Utf8.encode("width="));
      *
      * Buffer buffer = Buffer.create()
-     * .writeString("width=640\n")
-     * .writeString("height=480\n");
+     * .write("width=640\n")
+     * .write("height=480\n");
      *
      * assertThat(buffer.select(FIELDS)).isEqualTo(2); // found third option of FIELDS = "width="
      * assertThat(buffer.readDecimalLong()).isEqualTo(640);
@@ -364,6 +324,260 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalStateException    if this reader is closed.
      */
     byte @NonNull [] readByteArray(final @NonNegative long byteCount);
+
+    /**
+     * Removes all bytes from this reader and returns them as a byte string.
+     *
+     * @return the byte string containing all bytes from this reader.
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNull ByteString readByteString();
+
+    /**
+     * Removes {@code byteCount} bytes from this and returns them as a byte string.
+     *
+     * @param byteCount the number of bytes to read from the reader.
+     * @return the byte string containing {@code byteCount} bytes from this reader.
+     * @throws JayoEOFException         if the reader is exhausted before reading {@code byteCount} bytes from it.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
+     */
+    @NonNull ByteString readByteString(final @NonNegative long byteCount);
+
+    /**
+     * Removes all UTF-8 bytes from this reader and returns them as a UTF-8 byte string.
+     *
+     * @return the UTF-8 byte string containing all UTF-8 bytes from this reader.
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNull
+    Utf8 readUtf8();
+
+    /**
+     * Removes {@code byteCount} UTF-8 bytes from this and returns them as a UTF-8 byte string.
+     *
+     * @param byteCount the number of bytes to read from the reader.
+     * @return the UTF-8 byte string containing {@code byteCount} UTF-8 bytes from this reader.
+     * @throws JayoEOFException         if the reader is exhausted before reading {@code byteCount} bytes from it.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
+     */
+    @NonNull
+    Utf8 readUtf8(final @NonNegative long byteCount);
+
+    /**
+     * Removes all ASCII bytes from this reader and returns them as a UTF-8 byte string internally tagged as ASCII.
+     *
+     * @return the UTF-8 byte string containing all ASCII bytes from this reader.
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNull
+    Utf8 readAscii();
+
+    /**
+     * Removes {@code byteCount} ASCII bytes from this and returns them as a UTF-8 byte string internally tagged as
+     * ASCII.
+     *
+     * @param byteCount the number of bytes to read from the reader.
+     * @return the UTF-8 byte string containing {@code byteCount} ASCII bytes from this reader.
+     * @throws JayoEOFException         if the reader is exhausted before reading {@code byteCount} bytes from it.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
+     */
+    @NonNull
+    Utf8 readAscii(final @NonNegative long byteCount);
+
+    /**
+     * Removes all bytes from this reader, decodes them as UTF-8, and returns the string. Returns the empty string if
+     * this reader is empty.
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("Uh uh uh!")
+     * .writeByte(' ')
+     * .write("You didn't say the magic word!");
+     * assertThat(buffer.byteSize()).isEqualTo(40);
+     *
+     * assertThat(buffer.readString()).isEqualTo("Uh uh uh! You didn't say the magic word!");
+     * assertThat(buffer.byteSize()).isEqualTo(0);
+     *
+     * assertThat(buffer.readString()).isEqualTo("");
+     * }
+     * </pre>
+     *
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNull String readString();
+
+    /**
+     * Removes {@code byteCount} bytes from this reader, decodes them as UTF-8, and returns the string.
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("Uh uh uh!")
+     * .writeByte(' ')
+     * .write("You didn't say the magic word!");
+     * assertThat(buffer.byteSize()).isEqualTo(40);
+     *
+     * assertThat(buffer.readString(14)).isEqualTo("Uh uh uh! You ");
+     * assertThat(buffer.byteSize()).isEqualTo(26);
+     *
+     * assertThat(buffer.readString(14)).isEqualTo("didn't say the");
+     * assertThat(buffer.byteSize()).isEqualTo(12);
+     *
+     * assertThat(buffer.readString(12)).isEqualTo(" magic word!");
+     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * }
+     * </pre>
+     *
+     * @param byteCount the number of bytes to read from this reader for string decoding.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws JayoEOFException         when this reader is exhausted before reading {@code byteCount} bytes from it.
+     * @throws IllegalStateException    if this reader is closed.
+     */
+    @NonNull String readString(final @NonNegative long byteCount);
+
+    /**
+     * Removes and returns UTF-8 encoded characters up to but not including the next line break. A line break is
+     * either {@code "\n"} or {@code "\r\n"}; these characters are not included in the result.
+     * <p>
+     * On the end of the stream this method returns null. If the reader doesn't end with a line break, then an implicit
+     * line break is assumed. Null is returned once the reader is exhausted.
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("I'm a hacker!\n")
+     * .write("That's what I said: you're a nerd.\n")
+     * .write("I prefer to be called a hacker!\n");
+     * assertThat(buffer.byteSize()).isEqualTo(81);
+     *
+     * assertThat(buffer.readLine()).isEqualTo("I'm a hacker!");
+     * assertThat(buffer.byteSize()).isEqualTo(67);
+     *
+     * assertThat(buffer.readLine()).isEqualTo("That's what I said: you're a nerd.");
+     * assertThat(buffer.byteSize()).isEqualTo(32);
+     *
+     * assertThat(buffer.readLine()).isEqualTo("I prefer to be called a hacker!");
+     * assertThat(buffer.byteSize()).isEqualTo(0);
+     *
+     * assertThat(buffer.readLine()).isNull();
+     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * }
+     * </pre>
+     *
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @Nullable String readLine();
+
+    /**
+     * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
+     * {@link JayoEOFException} if a line break was not encountered. A line break is either {@code "\n"} or
+     * {@code "\r\n"}; these characters are not included in the result.
+     * <p>
+     * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match
+     *
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNull String readLineStrict();
+
+    /**
+     * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
+     * {@link JayoEOFException} if a line break was not encountered. A line break is either {@code "\n"} or
+     * {@code "\r\n"}; these characters are not included in the result.
+     * <p>
+     * The returned string will have at most {@code limit} UTF-8 bytes, and the maximum number of bytes scanned is
+     * {@code limit + 2}. If {@code limit == 0} this will always throw a {@link JayoEOFException} because no bytes will
+     * be scanned.
+     * <p>
+     * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match:
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("12345\r\n");
+     *
+     * // This will throw! There must be \r\n or \n at the limit or before it.
+     * buffer.readLineStrict(4);
+     *
+     * // No bytes have been consumed so the caller can retry.
+     * assertThat(buffer.readLineStrict(5)).isEqualTo("12345");
+     * }
+     * </pre>
+     *
+     * @param limit the maximum UTF-8 bytes constituting a returned string.
+     * @throws JayoEOFException         when the reader does not contain a string consisting with at most {@code limit}
+     *                                  bytes followed by line break characters.
+     * @throws IllegalArgumentException when {@code limit} is negative.
+     * @throws IllegalStateException    if this reader is closed.
+     */
+    @NonNull String readLineStrict(final @NonNegative long limit);
+
+    /**
+     * Removes and returns a single UTF-8 code point, reading between 1 and 4 bytes as necessary.
+     * <p>
+     * If this reader is exhausted before a complete code point can be read, this throws a {@link JayoEOFException} and
+     * consumes no input.
+     * <p>
+     * If this reader doesn't start with a properly-encoded UTF-8 code point, this method will remove 1 or more
+     * non-UTF-8 bytes and return the replacement character ({@code U+FFFD}). This covers encoding problems (the input
+     * is not properly-encoded UTF-8), characters out of range (beyond the 0x10ffff limit of Unicode), code points for
+     * UTF-16 surrogates (U+d800..U+dfff) and overlong encodings (such as {@code 0xc080} for the NUL character in
+     * modified UTF-8).
+     *
+     * @throws JayoEOFException      when the reader is exhausted before a complete code point can be read.
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNegative
+    int readUtf8CodePoint();
+
+    /**
+     * Removes all bytes from this reader, decodes them as {@code charset}, and returns the string. Returns the empty
+     * string if this reader is empty.
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("Uh uh uh¡", StandardCharsets.ISO_8859_1)
+     * .writeByte(' ')
+     * .write("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
+     * assertThat(buffer.byteSize()).isEqualTo(40);
+     *
+     * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You didn't say the magic word¡");
+     * assertThat(buffer.byteSize()).isEqualTo(0);
+     *
+     * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("");
+     * }
+     * </pre>
+     *
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNull String readString(final @NonNull Charset charset);
+
+    /**
+     * Removes {@code byteCount} bytes from this reader, decodes them as {@code charset}, and returns the string.
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("Uh uh uh¡", StandardCharsets.ISO_8859_1)
+     * .writeByte(' ')
+     * .write("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
+     * assertThat(buffer.byteSize()).isEqualTo(40);
+     *
+     * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You ");
+     * assertThat(buffer.byteSize()).isEqualTo(26);
+     *
+     * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("didn't say the");
+     * assertThat(buffer.byteSize()).isEqualTo(12);
+     *
+     * assertThat(buffer.readString(12, StandardCharsets.ISO_8859_1)).isEqualTo(" magic word¡");
+     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * }
+     * </pre>
+     *
+     * @param byteCount the number of bytes to read from this reader for string decoding.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws JayoEOFException         when this reader is exhausted before reading {@code byteCount} bytes from it.
+     * @throws IllegalStateException    if this reader is closed.
+     */
+    @NonNull String readString(final @NonNegative long byteCount, final @NonNull Charset charset);
 
     /**
      * Removes up to {@code writer.length} bytes from this reader and copies them into {@code writer}.
@@ -428,198 +642,6 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     long transferTo(final @NonNull RawWriter writer);
 
     /**
-     * Removes all bytes from this reader, decodes them as UTF-8, and returns the string. Returns the empty string if
-     * this reader is empty.
-     * <pre>
-     * {@code
-     * Buffer buffer = Buffer.create()
-     * .writeUtf8("Uh uh uh!")
-     * .writeByte(' ')
-     * .writeUtf8("You didn't say the magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(40);
-     *
-     * assertThat(buffer.readUtf8()).isEqualTo("Uh uh uh! You didn't say the magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
-     *
-     * assertThat(buffer.readUtf8()).isEqualTo("");
-     * }
-     * </pre>
-     *
-     * @throws IllegalStateException if this reader is closed.
-     */
-    @NonNull String readUtf8String();
-
-    /**
-     * Removes {@code byteCount} bytes from this reader, decodes them as UTF-8, and returns the string.
-     * <pre>
-     * {@code
-     * Buffer buffer = Buffer.create()
-     * .writeUtf8("Uh uh uh!")
-     * .writeByte(' ')
-     * .writeUtf8("You didn't say the magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(40);
-     *
-     * assertThat(buffer.readUtf8(14)).isEqualTo("Uh uh uh! You ");
-     * assertThat(buffer.byteSize()).isEqualTo(26);
-     *
-     * assertThat(buffer.readUtf8(14)).isEqualTo("didn't say the");
-     * assertThat(buffer.byteSize()).isEqualTo(12);
-     *
-     * assertThat(buffer.readUtf8(12)).isEqualTo(" magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
-     * }
-     * </pre>
-     *
-     * @param byteCount the number of bytes to read from this reader for string decoding.
-     * @throws IllegalArgumentException if {@code byteCount} is negative.
-     * @throws JayoEOFException         when this reader is exhausted before reading {@code byteCount} bytes from it.
-     * @throws IllegalStateException    if this reader is closed.
-     */
-    @NonNull String readUtf8String(final @NonNegative long byteCount);
-
-    /**
-     * Removes and returns UTF-8 encoded characters up to but not including the next line break. A line break is
-     * either {@code "\n"} or {@code "\r\n"}; these characters are not included in the result.
-     * <p>
-     * On the end of the stream this method returns null. If the reader doesn't end with a line break, then an implicit
-     * line break is assumed. Null is returned once the reader is exhausted.
-     * <pre>
-     * {@code
-     * Buffer buffer = Buffer.create()
-     * .writeUtf8("I'm a hacker!\n")
-     * .writeUtf8("That's what I said: you're a nerd.\n")
-     * .writeUtf8("I prefer to be called a hacker!\n");
-     * assertThat(buffer.byteSize()).isEqualTo(81);
-     *
-     * assertThat(buffer.readLine()).isEqualTo("I'm a hacker!");
-     * assertThat(buffer.byteSize()).isEqualTo(67);
-     *
-     * assertThat(buffer.readLine()).isEqualTo("That's what I said: you're a nerd.");
-     * assertThat(buffer.byteSize()).isEqualTo(32);
-     *
-     * assertThat(buffer.readLine()).isEqualTo("I prefer to be called a hacker!");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
-     *
-     * assertThat(buffer.readLine()).isNull();
-     * assertThat(buffer.byteSize()).isEqualTo(0);
-     * }
-     * </pre>
-     *
-     * @throws IllegalStateException if this reader is closed.
-     */
-    @Nullable String readUtf8Line();
-
-    /**
-     * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
-     * {@link JayoEOFException} if a line break was not encountered. A line break is either {@code "\n"} or
-     * {@code "\r\n"}; these characters are not included in the result.
-     * <p>
-     * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match
-     *
-     * @throws IllegalStateException if this reader is closed.
-     */
-    @NonNull String readUtf8LineStrict();
-
-    /**
-     * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
-     * {@link JayoEOFException} if a line break was not encountered. A line break is either {@code "\n"} or
-     * {@code "\r\n"}; these characters are not included in the result.
-     * <p>
-     * The returned string will have at most {@code limit} UTF-8 bytes, and the maximum number of bytes scanned is
-     * {@code limit + 2}. If {@code limit == 0} this will always throw a {@link JayoEOFException} because no bytes will
-     * be scanned.
-     * <p>
-     * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match:
-     * <pre>
-     * {@code
-     * Buffer buffer = Buffer.create()
-     * .writeUtf8("12345\r\n");
-     *
-     * // This will throw! There must be \r\n or \n at the limit or before it.
-     * buffer.readLineStrict(4);
-     *
-     * // No bytes have been consumed so the caller can retry.
-     * assertThat(buffer.readLineStrict(5)).isEqualTo("12345");
-     * }
-     * </pre>
-     *
-     * @param limit the maximum UTF-8 bytes constituting a returned string.
-     * @throws JayoEOFException         when the reader does not contain a string consisting with at most {@code limit}
-     *                                  bytes followed by line break characters.
-     * @throws IllegalArgumentException when {@code limit} is negative.
-     * @throws IllegalStateException    if this reader is closed.
-     */
-    @NonNull String readUtf8LineStrict(final @NonNegative long limit);
-
-    /**
-     * Removes and returns a single UTF-8 code point, reading between 1 and 4 bytes as necessary.
-     * <p>
-     * If this reader is exhausted before a complete code point can be read, this throws a {@link JayoEOFException} and
-     * consumes no input.
-     * <p>
-     * If this reader doesn't start with a properly-encoded UTF-8 code point, this method will remove 1 or more
-     * non-UTF-8 bytes and return the replacement character ({@code U+FFFD}). This covers encoding problems (the input
-     * is not properly-encoded UTF-8), characters out of range (beyond the 0x10ffff limit of Unicode), code points for
-     * UTF-16 surrogates (U+d800..U+dfff) and overlong encodings (such as {@code 0xc080} for the NUL character in
-     * modified UTF-8).
-     *
-     * @throws JayoEOFException      when the reader is exhausted before a complete code point can be read.
-     * @throws IllegalStateException if this reader is closed.
-     */
-    @NonNegative
-    int readUtf8CodePoint();
-
-    /**
-     * Removes all bytes from this reader, decodes them as {@code charset}, and returns the string. Returns the empty
-     * string if this reader is empty.
-     * <pre>
-     * {@code
-     * Buffer buffer = Buffer.create()
-     * .writeString("Uh uh uh¡", StandardCharsets.ISO_8859_1)
-     * .writeByte(' ')
-     * .writeString("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
-     * assertThat(buffer.byteSize()).isEqualTo(40);
-     *
-     * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You didn't say the magic word¡");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
-     *
-     * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("");
-     * }
-     * </pre>
-     *
-     * @throws IllegalStateException if this reader is closed.
-     */
-    @NonNull String readString(final @NonNull Charset charset);
-
-    /**
-     * Removes {@code byteCount} bytes from this reader, decodes them as {@code charset}, and returns the string.
-     * <pre>
-     * {@code
-     * Buffer buffer = Buffer.create()
-     * .writeString("Uh uh uh¡", StandardCharsets.ISO_8859_1)
-     * .writeByte(' ')
-     * .writeString("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
-     * assertThat(buffer.byteSize()).isEqualTo(40);
-     *
-     * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You ");
-     * assertThat(buffer.byteSize()).isEqualTo(26);
-     *
-     * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("didn't say the");
-     * assertThat(buffer.byteSize()).isEqualTo(12);
-     *
-     * assertThat(buffer.readString(12, StandardCharsets.ISO_8859_1)).isEqualTo(" magic word¡");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
-     * }
-     * </pre>
-     *
-     * @param byteCount the number of bytes to read from this reader for string decoding.
-     * @throws IllegalArgumentException if {@code byteCount} is negative.
-     * @throws JayoEOFException         when this reader is exhausted before reading {@code byteCount} bytes from it.
-     * @throws IllegalStateException    if this reader is closed.
-     */
-    @NonNull String readString(final @NonNegative long byteCount, final @NonNull Charset charset);
-
-    /**
      * Returns the index of {@code b} first occurrence in this reader, or {@code -1} if it doesn't contain {@code b}.
      * <p>
      * The scan terminates at reader's exhaustion.
@@ -628,7 +650,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()
-     * .writeUtf8("Don't move! He can't see us if we don't move.");
+     * .write("Don't move! He can't see us if we don't move.");
      *
      * assertThat(buffer.indexOf('m')).isEqualTo(6);
      * }
@@ -649,7 +671,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()
-     * .writeUtf8("Don't move! He can't see us if we don't move.");
+     * .write("Don't move! He can't see us if we don't move.");
      *
      * assertThat(buffer.indexOf('m', 12)).isEqualTo(40);
      * }
@@ -673,7 +695,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()
-     * .writeUtf8("Don't move! He can't see us if we don't move.");
+     * .write("Don't move! He can't see us if we don't move.");
      *
      * assertThat(buffer.indexOf('m', 12, 40)).isEqualTo(-1);
      * assertThat(buffer.indexOf('m', 12, 41)).isEqualTo(40);
@@ -725,10 +747,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * exhausted, then new data will be read from the underlying reader into the buffer.
      * <pre>
      * {@code
-     * ByteString ANY_VOWEL = ByteString.encodeUtf8("AEOIUaeoiu");
+     * ByteString ANY_VOWEL = Utf8.encode("AEOIUaeoiu");
      *
      * Buffer buffer = Buffer.create()
-     * .writeString("Dr. Alan Grant");
+     * .write("Dr. Alan Grant");
      *
      * assertEquals(4,  buffer.indexOfElement(ANY_VOWEL));    // 'A' in 'Alan'.
      * }
@@ -748,10 +770,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * exhausted, then new data will be read from the underlying reader into the buffer.
      * <pre>
      * {@code
-     * ByteString ANY_VOWEL = ByteString.encodeUtf8("AEOIUaeoiu");
+     * ByteString ANY_VOWEL = Utf8.encode("AEOIUaeoiu");
      *
      * Buffer buffer = Buffer.create()
-     * .writeUtf8("Dr. Alan Grant");
+     * .write("Dr. Alan Grant");
      *
      * assertEquals(11, buffer.indexOfElement(ANY_VOWEL, 9)); // 'a' in 'Grant'.
      * }
@@ -772,12 +794,12 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * matched, or if this reader is exhausted before enough bytes could determine a match.
      * <pre>
      * {@code
-     * ByteString simonSays = ByteString.encodeUtf8("Simon says:");
+     * ByteString simonSays = Utf8.encode("Simon says:");
      *
-     * Buffer standOnOneLeg = Buffer.create().writeUtf8("Simon says: Stand on one leg.");
+     * Buffer standOnOneLeg = Buffer.create().write("Simon says: Stand on one leg.");
      * assertEquals(standOnOneLeg.rangeEquals(0, simonSays)).isTrue();
      *
-     * Buffer payMeMoney = Buffer.create().writeUtf8("Pay me $1,000,000.");
+     * Buffer payMeMoney = Buffer.create().write("Pay me $1,000,000.");
      * assertEquals(payMeMoney.rangeEquals(0, simonSays)).isFalse();
      * }
      * </pre>
@@ -799,12 +821,12 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * match.
      * <pre>
      * {@code
-     * ByteString simonSays = ByteString.encodeUtf8("Simon says:");
+     * ByteString simonSays = Utf8.encode("Simon says:");
      *
-     * Buffer standOnOneLeg = Buffer.create().writeUtf8("Garfunkel says: Stand on one leg.");
+     * Buffer standOnOneLeg = Buffer.create().write("Garfunkel says: Stand on one leg.");
      * assertEquals(standOnOneLeg.rangeEquals(10, simonSays, 6, 5)).isTrue();
      *
-     * Buffer payMeMoney = Buffer.create().writeUtf8("Pay me $1,000,000.");
+     * Buffer payMeMoney = Buffer.create().write("Pay me $1,000,000.");
      * assertEquals(payMeMoney.rangeEquals(0, simonSays, 3, 5)).isFalse();
      * }
      * </pre>
@@ -832,15 +854,15 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()
-     * .writeUtf8("abcdefghi");
+     * .write("abcdefghi");
      *
-     * buffer.readUtf8(3); // returns "abc", buffer contains "defghi"
+     * buffer.readString(3); // returns "abc", buffer contains "defghi"
      *
      * Reader peek = buffer.peek();
-     * peek.readUtf8(3); // returns "def", buffer contains "defghi"
-     * peek.readUtf8(3); // returns "ghi", buffer contains "defghi"
+     * peek.readString(3); // returns "def", buffer contains "defghi"
+     * peek.readString(3); // returns "ghi", buffer contains "defghi"
      *
-     * buffer.readUtf8(3) // returns "def", buffer contains "ghi"
+     * buffer.readString(3) // returns "def", buffer contains "ghi"
      * }
      * </pre>
      *

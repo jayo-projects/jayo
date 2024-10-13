@@ -119,7 +119,7 @@ class KotlinSocksProxyServer {
                 ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromReader.readByteArray(4L))
                 ADDRESS_TYPE_DOMAIN_NAME -> {
                     val domainNameLength = fromReader.readByte()
-                    InetAddress.getByName(fromReader.readUtf8String(domainNameLength.toLong()))
+                    InetAddress.getByName(fromReader.readString(domainNameLength.toLong()))
                 }
 
                 else -> throw JayoProtocolException("Unknown address type $addressType")
@@ -185,7 +185,7 @@ fun main() {
         URI("https://raw.githubusercontent.com/jayo-projects/jayo/main/samples/src/main/resources/jayo.txt").toURL()
     val connection = url.openConnection(proxyServer.proxy())
     connection.getInputStream().reader().buffered().use { reader ->
-        generateSequence { reader.readUtf8Line() }
+        generateSequence { reader.readLine() }
             .forEach(::println)
     }
 

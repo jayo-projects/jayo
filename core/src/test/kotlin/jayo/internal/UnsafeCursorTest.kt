@@ -30,7 +30,7 @@ class UnsafeCursorTest {
     @Test
     fun acquireForRead() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("xo".repeat(5000))
+        buffer.write("xo".repeat(5000))
 
         val cursor = buffer.readUnsafe()
         try {
@@ -42,13 +42,13 @@ class UnsafeCursorTest {
             cursor.close()
         }
 
-        assertEquals("xo".repeat(5000), buffer.readUtf8String())
+        assertEquals("xo".repeat(5000), buffer.readString())
     }
 
     @Test
     fun acquireForWriteSmall() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("xo".repeat(5000))
+        buffer.write("xo".repeat(5000))
 
         buffer.readAndWriteUnsafe().use { cursor ->
             while (cursor.next() != -1) {
@@ -56,13 +56,13 @@ class UnsafeCursorTest {
             }
         }
 
-        assertEquals("zz".repeat(5000), buffer.readUtf8String())
+        assertEquals("zz".repeat(5000), buffer.readString())
     }
 
     @Test
     fun acquireForWriteBig() {
         val buffer = RealBuffer()
-        buffer.writeUtf8("xo".repeat(10000))
+        buffer.write("xo".repeat(10000))
 
         buffer.readAndWriteUnsafe().use { cursor ->
             while (cursor.next() != -1) {
@@ -70,7 +70,7 @@ class UnsafeCursorTest {
             }
         }
 
-        assertEquals("zz".repeat(10000), buffer.readUtf8String())
+        assertEquals("zz".repeat(10000), buffer.readString())
     }
 
     @Test
@@ -88,7 +88,7 @@ class UnsafeCursorTest {
         }
 
         val expected = "z".repeat(100)
-        val actual = buffer.readUtf8String()
+        val actual = buffer.readString()
         assertEquals(expected, actual)
     }
 
@@ -101,7 +101,7 @@ class UnsafeCursorTest {
             cursor.data.fill('z'.code.toByte(), cursor.pos, cursor.limit)
         }
 
-        assertEquals("z".repeat(100), buffer.readUtf8String())
+        assertEquals("z".repeat(100), buffer.readString())
     }
 
     @Test

@@ -34,7 +34,7 @@ enum class BufferFactory {
 
   SMALL_BUFFER {
     override fun newBuffer(): Buffer {
-      return Buffer().writeUtf8("abcde")
+      return Buffer().write("abcde")
     }
   },
 

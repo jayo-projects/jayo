@@ -219,7 +219,7 @@ class OptionsTest {
             utf8Options("abc", "abc")
             fail()
         } catch (expected: IllegalArgumentException) {
-            assertEquals(expected.message, "duplicate option: ByteString(size=3 hex=616263)")
+            assertEquals(expected.message, "duplicate option: abc")
         }
     }
 
@@ -411,7 +411,7 @@ class OptionsTest {
     }
 
     private fun assertSelect(data: String, expected: Int, options: Options) {
-        assertSelect(Buffer().writeUtf8(data), expected, options)
+        assertSelect(Buffer().write(data), expected, options)
     }
 
     private fun assertSelect(data: String, expected: Int, vararg options: String) {

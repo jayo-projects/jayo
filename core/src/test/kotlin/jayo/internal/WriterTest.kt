@@ -95,13 +95,13 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
     @Test
     fun writeNothing() {
-        writer.writeUtf8("")
+        writer.write("")
         writer.flush()
         assertEquals(0, data.byteSize())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.writeUtf8("")
+                writer.write("")
             }
         }
     }
@@ -130,12 +130,12 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     @Test
     @Disabled // todo
     fun writeLastByteInSegment() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 1))
+        writer.write("a".repeat(Segment.SIZE - 1))
         writer.writeByte(0x20)
         writer.writeByte(0x21)
         writer.flush()
         assertEquals(listOf(Segment.SIZE, 1), segmentSizes(data))
-        assertEquals("a".repeat(Segment.SIZE - 1), data.readUtf8String(Segment.SIZE - 1L))
+        assertEquals("a".repeat(Segment.SIZE - 1), data.readString(Segment.SIZE - 1L))
         assertEquals("Buffer(size=2 hex=2021)", data.toString())
     }
 
@@ -192,23 +192,23 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     @Test
     @Disabled // todo
     fun writeLastIntegerInSegment() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 4))
+        writer.write("a".repeat(Segment.SIZE - 4))
         writer.writeInt(-0x543210ff)
         writer.writeInt(-0x789abcdf)
         writer.flush()
         assertEquals(listOf(Segment.SIZE, 4), segmentSizes(data))
-        assertEquals("a".repeat(Segment.SIZE - 4), data.readUtf8String(Segment.SIZE - 4L))
+        assertEquals("a".repeat(Segment.SIZE - 4), data.readString(Segment.SIZE - 4L))
         assertEquals("Buffer(size=8 hex=abcdef0187654321)", data.toString())
     }
 
     @Test
     fun writeIntegerDoesNotQuiteFitInSegment() {
-        writer.writeUtf8("a".repeat(Segment.SIZE - 3))
+        writer.write("a".repeat(Segment.SIZE - 3))
         writer.writeInt(-0x543210ff)
         writer.writeInt(-0x789abcdf)
         writer.flush()
         assertEquals(listOf(Segment.SIZE - 3, 8), segmentSizes(data))
-        assertEquals("a".repeat(Segment.SIZE - 3), data.readUtf8String(Segment.SIZE - 3L))
+        assertEquals("a".repeat(Segment.SIZE - 3), data.readString(Segment.SIZE - 3L))
         assertEquals("Buffer(size=8 hex=abcdef0187654321)", data.toString())
     }
 
@@ -252,12 +252,12 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     @Test
     fun writeAll() {
         val reader = RealBuffer()
-        reader.writeUtf8("abcdef")
+        reader.write("abcdef")
 
         assertEquals(6, writer.transferFrom(reader))
         assertEquals(0, reader.byteSize())
         writer.flush()
-        assertEquals("abcdef", data.readUtf8String())
+        assertEquals("abcdef", data.readString())
     }
 
     @Test
@@ -276,13 +276,13 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     @Test
     fun writeReader() {
         val reader = RealBuffer()
-        reader.writeUtf8("abcdef")
+        reader.write("abcdef")
 
         // Force resolution of the reader method overload.
         writer.write(reader as RawReader, 4)
         writer.flush()
-        assertEquals("abcd", data.readUtf8String())
-        assertEquals("ef", reader.readUtf8String())
+        assertEquals("abcd", data.readString())
+        assertEquals("ef", reader.readString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
@@ -295,14 +295,14 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     fun writeReaderReadsFully() {
         val reader = object : RawReader by RealBuffer() {
             override fun readAtMostTo(writer: Buffer, byteCount: Long): Long {
-                writer.writeUtf8("abcd")
+                writer.write("abcd")
                 return 4
             }
         }
 
         writer.write(reader, 8)
         writer.flush()
-        assertEquals("abcdabcd", data.readUtf8String())
+        assertEquals("abcdabcd", data.readString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
@@ -313,7 +313,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
     @Test
     fun writeReaderPropagatesEof() {
-        val reader: RawReader = RealBuffer().also { it.writeUtf8("abcd") }
+        val reader: RawReader = RealBuffer().also { it.write("abcd") }
 
         assertFailsWith<JayoEOFException> {
             writer.write(reader, 8)
@@ -321,20 +321,20 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
         // Ensure that whatever was available was correctly written.
         writer.flush()
-        assertEquals("abcd", data.readUtf8String())
+        assertEquals("abcd", data.readString())
     }
 
     @Test
     fun writeBufferThrowsIAE() {
         val reader = RealBuffer()
-        reader.writeUtf8("abcd")
+        reader.write("abcd")
 
         assertFailsWith<IndexOutOfBoundsException> {
             writer.write(reader, 8)
         }
 
         writer.flush()
-        assertEquals("", data.readUtf8String())
+        assertEquals("", data.readString())
 
         if (writer is RealWriter) {
             writer.close()
@@ -435,32 +435,32 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     private fun assertLongDecimalString(string: String, value: Long) {
         with(writer) {
             writeDecimalLong(value)
-            writeUtf8("zzz")
+            write("zzz")
             flush()
         }
         val expected = "${string}zzz"
-        val actual = data.readUtf8String()
+        val actual = data.readString()
         assertEquals(expected, actual, "$value expected $expected but was $actual")
     }
 
     @Test
     fun writeUtf8FromRange() {
-        writer.writeUtf8("0123456789", 4, 7)
+        writer.write("0123456789", 4, 7)
         writer.flush()
-        assertEquals("456", data.readUtf8String())
+        assertEquals("456", data.readString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.writeUtf8("0123456789", 4, 7)
+                writer.write("0123456789", 4, 7)
             }
         }
     }
 
     @Test
     fun writeUtf8WithInvalidIndexes() {
-        assertFailsWith<IndexOutOfBoundsException> { writer.writeUtf8("hello", -1, 2) }
-        assertFailsWith<IndexOutOfBoundsException> { writer.writeUtf8("hello", 0, 6) }
-        assertFailsWith<IllegalArgumentException> { writer.writeUtf8("hello", 6, 5) }
+        assertFailsWith<IndexOutOfBoundsException> { writer.write("hello", -1, 2) }
+        assertFailsWith<IndexOutOfBoundsException> { writer.write("hello", 0, 6) }
+        assertFailsWith<IllegalArgumentException> { writer.write("hello", 6, 5) }
     }
 
     @Test
@@ -527,52 +527,52 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
     @Test
     fun writeByteString() {
-        writer.write("təˈranəˌsôr".encodeToByteString())
+        writer.write("təˈranəˌsôr".encodeToUtf8())
         writer.flush()
         assertEquals(ByteString.of(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readByteString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.write("təˈranəˌsôr".encodeToByteString())
+                writer.write("təˈranəˌsôr".encodeToUtf8())
             }
         }
     }
 
     @Test
     fun writeByteStringOffset() {
-        writer.write("təˈranəˌsôr".encodeToByteString(), 5, 5)
+        writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
         writer.flush()
         assertEquals(ByteString.of(*"72616ec999".decodeHex()), data.readByteString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.write("təˈranəˌsôr".encodeToByteString(), 5, 5)
+                writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
             }
         }
     }
 
     @Test
     fun writeUtf8() {
-        writer.writeUtf8("təˈranəˌsôr".encodeToUtf8())
+        writer.write("təˈranəˌsôr".encodeToUtf8())
         writer.flush()
-        assertEquals(Utf8.ofUtf8(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readUtf8())
+        assertEquals(Utf8.of(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readUtf8())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.writeUtf8("təˈranəˌsôr".encodeToUtf8())
+                writer.write("təˈranəˌsôr".encodeToUtf8())
             }
         }
     }
 
     @Test
     fun writeUtf8Offset() {
-        writer.writeUtf8("təˈranəˌsôr".encodeToUtf8(), 5, 5)
+        writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
         writer.flush()
-        assertEquals(Utf8.ofUtf8(*"72616ec999".decodeHex()), data.readUtf8())
+        assertEquals(Utf8.of(*"72616ec999".decodeHex()), data.readUtf8())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.writeUtf8("təˈranəˌsôr".encodeToUtf8(), 5, 5)
+                writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
             }
         }
     }
@@ -584,7 +584,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         out.write("b".repeat(9998).toByteArray(Charsets.UTF_8))
         out.write('c'.code)
         out.flush()
-        assertEquals(("a" + "b".repeat(9998)) + "c", data.readUtf8String())
+        assertEquals(("a" + "b".repeat(9998)) + "c", data.readString())
     }
 
     @Test
@@ -630,7 +630,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(expected.length, nioByteBuffer.position())
         assertEquals(expected.length, nioByteBuffer.limit())
         writer.flush()
-        assertEquals(expected, data.readUtf8String())
+        assertEquals(expected, data.readString())
     }
 
     @Test
@@ -644,7 +644,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(expected.length, nioByteBuffer.position())
         assertEquals(expected.length, nioByteBuffer.limit())
         writer.flush()
-        assertEquals(expected, data.readUtf8String())
+        assertEquals(expected, data.readString())
     }
 
     @Test
@@ -660,41 +660,41 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
     @Test
     fun writeStringWithCharset() {
-        writer.writeString("təˈranəˌsôr", Charset.forName("utf-32be"))
+        writer.write("təˈranəˌsôr", Charset.forName("utf-32be"))
         writer.flush()
         val expected = "0000007400000259000002c800000072000000610000006e00000259000002cc00000073000000f400000072"
         assertArrayEquals(expected.decodeHex(), data.readByteArray())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.writeString("təˈranəˌsôr", Charset.forName("utf-32be"))
+                writer.write("təˈranəˌsôr", Charset.forName("utf-32be"))
             }
         }
     }
 
     @Test
     fun writeSubstringWithCharset() {
-        writer.writeString("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
+        writer.write("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
         writer.flush()
         assertArrayEquals("00000072000000610000006e00000259".decodeHex(), data.readByteArray())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
-                writer.writeString("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
+                writer.write("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
             }
         }
     }
 
     @Test
     fun writeUtf8SubstringWithCharset() {
-        writer.writeString("təˈranəˌsôr", 3, 7, Charset.forName("utf-8"))
+        writer.write("təˈranəˌsôr", 3, 7, Charset.forName("utf-8"))
         writer.flush()
         assertArrayEquals("ranə".toByteArray(Charsets.UTF_8), data.readByteArray())
     }
 
     @Test
     fun writeLatin1StringWithCharset() {
-        writer.writeString(LATIN1, Charsets.ISO_8859_1)
+        writer.write(LATIN1, Charsets.ISO_8859_1)
         writer.flush()
         assertArrayEquals(LATIN1.toByteArray(Charsets.ISO_8859_1), data.readByteArray())
     }

@@ -66,7 +66,7 @@ public class TlsSniSocketServer {
                     Buffer buffer = Buffer.create();
                     // write to stdout all data sent by the client
                     while (decryptedReader.readAtMostTo(buffer, 10000L) != -1) {
-                        System.out.print(buffer.readUtf8String());
+                        System.out.print(buffer.readString());
                     }
                 }
             }

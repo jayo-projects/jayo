@@ -28,7 +28,7 @@ internal class JsonToJayoStreamWriter(private val writer: Writer) : InternalJson
     }
 
     override fun write(text: String) {
-        writer.writeUtf8(text)
+        writer.write(text)
     }
 
     override fun writeQuoted(text: String) {
@@ -37,14 +37,14 @@ internal class JsonToJayoStreamWriter(private val writer: Writer) : InternalJson
         for (i in text.indices) {
             val c = text[i].code
             if (c < ESCAPE_STRINGS.size && ESCAPE_STRINGS[c] != null) {
-                writer.writeUtf8(text, lastPos, i) // flush prev
-                writer.writeUtf8(ESCAPE_STRINGS[c]!!)
+                writer.write(text, lastPos, i) // flush prev
+                writer.write(ESCAPE_STRINGS[c]!!)
                 lastPos = i + 1
             }
         }
 
-        if (lastPos != 0) writer.writeUtf8(text, lastPos, text.length)
-        else writer.writeUtf8(text)
+        if (lastPos != 0) writer.write(text, lastPos, text.length)
+        else writer.write(text)
         writer.writeUtf8CodePoint('"'.code)
     }
 

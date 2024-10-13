@@ -37,10 +37,10 @@ public final class WriteFile {
     try (Writer fileWriter = Jayo.buffer(Jayo.writer(path, StandardOpenOption.CREATE))) {
 
       for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
-        fileWriter.writeUtf8(entry.getKey());
-        fileWriter.writeUtf8("=");
-        fileWriter.writeUtf8(entry.getValue());
-        fileWriter.writeUtf8("\n");
+        fileWriter.write(entry.getKey());
+        fileWriter.write("=");
+        fileWriter.write(entry.getValue());
+        fileWriter.write("\n");
       }
 
     }

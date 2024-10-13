@@ -118,7 +118,7 @@ public final class SocksProxyServer {
             final var inetAddress = switch (addressType) {
                 case ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromReader.readByteArray(4L));
                 case ADDRESS_TYPE_DOMAIN_NAME ->
-                        InetAddress.getByName(fromReader.readUtf8String(fromReader.readByte()));
+                        InetAddress.getByName(fromReader.readString(fromReader.readByte()));
                 default -> throw new JayoProtocolException("Unknown address type " + addressType);
             };
             int port = fromReader.readShort() & 0xffff;
@@ -188,7 +188,7 @@ public final class SocksProxyServer {
                 .toURL();
         URLConnection connection = url.openConnection(proxyServer.proxy());
         try (final var reader = Jayo.buffer(Jayo.reader(connection.getInputStream()))) {
-            for (String line; (line = reader.readUtf8Line()) != null; ) {
+            for (String line; (line = reader.readLine()) != null; ) {
                 System.out.println(line);
             }
         }

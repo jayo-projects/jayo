@@ -52,11 +52,11 @@ public class TlsSocketClient {
                  Writer toEncryptWriter = Jayo.buffer(tlsEndpoint.getWriter());
                  Reader decryptedReader = Jayo.buffer(tlsEndpoint.getReader())) {
                 // do HTTP interaction and print result
-                toEncryptWriter.writeString(HTTP_LINE, StandardCharsets.US_ASCII);
+                toEncryptWriter.write(HTTP_LINE, StandardCharsets.US_ASCII);
                 toEncryptWriter.emit();
 
                 // being HTTP 1.0, the server will just close the connection at the end
-                String received = decryptedReader.readUtf8String();
+                String received = decryptedReader.readString();
                 System.out.println(received);
             }
         }

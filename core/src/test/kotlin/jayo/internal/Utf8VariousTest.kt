@@ -105,7 +105,7 @@ class Utf8VariousTest {
     @Test
     fun multipleSegmentString() {
         val a = "a".repeat(Segment.SIZE + Segment.SIZE + 1)
-        val encoded = RealBuffer().writeUtf8(a)
+        val encoded = RealBuffer().write(a)
         val expected = RealBuffer().write(a.toByteArray(UTF_8))
         assertEquals(expected.readByteString(), encoded.readByteString())
     }
@@ -116,10 +116,10 @@ class Utf8VariousTest {
         val a = "a".repeat(Segment.SIZE - 1)
         val b = "bb"
         val c = "c".repeat(Segment.SIZE - 1)
-        buffer.writeUtf8(a)
-        buffer.writeUtf8(b)
-        buffer.writeUtf8(c)
-        assertEquals(a + b + c, buffer.readUtf8String())
+        buffer.write(a)
+        buffer.write(b)
+        buffer.write(c)
+        assertEquals(a + b + c, buffer.readString())
     }
 
     @Test
@@ -252,7 +252,7 @@ class Utf8VariousTest {
         assertEquals(expectedUtf8, platformUtf8)
 
         // Confirm our implementation matches those expectations.
-        val actualUtf8 = RealBuffer().writeUtf8(string).readByteString()
+        val actualUtf8 = RealBuffer().write(string).readByteString()
         assertEquals(expectedUtf8, actualUtf8)
 
         // Confirm we are consistent when writing one code point at a time.

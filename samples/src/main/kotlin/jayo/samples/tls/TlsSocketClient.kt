@@ -31,11 +31,11 @@ fun main() {
             tslEndpoint.getWriter().buffered().use { toEncryptWriter ->
                 tslEndpoint.getReader().buffered().use { decryptedReader ->
                     // do HTTP interaction and print result
-                    toEncryptWriter.writeString(HTTP_LINE, Charsets.US_ASCII)
+                    toEncryptWriter.write(HTTP_LINE, Charsets.US_ASCII)
                     toEncryptWriter.emit()
 
                     // being HTTP 1.0, the server will just close the connection at the end
-                    val received = decryptedReader.readUtf8String()
+                    val received = decryptedReader.readString()
                     println(received)
                 }
             }

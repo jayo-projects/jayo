@@ -28,7 +28,7 @@ import java.nio.file.Path
 fun readLines(path: Path) {
     path.reader().buffered().use { fileReader ->
         while (true) {
-            val line = fileReader.readUtf8Line() ?: break
+            val line = fileReader.readLine() ?: break
             if ("Jayo" in line) {
                 println(line)
             }
