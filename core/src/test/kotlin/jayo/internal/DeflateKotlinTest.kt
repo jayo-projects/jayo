@@ -22,7 +22,7 @@
 package jayo.internal
 
 import jayo.*
-import jayo.exceptions.JayoException
+import jayo.JayoException
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.fail

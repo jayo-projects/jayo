@@ -24,8 +24,8 @@ package jayo.internal;
 import jayo.Cancellable;
 import jayo.Jayo;
 import jayo.endpoints.SocketEndpoint;
-import jayo.exceptions.JayoInterruptedIOException;
-import jayo.exceptions.JayoTimeoutException;
+import jayo.JayoInterruptedIOException;
+import jayo.JayoTimeoutException;
 import org.junit.jupiter.api.Test;
 
 import java.io.EOFException;

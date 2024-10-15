@@ -22,8 +22,8 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.exceptions.JayoEOFException;
-import jayo.exceptions.JayoException;
+import jayo.JayoEOFException;
+import jayo.JayoException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

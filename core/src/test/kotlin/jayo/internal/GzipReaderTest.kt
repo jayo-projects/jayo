@@ -24,7 +24,7 @@ package jayo.internal
 import jayo.*
 import jayo.ByteString.of
 import jayo.decodeHex
-import jayo.exceptions.JayoException
+import jayo.JayoException
 import org.junit.jupiter.api.assertThrows
 import java.util.zip.CRC32
 import kotlin.test.Test

@@ -26,7 +26,7 @@
 package jayo.internal
 
 import jayo.*
-import jayo.exceptions.JayoEOFException
+import jayo.JayoEOFException
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled

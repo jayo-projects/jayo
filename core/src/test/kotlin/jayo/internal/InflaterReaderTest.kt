@@ -22,7 +22,7 @@
 package jayo.internal
 
 import jayo.*
-import jayo.exceptions.JayoEOFException
+import jayo.JayoEOFException
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.fail

@@ -24,8 +24,8 @@ package jayo.samples
 import jayo.*
 import jayo.endpoints.SocketEndpoint
 import jayo.endpoints.endpoint
-import jayo.exceptions.JayoException
-import jayo.exceptions.JayoProtocolException
+import jayo.JayoException
+import jayo.JayoProtocolException
 import java.io.IOException
 import java.net.*
 import java.util.*

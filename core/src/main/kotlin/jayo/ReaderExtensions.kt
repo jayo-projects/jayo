@@ -12,8 +12,6 @@
 
 package jayo
 
-import jayo.exceptions.JayoEOFException
-
 /**
  * Removes two bytes from this reader and returns a short composed of them according to the little-endian order.
  *

@@ -15,7 +15,7 @@ import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.endpoints.Endpoint;
 import jayo.endpoints.JayoClosedEndpointException;
-import jayo.exceptions.JayoEOFException;
+import jayo.JayoEOFException;
 import jayo.external.NonNegative;
 import jayo.tls.JayoTlsHandshakeCallbackException;
 import jayo.tls.JayoTlsHandshakeException;

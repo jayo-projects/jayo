@@ -25,9 +25,9 @@ import jayo.Buffer;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.endpoints.SocketEndpoint;
-import jayo.exceptions.JayoException;
-import jayo.exceptions.JayoInterruptedIOException;
-import jayo.exceptions.JayoTimeoutException;
+import jayo.JayoException;
+import jayo.JayoInterruptedIOException;
+import jayo.JayoTimeoutException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 

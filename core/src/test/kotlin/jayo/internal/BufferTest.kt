@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test
 import jayo.*
 import jayo.crypto.Digests
 import jayo.crypto.Hmacs
-import jayo.exceptions.JayoEOFException
+import jayo.JayoEOFException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream

@@ -22,8 +22,8 @@
 package jayo.internal
 
 import jayo.cancelScope
-import jayo.exceptions.JayoInterruptedIOException
-import jayo.exceptions.JayoTimeoutException
+import jayo.JayoInterruptedIOException
+import jayo.JayoTimeoutException
 import jayo.external.CancelToken
 import jayo.internal.TestUtil.assumeNotWindows
 import org.assertj.core.api.Assertions.*

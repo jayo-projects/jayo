@@ -9,8 +9,8 @@ import jayo.Buffer
 import jayo.buffered
 import jayo.cancelScope
 import jayo.endpoints.endpoint
-import jayo.exceptions.JayoInterruptedIOException
-import jayo.exceptions.JayoTimeoutException
+import jayo.JayoInterruptedIOException
+import jayo.JayoTimeoutException
 import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

@@ -15,7 +15,7 @@ import jayo.Jayo;
 import jayo.Reader;
 import jayo.Writer;
 import jayo.endpoints.JayoClosedEndpointException;
-import jayo.exceptions.JayoTimeoutException;
+import jayo.JayoTimeoutException;
 import jayo.tls.helpers.SocketGroups.SocketGroup;
 import jayo.tls.helpers.SocketGroups.SocketPair;
 import jayo.tls.helpers.SocketPairFactory;

@@ -22,6 +22,7 @@
 package jayo.external;
 
 import jayo.CancelScope;
+import jayo.JayoInterruptedIOException;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.internal.RealAsyncTimeout;
@@ -67,7 +68,7 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
 
     /**
      * Surrounds {@code block} with calls to {@link #enter} and {@link #exit}, throwing a
-     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if a timeout occurred. You
+     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a timeout occurred. You
      * must provide a {@code cancelScope} by obtaining it thanks to {@link CancelToken#getCancelToken()}.
      */
     <T> T withTimeout(final @NonNull CancelScope cancelScope, final @NonNull Supplier<T> block);

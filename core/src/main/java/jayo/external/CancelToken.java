@@ -5,7 +5,7 @@
 
 package jayo.external;
 
-import jayo.exceptions.JayoInterruptedIOException;
+import jayo.JayoInterruptedIOException;
 import jayo.internal.CancellableUtils;
 import jayo.internal.RealCancelToken;
 import org.jspecify.annotations.Nullable;

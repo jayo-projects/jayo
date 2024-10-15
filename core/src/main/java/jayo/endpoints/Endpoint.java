@@ -5,6 +5,7 @@
 
 package jayo.endpoints;
 
+import jayo.JayoException;
 import jayo.RawReader;
 import jayo.RawWriter;
 import org.jspecify.annotations.NonNull;
@@ -28,7 +29,7 @@ import java.nio.channels.SocketChannel;
 public interface Endpoint extends Closeable {
     /**
      * @return a raw reader that reads incoming data from the I/O connection.
-     * @throws jayo.exceptions.JayoException if an I/O error occurs when creating the raw reader.
+     * @throws JayoException if an I/O error occurs when creating the raw reader.
      * @implSpec the {@linkplain RawReader#close() close} method of this reader must call the {@link #close()} method
      * of this endpoint.
      */
@@ -37,7 +38,7 @@ public interface Endpoint extends Closeable {
 
     /**
      * @return a raw writer that writes data into the I/O connection.
-     * @throws jayo.exceptions.JayoException if an I/O error occurs when creating the raw writer.
+     * @throws JayoException if an I/O error occurs when creating the raw writer.
      * @implSpec the {@linkplain RawWriter#close() close} method of this writer must call the {@link #close()} method
      * of this endpoint.
      */
@@ -52,7 +53,7 @@ public interface Endpoint extends Closeable {
      * <p>
      * If this endpoint is already closed then invoking this method has no effect.
      *
-     * @throws jayo.exceptions.JayoException If an I/O error occurs during the closing phase.
+     * @throws JayoException If an I/O error occurs during the closing phase.
      */
     void close();
 
