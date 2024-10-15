@@ -23,7 +23,6 @@ package jayo;
 
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import jayo.internal.*;
 import org.jspecify.annotations.NonNull;

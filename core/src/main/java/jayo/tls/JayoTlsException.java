@@ -5,7 +5,7 @@
 
 package jayo.tls;
 
-import jayo.exceptions.JayoException;
+import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLException;

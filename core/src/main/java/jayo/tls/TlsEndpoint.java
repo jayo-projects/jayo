@@ -10,6 +10,7 @@
 
 package jayo.tls;
 
+import jayo.JayoException;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.endpoints.Endpoint;
@@ -152,7 +153,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * operation is complete because of the locks that prevent concurrent calls.
      *
      * @throws JayoTlsException              if the {@link SSLEngine} or the TLS mechanism on top of it failed.
-     * @throws jayo.exceptions.JayoException if another IO Exception occurred.
+     * @throws JayoException if another IO Exception occurred.
      */
     void handshake();
 
@@ -169,7 +170,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * operation is complete because of the locks that prevent concurrent calls.
      *
      * @throws JayoTlsException              if the {@link SSLEngine} or the TLS mechanism on top of it failed.
-     * @throws jayo.exceptions.JayoException if another IO Exception occurred.
+     * @throws JayoException if another IO Exception occurred.
      */
     void renegotiate();
 
@@ -226,7 +227,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * <p>
      * For finer control of the TLS close, use {@link #shutdown()}.
      *
-     * @throws jayo.exceptions.JayoException if the underlying endpoint throws an IO Exception during close. Exceptions
+     * @throws JayoException if the underlying endpoint throws an IO Exception during close. Exceptions
      *                                       thrown during any previous TLS close are not propagated.
      */
     @Override

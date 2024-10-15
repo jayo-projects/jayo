@@ -8,7 +8,7 @@ package jayo.internal;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.endpoints.SocketChannelEndpoint;
-import jayo.exceptions.JayoException;
+import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;

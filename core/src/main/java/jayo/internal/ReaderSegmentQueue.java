@@ -6,7 +6,7 @@
 package jayo.internal;
 
 import jayo.RawReader;
-import jayo.exceptions.JayoInterruptedIOException;
+import jayo.JayoInterruptedIOException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

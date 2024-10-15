@@ -7,7 +7,7 @@ package jayo.internal;
 
 import jayo.RawWriter;
 import jayo.endpoints.JayoClosedEndpointException;
-import jayo.exceptions.JayoInterruptedIOException;
+import jayo.JayoInterruptedIOException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

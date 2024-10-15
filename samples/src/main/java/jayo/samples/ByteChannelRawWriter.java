@@ -23,7 +23,7 @@ package jayo.samples;
 
 import jayo.Buffer;
 import jayo.RawWriter;
-import jayo.exceptions.JayoException;
+import jayo.JayoException;
 import jayo.external.CancelToken;
 import org.jspecify.annotations.NonNull;
 

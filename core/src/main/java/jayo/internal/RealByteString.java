@@ -24,7 +24,7 @@ package jayo.internal;
 import jayo.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.exceptions.JayoException;
+import jayo.JayoException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

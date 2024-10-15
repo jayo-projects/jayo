@@ -69,7 +69,7 @@ public interface RawWriter extends Closeable, Flushable {
      * @throws IndexOutOfBoundsException     if the {@code reader}'s size is below {@code byteCount} or {@code byteCount}
      *                                       is negative.
      * @throws IllegalStateException         when this writer is closed.
-     * @throws jayo.exceptions.JayoException if an I/O error occurs.
+     * @throws JayoException if an I/O error occurs.
      */
     void write(final @NonNull Buffer reader, final @NonNegative long byteCount);
 
@@ -77,7 +77,7 @@ public interface RawWriter extends Closeable, Flushable {
      * Pushes all buffered bytes to their final destination.
      *
      * @throws IllegalStateException         if this writer is closed.
-     * @throws jayo.exceptions.JayoException if an I/O error occurs.
+     * @throws JayoException if an I/O error occurs.
      */
     @Override
     void flush();
@@ -86,7 +86,7 @@ public interface RawWriter extends Closeable, Flushable {
      * Pushes all buffered bytes to their final destination and releases the resources held by this writer. It is an
      * error to write to a closed writer. It is safe to close a writer more than once.
      *
-     * @throws jayo.exceptions.JayoException if an I/O error occurs.
+     * @throws JayoException if an I/O error occurs.
      */
     @Override
     void close();

@@ -24,7 +24,7 @@ package jayo.internal;
 
 import jayo.Buffer;
 import jayo.RawWriter;
-import jayo.exceptions.JayoException;
+import jayo.JayoException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 

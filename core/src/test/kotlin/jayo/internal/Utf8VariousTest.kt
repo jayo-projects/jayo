@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import jayo.ByteString.of
 import jayo.decodeHex
-import jayo.exceptions.JayoEOFException
+import jayo.JayoEOFException
 import jayo.internal.TestUtil.REPLACEMENT_CODE_POINT
 import jayo.utf8Size
 import kotlin.test.assertEquals

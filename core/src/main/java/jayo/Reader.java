@@ -25,7 +25,6 @@
 
 package jayo;
 
-import jayo.exceptions.JayoEOFException;
 import jayo.external.NonNegative;
 import jayo.internal.RealReader;
 import org.jspecify.annotations.NonNull;

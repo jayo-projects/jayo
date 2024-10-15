@@ -76,7 +76,7 @@ public interface RawReader extends Closeable {
      * @return the number of bytes read, or {@code -1L} if this reader is exhausted.
      * @throws IllegalArgumentException      if {@code byteCount} is negative.
      * @throws IllegalStateException         if this reader is closed.
-     * @throws jayo.exceptions.JayoException if an I/O error occurs.
+     * @throws JayoException if an I/O error occurs.
      */
     long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount);
 
@@ -84,7 +84,7 @@ public interface RawReader extends Closeable {
      * Closes this reader and releases the resources held by this reader. It is an error to read in a closed reader. It
      * is safe to close a reader more than once.
      *
-     * @throws jayo.exceptions.JayoException if an I/O error occurs.
+     * @throws JayoException if an I/O error occurs.
      */
     @Override
     void close();

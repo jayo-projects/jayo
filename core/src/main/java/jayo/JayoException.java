@@ -3,7 +3,7 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.exceptions;
+package jayo;
 
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeException;

@@ -5,7 +5,7 @@
 
 package jayo.endpoints;
 
-import jayo.exceptions.JayoException;
+import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
 
 import java.net.SocketException;

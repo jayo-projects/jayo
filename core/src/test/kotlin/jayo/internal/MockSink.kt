@@ -23,7 +23,7 @@ package jayo.internal
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import jayo.Buffer
-import jayo.exceptions.JayoException
+import jayo.JayoException
 import jayo.RawWriter
 import kotlin.test.assertTrue
 

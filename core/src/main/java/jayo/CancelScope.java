@@ -45,7 +45,7 @@ public sealed interface CancelScope permits RealCancelToken {
 
     /**
      * Waits on {@code condition} until it is signaled. Throws a
-     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if either the thread is
+     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if either the thread is
      * interrupted or if this cancel scope elapses before {@code condition} is signaled. The caller must hold the lock
      * that condition is bound to.
      * <p>
@@ -91,7 +91,7 @@ public sealed interface CancelScope permits RealCancelToken {
 
     /**
      * Waits on {@code monitor} until it is notified. Throws
-     * {@linkplain jayo.exceptions.JayoInterruptedIOException JayoInterruptedIOException} if either the thread is
+     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if either the thread is
      * interrupted or if this cancel scope elapses before {@code monitor} is notified. The caller must be synchronized
      * on {@code monitor}.
      * <p>

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import jayo.Buffer;
 import jayo.ByteString;
-import jayo.exceptions.JayoEOFException;
+import jayo.JayoEOFException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

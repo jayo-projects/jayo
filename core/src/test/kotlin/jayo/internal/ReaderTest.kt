@@ -26,7 +26,7 @@
 package jayo.internal
 
 import jayo.*
-import jayo.exceptions.JayoEOFException
+import jayo.JayoEOFException
 import jayo.internal.TestUtil.assertByteArrayEquals
 import jayo.internal.Utils.getBufferFromReader
 import org.assertj.core.api.Assertions.assertThat

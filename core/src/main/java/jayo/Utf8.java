@@ -5,8 +5,6 @@
 
 package jayo;
 
-import jayo.exceptions.JayoEOFException;
-import jayo.exceptions.JayoException;
 import jayo.external.NonNegative;
 import jayo.internal.RealUtf8;
 import jayo.internal.SegmentedUtf8;

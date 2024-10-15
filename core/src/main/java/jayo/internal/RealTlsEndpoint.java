@@ -13,8 +13,8 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.endpoints.Endpoint;
 import jayo.endpoints.JayoClosedEndpointException;
-import jayo.exceptions.JayoEOFException;
-import jayo.exceptions.JayoException;
+import jayo.JayoEOFException;
+import jayo.JayoException;
 import jayo.external.NonNegative;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeCallbackException;
@@ -691,7 +691,7 @@ public final class RealTlsEndpoint {
     /**
      * Used to signal EOF conditions from the reader.
      *
-     * @implNote Not be a {@linkplain jayo.exceptions.JayoException JayoException} to avoid being caught when catching
+     * @implNote Not be a {@linkplain JayoException JayoException} to avoid being caught when catching
      * JayoException
      */
     private static final class TlsEOFException extends Exception {
