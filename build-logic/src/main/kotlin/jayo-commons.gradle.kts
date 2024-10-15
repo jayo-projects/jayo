@@ -118,13 +118,8 @@ tasks {
     }
 }
 
-// Generate and add javadoc and html-doc jars in jvm artefacts
-val dokkaJavadocJar by tasks.register<Jar>("dokkaJavadocJar") {
-    dependsOn(tasks.dokkaJavadoc)
-    from(tasks.dokkaJavadoc.flatMap { it.outputDirectory })
-    archiveClassifier.set("javadoc")
-}
-
+// Generate html-doc jar for Kotlin code in jvm artefacts.
+// "javadoc" Dokka classifier clashes with the `withJavadocJar()` option below
 val dokkaHtmlJar by tasks.register<Jar>("dokkaHtmlJar") {
     dependsOn(tasks.dokkaHtml)
     from(tasks.dokkaHtml.flatMap { it.outputDirectory })
@@ -139,6 +134,5 @@ java {
 publishing.publications.withType<MavenPublication> {
     from(components["java"])
 
-    artifact(dokkaJavadocJar)
     artifact(dokkaHtmlJar)
 }
