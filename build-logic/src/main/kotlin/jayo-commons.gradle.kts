@@ -2,7 +2,6 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode.Strict
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
-import java.nio.charset.StandardCharsets
 import kotlin.jvm.optionals.getOrNull
 
 plugins {
@@ -78,7 +77,7 @@ kover {
 
 tasks {
     withType<JavaCompile> {
-        options.encoding = StandardCharsets.UTF_8.toString()
+        options.encoding = Charsets.UTF_8.toString()
         options.release = javaVersion
 
         // replace '-' with '.' to match JPMS jigsaw module name
