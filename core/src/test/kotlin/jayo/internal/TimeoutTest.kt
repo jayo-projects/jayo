@@ -35,6 +35,13 @@ class TimeoutTest {
         val biggerNanos = TimeUnit.MILLISECONDS.toNanos(1500L).nanoseconds
     }
 
+    @Test
+    fun noTimeout() {
+        val result = cancelScope {
+            2
+        }
+        assertThat(result).isEqualTo(2)
+    }
 
     @Test
     fun intersectUseCurrentTimeout() {

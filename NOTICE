@@ -9,6 +9,10 @@ This module also contains some parts that are copied from, derived from, or insp
 Copyright 2017-2024 JetBrains s.r.o. and respective authors and developers.
 Licensed under the Apache License, Version 2.0 (the "License");
 
+This module also contains some TLS related parts that are copied from, derived from, or inspired by OkHttp (https://github.com/square/okhttp)
+Copyright (C) 2013 Square, Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+
 This module also contains some TLS related parts that are copied from, derived from, or inspired by TLS Channel (https://github.com/marianobarrios/tls-channel)
-Copyright (c) [2015-2021] all contributors
+Copyright (c) [2015-2024] all contributors
 Licensed under the MIT License

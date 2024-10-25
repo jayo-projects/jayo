@@ -21,6 +21,7 @@
 
 package jayo.internal;
 
+import jayo.Buffer;
 import jayo.Reader;
 import org.jspecify.annotations.NonNull;
 
@@ -29,7 +30,7 @@ import java.lang.Thread.Builder;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-final class Utils {
+public final class Utils {
     // un-instantiable
     private Utils() {
     }
@@ -142,7 +143,7 @@ final class Utils {
         return prefixIndex; // Return any matches we encountered while searching for a deeper match.
     }
 
-    static RealBuffer getBufferFromReader(final Reader reader) {
+    public static Buffer getBufferFromReader(final Reader reader) {
         return switch (reader) {
             case RealBuffer _buffer -> _buffer;
             case RealReader _reader -> _reader.segmentQueue.buffer;
@@ -234,6 +235,7 @@ final class Utils {
     }
 
     // Comes from tls-channel
+
     /**
      * Convert a {@link SSLEngineResult} into a {@link String}, this is needed because the supplied
      * method includes a log-breaking newline.

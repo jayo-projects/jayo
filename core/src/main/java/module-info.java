@@ -5,8 +5,10 @@
 
 module jayo {
     requires jdk.unsupported; // required for unsafe access
-    
+
     requires static kotlin.stdlib;
+    requires static org.bouncycastle.tls;
+    requires static org.conscrypt;
     requires static org.jspecify;
 
     exports jayo;

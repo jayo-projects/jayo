@@ -36,9 +36,9 @@ public value class TlsClientEndpointBuilderDsl internal constructor(private val 
         }
 
     /**
-     * Whether to wait for TLS close confirmation when calling `close()` on the [TlsEndpoint.getReader] or the
-     * [TlsEndpoint.getWriter]. Default is `false` to not wait and close immediately. The proper closing procedure can
-     * then be triggered at any moment using [TlsEndpoint.shutdown].
+     * Whether to wait for TLS close confirmation when calling `close()` on this TLS endpoint or its
+     * [reader][TlsEndpoint.getReader] or [writer][TlsEndpoint.getWriter]. Default is `false` to not wait and close
+     * immediately. The proper closing procedure can then be triggered at any moment using [TlsEndpoint.shutdown].
      *
      * Setting this to `true` will block (potentially until it times out, or indefinitely) the close operation until the
      * counterpart confirms the close on their side (sending a close_notify alert). In this case it emulates the
@@ -79,9 +79,9 @@ public value class TlsServerEndpointBuilderDsl internal constructor(private val 
         }
 
     /**
-     * Whether to wait for TLS close confirmation when calling `close()` on the [TlsEndpoint.getReader] or the
-     * [TlsEndpoint.getWriter]. Default is `false` to not wait and close immediately. The proper closing procedure can
-     * then be triggered at any moment using [TlsEndpoint.shutdown].
+     * Whether to wait for TLS close confirmation when calling `close()` on this TLS endpoint or its
+     * [reader][TlsEndpoint.getReader] or [writer][TlsEndpoint.getWriter]. Default is `false` to not wait and close
+     * immediately. The proper closing procedure can then be triggered at any moment using [TlsEndpoint.shutdown].
      *
      * Setting this to `true` will block (potentially until it times out, or indefinitely) the close operation until the
      * counterpart confirms the close on their side (sending a close_notify alert). In this case it emulates the

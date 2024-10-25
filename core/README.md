@@ -47,5 +47,7 @@ it behind an easy-to-use streaming API based on Jayo's reader and writer, that a
 minimal added complexity.
 It is based on the awesome *TLS Channel library* [1].
 
+`JssePlatform` eases access to platform-specific Java Secure Socket Extension (JSSE) features.
+
 _[1] : [TLS Channel](https://square.github.io/okio/) is a library that implements a `ByteChannel` interface over a
 [TLS](https://tools.ietf.org/html/rfc5246) (Transport Layer Security) connection._

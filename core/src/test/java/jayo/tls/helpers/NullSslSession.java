@@ -17,7 +17,6 @@ import java.security.Principal;
 import java.security.cert.Certificate;
 
 public class NullSslSession implements SSLSession {
-
     private final int bufferSize;
 
     public NullSslSession(int bufferSize) {
@@ -45,7 +44,8 @@ public class NullSslSession implements SSLSession {
     }
 
     @Override
-    public void invalidate() {}
+    public void invalidate() {
+    }
 
     @Override
     public boolean isValid() {
@@ -53,7 +53,8 @@ public class NullSslSession implements SSLSession {
     }
 
     @Override
-    public void putValue(String name, Object value) {}
+    public void putValue(String name, Object value) {
+    }
 
     @Override
     public Object getValue(String name) {
@@ -61,7 +62,8 @@ public class NullSslSession implements SSLSession {
     }
 
     @Override
-    public void removeValue(String name) {}
+    public void removeValue(String name) {
+    }
 
     @Override
     public String[] getValueNames() {

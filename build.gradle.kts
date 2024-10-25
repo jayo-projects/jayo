@@ -28,7 +28,7 @@ subprojects {
             create<MavenPublication>("mavenJava") {
                 pom {
                     name.set(project.name)
-                    description.set("Jayo is a synchronous I/O library for the JVM")
+                    description.set("Jayo is a fast synchronous I/O and TLS library for the JVM")
                     url.set("https://github.com/jayo-projects/jayo")
 
                     licenses {

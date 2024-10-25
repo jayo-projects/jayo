@@ -61,6 +61,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      *
      * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
      * @param sslContext        the {@link SSLContext} to be used.
+     * @see JssePlatform#newSSLContext()
      */
     static @NonNull ClientBuilder clientBuilder(final @NonNull Endpoint encryptedEndpoint,
                                                 final @NonNull SSLContext sslContext) {
@@ -82,7 +83,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         Objects.requireNonNull(encryptedEndpoint);
         Objects.requireNonNull(engine);
         if (!engine.getUseClientMode()) {
-            throw new IllegalArgumentException("The provided SSL engine must uses client mode");
+            throw new IllegalArgumentException("The provided SSL engine must use client mode");
         }
         return new ClientTlsEndpoint.Builder(encryptedEndpoint, engine);
     }
@@ -94,7 +95,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * context will be used to create a {@link SSLEngine} configured in server mode.
      *
      * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
-     * @param sslContext        the fixed {@link SSLContext} to be used.
+     * @param sslContext        the fixed SSL context (and so the correct certificate) to be used.
+     * @see JssePlatform#newSSLContext()
      */
     static @NonNull ServerBuilder serverBuilder(final @NonNull Endpoint encryptedEndpoint,
                                                 final @NonNull SSLContext sslContext) {
@@ -120,6 +122,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * {@link SSLContext} based on the SNI value implies parsing the first TLS frame (ClientHello) independently of the
      * SSLEngine.
      * @see <a href="https://tools.ietf.org/html/rfc6066#section-3">Server Name Indication</a>
+     * @see JssePlatform#newSSLContext()
      */
     static @NonNull ServerBuilder serverBuilder(
             final @NonNull Endpoint encryptedEndpoint,
@@ -152,8 +155,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * operation upon this TLS connection, however, then an invocation of this method will block until this ongoing
      * operation is complete because of the locks that prevent concurrent calls.
      *
-     * @throws JayoTlsException              if the {@link SSLEngine} or the TLS mechanism on top of it failed.
-     * @throws JayoException if another IO Exception occurred.
+     * @throws JayoTlsException if the {@link SSLEngine} or the TLS mechanism on top of it failed.
+     * @throws JayoException    if another IO Exception occurred.
      */
     void handshake();
 
@@ -169,8 +172,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * operation upon this TLS connection, however, then an invocation of this method will block until this ongoing
      * operation is complete because of the locks that prevent concurrent calls.
      *
-     * @throws JayoTlsException              if the {@link SSLEngine} or the TLS mechanism on top of it failed.
-     * @throws JayoException if another IO Exception occurred.
+     * @throws JayoTlsException if the {@link SSLEngine} or the TLS mechanism on top of it failed.
+     * @throws JayoException    if another IO Exception occurred.
      */
     void renegotiate();
 
@@ -228,7 +231,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * For finer control of the TLS close, use {@link #shutdown()}.
      *
      * @throws JayoException if the underlying endpoint throws an IO Exception during close. Exceptions
-     *                                       thrown during any previous TLS close are not propagated.
+     *                       thrown during any previous TLS close are not propagated.
      */
     @Override
     void close();
@@ -268,8 +271,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         T sessionInitCallback(final @NonNull Consumer<SSLSession> sessionInitCallback);
 
         /**
-         * Whether to wait for TLS close confirmation when calling {@code close()} on the
-         * {@link TlsEndpoint#getReader()} or the {@link TlsEndpoint#getWriter()}. Default is
+         * Whether to wait for TLS close confirmation when calling {@code close()} on this TLS endpoint or its
+         * {@linkplain TlsEndpoint#getReader() reader} or {@linkplain TlsEndpoint#getWriter() writer}. Default is
          * {@code false} to not wait and close immediately. The proper closing procedure can then be triggered at any
          * moment using {@link TlsEndpoint#shutdown()}.
          * <p>
@@ -301,8 +304,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      */
     sealed interface ServerBuilder extends Builder<ServerBuilder> permits ServerTlsEndpoint.Builder {
         /**
-         * The custom function that builds a {@link SSLEngine} from the {@link SSLContext} when it will be available
-         * during handshake.
+         * Sets the custom function that builds a {@link SSLEngine} from the {@link SSLContext} when it will be
+         * available during handshake.
          */
         @NonNull
         ServerBuilder engineFactory(final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory);
