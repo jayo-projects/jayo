@@ -20,9 +20,17 @@ release = "3.0.2"
 # https://github.com/jspecify/jspecify/releases
 jspecify = "1.0.0"
 
-# third-parties
-# https://github.com/Kotlin/kotlinx.serialization/releases
-kotlinxSerialization = "1.7.3"
+# main -> optional dependencies
+# https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on
+bouncycastle = "1.78.1"
+# https://mvnrepository.com/artifact/org.conscrypt/conscrypt-openjdk-uber
+conscrypt = "2.5.2"
+
+# test fixtures
+# https://mvnrepository.com/artifact/org.hamcrest/hamcrest
+hamcrest = "3.0"
+# https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
+amazonCorretto = "2.4.1"
 
 # tests
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
@@ -31,6 +39,10 @@ junit = "5.11.2"
 assertj = "3.26.3"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
 slf4j = "2.0.16"
+
+# third-parties
+# https://github.com/Kotlin/kotlinx.serialization/releases
+kotlinxSerialization = "1.7.3"
 
 # benchmarks
 # https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind

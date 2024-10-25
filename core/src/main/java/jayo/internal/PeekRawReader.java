@@ -51,7 +51,7 @@ final class PeekRawReader implements RawReader {
 
     public PeekRawReader(final @NonNull Reader upstream) {
         this.upstream = Objects.requireNonNull(upstream);
-        buffer = getBufferFromReader(upstream);
+        buffer = (RealBuffer) getBufferFromReader(upstream);
         buffer.segmentQueue.expectSize(1L);
         final var bufferHead = buffer.segmentQueue.head();
         if (bufferHead != null) {

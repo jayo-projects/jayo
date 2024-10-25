@@ -3,11 +3,14 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.tls
+package jayo.internal.tls
 
 import jayo.buffered
 import jayo.endpoints.SocketEndpoint
 import jayo.endpoints.endpoint
+import jayo.tls.JayoTlsHandshakeCallbackException
+import jayo.tls.TlsEndpoint
+import jayo.tls.build
 import jayo.tls.helpers.SslContextFactory
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -91,7 +94,7 @@ class TlsEndpointTest {
             val encryptedEndpoint = SocketEndpoint.from(rawClient)
             assertThatThrownBy { TlsEndpoint.clientBuilder(encryptedEndpoint, sslContext.createSSLEngine()).build() }
                 .isInstanceOf(IllegalArgumentException::class.java)
-                .hasMessage("The provided SSL engine must uses client mode")
+                .hasMessage("The provided SSL engine must use client mode")
         }
     }
 

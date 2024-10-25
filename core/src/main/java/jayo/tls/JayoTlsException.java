@@ -9,14 +9,13 @@ import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
 import java.util.Objects;
 
 /**
  * Wraps a {@link SSLException} with an unchecked exception.
  */
 public sealed class JayoTlsException extends JayoException
-        permits JayoTlsHandshakeCallbackException, JayoTlsHandshakeException {
+        permits JayoTlsHandshakeCallbackException, JayoTlsHandshakeException, JayoTlsPeerUnverifiedException {
     public JayoTlsException(final @NonNull String message) {
         super(Objects.requireNonNull(message), new SSLException(message));
     }
@@ -25,7 +24,7 @@ public sealed class JayoTlsException extends JayoException
         super(Objects.requireNonNull(cause));
     }
 
-    JayoTlsException(final @NonNull String message, final @NonNull SSLHandshakeException cause) {
+    JayoTlsException(final @NonNull String message, final @NonNull SSLException cause) {
         super(Objects.requireNonNull(message), Objects.requireNonNull(cause));
     }
 }

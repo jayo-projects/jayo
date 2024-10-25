@@ -21,6 +21,12 @@
 
 package jayo.external;
 
+import org.jspecify.annotations.NonNull;
+
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.Objects;
+
 public final class JayoUtils {
     // un-instantiable
     private JayoUtils() {
@@ -30,5 +36,13 @@ public final class JayoUtils {
         if ((offset | byteCount) < 0 || offset > size || size - offset < byteCount) {
             throw new IndexOutOfBoundsException("size=" + size + " offset=" + offset + " byteCount=" + byteCount);
         }
+    }
+
+    public static @NonNull String socketPeerName(@NonNull final Socket socket) {
+        Objects.requireNonNull(socket);
+        final var address = socket.getRemoteSocketAddress();
+        return (address instanceof InetSocketAddress inetSocketAddress)
+                ? inetSocketAddress.getHostName()
+                : address.toString();
     }
 }

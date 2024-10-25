@@ -1,0 +1,631 @@
+/*
+ * Copyright (c) 2024-present, pull-vert and Jayo contributors.
+ * Use of this source code is governed by the Apache 2.0 license.
+ *
+ * Forked from OkHttp (https://github.com/square/okhttp), original copyright is below
+ *
+ * Copyright (C) 2013 Square, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package jayo.tls;
+
+import jayo.internal.tls.RealCipherSuite;
+import org.jspecify.annotations.NonNull;
+
+import java.util.Objects;
+
+import static jayo.internal.tls.RealCipherSuite.init;
+
+/**
+ * <a href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml">TLS cipher suites</a>
+ * <p>
+ * <b>Not all cipher suites are supported on all platforms.</b> As newer cipher suites are created (for stronger
+ * privacy, better performance, etc.) they will be adopted by the platform and then exposed here.
+ * <p>
+ * See <a href="https://docs.oracle.com/en/java/javase/21/security/oracle-providers.html">JDK Providers</a> which lists
+ * the cipher suites supported by Oracle.
+ * <p>
+ * See <a href="https://github.com/google/conscrypt/blob/master/common/src/main/java/org/conscrypt/NativeCrypto.java">
+ * NativeCrypto.java</a> which lists the cipher suites supported by Google's Conscrypt.
+ */
+public sealed interface CipherSuite permits RealCipherSuite {
+
+    // @NonNull CipherSuite TLS_NULL_WITH_NULL_NULL = init("TLS_NULL_WITH_NULL_NULL", 0x0000)
+    @NonNull
+    CipherSuite TLS_RSA_WITH_NULL_MD5 = init("SSL_RSA_WITH_NULL_MD5", 0x0001);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_NULL_SHA = init("SSL_RSA_WITH_NULL_SHA", 0x0002);
+
+    @NonNull
+    CipherSuite TLS_RSA_EXPORT_WITH_RC4_40_MD5 = init("SSL_RSA_EXPORT_WITH_RC4_40_MD5", 0x0003);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_RC4_128_MD5 = init("SSL_RSA_WITH_RC4_128_MD5", 0x0004);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_RC4_128_SHA = init("SSL_RSA_WITH_RC4_128_SHA", 0x0005);
+
+    // @NonNull CipherSuite TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = init("SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5", 0x0006);
+    // @NonNull CipherSuite TLS_RSA_WITH_IDEA_CBC_SHA = init("TLS_RSA_WITH_IDEA_CBC_SHA", 0x0007);
+    @NonNull
+    CipherSuite TLS_RSA_EXPORT_WITH_DES40_CBC_SHA = init("SSL_RSA_EXPORT_WITH_DES40_CBC_SHA", 0x0008);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_DES_CBC_SHA = init("SSL_RSA_WITH_DES_CBC_SHA", 0x0009);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_3DES_EDE_CBC_SHA = init("SSL_RSA_WITH_3DES_EDE_CBC_SHA", 0x000a);
+
+    // @NonNull CipherSuite TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA = init("SSL_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", 0x000b);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_DES_CBC_SHA = init("TLS_DH_DSS_WITH_DES_CBC_SHA", 0x000c);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA = init("TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA", 0x000d);
+    // @NonNull CipherSuite TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA = init("SSL_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", 0x000e);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_DES_CBC_SHA = init("TLS_DH_RSA_WITH_DES_CBC_SHA", 0x000f);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA = init("TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA", 0x0010);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA = init("SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", 0x0011);
+
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_DES_CBC_SHA = init("SSL_DHE_DSS_WITH_DES_CBC_SHA", 0x0012);
+
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA = init("SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA", 0x0013);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA = init("SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", 0x0014);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_DES_CBC_SHA = init("SSL_DHE_RSA_WITH_DES_CBC_SHA", 0x0015);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA = init("SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA", 0x0016);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_EXPORT_WITH_RC4_40_MD5 = init("SSL_DH_anon_EXPORT_WITH_RC4_40_MD5", 0x0017);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_RC4_128_MD5 = init("SSL_DH_anon_WITH_RC4_128_MD5", 0x0018);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA = init("SSL_DH_anon_EXPORT_WITH_DES40_CBC_SHA", 0x0019);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_DES_CBC_SHA = init("SSL_DH_anon_WITH_DES_CBC_SHA", 0x001a);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_3DES_EDE_CBC_SHA = init("SSL_DH_anon_WITH_3DES_EDE_CBC_SHA", 0x001b);
+
+    @NonNull
+    CipherSuite TLS_KRB5_WITH_DES_CBC_SHA = init("TLS_KRB5_WITH_DES_CBC_SHA", 0x001e);
+
+    @NonNull
+    CipherSuite TLS_KRB5_WITH_3DES_EDE_CBC_SHA = init("TLS_KRB5_WITH_3DES_EDE_CBC_SHA", 0x001f);
+
+    @NonNull
+    CipherSuite TLS_KRB5_WITH_RC4_128_SHA = init("TLS_KRB5_WITH_RC4_128_SHA", 0x0020);
+
+    // @NonNull CipherSuite TLS_KRB5_WITH_IDEA_CBC_SHA = init("TLS_KRB5_WITH_IDEA_CBC_SHA", 0x0021);
+    @NonNull
+    CipherSuite TLS_KRB5_WITH_DES_CBC_MD5 = init("TLS_KRB5_WITH_DES_CBC_MD5", 0x0022);
+
+    @NonNull
+    CipherSuite TLS_KRB5_WITH_3DES_EDE_CBC_MD5 = init("TLS_KRB5_WITH_3DES_EDE_CBC_MD5", 0x0023);
+
+    @NonNull
+    CipherSuite TLS_KRB5_WITH_RC4_128_MD5 = init("TLS_KRB5_WITH_RC4_128_MD5", 0x0024);
+
+    // @NonNull CipherSuite TLS_KRB5_WITH_IDEA_CBC_MD5 = init("TLS_KRB5_WITH_IDEA_CBC_MD5", 0x0025);
+    @NonNull
+    CipherSuite TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA = init("TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA", 0x0026);
+
+    // @NonNull CipherSuite TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA = init("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA", 0x0027);
+    @NonNull
+    CipherSuite TLS_KRB5_EXPORT_WITH_RC4_40_SHA = init("TLS_KRB5_EXPORT_WITH_RC4_40_SHA", 0x0028);
+
+    @NonNull
+    CipherSuite TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5 = init("TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5", 0x0029);
+
+    // @NonNull CipherSuite TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5 = init("TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5", 0x002a);
+    @NonNull
+    CipherSuite TLS_KRB5_EXPORT_WITH_RC4_40_MD5 = init("TLS_KRB5_EXPORT_WITH_RC4_40_MD5", 0x002b);
+
+    // @NonNull CipherSuite TLS_PSK_WITH_NULL_SHA = init("TLS_PSK_WITH_NULL_SHA", 0x002c);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_NULL_SHA = init("TLS_DHE_PSK_WITH_NULL_SHA", 0x002d);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_NULL_SHA = init("TLS_RSA_PSK_WITH_NULL_SHA", 0x002e);
+    @NonNull
+    CipherSuite TLS_RSA_WITH_AES_128_CBC_SHA = init("TLS_RSA_WITH_AES_128_CBC_SHA", 0x002f);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_AES_128_CBC_SHA = init("TLS_DH_DSS_WITH_AES_128_CBC_SHA", 0x0030);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_AES_128_CBC_SHA = init("TLS_DH_RSA_WITH_AES_128_CBC_SHA", 0x0031);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_AES_128_CBC_SHA = init("TLS_DHE_DSS_WITH_AES_128_CBC_SHA", 0x0032);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_AES_128_CBC_SHA = init("TLS_DHE_RSA_WITH_AES_128_CBC_SHA", 0x0033);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_AES_128_CBC_SHA = init("TLS_DH_anon_WITH_AES_128_CBC_SHA", 0x0034);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_AES_256_CBC_SHA = init("TLS_RSA_WITH_AES_256_CBC_SHA", 0x0035);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_AES_256_CBC_SHA = init("TLS_DH_DSS_WITH_AES_256_CBC_SHA", 0x0036);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_AES_256_CBC_SHA = init("TLS_DH_RSA_WITH_AES_256_CBC_SHA", 0x0037);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_AES_256_CBC_SHA = init("TLS_DHE_DSS_WITH_AES_256_CBC_SHA", 0x0038);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_AES_256_CBC_SHA = init("TLS_DHE_RSA_WITH_AES_256_CBC_SHA", 0x0039);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_AES_256_CBC_SHA = init("TLS_DH_anon_WITH_AES_256_CBC_SHA", 0x003a);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_NULL_SHA256 = init("TLS_RSA_WITH_NULL_SHA256", 0x003b);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_AES_128_CBC_SHA256 = init("TLS_RSA_WITH_AES_128_CBC_SHA256", 0x003c);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_AES_256_CBC_SHA256 = init("TLS_RSA_WITH_AES_256_CBC_SHA256", 0x003d);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_AES_128_CBC_SHA256 = init("TLS_DH_DSS_WITH_AES_128_CBC_SHA256", 0x003e);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_AES_128_CBC_SHA256 = init("TLS_DH_RSA_WITH_AES_128_CBC_SHA256", 0x003f);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_AES_128_CBC_SHA256 = init("TLS_DHE_DSS_WITH_AES_128_CBC_SHA256", 0x0040);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_CAMELLIA_128_CBC_SHA = init("TLS_RSA_WITH_CAMELLIA_128_CBC_SHA", 0x0041);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA = init("TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA", 0x0042);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA = init("TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA", 0x0043);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA = init("TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA", 0x0044);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA = init("TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA", 0x0045);
+
+    // @NonNull CipherSuite TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA = init("TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA", 0x0046);
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 = init("TLS_DHE_RSA_WITH_AES_128_CBC_SHA256", 0x0067);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_AES_256_CBC_SHA256 = init("TLS_DH_DSS_WITH_AES_256_CBC_SHA256", 0x0068);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_AES_256_CBC_SHA256 = init("TLS_DH_RSA_WITH_AES_256_CBC_SHA256", 0x0069);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 = init("TLS_DHE_DSS_WITH_AES_256_CBC_SHA256", 0x006a);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 = init("TLS_DHE_RSA_WITH_AES_256_CBC_SHA256", 0x006b);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_AES_128_CBC_SHA256 = init("TLS_DH_anon_WITH_AES_128_CBC_SHA256", 0x006c);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_AES_256_CBC_SHA256 = init("TLS_DH_anon_WITH_AES_256_CBC_SHA256", 0x006d);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_CAMELLIA_256_CBC_SHA = init("TLS_RSA_WITH_CAMELLIA_256_CBC_SHA", 0x0084);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA = init("TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA", 0x0085);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA = init("TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA", 0x0086);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA = init("TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA", 0x0087);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA = init("TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA", 0x0088);
+
+    // @NonNull CipherSuite TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA = init("TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA", 0x0089);
+    @NonNull
+    CipherSuite TLS_PSK_WITH_RC4_128_SHA = init("TLS_PSK_WITH_RC4_128_SHA", 0x008a);
+
+    @NonNull
+    CipherSuite TLS_PSK_WITH_3DES_EDE_CBC_SHA = init("TLS_PSK_WITH_3DES_EDE_CBC_SHA", 0x008b);
+
+    @NonNull
+    CipherSuite TLS_PSK_WITH_AES_128_CBC_SHA = init("TLS_PSK_WITH_AES_128_CBC_SHA", 0x008c);
+
+    @NonNull
+    CipherSuite TLS_PSK_WITH_AES_256_CBC_SHA = init("TLS_PSK_WITH_AES_256_CBC_SHA", 0x008d);
+
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_RC4_128_SHA = init("TLS_DHE_PSK_WITH_RC4_128_SHA", 0x008e);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA = init("TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA", 0x008f);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_128_CBC_SHA = init("TLS_DHE_PSK_WITH_AES_128_CBC_SHA", 0x0090);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_256_CBC_SHA = init("TLS_DHE_PSK_WITH_AES_256_CBC_SHA", 0x0091);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_RC4_128_SHA = init("TLS_RSA_PSK_WITH_RC4_128_SHA", 0x0092);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA = init("TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA", 0x0093);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_AES_128_CBC_SHA = init("TLS_RSA_PSK_WITH_AES_128_CBC_SHA", 0x0094);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_AES_256_CBC_SHA = init("TLS_RSA_PSK_WITH_AES_256_CBC_SHA", 0x0095);
+    @NonNull
+    CipherSuite TLS_RSA_WITH_SEED_CBC_SHA = init("TLS_RSA_WITH_SEED_CBC_SHA", 0x0096);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_SEED_CBC_SHA = init("TLS_DH_DSS_WITH_SEED_CBC_SHA", 0x0097);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_SEED_CBC_SHA = init("TLS_DH_RSA_WITH_SEED_CBC_SHA", 0x0098);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_SEED_CBC_SHA = init("TLS_DHE_DSS_WITH_SEED_CBC_SHA", 0x0099);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_SEED_CBC_SHA = init("TLS_DHE_RSA_WITH_SEED_CBC_SHA", 0x009a);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_SEED_CBC_SHA = init("TLS_DH_anon_WITH_SEED_CBC_SHA", 0x009b);
+    @NonNull
+    CipherSuite TLS_RSA_WITH_AES_128_GCM_SHA256 = init("TLS_RSA_WITH_AES_128_GCM_SHA256", 0x009c);
+
+    @NonNull
+    CipherSuite TLS_RSA_WITH_AES_256_GCM_SHA384 = init("TLS_RSA_WITH_AES_256_GCM_SHA384", 0x009d);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 = init("TLS_DHE_RSA_WITH_AES_128_GCM_SHA256", 0x009e);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_AES_256_GCM_SHA384 = init("TLS_DHE_RSA_WITH_AES_256_GCM_SHA384", 0x009f);
+
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_AES_128_GCM_SHA256 = init("TLS_DH_RSA_WITH_AES_128_GCM_SHA256", 0x00a0);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_AES_256_GCM_SHA384 = init("TLS_DH_RSA_WITH_AES_256_GCM_SHA384", 0x00a1);
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_AES_128_GCM_SHA256 = init("TLS_DHE_DSS_WITH_AES_128_GCM_SHA256", 0x00a2);
+
+    @NonNull
+    CipherSuite TLS_DHE_DSS_WITH_AES_256_GCM_SHA384 = init("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384", 0x00a3);
+
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_AES_128_GCM_SHA256 = init("TLS_DH_DSS_WITH_AES_128_GCM_SHA256", 0x00a4);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_AES_256_GCM_SHA384 = init("TLS_DH_DSS_WITH_AES_256_GCM_SHA384", 0x00a5);
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_AES_128_GCM_SHA256 = init("TLS_DH_anon_WITH_AES_128_GCM_SHA256", 0x00a6);
+
+    @NonNull
+    CipherSuite TLS_DH_anon_WITH_AES_256_GCM_SHA384 = init("TLS_DH_anon_WITH_AES_256_GCM_SHA384", 0x00a7);
+
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_128_GCM_SHA256 = init("TLS_PSK_WITH_AES_128_GCM_SHA256", 0x00a8);
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_256_GCM_SHA384 = init("TLS_PSK_WITH_AES_256_GCM_SHA384", 0x00a9);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_128_GCM_SHA256 = init("TLS_DHE_PSK_WITH_AES_128_GCM_SHA256", 0x00aa);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_256_GCM_SHA384 = init("TLS_DHE_PSK_WITH_AES_256_GCM_SHA384", 0x00ab);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_AES_128_GCM_SHA256 = init("TLS_RSA_PSK_WITH_AES_128_GCM_SHA256", 0x00ac);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_AES_256_GCM_SHA384 = init("TLS_RSA_PSK_WITH_AES_256_GCM_SHA384", 0x00ad);
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_128_CBC_SHA256 = init("TLS_PSK_WITH_AES_128_CBC_SHA256", 0x00ae);
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_256_CBC_SHA384 = init("TLS_PSK_WITH_AES_256_CBC_SHA384", 0x00af);
+    // @NonNull CipherSuite TLS_PSK_WITH_NULL_SHA256 = init("TLS_PSK_WITH_NULL_SHA256", 0x00b0);
+    // @NonNull CipherSuite TLS_PSK_WITH_NULL_SHA384 = init("TLS_PSK_WITH_NULL_SHA384", 0x00b1);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_128_CBC_SHA256 = init("TLS_DHE_PSK_WITH_AES_128_CBC_SHA256", 0x00b2);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_256_CBC_SHA384 = init("TLS_DHE_PSK_WITH_AES_256_CBC_SHA384", 0x00b3);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_NULL_SHA256 = init("TLS_DHE_PSK_WITH_NULL_SHA256", 0x00b4);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_NULL_SHA384 = init("TLS_DHE_PSK_WITH_NULL_SHA384", 0x00b5);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_AES_128_CBC_SHA256 = init("TLS_RSA_PSK_WITH_AES_128_CBC_SHA256", 0x00b6);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_AES_256_CBC_SHA384 = init("TLS_RSA_PSK_WITH_AES_256_CBC_SHA384", 0x00b7);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_NULL_SHA256 = init("TLS_RSA_PSK_WITH_NULL_SHA256", 0x00b8);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_NULL_SHA384 = init("TLS_RSA_PSK_WITH_NULL_SHA384", 0x00b9);
+    // @NonNull CipherSuite TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256", 0x00ba);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256", 0x00bb);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256", 0x00bc);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256", 0x00bd);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256", 0x00be);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256", 0x00bf);
+    // @NonNull CipherSuite TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256 = init("TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256", 0x00c0);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256 = init("TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256", 0x00c1);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256 = init("TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256", 0x00c2);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256 = init("TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256", 0x00c3);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256 = init("TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256", 0x00c4);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256 = init("TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256", 0x00c5);
+    @NonNull
+    CipherSuite TLS_EMPTY_RENEGOTIATION_INFO_SCSV = init("TLS_EMPTY_RENEGOTIATION_INFO_SCSV", 0x00ff);
+
+    @NonNull
+    CipherSuite TLS_FALLBACK_SCSV = init("TLS_FALLBACK_SCSV", 0x5600);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_NULL_SHA = init("TLS_ECDH_ECDSA_WITH_NULL_SHA", 0xc001);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_RC4_128_SHA = init("TLS_ECDH_ECDSA_WITH_RC4_128_SHA", 0xc002);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA = init("TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA", 0xc003);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA = init("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA", 0xc004);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA = init("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA", 0xc005);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_NULL_SHA = init("TLS_ECDHE_ECDSA_WITH_NULL_SHA", 0xc006);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_RC4_128_SHA = init("TLS_ECDHE_ECDSA_WITH_RC4_128_SHA", 0xc007);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA = init("TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", 0xc008);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA = init("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", 0xc009);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA = init("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", 0xc00a);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_NULL_SHA = init("TLS_ECDH_RSA_WITH_NULL_SHA", 0xc00b);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_RC4_128_SHA = init("TLS_ECDH_RSA_WITH_RC4_128_SHA", 0xc00c);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA = init("TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA", 0xc00d);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_AES_128_CBC_SHA = init("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA", 0xc00e);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_AES_256_CBC_SHA = init("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA", 0xc00f);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_NULL_SHA = init("TLS_ECDHE_RSA_WITH_NULL_SHA", 0xc010);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_RC4_128_SHA = init("TLS_ECDHE_RSA_WITH_RC4_128_SHA", 0xc011);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA = init("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", 0xc012);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA = init("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", 0xc013);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = init("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", 0xc014);
+
+    @NonNull
+    CipherSuite TLS_ECDH_anon_WITH_NULL_SHA = init("TLS_ECDH_anon_WITH_NULL_SHA", 0xc015);
+
+    @NonNull
+    CipherSuite TLS_ECDH_anon_WITH_RC4_128_SHA = init("TLS_ECDH_anon_WITH_RC4_128_SHA", 0xc016);
+
+    @NonNull
+    CipherSuite TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA = init("TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA", 0xc017);
+
+    @NonNull
+    CipherSuite TLS_ECDH_anon_WITH_AES_128_CBC_SHA = init("TLS_ECDH_anon_WITH_AES_128_CBC_SHA", 0xc018);
+
+    @NonNull
+    CipherSuite TLS_ECDH_anon_WITH_AES_256_CBC_SHA = init("TLS_ECDH_anon_WITH_AES_256_CBC_SHA", 0xc019);
+
+    // @NonNull CipherSuite TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA = init("TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA", 0xc01a);
+    // @NonNull CipherSuite TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA = init("TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA", 0xc01b);
+    // @NonNull CipherSuite TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA = init("TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA", 0xc01c);
+    // @NonNull CipherSuite TLS_SRP_SHA_WITH_AES_128_CBC_SHA = init("TLS_SRP_SHA_WITH_AES_128_CBC_SHA", 0xc01d);
+    // @NonNull CipherSuite TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA = init("TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA", 0xc01e);
+    // @NonNull CipherSuite TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA = init("TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA", 0xc01f);
+    // @NonNull CipherSuite TLS_SRP_SHA_WITH_AES_256_CBC_SHA = init("TLS_SRP_SHA_WITH_AES_256_CBC_SHA", 0xc020);
+    // @NonNull CipherSuite TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA = init("TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA", 0xc021);
+    // @NonNull CipherSuite TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA = init("TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA", 0xc022);
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 = init("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256", 0xc023);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 = init("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384", 0xc024);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256 = init("TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256", 0xc025);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384 = init("TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384", 0xc026);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256 = init("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", 0xc027);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384 = init("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384", 0xc028);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256 = init("TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256", 0xc029);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384 = init("TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384", 0xc02a);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = init("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", 0xc02b);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = init("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384", 0xc02c);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256 = init("TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256", 0xc02d);
+
+    @NonNull
+    CipherSuite TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384 = init("TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384", 0xc02e);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = init("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", 0xc02f);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = init("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", 0xc030);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256 = init("TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256", 0xc031);
+
+    @NonNull
+    CipherSuite TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384 = init("TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384", 0xc032);
+
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_RC4_128_SHA = init("TLS_ECDHE_PSK_WITH_RC4_128_SHA", 0xc033);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA = init("TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA", 0xc034);
+    @NonNull
+    CipherSuite TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA = init("TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA", 0xc035);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA = init("TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", 0xc036);
+
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256 = init("TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256", 0xc037);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384 = init("TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384", 0xc038);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_NULL_SHA = init("TLS_ECDHE_PSK_WITH_NULL_SHA", 0xc039);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_NULL_SHA256 = init("TLS_ECDHE_PSK_WITH_NULL_SHA256", 0xc03a);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_NULL_SHA384 = init("TLS_ECDHE_PSK_WITH_NULL_SHA384", 0xc03b);
+    // @NonNull CipherSuite TLS_RSA_WITH_ARIA_128_CBC_SHA256 = init("TLS_RSA_WITH_ARIA_128_CBC_SHA256", 0xc03c);
+    // @NonNull CipherSuite TLS_RSA_WITH_ARIA_256_CBC_SHA384 = init("TLS_RSA_WITH_ARIA_256_CBC_SHA384", 0xc03d);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256 = init("TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256", 0xc03e);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384 = init("TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384", 0xc03f);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256 = init("TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256", 0xc040);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384 = init("TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384", 0xc041);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256 = init("TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256", 0xc042);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384 = init("TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384", 0xc043);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256 = init("TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256", 0xc044);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384 = init("TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384", 0xc045);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_ARIA_128_CBC_SHA256 = init("TLS_DH_anon_WITH_ARIA_128_CBC_SHA256", 0xc046);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_ARIA_256_CBC_SHA384 = init("TLS_DH_anon_WITH_ARIA_256_CBC_SHA384", 0xc047);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256 = init("TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256", 0xc048);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384 = init("TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384", 0xc049);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256 = init("TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256", 0xc04a);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384 = init("TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384", 0xc04b);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256 = init("TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256", 0xc04c);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384 = init("TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384", 0xc04d);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256 = init("TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256", 0xc04e);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384 = init("TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384", 0xc04f);
+    // @NonNull CipherSuite TLS_RSA_WITH_ARIA_128_GCM_SHA256 = init("TLS_RSA_WITH_ARIA_128_GCM_SHA256", 0xc050);
+    // @NonNull CipherSuite TLS_RSA_WITH_ARIA_256_GCM_SHA384 = init("TLS_RSA_WITH_ARIA_256_GCM_SHA384", 0xc051);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_ARIA_128_GCM_SHA256 = init("TLS_DHE_RSA_WITH_ARIA_128_GCM_SHA256", 0xc052);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_ARIA_256_GCM_SHA384 = init("TLS_DHE_RSA_WITH_ARIA_256_GCM_SHA384", 0xc053);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256 = init("TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256", 0xc054);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384 = init("TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384", 0xc055);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_ARIA_128_GCM_SHA256 = init("TLS_DHE_DSS_WITH_ARIA_128_GCM_SHA256", 0xc056);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_ARIA_256_GCM_SHA384 = init("TLS_DHE_DSS_WITH_ARIA_256_GCM_SHA384", 0xc057);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256 = init("TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256", 0xc058);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384 = init("TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384", 0xc059);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_ARIA_128_GCM_SHA256 = init("TLS_DH_anon_WITH_ARIA_128_GCM_SHA256", 0xc05a);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_ARIA_256_GCM_SHA384 = init("TLS_DH_anon_WITH_ARIA_256_GCM_SHA384", 0xc05b);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_ARIA_128_GCM_SHA256 = init("TLS_ECDHE_ECDSA_WITH_ARIA_128_GCM_SHA256", 0xc05c);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384 = init("TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384", 0xc05d);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256 = init("TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256", 0xc05e);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384 = init("TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384", 0xc05f);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_ARIA_128_GCM_SHA256 = init("TLS_ECDHE_RSA_WITH_ARIA_128_GCM_SHA256", 0xc060);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_ARIA_256_GCM_SHA384 = init("TLS_ECDHE_RSA_WITH_ARIA_256_GCM_SHA384", 0xc061);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256 = init("TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256", 0xc062);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384 = init("TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384", 0xc063);
+    // @NonNull CipherSuite TLS_PSK_WITH_ARIA_128_CBC_SHA256 = init("TLS_PSK_WITH_ARIA_128_CBC_SHA256", 0xc064);
+    // @NonNull CipherSuite TLS_PSK_WITH_ARIA_256_CBC_SHA384 = init("TLS_PSK_WITH_ARIA_256_CBC_SHA384", 0xc065);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256 = init("TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256", 0xc066);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384 = init("TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384", 0xc067);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256 = init("TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256", 0xc068);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384 = init("TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384", 0xc069);
+    // @NonNull CipherSuite TLS_PSK_WITH_ARIA_128_GCM_SHA256 = init("TLS_PSK_WITH_ARIA_128_GCM_SHA256", 0xc06a);
+    // @NonNull CipherSuite TLS_PSK_WITH_ARIA_256_GCM_SHA384 = init("TLS_PSK_WITH_ARIA_256_GCM_SHA384", 0xc06b);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_ARIA_128_GCM_SHA256 = init("TLS_DHE_PSK_WITH_ARIA_128_GCM_SHA256", 0xc06c);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_ARIA_256_GCM_SHA384 = init("TLS_DHE_PSK_WITH_ARIA_256_GCM_SHA384", 0xc06d);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256 = init("TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256", 0xc06e);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384 = init("TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384", 0xc06f);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256 = init("TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256", 0xc070);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384 = init("TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384", 0xc071);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256", 0xc072);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384", 0xc073);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256", 0xc074);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384", 0xc075);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256", 0xc076);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384", 0xc077);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256", 0xc078);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384", 0xc079);
+    // @NonNull CipherSuite TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256", 0xc07a);
+    // @NonNull CipherSuite TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384", 0xc07b);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_DHE_RSA_WITH_CAMELLIA_128_GCM_SHA256", 0xc07c);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_DHE_RSA_WITH_CAMELLIA_256_GCM_SHA384", 0xc07d);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256", 0xc07e);
+    // @NonNull CipherSuite TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384", 0xc07f);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_DHE_DSS_WITH_CAMELLIA_128_GCM_SHA256", 0xc080);
+    // @NonNull CipherSuite TLS_DHE_DSS_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_DHE_DSS_WITH_CAMELLIA_256_GCM_SHA384", 0xc081);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256", 0xc082);
+    // @NonNull CipherSuite TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384", 0xc083);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256", 0xc084);
+    // @NonNull CipherSuite TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384", 0xc085);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256", 0xc086);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384", 0xc087);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256", 0xc088);
+    // @NonNull CipherSuite TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384", 0xc089);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256", 0xc08a);
+    // @NonNull CipherSuite TLS_ECDHE_RSA_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_ECDHE_RSA_WITH_CAMELLIA_256_GCM_SHA384", 0xc08b);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256", 0xc08c);
+    // @NonNull CipherSuite TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384", 0xc08d);
+    // @NonNull CipherSuite TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256", 0xc08e);
+    // @NonNull CipherSuite TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384", 0xc08f);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_DHE_PSK_WITH_CAMELLIA_128_GCM_SHA256", 0xc090);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_DHE_PSK_WITH_CAMELLIA_256_GCM_SHA384", 0xc091);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256 = init("TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256", 0xc092);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384 = init("TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384", 0xc093);
+    // @NonNull CipherSuite TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256", 0xc094);
+    // @NonNull CipherSuite TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384", 0xc095);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256", 0xc096);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384", 0xc097);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256", 0xc098);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384", 0xc099);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256 = init("TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256", 0xc09a);
+    // @NonNull CipherSuite TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384 = init("TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384", 0xc09b);
+    // @NonNull CipherSuite TLS_RSA_WITH_AES_128_CCM = init("TLS_RSA_WITH_AES_128_CCM", 0xc09c);
+    // @NonNull CipherSuite TLS_RSA_WITH_AES_256_CCM = init("TLS_RSA_WITH_AES_256_CCM", 0xc09d);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_AES_128_CCM = init("TLS_DHE_RSA_WITH_AES_128_CCM", 0xc09e);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_AES_256_CCM = init("TLS_DHE_RSA_WITH_AES_256_CCM", 0xc09f);
+    // @NonNull CipherSuite TLS_RSA_WITH_AES_128_CCM_8 = init("TLS_RSA_WITH_AES_128_CCM_8", 0xc0a0);
+    // @NonNull CipherSuite TLS_RSA_WITH_AES_256_CCM_8 = init("TLS_RSA_WITH_AES_256_CCM_8", 0xc0a1);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_AES_128_CCM_8 = init("TLS_DHE_RSA_WITH_AES_128_CCM_8", 0xc0a2);
+    // @NonNull CipherSuite TLS_DHE_RSA_WITH_AES_256_CCM_8 = init("TLS_DHE_RSA_WITH_AES_256_CCM_8", 0xc0a3);
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_128_CCM = init("TLS_PSK_WITH_AES_128_CCM", 0xc0a4);
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_256_CCM = init("TLS_PSK_WITH_AES_256_CCM", 0xc0a5);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_128_CCM = init("TLS_DHE_PSK_WITH_AES_128_CCM", 0xc0a6);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_AES_256_CCM = init("TLS_DHE_PSK_WITH_AES_256_CCM", 0xc0a7);
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_128_CCM_8 = init("TLS_PSK_WITH_AES_128_CCM_8", 0xc0a8);
+    // @NonNull CipherSuite TLS_PSK_WITH_AES_256_CCM_8 = init("TLS_PSK_WITH_AES_256_CCM_8", 0xc0a9);
+    // @NonNull CipherSuite TLS_PSK_DHE_WITH_AES_128_CCM_8 = init("TLS_PSK_DHE_WITH_AES_128_CCM_8", 0xc0aa);
+    // @NonNull CipherSuite TLS_PSK_DHE_WITH_AES_256_CCM_8 = init("TLS_PSK_DHE_WITH_AES_256_CCM_8", 0xc0ab);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_AES_128_CCM = init("TLS_ECDHE_ECDSA_WITH_AES_128_CCM", 0xc0ac);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_AES_256_CCM = init("TLS_ECDHE_ECDSA_WITH_AES_256_CCM", 0xc0ad);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8 = init("TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8", 0xc0ae);
+    // @NonNull CipherSuite TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8 = init("TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8", 0xc0af);
+    @NonNull
+    CipherSuite TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 = init("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", 0xcca8);
+
+    @NonNull
+    CipherSuite TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 = init("TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256", 0xcca9);
+
+    @NonNull
+    CipherSuite TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256 = init("TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256", 0xccaa);
+
+    // @NonNull CipherSuite TLS_PSK_WITH_CHACHA20_POLY1305_SHA256 = init("TLS_PSK_WITH_CHACHA20_POLY1305_SHA256", 0xccab);
+    @NonNull
+    CipherSuite TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256 = init("TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256", 0xccac);
+    // @NonNull CipherSuite TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256 = init("TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256", 0xccad);
+    // @NonNull CipherSuite TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256 = init("TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256", 0xccae);
+
+    // TLS 1.3 https://tools.ietf.org/html/rfc8446
+    @NonNull
+    CipherSuite TLS_AES_128_GCM_SHA256 = init("TLS_AES_128_GCM_SHA256", 0x1301);
+
+    @NonNull
+    CipherSuite TLS_AES_256_GCM_SHA384 = init("TLS_AES_256_GCM_SHA384", 0x1302);
+
+    @NonNull
+    CipherSuite TLS_CHACHA20_POLY1305_SHA256 = init("TLS_CHACHA20_POLY1305_SHA256", 0x1303);
+
+    @NonNull
+    CipherSuite TLS_AES_128_CCM_SHA256 = init("TLS_AES_128_CCM_SHA256", 0x1304);
+
+    @NonNull
+    CipherSuite TLS_AES_128_CCM_8_SHA256 = init("TLS_AES_128_CCM_8_SHA256", 0x1305);
+
+    /**
+     * @param javaName the name used by Java APIs for this cipher suite. Different from the IANA name for older cipher
+     *                 suites because the prefix is {@code SSL_} instead of {@code TLS_}.
+     */
+    static @NonNull CipherSuite fromJavaName(final @NonNull String javaName) {
+        Objects.requireNonNull(javaName);
+        return RealCipherSuite.fromJavaName(javaName);
+    }
+
+    /**
+     * @return the Java name of this cipher suite. For some older cipher suites the Java name has the prefix
+     * {@code SSL_}, causing the Java name to be different from the instance name which is always prefixed {@code TLS_}.
+     * For example, {@code TLS_RSA_EXPORT_WITH_RC4_40_MD5.getJavaName()} is {@code "SSL_RSA_EXPORT_WITH_RC4_40_MD5"}.
+     */
+    @NonNull
+    String getJavaName();
+}

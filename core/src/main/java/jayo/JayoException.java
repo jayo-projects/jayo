@@ -5,18 +5,21 @@
 
 package jayo;
 
-import jayo.tls.JayoTlsException;
-import jayo.tls.JayoTlsHandshakeException;
 import jayo.endpoints.JayoClosedEndpointException;
 import jayo.endpoints.JayoEndpointException;
+import jayo.tls.JayoTlsException;
+import jayo.tls.JayoTlsHandshakeException;
+import jayo.tls.JayoTlsPeerUnverifiedException;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.*;
 import java.net.ProtocolException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
@@ -74,6 +77,7 @@ public class JayoException extends UncheckedIOException {
             case ProtocolException protocolException -> new JayoProtocolException(protocolException);
             case SocketTimeoutException stoException -> new JayoTimeoutException(stoException);
             case InterruptedIOException interuptIOException -> new JayoInterruptedIOException(interuptIOException);
+            case UnknownHostException unknownHostException -> new JayoUnknownHostException(unknownHostException);
 
             // Endpoint related exceptions
             case ClosedChannelException closedChanException -> new JayoClosedEndpointException(closedChanException);
@@ -87,6 +91,8 @@ public class JayoException extends UncheckedIOException {
 
             // TLS/SSL related exceptions
             case SSLHandshakeException sslHandshakeException -> new JayoTlsHandshakeException(sslHandshakeException);
+            case SSLPeerUnverifiedException sslPeerUnverifiedException ->
+                    new JayoTlsPeerUnverifiedException(sslPeerUnverifiedException);
             case SSLException sslException -> new JayoTlsException(sslException);
 
             default -> new JayoException(ioException);
