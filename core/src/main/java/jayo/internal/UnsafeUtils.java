@@ -22,7 +22,7 @@ import static java.lang.System.Logger.Level.TRACE;
  * This class exposes unsafe operations
  */
 final class UnsafeUtils {
-    // uninstantiable
+    // un-instantiable
     private UnsafeUtils() {
     }
 

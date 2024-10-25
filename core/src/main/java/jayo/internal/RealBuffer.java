@@ -2698,7 +2698,6 @@ public final class RealBuffer implements Buffer {
 
         @Override
         public void close() {
-            // TODO(jwilson): use edit counts or other information to track unexpected changes?
             checkHasBuffer();
 
             buffer = null;
