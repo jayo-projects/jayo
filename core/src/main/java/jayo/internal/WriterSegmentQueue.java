@@ -109,11 +109,6 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         }
     }
 
-    @NonNull
-    final RealBuffer getBuffer() {
-        return buffer;
-    }
-
     final static class Async extends WriterSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.WriterSegmentQueue");
         private final static Thread.Builder SINK_EMITTER_THREAD_BUILDER = Utils.threadBuilder("JayoWriterEmitter#");
@@ -296,7 +291,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                                 if (toWrite > 0) {
                                     // guarding against a concurrent read that may have reduced head(s) size(s)
                                     toWrite = Math.min(toWrite, size());
-                                    writer.write(getBuffer(), toWrite);
+                                    writer.write(buffer, toWrite);
                                 }
                             }
 
