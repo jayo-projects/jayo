@@ -316,9 +316,6 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
 
     @Override
     public final boolean equals(final @Nullable Object other) {
-        if (other == null) {
-            return false;
-        }
         if (other == this) {
             return true;
         }
