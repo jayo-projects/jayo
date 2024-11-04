@@ -48,7 +48,7 @@ https://www.rfc-editor.org/rfc/rfc9000.html#name-datagram-size
 * Java 20
   * Scoped Values (incubator)
 * Java 21
-  * Project Loom [virtual threads](https://openjdk.org/jeps/444) are promoted as stable
+  * Project Loom [virtual threads](https://openjdk.org/jeps/444) are promoted as stable.
   * **Warning -> preview** : [Structured Concurrency](https://openjdk.org/jeps/453) treats multiple tasks running in
 different threads as a single unit of work, thereby streamlining error handling and cancellation, improving reliability,
 and enhancing observability.
@@ -57,12 +57,19 @@ and across threads. They are preferred to thread-local variables, especially whe
 threads.
   * [Sequenced Collections](https://www.baeldung.com/java-21-sequenced-collections) This feature injects new interfaces
 into the existing Java collections hierarchy, offering a seamless mechanism to access the first and last elements of a
-collection using built-in default methods. Moreover, it provides support to obtain a reversed view of the collection.
+collection using built-in default methods, and provides support to obtain a reversed view of the collection.
+  * [Key Encapsulation Mechanism API](https://openjdk.org/jeps/452) : Introduce an API for key encapsulation mechanisms
+(KEMs), an encryption technique for securing symmetric keys using public key cryptography. The Diffie-Hellman key
+exchange step in TLS 1.3 can also be modeled as a KEM.
 * Java 22
   * [Foreign memory](https://openjdk.org/jeps/454) is promoted as stable. Sophisticated clients deserve an API that
 can allocate, manipulate, and share off-heap memory with the same fluidity and safety as on-heap memory. Such an API
 should balance the need for predictable deallocation with the need to prevent untimely deallocation that can lead to JVM
 crashes or, worse, to silent memory corruption.
+* Java 23
+  * [Key Derivation Function API](https://openjdk.org/jeps/478) (preview) : Introduce an API for Key Derivation
+Functions (KDFs), which are cryptographic algorithms for deriving additional keys from a secret key and other data. It
+will allow TLS 1.3 enhancements and Argon2 password-hashing KDF implementation in the JDK.
 
 ## Race condition
 
