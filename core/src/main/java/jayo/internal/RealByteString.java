@@ -399,9 +399,6 @@ public sealed class RealByteString implements ByteString permits RealUtf8, Segme
 
     @Override
     public boolean equals(final @Nullable Object other) {
-        if (other == null) {
-            return false;
-        }
         if (other == this) {
             return true;
         }
