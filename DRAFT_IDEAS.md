@@ -109,3 +109,14 @@ streams are not safe for concurrent use.
 * [Loom support added in Okio](https://github.com/square/okio/commit/f8434f575787198928a26334758ddbca9726b11c)
 * [Timeouts and cancellation for humans](https://vorpus.org/blog/timeouts-and-cancellation-for-humans/) inspiration for
 the cancellation mechanism in Jayo
+
+### Reminder : Kotlin operators :
+For performing bitwise operations, Kotlin provides following methods that work for Int and Long types -
+* shl - signed shift left (equivalent of << operator)
+* shr - signed shift right (equivalent of >> operator)
+* ushr - unsigned shift right (equivalent of >>> operator)
+* and - bitwise and (equivalent of & operator)
+* or - bitwise or (equivalent of | operator)
+* xor - bitwise xor (equivalent of ^ operator)
+* inv - bitwise complement (equivalent of ~ operator)
+
