@@ -47,7 +47,7 @@ public fun ByteBuffer.toUtf8(isAscii: Boolean = false): Utf8 =
 /**
  * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
  * @param isAscii if the bytes you are reading in the input stream are ASCII encoded.
- * @throws jayo.exceptions.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ * @throws JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
 public fun InputStream.readUtf8(byteCount: Int, isAscii: Boolean = false): Utf8 =
     if (isAscii) Utf8.readAscii(this, byteCount) else Utf8.read(this, byteCount)
@@ -59,4 +59,4 @@ public fun String.encodeToUtf8(): Utf8 = Utf8.encode(this)
  * @return the number of bytes that would be used to encode the slice of `string` as UTF-8 when using
  * `writer.write("myCharSequence)`.
  */
-public fun CharSequence.utf8Size(): Long = Utf8Utils.size(this)
+public fun CharSequence.utf8Size(): Long = Utf8.size(this)
