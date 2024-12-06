@@ -216,7 +216,7 @@ class Utf8VariousTest {
     }
 
     @Test
-    fun size() {
+    fun length() {
         assertEquals(0, "".utf8Size())
         assertEquals(3, "abc".utf8Size())
         assertEquals(16, "təˈranəˌsôr".utf8Size())
