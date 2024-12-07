@@ -4,7 +4,7 @@ java = "21"
 
 # plugins
 # https://github.com/JetBrains/kotlin/releases
-kotlin = "2.0.21"
+kotlin = "2.1.0"
 # https://github.com/Kotlin/dokka/releases
 dokka = "1.9.20"
 # https://github.com/Kotlin/kotlinx-kover/releases
@@ -12,7 +12,7 @@ kover = "0.8.3"
 # https://github.com/melix/jmh-gradle-plugin/releases (for benchmarks)
 jmhPlugin = "0.7.2"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
-shadow = "8.3.3"
+shadow = "8.3.5"
 # https://github.com/researchgate/gradle-release/releases
 release = "3.0.2"
 
@@ -22,7 +22,7 @@ jspecify = "1.0.0"
 
 # main -> optional dependencies
 # https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on
-bouncycastle = "1.78.1"
+bouncycastle = "1.79"
 # https://mvnrepository.com/artifact/org.conscrypt/conscrypt-openjdk-uber
 conscrypt = "2.5.2"
 
@@ -34,7 +34,7 @@ amazonCorretto = "2.4.1"
 
 # tests
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-junit = "5.11.2"
+junit = "5.11.3"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
 assertj = "3.26.3"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
@@ -46,7 +46,7 @@ kotlinxSerialization = "1.7.3"
 
 # benchmarks
 # https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-jackson = "2.18.0"
+jackson = "2.18.2"
 # https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-core
 jmh = "1.37"
 # https://github.com/square/okio/tags

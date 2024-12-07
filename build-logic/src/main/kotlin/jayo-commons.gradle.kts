@@ -47,7 +47,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("org.jspecify:jspecify:${catalogVersion("jspecify")}")
+    api("org.jspecify:jspecify:${catalogVersion("jspecify")}")
 
     testImplementation(platform("org.junit:junit-bom:${catalogVersion("junit")}"))
     testImplementation("org.assertj:assertj-core:${catalogVersion("assertj")}")
