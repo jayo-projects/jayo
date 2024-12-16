@@ -6,4 +6,4 @@
 package jayo
 
 @DslMarker
-internal annotation class JayoDslMarker
+public annotation class JayoDslMarker
