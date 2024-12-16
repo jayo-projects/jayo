@@ -8,7 +8,7 @@ kotlin = "2.1.0"
 # https://github.com/Kotlin/dokka/releases
 dokka = "1.9.20"
 # https://github.com/Kotlin/kotlinx-kover/releases
-kover = "0.8.3"
+kover = "0.9.0"
 # https://github.com/melix/jmh-gradle-plugin/releases (for benchmarks)
 jmhPlugin = "0.7.2"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
