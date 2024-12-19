@@ -124,6 +124,7 @@ public final class RealReader implements Reader {
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
+        segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
         return segmentQueue.buffer.select(options);
     }
 
