@@ -124,7 +124,11 @@ public final class RealReader implements Reader {
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");
         }
-        segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
+        // expected size is the byte size of the longest option
+        final var expectedSize = options.stream()
+                        .mapToLong(ByteString::byteSize)
+                                .max().orElseThrow(IllegalStateException::new);
+        segmentQueue.expectSize(expectedSize);
         return segmentQueue.buffer.select(options);
     }
 
