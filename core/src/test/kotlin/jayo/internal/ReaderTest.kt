@@ -743,6 +743,11 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     @Test
+    fun readByteArrayEmpty() {
+        assertEquals("[]", reader.readByteArray(0).contentToString())
+    }
+
+    @Test
     fun readByteArrayPartial() {
         writer.write("abcd")
         writer.emit()

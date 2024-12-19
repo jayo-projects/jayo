@@ -945,6 +945,9 @@ public final class RealBuffer implements Buffer {
         if (segmentQueue.size() < byteCount) {
             throw new JayoEOFException();
         }
+        if (byteCount == 0L) {
+            return new byte[0];
+        }
 
         final var head = segmentQueue.head();
         assert head != null;
