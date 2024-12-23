@@ -10,23 +10,23 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static jayo.internal.UnsafeUtils.getBytes;
 import static jayo.internal.UnsafeUtils.isLatin1;
-import static jayo.internal.UtilKt.LATIN1;
 
 public class UnsafeUtilsTest {
-    private static final String ASCII = "abc";
-    private static final String UTF_16 = "ab𝙘";
+    private static final String ASCII = "cafe";
+    private static final String LATIN1 = "café";
+    private static final String UTF_16 = "𝙘afé";
 
     @Test
     void extractBytesAscii() {
         assertThat(getBytes(ASCII))
-                .hasSize(3)
-                .containsExactly((byte) 'a', (byte) 'b', (byte) 'c');
+                .hasSize(4)
+                .containsExactly((byte) 'c', (byte) 'a', (byte) 'f', (byte) 'e');
     }
 
     @Test
     void extractBytesUtf16() {
         assertThat(getBytes(UTF_16))
-                .hasSize(8);
+                .hasSize(10);
     }
 
     @Test
