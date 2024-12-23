@@ -1,12 +1,12 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode.Strict
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
 import kotlin.jvm.optionals.getOrNull
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.dokka")
+    id("org.jetbrains.dokka-javadoc")
     `java-library`
     `maven-publish`
     id("org.jetbrains.kotlinx.kover")
@@ -16,6 +16,7 @@ val versionCatalog: VersionCatalog = extensions.getByType<VersionCatalogsExtensi
 fun catalogVersion(lib: String) =
     versionCatalog.findVersion(lib).getOrNull()?.requiredVersion
         ?: throw GradleException("Version '$lib' is not specified in the toml version catalog")
+
 val javaVersion = catalogVersion("java").toInt()
 
 val isCI = providers.gradleProperty("isCI")
@@ -27,8 +28,8 @@ val koverage = mapOf(
 
 kotlin {
     compilerOptions {
-        languageVersion.set(KOTLIN_2_0)
-        apiVersion.set(KOTLIN_2_0)
+        languageVersion.set(KOTLIN_2_1)
+        apiVersion.set(KOTLIN_2_1)
         javaParameters = true
         allWarningsAsErrors = true
         explicitApi = Strict
@@ -62,13 +63,10 @@ dependencies {
 
 kover {
     reports {
-        total {
-            verify {
-                onCheck = true
-                rule {
-                    bound {
-                        minValue = koverage[project.name]
-                    }
+        verify {
+            rule {
+                bound {
+                    minValue = koverage[project.name]
                 }
             }
         }
@@ -112,28 +110,21 @@ tasks {
         }
         //jvmArgs("--enable-preview")
     }
-
-    withType<Javadoc> {
-        (options as StandardJavadocDocletOptions)
-            .addStringOption("Xdoclint:none", "-quiet")
-    }
 }
 
-// Generate html-doc jar for Kotlin code in jvm artefacts.
-// "javadoc" Dokka classifier clashes with the `withJavadocJar()` option below
-val dokkaHtmlJar by tasks.register<Jar>("dokkaHtmlJar") {
-    dependsOn(tasks.dokkaHtml)
-    from(tasks.dokkaHtml.flatMap { it.outputDirectory })
-    archiveClassifier.set("html-doc")
+// Generate javadoc jar for Java and Kotlin code in jvm artefacts.
+val dokkaJavadocJar by tasks.registering(Jar::class) {
+    description = "A Javadoc JAR containing Dokka Javadoc for Java and Kotlin"
+    from(tasks.dokkaGeneratePublicationJavadoc.flatMap { it.outputDirectory })
+    archiveClassifier.set("javadoc")
 }
 
 java {
     withSourcesJar()
-    withJavadocJar()
 }
 
 publishing.publications.withType<MavenPublication> {
     from(components["java"])
 
-    artifact(dokkaHtmlJar)
+    artifact(dokkaJavadocJar)
 }
