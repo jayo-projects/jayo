@@ -42,12 +42,12 @@ public fun ByteBuffer.toByteString(): ByteString = ByteString.of(this)
 /**
  * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
  *
- * @throws jayo.exceptions.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ * @throws JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
 public fun InputStream.readByteString(byteCount: Int): ByteString = ByteString.read(this, byteCount)
 
 /** Returns a new [ByteString] containing the `charset`-encoded bytes of this [String]. */
-public fun String.encodeToByteString(charset: Charset): ByteString =
+public fun String.encodeToByteString(charset: Charset = Charsets.UTF_8): ByteString =
     ByteString.encode(this, charset)
 
 /**

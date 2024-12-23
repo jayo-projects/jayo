@@ -21,12 +21,13 @@
 
 package jayo.internal;
 
-import jayo.Utf8;
 import jayo.JayoCharacterCodingException;
+import jayo.Utf8;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.io.Serial;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.PrimitiveIterator;
 import java.util.Spliterator;
@@ -35,9 +36,8 @@ import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static jayo.internal.RealUtf8.decodeToUtf8Static;
-import static jayo.internal.UnsafeUtils.SUPPORT_COMPACT_STRING;
-import static jayo.internal.UnsafeUtils.UNSAFE_AVAILABLE;
+import static jayo.internal.RealUtf8.decodeToCharset;
+import static jayo.internal.RealUtf8.decodeToUtf8;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 
 public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
@@ -48,7 +48,12 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
 
     @Override
     public @NonNull String decodeToString() {
-        return decodeToUtf8Static(this, isAscii, UNSAFE_AVAILABLE && SUPPORT_COMPACT_STRING);
+        return decodeToUtf8(this, isAscii);
+    }
+
+    @Override
+    public @NonNull String decodeToString(final @NonNull Charset charset) {
+        return decodeToCharset(this, isAscii, charset);
     }
 
     @Override
@@ -187,7 +192,7 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
 
     @Override
     public @NonNull Utf8 substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
-        checkSubstringParameters(startIndex, endIndex);
+        checkSubstringParameters(startIndex, endIndex, byteSize());
         if (startIndex == 0 && endIndex == byteSize()) {
             return this;
         } else if (startIndex == endIndex) {

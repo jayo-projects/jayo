@@ -22,21 +22,16 @@
 package jayo.internal;
 
 import jayo.ByteString;
+import jayo.JayoException;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.JayoException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serial;
-import java.nio.charset.Charset;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -68,7 +63,7 @@ import static jayo.internal.Utils.arrayRangeEquals;
  * This structure is chosen so that the segment holding a particular offset can be found by
  * binary search. We use one array rather than two for the directory as a micro-optimization.
  */
-public sealed class SegmentedByteString extends RealByteString implements ByteString permits SegmentedUtf8 {
+public sealed class SegmentedByteString extends BaseByteString implements ByteString permits SegmentedUtf8 {
     transient final @NonNull Segment @NonNull [] segments;
     transient final int @NonNull [] directory;
 
@@ -79,12 +74,6 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
     }
 
     @Override
-    public final @NonNull String decodeToString(final @NonNull Charset charset) {
-        Objects.requireNonNull(charset);
-        return toByteString().decodeToString(charset);
-    }
-
-    @Override
     public final @NonNull String base64() {
         return toByteString().base64();
     }
@@ -92,11 +81,6 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
     @Override
     public final @NonNull String base64Url() {
         return toByteString().base64Url();
-    }
-
-    @Override
-    public final @NonNull String hex() {
-        return toByteString().hex();
     }
 
     @Override
@@ -111,48 +95,21 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
 
     @Override
     public final @NonNull ByteString hash(final @NonNull Digest digest) {
-        final MessageDigest messageDigest;
-        try {
-            messageDigest = MessageDigest.getInstance(digest.algorithm());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + digest.algorithm(), e);
-        }
+        final var messageDigest = messageDigest(digest);
         forEachSegment((s, offset, byteCount) -> messageDigest.update(s.data, offset, byteCount));
         return new RealByteString(messageDigest.digest());
     }
 
     @Override
     public final @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
-        Objects.requireNonNull(key);
-        final javax.crypto.Mac javaMac;
-        try {
-            javaMac = javax.crypto.Mac.getInstance(hMac.algorithm());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
-        }
-        if (!(key instanceof RealByteString _key)) {
-            throw new IllegalArgumentException("key must be an instance of RealByteString");
-        }
-        try {
-            javaMac.init(new SecretKeySpec(_key.internalArray(), hMac.algorithm()));
-        } catch (InvalidKeyException e) {
-            throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
-        }
+        final var javaMac = mac(hMac, key);
         forEachSegment((s, offset, byteCount) -> javaMac.update(s.data, offset, byteCount));
         return new RealByteString(javaMac.doFinal());
     }
 
     @Override
     public @NonNull ByteString substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
-        if (startIndex < 0) {
-            throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
-        }
-        if (endIndex > byteSize()) {
-            throw new IllegalArgumentException("endIndex > length(" + byteSize() + ")");
-        }
-        if (endIndex < startIndex) {
-            throw new IllegalArgumentException("endIndex < beginIndex");
-        }
+        checkSubstringParameters(startIndex, endIndex, byteSize());
         if (startIndex == 0 && endIndex == byteSize()) {
             return this;
         } else if (startIndex == endIndex) {
@@ -305,7 +262,7 @@ public sealed class SegmentedByteString extends RealByteString implements ByteSt
     /**
      * Returns a copy as a non-segmented byte string.
      */
-    RealByteString toByteString() {
+    ByteString toByteString() {
         return new RealByteString(toByteArray());
     }
 

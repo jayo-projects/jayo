@@ -1149,10 +1149,15 @@ public final class RealBuffer implements Buffer {
     public @NonNull Buffer write(final @NonNull ByteString byteString,
                                  final @NonNegative int offset,
                                  final @NonNegative int byteCount) {
-        if (!(Objects.requireNonNull(byteString) instanceof RealByteString _byteString)) {
-            throw new IllegalArgumentException("byteString must be an instance of RealByteString");
+        Objects.requireNonNull(byteString);
+        if (byteString instanceof RealByteString _byteString) {
+            _byteString.write(this, offset, byteCount);
+        } else if (byteString instanceof BaseByteString _byteString) {
+            _byteString.write(this, offset, byteCount);
+        } else {
+            throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
         }
-        _byteString.write(this, offset, byteCount);
+
         return this;
     }
 
@@ -1329,12 +1334,12 @@ public final class RealBuffer implements Buffer {
             throw new IllegalArgumentException("endIndex > string.length: " + endIndex + " > " + string.length());
         }
         // fast-path#1 for UTF-8 encoding
-        if (charset == StandardCharsets.UTF_8) {
+        if (charset.equals(StandardCharsets.UTF_8)) {
             return write(string, startIndex, endIndex);
         }
 
         // fast-path#2 for ISO_8859_1 encoding
-        if (charset == StandardCharsets.ISO_8859_1 && UNSAFE_AVAILABLE && isLatin1(string)) {
+        if (charset.equals(StandardCharsets.ISO_8859_1) && UNSAFE_AVAILABLE && isLatin1(string)) {
             final var stringBytes = getBytes(string);
             return write(stringBytes, startIndex, endIndex - startIndex);
         }
@@ -1949,9 +1954,6 @@ public final class RealBuffer implements Buffer {
         if (startIndex < 0L) {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
         }
-        if (!(byteString instanceof RealByteString _bytes)) {
-            throw new IllegalArgumentException("bytes must be an instance of RealByteString");
-        }
 
         return seek(startIndex, (s, o) -> {
             if (s == null) {
@@ -1963,7 +1965,7 @@ public final class RealBuffer implements Buffer {
 
             // Scan through the segments, searching for the lead byte. Each time that is found, delegate to
             // rangeEquals() to check for a complete match.
-            final var targetByteArray = _bytes.internalArray();
+            final var targetByteArray = Utils.internalArray(byteString);
             final var b0 = targetByteArray[0];
             final var bytesSize = byteString.byteSize();
             final var resultLimit = segmentQueue.size() - bytesSize + 1L;
@@ -2000,9 +2002,6 @@ public final class RealBuffer implements Buffer {
         if (startIndex < 0L) {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
         }
-        if (!(Objects.requireNonNull(targetBytes) instanceof RealByteString _targetBytes)) {
-            throw new IllegalArgumentException("targetBytes must be an instance of RealByteString");
-        }
 
         return seek(startIndex, (s, o) -> {
             if (s == null) {
@@ -2015,10 +2014,10 @@ public final class RealBuffer implements Buffer {
             // Special case searching for one of two bytes. This is a common case for tools like Moshi,
             // which search for pairs of chars like `\r` and `\n` or {@code `"` and `\`. The impact of this
             // optimization is a ~5x speedup for this case without a substantial cost to other cases.
-            if (_targetBytes.byteSize() == 2) {
+            if (targetBytes.byteSize() == 2) {
                 // Scan through the segments, searching for either of the two bytes.
-                final var b0 = _targetBytes.getByte(0);
-                final var b1 = _targetBytes.getByte(1);
+                final var b0 = targetBytes.getByte(0);
+                final var b1 = targetBytes.getByte(1);
                 while (offset < segmentQueue.size()) {
                     assert segment != null;
                     final var data = segment.data;
@@ -2040,7 +2039,7 @@ public final class RealBuffer implements Buffer {
                 }
             } else {
                 // Scan through the segments, searching for a byte that's also in the array.
-                final var targetByteArray = _targetBytes.internalArray();
+                final var targetByteArray = Utils.internalArray(targetBytes);
                 while (offset < segmentQueue.size()) {
                     assert segment != null;
                     final var data = segment.data;
@@ -2128,11 +2127,8 @@ public final class RealBuffer implements Buffer {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
         }
-        if (!(key instanceof RealByteString _key)) {
-            throw new IllegalArgumentException("key must be an instance of RealByteString");
-        }
         try {
-            javaMac.init(new SecretKeySpec(_key.internalArray(), hMac.algorithm()));
+            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.algorithm()));
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }

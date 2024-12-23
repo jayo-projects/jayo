@@ -22,6 +22,7 @@
 package jayo.internal;
 
 import jayo.Buffer;
+import jayo.ByteString;
 import jayo.Reader;
 import org.jspecify.annotations.NonNull;
 
@@ -228,7 +229,7 @@ public final class Utils {
     }
 
     static @NonNull Builder threadBuilder(final @NonNull String prefix) {
-        Objects.requireNonNull(prefix);
+        assert prefix != null;
         return Thread.ofVirtual()
                 .name(prefix, 0)
                 .inheritInheritableThreadLocals(true);
@@ -248,5 +249,20 @@ public final class Utils {
         return String.format(
                 "status=%s,handshakeStatus=%s,bytesProduced=%d,bytesConsumed=%d",
                 result.getStatus(), result.getHandshakeStatus(), result.bytesProduced(), result.bytesConsumed());
+    }
+
+
+    static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {
+        assert byteString != null;
+
+        if (byteString instanceof RealByteString _key) {
+            return _key.data;
+        }
+
+        if (byteString instanceof BaseByteString _key) {
+            return _key.internalArray();
+        }
+
+        throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
     }
 }

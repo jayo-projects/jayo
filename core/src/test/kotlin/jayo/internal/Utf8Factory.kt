@@ -44,8 +44,7 @@ interface Utf8Factory {
 
         @JvmStatic
         val UTF8_FROM_BYTES_NO_COMPACT_STRING: Utf8Factory = object : Utf8Factory {
-            override fun encodeUtf8(s: String) =
-                RealUtf8(s.encodeToByteArray(), false, false)
+            override fun encodeUtf8(s: String) = RealUtf8(s.encodeToByteArray(), false)
             override val isAscii: Boolean get() = false
         }
 
@@ -69,8 +68,7 @@ interface Utf8Factory {
 
         @JvmStatic
         val ASCII_FROM_BYTES_NO_COMPACT_STRING: Utf8Factory = object : Utf8Factory {
-            override fun encodeUtf8(s: String) =
-                RealUtf8(s.encodeToByteArray(), true, false)
+            override fun encodeUtf8(s: String) = RealUtf8(s.encodeToByteArray(), true)
             override val isAscii: Boolean get() = true
         }
 
