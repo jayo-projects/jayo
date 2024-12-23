@@ -6,7 +6,7 @@ java = "21"
 # https://github.com/JetBrains/kotlin/releases
 kotlin = "2.1.0"
 # https://github.com/Kotlin/dokka/releases
-dokka = "1.9.20"
+dokka = "2.0.0"
 # https://github.com/Kotlin/kotlinx-kover/releases
 kover = "0.9.0"
 # https://github.com/melix/jmh-gradle-plugin/releases (for benchmarks)
@@ -34,9 +34,9 @@ amazonCorretto = "2.4.1"
 
 # tests
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-junit = "5.11.3"
+junit = "5.11.4"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
-assertj = "3.26.3"
+assertj = "3.27.0"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
 slf4j = "2.0.16"
 

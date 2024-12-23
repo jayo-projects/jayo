@@ -26,6 +26,7 @@ import com.amazon.corretto.crypto.provider.SelfTestStatus
 import jayo.JayoTestUtil
 import jayo.internal.tls.platform.BouncyCastleJssePlatform
 import jayo.internal.tls.platform.ConscryptJssePlatform
+import jayo.internal.tls.platform.JdkJssePlatform
 import jayo.internal.tls.platform.JssePlatformUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider
@@ -310,7 +311,7 @@ constructor(
                     when (JssePlatform.get()) {
                         is ConscryptJssePlatform -> CONSCRYPT_PROPERTY
                         is BouncyCastleJssePlatform -> BOUNCYCASTLE_PROPERTY
-                        else -> if (isCorrettoInstalled) CORRETTO_PROPERTY else JDK_PROPERTY
+                        is JdkJssePlatform -> if (isCorrettoInstalled) CORRETTO_PROPERTY else JDK_PROPERTY
                     }
             }
 
