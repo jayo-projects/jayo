@@ -28,6 +28,7 @@ package jayo;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.external.NonNegative;
+import jayo.internal.BaseByteString;
 import jayo.internal.RealByteString;
 import jayo.internal.SegmentedByteString;
 import org.jspecify.annotations.NonNull;
@@ -60,7 +61,7 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * @see Utf8 a UTF-8 specific implementation of {@code ByteString}.
  */
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
-        permits RealByteString, SegmentedByteString, Utf8 {
+        permits BaseByteString, RealByteString, SegmentedByteString, Utf8 {
     /**
      * The empty byte string
      */
@@ -100,12 +101,16 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     }
 
     /**
+     * Encodes {@code string} using UTF-8 and wraps these bytes into a byte string.
+     */
+    static @NonNull ByteString encode(final @NonNull String string) {
+        return new RealByteString(string.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
      * Encodes {@code string} using the provided {@code charset} and wraps these bytes into a byte string.
      */
     static @NonNull ByteString encode(final @NonNull String string, final @NonNull Charset charset) {
-        if (charset == StandardCharsets.UTF_8) {
-            return new RealByteString(string);
-        }
         return new RealByteString(string.getBytes(charset));
     }
 

@@ -93,7 +93,7 @@ public final class ByteStringJavaTest {
     @MethodSource("parameters")
     public void byteAtByte(ByteStringFactory factory) {
         ByteString byteString = factory.decodeHex("ab12");
-        assertEquals(byteString.byteSize(), 2);
+        assertEquals(2, byteString.byteSize());
         assertEquals(-85, byteString.getByte(0));
         assertEquals(18, byteString.getByte(1));
     }
@@ -257,11 +257,11 @@ public final class ByteStringJavaTest {
         ByteString byteString = factory.decodeHex("000102");
         assertEquals(byteString, byteString);
         assertEquals(byteString, ByteString.decodeHex("000102"));
-        assertEquals(factory.decodeHex(""), ByteString.EMPTY);
+        assertEquals(ByteString.EMPTY, factory.decodeHex(""));
         assertEquals(factory.decodeHex(""), ByteString.of());
         assertEquals(ByteString.EMPTY, factory.decodeHex(""));
         assertEquals(ByteString.of(), factory.decodeHex(""));
-        assertNotEquals(byteString, new Object());
+        assertNotEquals(new Object(), byteString);
         assertNotEquals(byteString, ByteString.decodeHex("000201"));
     }
 
@@ -291,7 +291,7 @@ public final class ByteStringJavaTest {
     @Test
     public void encodeNullString() {
         try {
-            ByteString.encode(null, StandardCharsets.UTF_8);
+            ByteString.encode(null);
             fail();
         } catch (NullPointerException expected) {
         }
@@ -306,14 +306,55 @@ public final class ByteStringJavaTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void encodeDecodeStringAscii(ByteStringFactory factory) {
+        final var asciiString = "cafe";
+        Charset ascii = StandardCharsets.US_ASCII;
+        ByteString byteString = factory.encodeUtf8(asciiString);
+        assertByteArraysEquals(byteString.toByteArray(), asciiString.getBytes(ascii));
+        assertEquals(byteString, ByteString.decodeHex("63616665"));
+        assertEquals(asciiString, byteString.decodeToString(ascii));
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void encodeDecodeStringAsciiToLatin1(ByteStringFactory factory) {
+        final var latin1String = "cafe";
+        Charset latin1 = StandardCharsets.ISO_8859_1;
+        ByteString byteString = factory.encodeUtf8(latin1String);
+        assertByteArraysEquals(byteString.toByteArray(), latin1String.getBytes(latin1));
+        assertEquals(byteString, ByteString.decodeHex("63616665"));
+        if (factory.isUtf8()) {
+            assertThatThrownBy(() -> byteString.decodeToString(latin1))
+                    .isInstanceOf(IllegalArgumentException.class);
+        } else {
+            assertEquals(latin1String, byteString.decodeToString(latin1));
+        }
+    }
+
     @Test
-    public void encodeDecodeStringUtf8() {
-        Charset utf8 = StandardCharsets.UTF_8;
-        ByteString byteString = ByteString.encode(bronzeHorseman, utf8);
-        assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(utf8));
-        assertEquals(byteString, ByteString.decodeHex("d09dd0b020d0b1d0b5d180d0b5d0b3d18320d0bfd183d181"
-                + "d182d18bd0bdd0bdd18bd18520d0b2d0bed0bbd0bd"));
-        assertEquals(bronzeHorseman, byteString.decodeToString(utf8));
+    public void encodeDecodeStringLatin1() {
+        final var latin1String = "café";
+        Charset latin1 = StandardCharsets.ISO_8859_1;
+        ByteString byteString = ByteString.encode(latin1String, latin1);
+        assertByteArraysEquals(byteString.toByteArray(), latin1String.getBytes(latin1));
+        assertEquals(byteString, ByteString.decodeHex("636166e9"));
+        assertEquals(latin1String, byteString.decodeToString(latin1));
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void encodeDecodeStringUtf8(ByteStringFactory factory) {
+        if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
+                factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
+            Charset utf8 = StandardCharsets.UTF_8;
+            ByteString byteString = factory.encodeUtf8(bronzeHorseman);
+            assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(utf8));
+            assertEquals(byteString, ByteString.decodeHex("d09dd0b020d0b1d0b5d180d0b5d0b3d18320d0bfd183d181"
+                    + "d182d18bd0bdd0bdd18bd18520d0b2d0bed0bbd0bd"));
+            assertEquals(bronzeHorseman, byteString.decodeToString(utf8));
+        }
     }
 
     @Test
@@ -500,7 +541,7 @@ public final class ByteStringJavaTest {
         assertEquals("What's to be scared about? It's just a little hiccup in the power...",
                 ByteString.decodeBase64("V2hhdCdzIHRvIGJlIHNjYXJlZCBhYm91dD8gSXQncyBqdXN0IGEgbGl0dGxlIGhpY2"
                         + "N1cCBpbiB0aGUgcG93ZXIuLi4=").decodeToString());
-        // Uses two encoding styles. Malformed, but supported as a side-effect.
+        // Uses two encoding styles. Malformed, but supported as a side effect.
         assertEquals(ByteString.decodeHex("ffffff"), ByteString.decodeBase64("__//"));
     }
 
@@ -554,9 +595,7 @@ public final class ByteStringJavaTest {
     public void toStringOnUtf8TextWithNewlines(ByteStringFactory factory) {
         final var initialUtf8String = "a\r\nb\nc\rd\\e";
         final var toString = factory.encodeUtf8(initialUtf8String).toString();
-        if (factory == ByteStringFactory.getUTF8() || factory == ByteStringFactory.getSEGMENTED_UTF8() ||
-                factory == ByteStringFactory.getUTF8_ONE_BYTE_PER_SEGMENT() || factory == ByteStringFactory.getSEGMENTED_ASCII() ||
-                factory == ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
+        if (factory.isUtf8()) {
             assertEquals(initialUtf8String, toString);
         } else {
             // Instead of emitting a literal newline in the toString(), these are escaped as "\n".
@@ -660,9 +699,9 @@ public final class ByteStringJavaTest {
     public void getByte(ByteStringFactory factory) {
         final var actual = factory.encodeUtf8("abc");
         assertEquals(3, actual.byteSize());
-        assertEquals(actual.getByte(0), (byte) 'a');
-        assertEquals(actual.getByte(1), (byte) 'b');
-        assertEquals(actual.getByte(2), (byte) 'c');
+        assertEquals((byte) 'a', actual.getByte(0));
+        assertEquals((byte) 'b', actual.getByte(1));
+        assertEquals((byte) 'c', actual.getByte(2));
         assertThatThrownBy(() -> actual.getByte(-1))
                 .isInstanceOf(IndexOutOfBoundsException.class);
         assertThatThrownBy(() -> actual.getByte(3))

@@ -88,6 +88,7 @@ tasks {
             listOf(
                 "--patch-module",
                 "$jpmsName=${sourceSets.main.get().output.asPath}",
+                //"--enable-preview",
             )
         )
     }
@@ -109,6 +110,7 @@ tasks {
             exceptionFormat = TestExceptionFormat.FULL
             showStandardStreams = true
         }
+        //jvmArgs("--enable-preview")
     }
 
     withType<Javadoc> {

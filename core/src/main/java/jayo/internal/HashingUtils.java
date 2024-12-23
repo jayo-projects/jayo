@@ -73,11 +73,8 @@ public final class HashingUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
         }
-        if (!(key instanceof RealByteString _key)) {
-            throw new IllegalArgumentException("key must be an instance of RealByteString");
-        }
         try {
-            javaMac.init(new SecretKeySpec(_key.internalArray(), hMac.algorithm()));
+            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.algorithm()));
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }

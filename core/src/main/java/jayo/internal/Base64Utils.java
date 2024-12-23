@@ -39,11 +39,11 @@ public final class Base64Utils {
     }
 
     private static final byte @NonNull [] BASE64 = ((RealByteString) ByteString
-            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", StandardCharsets.UTF_8))
+            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"))
             .data;
 
     private static final byte @NonNull [] BASE64_URL_SAFE = ((RealByteString) ByteString
-            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", StandardCharsets.UTF_8))
+            .encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"))
             .data;
 
     public static byte @Nullable [] decodeBase64ToArray(final @NonNull CharSequence reader) {

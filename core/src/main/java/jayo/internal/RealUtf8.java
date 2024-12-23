@@ -21,30 +21,24 @@
 
 package jayo.internal;
 
-import jayo.Utf8;
 import jayo.JayoCharacterCodingException;
+import jayo.Utf8;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static jayo.internal.UnsafeUtils.*;
+import static jayo.internal.UnsafeUtils.noCopyStringFromLatin1Bytes;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 
-public final class RealUtf8 extends RealByteString implements Utf8 {
-    private final transient boolean allowCompactString;
-
+public final class RealUtf8 extends BaseByteString implements Utf8 {
     public RealUtf8(final byte @NonNull [] data, final boolean isAscii) {
-        this(data, isAscii, UNSAFE_AVAILABLE && SUPPORT_COMPACT_STRING);
-    }
-
-    public RealUtf8(final byte @NonNull [] data, final boolean isAscii, final boolean allowCompactString) {
         super(data);
-        this.allowCompactString = allowCompactString;
         this.isAscii = isAscii;
         if (isAscii) {
             length = data.length;
@@ -60,7 +54,6 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
         if (isAscii) {
             length = byteCount;
         }
-        this.allowCompactString = UNSAFE_AVAILABLE && SUPPORT_COMPACT_STRING;
     }
 
     /**
@@ -70,34 +63,70 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
         super(Objects.requireNonNull(string).getBytes(StandardCharsets.UTF_8));
         utf8 = string;
         length = string.length();
-        this.allowCompactString = UNSAFE_AVAILABLE && SUPPORT_COMPACT_STRING;
     }
 
     @Override
     public @NonNull String decodeToString() {
-        return decodeToUtf8Static(this, isAscii, allowCompactString);
+        return decodeToUtf8(this, isAscii);
     }
 
-    static @NonNull String decodeToUtf8Static(final @NonNull RealByteString byteString,
-                                              final boolean isAscii,
-                                              final boolean allowCompactString) {
-        var utf8 = byteString.utf8;
-        if (utf8 != null) {
-            return utf8;
+    static @NonNull String decodeToUtf8(final @NonNull BaseByteString utf8, final boolean isAscii) {
+        assert utf8 != null;
+
+        var result = utf8.utf8;
+        if (result != null) {
+            return result;
         }
         // We don't care if we double-allocate in racy code.
         if (isAscii) {
-            if (allowCompactString) {
-                utf8 = noCopyStringFromLatin1Bytes(byteString.internalArray());
+            if (ALLOW_COMPACT_STRING) {
+                result = noCopyStringFromLatin1Bytes(utf8.internalArray());
             } else {
-                utf8 = new String(byteString.internalArray(), StandardCharsets.US_ASCII);
+                result = new String(utf8.internalArray(), StandardCharsets.US_ASCII);
             }
         } else {
-            utf8 = new String(byteString.internalArray(), StandardCharsets.UTF_8);
+            result = new String(utf8.internalArray(), StandardCharsets.UTF_8);
         }
-        byteString.length = utf8.length();
-        byteString.utf8 = utf8;
-        return utf8;
+        utf8.length = result.length();
+        utf8.utf8 = result;
+        return result;
+    }
+
+    @Override
+    public @NonNull String decodeToString(final @NonNull Charset charset) {
+        return decodeToCharset(this, isAscii, charset);
+    }
+
+    static @NonNull String decodeToCharset(final @NonNull BaseByteString utf8,
+                                           final boolean isAscii,
+                                           final @NonNull Charset charset) {
+        Objects.requireNonNull(charset);
+        assert utf8 != null;
+
+        if (charset.equals(StandardCharsets.UTF_8)) {
+            return utf8.decodeToString();
+        }
+
+        if (charset.equals(StandardCharsets.US_ASCII)) {
+            if (isAscii) {
+                var result = utf8.utf8;
+                if (result != null) {
+                    return result;
+                }
+                if (ALLOW_COMPACT_STRING) {
+                    result = noCopyStringFromLatin1Bytes(utf8.internalArray());
+                } else {
+                    result = new String(utf8.internalArray(), charset);
+                }
+                utf8.length = result.length();
+                utf8.utf8 = result;
+                return result;
+            }
+
+            return new String(utf8.internalArray(), charset);
+        }
+
+        throw new IllegalArgumentException("Utf8 only supports UTF-8 and ASCII, not " + charset);
     }
 
     @Override
@@ -206,23 +235,23 @@ public final class RealUtf8 extends RealByteString implements Utf8 {
 
     @Override
     public @NonNull Utf8 substring(int startIndex, int endIndex) {
-        checkSubstringParameters(startIndex, endIndex);
+        checkSubstringParameters(startIndex, endIndex, byteSize());
         if (startIndex == 0 && endIndex == data.length) {
             return this;
         }
-        return new RealUtf8(Arrays.copyOfRange(data, startIndex, endIndex), isAscii, allowCompactString);
+        return new RealUtf8(Arrays.copyOfRange(data, startIndex, endIndex), isAscii);
     }
 
     @Override
     public @NonNull Utf8 toAsciiLowercase() {
-        final byte[] lowercase = toAsciiLowercaseBytes();
-        return (lowercase != null) ? new RealUtf8(lowercase, isAscii, allowCompactString) : this;
+        final var lowercase = toAsciiLowercaseBytes(data);
+        return (lowercase != null) ? new RealUtf8(lowercase, isAscii) : this;
     }
 
     @Override
     public @NonNull Utf8 toAsciiUppercase() {
-        final byte[] uppercase = toAsciiUppercaseBytes();
-        return (uppercase != null) ? new RealUtf8(uppercase, isAscii, allowCompactString) : this;
+        final var uppercase = toAsciiUppercaseBytes(data);
+        return (uppercase != null) ? new RealUtf8(uppercase, isAscii) : this;
     }
 
     @Override
