@@ -14,7 +14,7 @@ jmhPlugin = "0.7.2"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
 shadow = "8.3.5"
 # https://github.com/researchgate/gradle-release/releases
-release = "3.0.2"
+release = "3.1.0"
 
 # main
 # https://github.com/jspecify/jspecify/releases
