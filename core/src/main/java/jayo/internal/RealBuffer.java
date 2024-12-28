@@ -71,7 +71,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative long byteSize() {
+    public @NonNegative long bytesAvailable() {
         return segmentQueue.size();
     }
 
@@ -97,7 +97,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer copyTo(final @NonNull OutputStream out, final @NonNegative long offset) {
-        return copyTo(out, offset, byteSize() - offset);
+        return copyTo(out, offset, bytesAvailable() - offset);
     }
 
     @Override
@@ -105,7 +105,7 @@ public final class RealBuffer implements Buffer {
                                   final @NonNegative long offset,
                                   final @NonNegative long byteCount) {
         Objects.requireNonNull(out);
-        checkOffsetAndCount(byteSize(), offset, byteCount);
+        checkOffsetAndCount(bytesAvailable(), offset, byteCount);
         if (byteCount == 0L) {
             return this;
         }
@@ -148,7 +148,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer copyTo(final @NonNull Buffer out, final @NonNegative long offset) {
-        return copyTo(out, offset, byteSize() - offset);
+        return copyTo(out, offset, bytesAvailable() - offset);
     }
 
     @Override
@@ -156,7 +156,7 @@ public final class RealBuffer implements Buffer {
                                   final @NonNegative long offset,
                                   final @NonNegative long byteCount) {
         Objects.requireNonNull(out);
-        checkOffsetAndCount(byteSize(), offset, byteCount);
+        checkOffsetAndCount(bytesAvailable(), offset, byteCount);
         if (!(out instanceof RealBuffer _out)) {
             throw new IllegalArgumentException("out must be an instance of RealBuffer");
         }
@@ -1661,7 +1661,7 @@ public final class RealBuffer implements Buffer {
         if (Objects.requireNonNull(reader) == this) {
             throw new IllegalArgumentException("reader == this, cannot write in itself");
         }
-        checkOffsetAndCount(reader.byteSize(), 0, byteCount);
+        checkOffsetAndCount(reader.bytesAvailable(), 0, byteCount);
         if (byteCount == 0L) {
             return;
         }
@@ -2483,7 +2483,7 @@ public final class RealBuffer implements Buffer {
         public int next() {
             checkHasBuffer();
             assert buffer != null;
-            if (offset == buffer.byteSize()) {
+            if (offset == buffer.bytesAvailable()) {
                 throw new IllegalStateException("no more bytes");
             }
             return (offset == -1L) ? seek(0L) : seek(offset + (limit - pos));

@@ -419,14 +419,14 @@ class OptionsTest {
     }
 
     private fun assertSelect(data: Buffer, expected: Int, options: Options) {
-        val initialSize = data.byteSize()
+        val initialSize = data.bytesAvailable()
         val actual = data.select(options)
 
         assertEquals(actual, expected)
         if (expected == -1) {
-            assertEquals(data.byteSize(), initialSize)
+            assertEquals(data.bytesAvailable(), initialSize)
         } else {
-            assertEquals(data.byteSize() + options[expected].byteSize(), initialSize)
+            assertEquals(data.bytesAvailable() + options[expected].byteSize(), initialSize)
         }
     }
 

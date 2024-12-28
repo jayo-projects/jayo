@@ -92,7 +92,7 @@ public final class GzipRawReader implements RawReader {
 
         // Attempt to read at least a byte of the body. If we do, we're done.
         if (section == SECTION_BODY) {
-            final var offset = _writer.byteSize();
+            final var offset = _writer.bytesAvailable();
             final var result = inflaterReader.readAtMostTo(_writer, byteCount);
             if (result != -1L) {
                 updateCrc(_writer.segmentQueue, offset, result);

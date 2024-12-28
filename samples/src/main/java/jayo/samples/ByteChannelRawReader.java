@@ -33,8 +33,8 @@ import java.nio.channels.ReadableByteChannel;
 
 /**
  * Creates a Reader around a ReadableByteChannel and efficiently reads data using an UnsafeCursor.
- *
- * <p>This is a basic example showing another use for the UnsafeCursor. Using the
+ * <p>
+ * This is a basic example showing another use for the UnsafeCursor. Using the
  * {@link ByteBuffer#wrap(byte[], int, int) ByteBuffer.wrap()} along with access to Buffer segments,
  * a ReadableByteChannel can be given direct access to Buffer data without having to copy the data.
  */
@@ -55,7 +55,7 @@ final class ByteChannelRawReader implements RawReader {
 
         try (Buffer.UnsafeCursor ignored = writer.readAndWriteUnsafe(cursor)) {
             CancelToken.throwIfReached(cancelToken);
-            long oldSize = writer.byteSize();
+            long oldSize = writer.bytesAvailable();
             int length = (int) Math.min(8192, byteCount);
 
             cursor.expandBuffer(length);

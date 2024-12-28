@@ -57,7 +57,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         val original = "They're moving in herds. They do move in herds."
         val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(clearText, clearText.byteSize())
+        deflaterWriter.write(clearText, clearText.bytesAvailable())
         deflaterWriter.close()
         val inflated = inflate(data)
         assertEquals(original, inflated.readString())
@@ -68,7 +68,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         val original = "Yes, yes, yes. That's why we're taking extreme precautions."
         val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(clearText, clearText.byteSize())
+        deflaterWriter.write(clearText, clearText.bytesAvailable())
         deflaterWriter.flush()
         val inflated = inflate(data)
         assertEquals(original, inflated.readString())
@@ -79,7 +79,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         val original = "a".repeat(1024 * 1024)
         val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(clearText, clearText.byteSize())
+        deflaterWriter.write(clearText, clearText.bytesAvailable())
         deflaterWriter.close()
         val inflated = inflate(data)
         assertEquals(original, inflated.readString())
@@ -90,7 +90,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         val original = randomBytes(1024 * 1024)
         val clearText = Buffer().write(original)
         val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-        deflaterWriter.write(clearText, clearText.byteSize())
+        deflaterWriter.write(clearText, clearText.bytesAvailable())
         deflaterWriter.close()
         val inflated = inflate(data)
         assertEquals(original, inflated.readByteString())
@@ -106,7 +106,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
             val clearText = Buffer().write(original)
             writer.write("a".repeat(i))
             val deflaterWriter = DeflaterRawWriter(writer, Deflater())
-            deflaterWriter.write(clearText, clearText.byteSize())
+            deflaterWriter.write(clearText, clearText.bytesAvailable())
             deflaterWriter.close()
             data.skip(i.toLong())
             val inflated = inflate(data)
@@ -136,7 +136,7 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
         val inflatedIn = InflaterInputStream(deflatedIn, inflater)
         val result = Buffer()
         val buffer = ByteArray(8192)
-        while (!inflater.needsInput() || deflated.byteSize() > 0 || deflatedIn.available() > 0) {
+        while (!inflater.needsInput() || deflated.bytesAvailable() > 0 || deflatedIn.available() > 0) {
             val count = inflatedIn.read(buffer, 0, buffer.size)
             if (count != -1) {
                 result.write(buffer, 0, count)

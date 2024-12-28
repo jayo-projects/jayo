@@ -290,13 +290,13 @@ class BufferTest {
     fun readAndWriteUtf8() {
         val buffer = RealBuffer()
         buffer.write("ab")
-        assertEquals(2, buffer.byteSize())
+        assertEquals(2, buffer.bytesAvailable())
         buffer.write("cdef")
-        assertEquals(6, buffer.byteSize())
+        assertEquals(6, buffer.bytesAvailable())
         assertEquals("abcd", buffer.readString(4))
-        assertEquals(2, buffer.byteSize())
+        assertEquals(2, buffer.bytesAvailable())
         assertEquals("ef", buffer.readString(2))
-        assertEquals(0, buffer.byteSize())
+        assertEquals(0, buffer.bytesAvailable())
         assertFailsWith<JayoEOFException> {
             buffer.readString(1)
         }
@@ -350,7 +350,7 @@ class BufferTest {
         assertEquals("c" + 'd'.repeat(10000) + "e", buffer.readString(10002)) // cd...de
         assertEquals('e'.repeat(24998), buffer.readString(24998)) // e...e
         assertEquals("e" + 'f'.repeat(50000), buffer.readString(50001)) // ef...f
-        assertEquals(0, buffer.byteSize())
+        assertEquals(0, buffer.bytesAvailable())
     }
 
     @Test
@@ -437,8 +437,8 @@ class BufferTest {
 
         assertEquals(listOf(30), segmentSizes(writer))
         assertEquals(listOf(Segment.SIZE - 20, Segment.SIZE), segmentSizes(reader))
-        assertEquals(30, writer.byteSize())
-        assertEquals((Segment.SIZE * 2 - 20).toLong(), reader.byteSize())
+        assertEquals(30, writer.bytesAvailable())
+        assertEquals((Segment.SIZE * 2 - 20).toLong(), reader.bytesAvailable())
     }
 
     @Test
@@ -453,8 +453,8 @@ class BufferTest {
 
         assertEquals(listOf(30), segmentSizes(writer))
         assertEquals(listOf(Segment.SIZE - 20, Segment.SIZE), segmentSizes(reader))
-        assertEquals(30, writer.byteSize())
-        assertEquals((Segment.SIZE * 2 - 20).toLong(), reader.byteSize())
+        assertEquals(30, writer.bytesAvailable())
+        assertEquals((Segment.SIZE * 2 - 20).toLong(), reader.bytesAvailable())
     }
 
     @Test
@@ -474,8 +474,8 @@ class BufferTest {
         reader.write('b'.repeat(15))
 
         assertEquals(10, reader.readAtMostTo(writer, 10))
-        assertEquals(20, writer.byteSize())
-        assertEquals(5, reader.byteSize())
+        assertEquals(20, writer.bytesAvailable())
+        assertEquals(5, reader.bytesAvailable())
         assertEquals('a'.repeat(10) + 'b'.repeat(10), writer.readString(20))
     }
 
@@ -488,8 +488,8 @@ class BufferTest {
         reader.write('b'.repeat(20))
 
         assertEquals(20, reader.readAtMostTo(writer, 25))
-        assertEquals(30, writer.byteSize())
-        assertEquals(0, reader.byteSize())
+        assertEquals(30, writer.bytesAvailable())
+        assertEquals(0, reader.bytesAvailable())
         assertEquals('a'.repeat(10) + 'b'.repeat(20), writer.readString(30))
     }
 
@@ -519,9 +519,9 @@ class BufferTest {
         buffer.write("c")
         assertEquals('a'.code.toLong(), buffer.getByte(0).toLong())
         assertEquals('a'.code.toLong(), buffer.getByte(0).toLong()) // getByte doesn't mutate!
-        assertEquals('c'.code.toLong(), buffer.getByte(buffer.byteSize() - 1).toLong())
-        assertEquals('b'.code.toLong(), buffer.getByte(buffer.byteSize() - 2).toLong())
-        assertEquals('b'.code.toLong(), buffer.getByte(buffer.byteSize() - 3).toLong())
+        assertEquals('c'.code.toLong(), buffer.getByte(buffer.bytesAvailable() - 1).toLong())
+        assertEquals('b'.code.toLong(), buffer.getByte(buffer.bytesAvailable() - 2).toLong())
+        assertEquals('b'.code.toLong(), buffer.getByte(buffer.bytesAvailable() - 3).toLong())
     }
 
     @Test
@@ -537,7 +537,7 @@ class BufferTest {
         val buffer = RealBuffer().also { it.write(ByteArray(10)) }
 
         assertFailsWith<IndexOutOfBoundsException> { buffer.getByte(-1) }
-        assertFailsWith<IndexOutOfBoundsException> { buffer.getByte(buffer.byteSize()) }
+        assertFailsWith<IndexOutOfBoundsException> { buffer.getByte(buffer.bytesAvailable()) }
     }
 
     @Test
@@ -585,8 +585,8 @@ class BufferTest {
         val mockWriter = MockWriter()
 
         assertEquals((Segment.SIZE * 3).toLong(), reader.transferTo(mockWriter))
-        assertEquals(0, reader.byteSize())
-        mockWriter.assertLog("write($write1, ${write1.byteSize()})")
+        assertEquals(0, reader.bytesAvailable())
+        mockWriter.assertLog("write($write1, ${write1.bytesAvailable()})")
     }
 
     @Test
@@ -595,7 +595,7 @@ class BufferTest {
         val writer = RealBuffer()
 
         assertEquals((Segment.SIZE * 3).toLong(), writer.transferFrom(reader))
-        assertEquals(0, reader.byteSize())
+        assertEquals(0, reader.bytesAvailable())
         assertEquals('a'.repeat(Segment.SIZE * 3), writer.readString())
     }
 
@@ -629,7 +629,7 @@ class BufferTest {
         reader.write("hello")
 
         val target = RealBuffer()
-        reader.copyTo(target, 1, reader.byteSize() - 1)
+        reader.copyTo(target, 1, reader.bytesAvailable() - 1)
 
         assertEquals("hello", reader.readString())
         assertEquals("ello", target.readString())
@@ -693,7 +693,7 @@ class BufferTest {
         reader.write(aStr)
         reader.write(bs)
 
-        reader.copyTo(reader, 0, reader.byteSize())
+        reader.copyTo(reader, 0, reader.bytesAvailable())
         assertEquals(aStr + bs + aStr + bs, reader.readString())
     }
 
@@ -720,7 +720,7 @@ class BufferTest {
         val original = RealBuffer()
         val clone: Buffer = original.copy()
         original.write("abc")
-        assertEquals(0, clone.byteSize())
+        assertEquals(0, clone.bytesAvailable())
     }
 
     @Test
@@ -729,7 +729,7 @@ class BufferTest {
         original.write("abc")
         val clone: Buffer = original.copy()
         assertEquals("abc", original.readString(3))
-        assertEquals(3, clone.byteSize())
+        assertEquals(3, clone.bytesAvailable())
         assertEquals("ab", clone.readString(2))
     }
 
@@ -738,7 +738,7 @@ class BufferTest {
         val original = RealBuffer()
         val clone: Buffer = original.copy()
         clone.write("abc")
-        assertEquals(0, original.byteSize())
+        assertEquals(0, original.bytesAvailable())
     }
 
     @Test
@@ -747,7 +747,7 @@ class BufferTest {
         original.write("abc")
         val clone: Buffer = original.copy()
         assertEquals("abc", clone.readString(3))
-        assertEquals(3, original.byteSize())
+        assertEquals(3, original.bytesAvailable())
         assertEquals("ab", original.readString(2))
     }
 
@@ -834,7 +834,7 @@ class BufferTest {
         buffer.skip(10)
         buffer.readTo(out, Segment.SIZE * 3L)
         assertEquals("a".repeat(Segment.SIZE * 2 - 10) + "b".repeat(Segment.SIZE + 10), out.toString())
-        assertEquals("b".repeat(Segment.SIZE - 10), buffer.readString(buffer.byteSize()))
+        assertEquals("b".repeat(Segment.SIZE - 10), buffer.readString(buffer.bytesAvailable()))
     }
 
     @Test
@@ -844,7 +844,7 @@ class BufferTest {
         buffer.readTo(out)
         val outString = String(out.toByteArray(), Charsets.UTF_8)
         assertEquals("hello, world!", outString)
-        assertEquals(0, buffer.byteSize())
+        assertEquals(0, buffer.bytesAvailable())
     }
 
     @Test

@@ -71,7 +71,7 @@ final class DerReader {
     }
 
     private @NonNegative long byteCount() {
-        return countingReader.bytesRead - Utils.getBufferFromReader(reader).byteSize();
+        return countingReader.bytesRead - Utils.getBufferFromReader(reader).bytesAvailable();
     }
 
     /**
@@ -345,7 +345,7 @@ final class DerReader {
         final var result = Buffer.create();
         final var dot = (byte) ((int) '.');
         while (byteCount() < limit) {
-            if (result.byteSize() > 0L) {
+            if (result.bytesAvailable() > 0L) {
                 result.writeByte(dot);
             }
             result.writeDecimalLong(readVariableLengthLong());

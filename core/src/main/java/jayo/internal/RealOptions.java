@@ -258,6 +258,6 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
     }
 
     private static long intCount(final @NonNull Buffer buffer) {
-        return buffer.byteSize() / 4;
+        return buffer.bytesAvailable() / 4;
     }
 }

@@ -120,7 +120,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             @Override
             public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
                 Objects.requireNonNull(reader);
-                checkOffsetAndCount(reader.byteSize(), 0, byteCount);
+                checkOffsetAndCount(reader.bytesAvailable(), 0, byteCount);
                 if (!(reader instanceof RealBuffer _reader)) {
                     throw new IllegalArgumentException("reader must be an instance of RealBuffer");
                 }

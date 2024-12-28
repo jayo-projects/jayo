@@ -65,7 +65,7 @@ class DeflateKotlinTest {
         val deflaterWriter = DeflaterRawWriter(Buffer(), deflater)
 
         val ioe = assertThrows(JayoException::class.java) {
-            deflaterWriter.write(data, data.byteSize())
+            deflaterWriter.write(data, data.bytesAvailable())
         }
 
         assertTrue(ioe.cause!!.cause is NullPointerException)

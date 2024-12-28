@@ -79,12 +79,12 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertFailsWith<IndexOutOfBoundsException> {
             writer.write(reader, -1, 1)
         }
-        assertEquals(0, data.byteSize())
+        assertEquals(0, data.bytesAvailable())
 
         assertFailsWith<IndexOutOfBoundsException> {
             writer.write(reader, 1, reader.size + 1)
         }
-        assertEquals(0, data.byteSize())
+        assertEquals(0, data.bytesAvailable())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
@@ -97,7 +97,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     fun writeNothing() {
         writer.write("")
         writer.flush()
-        assertEquals(0, data.byteSize())
+        assertEquals(0, data.bytesAvailable())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
@@ -255,7 +255,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         reader.write("abcdef")
 
         assertEquals(6, writer.transferFrom(reader))
-        assertEquals(0, reader.byteSize())
+        assertEquals(0, reader.bytesAvailable())
         writer.flush()
         assertEquals("abcdef", data.readString())
     }
@@ -264,7 +264,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     fun writeAllExhausted() {
         val reader = RealBuffer()
         assertEquals(0, writer.transferFrom(reader))
-        assertEquals(0, reader.byteSize())
+        assertEquals(0, reader.bytesAvailable())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<IllegalStateException> {
@@ -373,7 +373,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
             }
         }
         writer.write(reader, 0)
-        assertEquals(0, data.byteSize())
+        assertEquals(0, data.bytesAvailable())
     }
 
     @Test

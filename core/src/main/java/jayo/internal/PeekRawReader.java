@@ -97,7 +97,7 @@ final class PeekRawReader implements RawReader {
             expectedPos = bufferHead.pos;
         }
 
-        final var toCopy = Math.min(byteCount, buffer.byteSize() - pos);
+        final var toCopy = Math.min(byteCount, buffer.bytesAvailable() - pos);
         if ((pos | toCopy) < 0) {
             throw new IllegalStateException("Peek reader is invalid because upstream reader was used");
         }

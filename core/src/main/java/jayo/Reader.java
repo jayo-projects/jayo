@@ -65,8 +65,8 @@ import java.nio.charset.Charset;
  * Methods returning a value as a result are named {@code read<Type>}, like {@link #readInt} or {@link #readByte}.
  * These methods don't consume reader's content in case of an error.
  * <p>
- * Methods reading data into a consumer supplied as one of its arguments are named {@code read*To},
- * like {@link #readTo(RawWriter, long)} or {@link #readAtMostTo(byte[], int, int)}. These methods consume a reader even when
+ * Methods reading data into a consumer supplied as one of its arguments are named {@code read*To}, like$
+ * {@link #readTo(RawWriter, long)} or {@link #readAtMostTo(byte[], int, int)}. These methods consume a reader even when
  * an error occurs.
  * <p>
  * Methods moving all data from a reader to some other writer are named {@code transferTo}, like
@@ -74,13 +74,25 @@ import java.nio.charset.Charset;
  * <p>
  * Kotlin notice : it is recommended to follow the same naming convention for Reader extensions.
  * <p>
- * This buffered reader read operations use the big-endian order. If you need little-endian order, use
- * {@code reverseBytes()}. Jayo provides Kotlin extension functions that support little-endian and unsigned numeric
- * types.
+ * Read methods on numbers use the big-endian order. If you need little-endian order, use <i>reverseBytes()</i>, for
+ * example {@code Short.reverseBytes(reader.readShort())}. Jayo provides Kotlin extension functions that support
+ * little-endian and unsigned numeric types.
  */
 public sealed interface Reader extends RawReader permits Buffer, RealReader {
     /**
-     * The call of this method will block until there are bytes to read or the reader is definitely exhausted.
+     * @return the current number of bytes that can be read (or skipped over) from this reader without blocking, which
+     * may be 0, or 0 when this reader is {@linkplain #exhausted() exhausted}. Ongoing or future blocking operations may
+     * increase the number of available bytes.
+     * <p>
+     * It is never correct to use the return value of this method to allocate a buffer intended to hold all data in this
+     * reader.
+     * @throws IllegalStateException if this reader is closed.
+     */
+    @NonNegative
+    long bytesAvailable();
+
+    /**
+     * The call of this method will block until there are bytes to read or this reader is definitely exhausted.
      *
      * @return true if there are no more bytes in this reader.
      * @throws IllegalStateException if this reader is closed.
@@ -89,6 +101,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
 
     /**
      * Attempts to fill the buffer with at least {@code byteCount} bytes of data from the underlying reader.
+     * <p>
+     * If the buffer already contains required number of bytes then there will be no requests to the underlying reader.
      *
      * @param byteCount the number of bytes that the buffer should contain.
      * @return a boolean value indicating if the requirement was successfully fulfilled. {@code false} indicates that
@@ -140,13 +154,13 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .writeByte(0xff)
      * .writeByte(0x00)
      * .writeByte(0x0f);
-     * assertThat(buffer.byteSize()).isEqualTo(4);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(4);
      *
      * assertThat(buffer.readShort()).isEqualTo(32767);
-     * assertThat(buffer.byteSize()).isEqualTo(2);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(2);
      *
      * assertThat(buffer.readShort()).isEqualTo(15);
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -169,13 +183,13 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .writeByte(0x00)
      * .writeByte(0x00)
      * .writeByte(0x0f);
-     * assertThat(buffer.byteSize()).isEqualTo(8);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(8);
      *
      * assertThat(buffer.readInt()).isEqualTo(2147483647);
-     * assertThat(buffer.byteSize()).isEqualTo(4);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(4);
      *
      * assertThat(buffer.readInt()).isEqualTo(15);
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -206,13 +220,13 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .writeByte(0x00)
      * .writeByte(0x00)
      * .writeByte(0x0f);
-     * assertThat(buffer.byteSize()).isEqualTo(16);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(16);
      *
      * assertThat(buffer.readLong()).isEqualTo(9223372036854775807L);
-     * assertThat(buffer.byteSize()).isEqualTo(8);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(8);
      *
      * assertThat(buffer.readLong()).isEqualTo(15);
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -330,7 +344,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @return the byte string containing all bytes from this reader.
      * @throws IllegalStateException if this reader is closed.
      */
-    @NonNull ByteString readByteString();
+    @NonNull
+    ByteString readByteString();
 
     /**
      * Removes {@code byteCount} bytes from this and returns them as a byte string.
@@ -341,7 +356,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    @NonNull ByteString readByteString(final @NonNegative long byteCount);
+    @NonNull
+    ByteString readByteString(final @NonNegative long byteCount);
 
     /**
      * Removes all UTF-8 bytes from this reader and returns them as a UTF-8 byte string.
@@ -395,10 +411,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .write("Uh uh uh!")
      * .writeByte(' ')
      * .write("You didn't say the magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(40);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(40);
      *
      * assertThat(buffer.readString()).isEqualTo("Uh uh uh! You didn't say the magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      *
      * assertThat(buffer.readString()).isEqualTo("");
      * }
@@ -406,7 +422,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @throws IllegalStateException if this reader is closed.
      */
-    @NonNull String readString();
+    @NonNull
+    String readString();
 
     /**
      * Removes {@code byteCount} bytes from this reader, decodes them as UTF-8, and returns the string.
@@ -416,16 +433,16 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .write("Uh uh uh!")
      * .writeByte(' ')
      * .write("You didn't say the magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(40);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(40);
      *
      * assertThat(buffer.readString(14)).isEqualTo("Uh uh uh! You ");
-     * assertThat(buffer.byteSize()).isEqualTo(26);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(26);
      *
      * assertThat(buffer.readString(14)).isEqualTo("didn't say the");
-     * assertThat(buffer.byteSize()).isEqualTo(12);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(12);
      *
      * assertThat(buffer.readString(12)).isEqualTo(" magic word!");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -434,7 +451,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws JayoEOFException         when this reader is exhausted before reading {@code byteCount} bytes from it.
      * @throws IllegalStateException    if this reader is closed.
      */
-    @NonNull String readString(final @NonNegative long byteCount);
+    @NonNull
+    String readString(final @NonNegative long byteCount);
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break. A line break is
@@ -448,25 +466,26 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .write("I'm a hacker!\n")
      * .write("That's what I said: you're a nerd.\n")
      * .write("I prefer to be called a hacker!\n");
-     * assertThat(buffer.byteSize()).isEqualTo(81);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(81);
      *
      * assertThat(buffer.readLine()).isEqualTo("I'm a hacker!");
-     * assertThat(buffer.byteSize()).isEqualTo(67);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(67);
      *
      * assertThat(buffer.readLine()).isEqualTo("That's what I said: you're a nerd.");
-     * assertThat(buffer.byteSize()).isEqualTo(32);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(32);
      *
      * assertThat(buffer.readLine()).isEqualTo("I prefer to be called a hacker!");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      *
      * assertThat(buffer.readLine()).isNull();
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
      * @throws IllegalStateException if this reader is closed.
      */
-    @Nullable String readLine();
+    @Nullable
+    String readLine();
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
@@ -477,7 +496,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @throws IllegalStateException if this reader is closed.
      */
-    @NonNull String readLineStrict();
+    @NonNull
+    String readLineStrict();
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
@@ -508,7 +528,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException when {@code limit} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    @NonNull String readLineStrict(final @NonNegative long limit);
+    @NonNull
+    String readLineStrict(final @NonNegative long limit);
 
     /**
      * Removes and returns a single UTF-8 code point, reading between 1 and 4 bytes as necessary.
@@ -537,10 +558,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .write("Uh uh uh¡", StandardCharsets.ISO_8859_1)
      * .writeByte(' ')
      * .write("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
-     * assertThat(buffer.byteSize()).isEqualTo(40);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(40);
      *
      * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You didn't say the magic word¡");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      *
      * assertThat(buffer.readString(StandardCharsets.ISO_8859_1)).isEqualTo("");
      * }
@@ -548,7 +569,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @throws IllegalStateException if this reader is closed.
      */
-    @NonNull String readString(final @NonNull Charset charset);
+    @NonNull
+    String readString(final @NonNull Charset charset);
 
     /**
      * Removes {@code byteCount} bytes from this reader, decodes them as {@code charset}, and returns the string.
@@ -558,16 +580,16 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * .write("Uh uh uh¡", StandardCharsets.ISO_8859_1)
      * .writeByte(' ')
      * .write("You didn't say the magic word¡", StandardCharsets.ISO_8859_1);
-     * assertThat(buffer.byteSize()).isEqualTo(40);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(40);
      *
      * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("Uh uh uh¡ You ");
-     * assertThat(buffer.byteSize()).isEqualTo(26);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(26);
      *
      * assertThat(buffer.readString(14, StandardCharsets.ISO_8859_1)).isEqualTo("didn't say the");
-     * assertThat(buffer.byteSize()).isEqualTo(12);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(12);
      *
      * assertThat(buffer.readString(12, StandardCharsets.ISO_8859_1)).isEqualTo(" magic word¡");
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -576,7 +598,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws JayoEOFException         when this reader is exhausted before reading {@code byteCount} bytes from it.
      * @throws IllegalStateException    if this reader is closed.
      */
-    @NonNull String readString(final @NonNegative long byteCount, final @NonNull Charset charset);
+    @NonNull
+    String readString(final @NonNegative long byteCount, final @NonNull Charset charset);
 
     /**
      * Removes up to {@code writer.length} bytes from this reader and copies them into {@code writer}.
@@ -590,11 +613,12 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     /**
      * Removes up to {@code byteCount} bytes from this reader and copies them into {@code writer} at {@code offset}.
      *
-     * @param writer      the byte array to which data will be written from this reader.
+     * @param writer    the byte array to which data will be written from this reader.
      * @param offset    the start offset (inclusive) in the {@code writer} of the first byte to copy.
      * @param byteCount the number of bytes to copy.
      * @return the number of bytes read, or -1 if this reader is exhausted.
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code writer} indices.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code writer}
+     *                                   indices.
      * @throws IllegalStateException     if this reader is closed.
      */
     int readAtMostTo(final byte @NonNull [] writer, final @NonNegative int offset, final @NonNegative int byteCount);
@@ -611,10 +635,11 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     /**
      * Removes exactly {@code byteCount} bytes from this reader and copies them into {@code writer} at {@code offset}.
      *
-     * @param writer      the byte array to which data will be written from this reader.
+     * @param writer    the byte array to which data will be written from this reader.
      * @param offset    the start offset (inclusive) in the {@code writer} of the first byte to copy.
      * @param byteCount the number of bytes to copy.
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code writer} indices.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code writer}
+     *                                   indices.
      * @throws JayoEOFException          if {@code byteCount} bytes cannot be read.
      * @throws IllegalStateException     if this reader is closed.
      */
@@ -623,7 +648,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     /**
      * Removes exactly {@code byteCount} bytes from this and appends them to {@code writer}.
      *
-     * @param writer      the writer to which data will be written from this reader.
+     * @param writer    the writer to which data will be written from this reader.
      * @param byteCount the number of bytes to copy.
      * @throws JayoEOFException      if {@code byteCount} bytes cannot be read.
      * @throws IllegalStateException if this reader or {@code writer} is closed.
@@ -867,12 +892,14 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @throws IllegalStateException if this reader is closed.
      */
-    @NonNull Reader peek();
+    @NonNull
+    Reader peek();
 
     /**
      * Returns a new input stream that reads from this reader. Closing the stream will also close this reader.
      */
-    @NonNull InputStream asInputStream();
+    @NonNull
+    InputStream asInputStream();
 
     /**
      * Consumes up to {@link ByteBuffer#remaining} bytes from this reader and writes them to {@code writer} byte buffer.
@@ -886,5 +913,6 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * Returns a new readable byte channel that reads from this reader. Closing the byte channel will also close this
      * reader.
      */
-    @NonNull ReadableByteChannel asReadableByteChannel();
+    @NonNull
+    ReadableByteChannel asReadableByteChannel();
 }

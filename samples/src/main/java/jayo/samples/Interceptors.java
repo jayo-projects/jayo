@@ -80,7 +80,7 @@ public final class Interceptors {
         transmit.write("This is not really a secure message");
         System.out.println("Transmit : " + transmit);
 
-        writer.write(transmit, transmit.byteSize());
+        writer.write(transmit, transmit.bytesAvailable());
         System.out.println("Wire     : " + wire);
 
         Buffer receive = Buffer.create();
@@ -113,7 +113,7 @@ public final class Interceptors {
             writer.readUnsafe(cursor);
             try {
                 long remaining = result;
-                for (int length = cursor.seek(writer.byteSize() - result);
+                for (int length = cursor.seek(writer.bytesAvailable() - result);
                      remaining > 0 && length > 0;
                      length = cursor.next()) {
                     int toIntercept = (int) Math.min(length, remaining);
@@ -147,8 +147,8 @@ public final class Interceptors {
         @Override
         public void write(@NonNull Buffer reader, long byteCount) {
             if (byteCount < 0) throw new IllegalArgumentException("byteCount < 0: " + byteCount);
-            if (reader.byteSize() < byteCount) {
-                throw new IllegalArgumentException("size=" + reader.byteSize() + " byteCount=" + byteCount);
+            if (reader.bytesAvailable() < byteCount) {
+                throw new IllegalArgumentException("size=" + reader.bytesAvailable() + " byteCount=" + byteCount);
             }
             if (byteCount == 0) return;
 

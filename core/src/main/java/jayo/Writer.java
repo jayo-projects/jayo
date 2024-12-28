@@ -66,9 +66,9 @@ import java.nio.charset.Charset;
  * <p>
  * Kotlin notice : It is recommended to follow the same naming convention for Writer extensions.
  * <p>
- * This buffered writer write operations use the big-endian order. If you need little-endian order, use
- * {@code reverseBytes()}. Jayo provides Kotlin extension functions that support little-endian and unsigned numeric
- * types.
+ * Write methods on numbers use the big-endian order. If you need little-endian order, use <i>reverseBytes()</i>, for
+ * example {@code writer.writeShort(Short.reverseBytes(myShortValue))}. Jayo provides Kotlin extension functions that
+ * support little-endian and unsigned numeric types.
  */
 public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     /**
@@ -269,12 +269,12 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * buffer.writeShort(32767);
      * buffer.writeShort(15);
      *
-     * assertThat(buffer.byteSize()).isEqualTo(4);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(4);
      * assertThat(buffer.readByte()).isEqualTo(0x7f);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x0f);
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -293,7 +293,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * buffer.writeInt(2147483647);
      * buffer.writeInt(15);
      *
-     * assertThat(buffer.byteSize()).isEqualTo(8);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(8);
      * assertThat(buffer.readByte()).isEqualTo(0x7f);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
@@ -302,7 +302,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x0f);
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -321,7 +321,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * buffer.writeLong(9223372036854775807L);
      * buffer.writeLong(15);
      *
-     * assertThat(buffer.byteSize()).isEqualTo(16);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(16);
      * assertThat(buffer.readByte()).isEqualTo(0x7f);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
      * assertThat(buffer.readByte()).isEqualTo(0xff);
@@ -338,7 +338,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x00);
      * assertThat(buffer.readByte()).isEqualTo(0x0f);
-     * assertThat(buffer.byteSize()).isEqualTo(0);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
      * }
      * </pre>
      *
@@ -519,13 +519,14 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     Writer emitCompleteSegments();
 
     /**
-     * Returns an output stream that writes to this writer. Closing the stream will also close this writer.
+     * @return an output stream that writes to this writer. Closing the stream will also close this writer.
      */
     @NonNull
     OutputStream asOutputStream();
 
     /**
-     * Returns a new writable byte channel that writes to this writer. Closing the byte channel will also close this writer.
+     * @return a new writable byte channel that writes to this writer. Closing the byte channel will also close this
+     * writer.
      */
     @NonNull
     WritableByteChannel asWritableByteChannel();

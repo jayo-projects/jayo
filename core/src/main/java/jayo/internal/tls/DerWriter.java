@@ -102,7 +102,7 @@ final class DerWriter {
         }
 
         // Write the length. This takes 1 byte if length is less than 128.
-        final var length = content.byteSize();
+        final var length = content.bytesAvailable();
         if (length < 128L) {
             _writer.writeByte((byte) length);
         } else {

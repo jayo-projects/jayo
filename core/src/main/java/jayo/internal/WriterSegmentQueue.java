@@ -57,7 +57,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
     }
 
     void emit(final boolean flush) {
-        final var byteCount = buffer.byteSize();
+        final var byteCount = buffer.bytesAvailable();
         if (byteCount > 0L) {
             writer.write(buffer, byteCount);
         }
@@ -75,7 +75,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         // otherwise we risk leaking resources.
         Throwable thrown = null;
         try {
-            final var size = buffer.byteSize();
+            final var size = buffer.bytesAvailable();
             if (size > 0) {
                 writer.write(buffer, size);
             }
@@ -94,7 +94,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         }
 
         // clear buffer in case the previous write operation could not write all remaining data from the buffer
-        final var size = buffer.byteSize();
+        final var size = buffer.bytesAvailable();
         if (size > 0) {
             buffer.clear();
         }

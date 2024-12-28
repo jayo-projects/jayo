@@ -152,7 +152,7 @@ public final class RealTlsEndpoint {
 
             // the decrypted buffer may already have available data
             suppliedDecryptedBuffer = _writer;
-            bytesToReturn = (int) decryptedBuffer.byteSize();
+            bytesToReturn = (int) decryptedBuffer.bytesAvailable();
 
             while (true) {
                 if (bytesToReturn > 0) {
@@ -309,7 +309,7 @@ public final class RealTlsEndpoint {
                 // 22: TLS handshake record
                 isTls = encryptedReaderBuffer.getByte(0L) == 22;
                 if (!isTls) {
-                    return (int) encryptedReaderBuffer.byteSize();
+                    return (int) encryptedReaderBuffer.bytesAvailable();
                 }
             }
 
@@ -333,11 +333,11 @@ public final class RealTlsEndpoint {
             }
 
             // Non TLS
-            if (!encryptedReader.request((int) (encryptedReaderBuffer.byteSize() + 1))) {
+            if (!encryptedReader.request((int) (encryptedReaderBuffer.bytesAvailable() + 1))) {
                 throw new TlsEOFException();
             }
 
-            return (int) encryptedReaderBuffer.byteSize();
+            return (int) encryptedReaderBuffer.bytesAvailable();
         } catch (JayoEOFException e) {
             throw new TlsEOFException();
         }
@@ -347,7 +347,7 @@ public final class RealTlsEndpoint {
 
     void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
         Objects.requireNonNull(reader);
-        checkOffsetAndCount(reader.byteSize(), 0L, byteCount);
+        checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
 
         if (!(reader instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");

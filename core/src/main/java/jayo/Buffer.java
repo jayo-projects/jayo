@@ -55,14 +55,15 @@ import java.nio.charset.Charset;
  * requested array before returning it to you. Even if you're going to write over that space anyway. This class avoids
  * zero-fill and GC churn by pooling byte arrays.
  * </ul>
- * This buffer write and read operations on numbers use the big-endian order. If you need little-endian order, use
- * <i>reverseBytes()</i>, for example {@code Short.reverseBytes(buffer.readShort())}. Jayo provides Kotlin extension
- * functions that support little-endian and unsigned numbers.
+ * Read and write methods on numbers use the big-endian order. If you need little-endian order, use
+ * <i>reverseBytes()</i>, for example {@code Short.reverseBytes(buffer.readShort())} and
+ * {@code buffer.writeShort(Short.reverseBytes(myShortValue))}. Jayo provides Kotlin extension functions that support
+ * little-endian and unsigned numbers.
  * <p>
  * Please read {@link UnsafeCursor} javadoc for a detailed description of how a buffer works.
  *
- * @implNote {@link Buffer} implements both {@link Reader} and {@link Writer} and could be used as a reader or a
- * writer, but unlike regular writers and readers its {@link #close}, {@link #flush}, {@link #emit},
+ * @implNote {@link Buffer} implements both {@link Reader} and {@link Writer} and could be used as a reader or a writer,
+ * but unlike regular writers and readers its {@link #close}, {@link #flush}, {@link #emit},
  * {@link #emitCompleteSegments()} does not affect buffer's state and {@link #exhausted} only indicates that a buffer is
  * empty.
  */
@@ -75,10 +76,12 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     }
 
     /**
-     * @return the number of bytes accessible for read from this buffer.
+     * @return the current number of bytes that can be read (or skipped over) from this buffer, which may be 0. Ongoing
+     * or future write operations may increase the number of available bytes.
      */
+    @Override
     @NonNegative
-    long byteSize();
+    long bytesAvailable();
 
     /**
      * This method does not affect this buffer's content as there is no upstream to write data to.
@@ -117,7 +120,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param offset the start offset (inclusive) in this buffer of the first byte to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} is out of this buffer bounds
-     *                                   ({@code [0..buffer.byteSize())}).
+     *                                   ({@code [0..buffer.bytesAvailable())}).
      */
     @NonNull
     Buffer copyTo(final @NonNull OutputStream out, final @NonNegative long offset);
@@ -131,7 +134,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param byteCount the number of bytes to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of this buffer bounds
-     *                                   ({@code [0..buffer.byteSize())}).
+     *                                   ({@code [0..buffer.bytesAvailable())}).
      */
     @NonNull
     Buffer copyTo(final @NonNull OutputStream out,
@@ -154,7 +157,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param offset the start offset (inclusive) in this buffer of the first byte to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} is out of this buffer bounds
-     *                                   ({@code [0..buffer.byteSize())}).
+     *                                   ({@code [0..buffer.bytesAvailable())}).
      */
     @NonNull
     Buffer copyTo(final @NonNull Buffer out, final @NonNegative long offset);
@@ -168,7 +171,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @param byteCount the number of bytes to copy.
      * @return {@code this}
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of this buffer bounds
-     *                                   ({@code [0..buffer.byteSize())}).
+     *                                   ({@code [0..buffer.bytesAvailable())}).
      */
     @NonNull
     Buffer copyTo(final @NonNull Buffer out,
@@ -229,15 +232,16 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <p>
      * Use of this method may expose significant performance penalties, and it's not recommended to use it for
      * sequential access to a range of bytes within the buffer.
-     * @throws IndexOutOfBoundsException if {@code position} is negative or greater or equal to {@link #byteSize()}.
+     * @throws IndexOutOfBoundsException if {@code position} is negative or greater or equal to
+     * {@link #bytesAvailable()}.
      */
     byte getByte(final @NonNegative long pos);
 
     /**
      * Discards all bytes in this buffer.
      * <p>
-     * Call to this method is equivalent to {@link #skip(long)} with {@code byteCount = buffer.byteSize()}, call this
-     * method when you're done with a buffer, its segments will return to the pool.
+     * Call to this method is equivalent to {@link #skip(long)} with {@code byteCount = buffer.bytesAvailable()}, call
+     * this method when you're done with a buffer, its segments will return to the pool.
      */
     void clear();
 
@@ -394,7 +398,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     /**
      * @return a byte string containing a copy of the first {@code byteCount} bytes of this buffer. This method does not
      * consume data from this buffer.
-     * @throws IndexOutOfBoundsException if {@code byteCount > buffer.byteSize()}.
+     * @throws IndexOutOfBoundsException if {@code byteCount > buffer.bytesAvailable()}.
      * @apiNote A {@link ByteString} is immutable
      */
     @NonNull
@@ -568,7 +572,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <p>
      * This class exposes privileged access to the internal byte arrays of a buffer. A cursor either references the
      * data of a single segment, it is before the first segment ({@code offset == -1}), or it is after the last segment
-     * ({@code offset == buffer.byteSize()}).
+     * ({@code offset == buffer.bytesAvailable()}).
      * <p>
      * Call {@link UnsafeCursor#seek(long)} to move the cursor to the segment that contains a specified offset.
      * After seeking, {@link UnsafeCursor#data} references the segment's internal byte array, {@link UnsafeCursor#pos}

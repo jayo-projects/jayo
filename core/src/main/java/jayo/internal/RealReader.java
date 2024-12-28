@@ -371,6 +371,14 @@ public final class RealReader implements Reader {
     }
 
     @Override
+    public long bytesAvailable() {
+        if (segmentQueue.closed) {
+            throw new IllegalStateException("closed");
+        }
+        return segmentQueue.size();
+    }
+
+    @Override
     public boolean exhausted() {
         if (segmentQueue.closed) {
             throw new IllegalStateException("closed");

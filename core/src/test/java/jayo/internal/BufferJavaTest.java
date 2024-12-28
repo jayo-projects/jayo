@@ -50,13 +50,13 @@ public class BufferJavaTest {
     void readAndWriteUtf8() {
         Buffer buffer = new RealBuffer();
         buffer.write("ab");
-        assertEquals(2, buffer.byteSize());
+        assertEquals(2, buffer.bytesAvailable());
         buffer.write("cdëf");
-        assertEquals(7, buffer.byteSize());
+        assertEquals(7, buffer.bytesAvailable());
         assertEquals("abcd", buffer.readString(4));
-        assertEquals(3, buffer.byteSize());
+        assertEquals(3, buffer.bytesAvailable());
         assertEquals("ëf", buffer.readString(3));
-        assertEquals(0, buffer.byteSize());
+        assertEquals(0, buffer.bytesAvailable());
         assertThrows(JayoEOFException.class, () -> buffer.readString(1));
     }
 
@@ -97,7 +97,7 @@ public class BufferJavaTest {
         assertEquals("c" + repeat("d", 10000) + "e", buffer.readString(10002)); // cd...de
         assertEquals(repeat("e", 24998), buffer.readString(24998)); // e...e
         assertEquals("e" + repeat("f", 50000), buffer.readString(50001)); // ef...f
-        assertEquals(0, buffer.byteSize());
+        assertEquals(0, buffer.bytesAvailable());
     }
 
     @Test
@@ -183,8 +183,8 @@ public class BufferJavaTest {
 
         assertEquals(List.of(30), JayoTestingKt.segmentSizes(writer));
         assertEquals(asList(Segment.SIZE - 20, Segment.SIZE), JayoTestingKt.segmentSizes(reader));
-        assertEquals(30, writer.byteSize());
-        assertEquals(Segment.SIZE * 2L - 20, reader.byteSize());
+        assertEquals(30, writer.bytesAvailable());
+        assertEquals(Segment.SIZE * 2L - 20, reader.bytesAvailable());
     }
 
     @Test
@@ -199,8 +199,8 @@ public class BufferJavaTest {
 
         assertEquals(List.of(30), JayoTestingKt.segmentSizes(writer));
         assertEquals(asList(Segment.SIZE - 20, Segment.SIZE), JayoTestingKt.segmentSizes(reader));
-        assertEquals(30L, writer.byteSize());
-        assertEquals(Segment.SIZE * 2L - 20, reader.byteSize());
+        assertEquals(30L, writer.bytesAvailable());
+        assertEquals(Segment.SIZE * 2L - 20, reader.bytesAvailable());
     }
 
     @Test
@@ -241,7 +241,7 @@ public class BufferJavaTest {
 
         assertEquals(repeat("a", Segment.SIZE * 2 - 10) + repeat("b", Segment.SIZE + 10),
                 out.toString());
-        assertEquals(repeat("b", Segment.SIZE - 10), buffer.readString(buffer.byteSize()));
+        assertEquals(repeat("b", Segment.SIZE - 10), buffer.readString(buffer.bytesAvailable()));
     }
 
     @Test
@@ -251,7 +251,7 @@ public class BufferJavaTest {
         buffer.readTo(out);
         String outString = out.toString(UTF_8);
         assertEquals("hello, world!", outString);
-        assertEquals(0L, buffer.byteSize());
+        assertEquals(0L, buffer.bytesAvailable());
     }
 
     @Test
@@ -297,8 +297,8 @@ public class BufferJavaTest {
         reader.write(repeat("b", 15));
 
         assertEquals(10, reader.readAtMostTo(writer, 10));
-        assertEquals(20, writer.byteSize());
-        assertEquals(5, reader.byteSize());
+        assertEquals(20, writer.bytesAvailable());
+        assertEquals(5, reader.bytesAvailable());
         assertEquals(repeat("a", 10) + repeat("b", 10), writer.readString(20));
     }
 
@@ -311,8 +311,8 @@ public class BufferJavaTest {
         reader.write(repeat("b", 20));
 
         assertEquals(20, reader.readAtMostTo(writer, 25));
-        assertEquals(30, writer.byteSize());
-        assertEquals(0, reader.byteSize());
+        assertEquals(30, writer.bytesAvailable());
+        assertEquals(0, reader.bytesAvailable());
         assertEquals(repeat("a", 10) + repeat("b", 20), writer.readString(30));
     }
 
@@ -342,9 +342,9 @@ public class BufferJavaTest {
         buffer.write("c");
         assertEquals('a', buffer.getByte(0));
         assertEquals('a', buffer.getByte(0)); // getByte doesn't mutate!
-        assertEquals('c', buffer.getByte(buffer.byteSize() - 1));
-        assertEquals('b', buffer.getByte(buffer.byteSize() - 2));
-        assertEquals('b', buffer.getByte(buffer.byteSize() - 3));
+        assertEquals('c', buffer.getByte(buffer.bytesAvailable() - 1));
+        assertEquals('b', buffer.getByte(buffer.bytesAvailable() - 2));
+        assertEquals('b', buffer.getByte(buffer.bytesAvailable() - 3));
     }
 
     @Test
@@ -370,7 +370,7 @@ public class BufferJavaTest {
         Buffer original = new RealBuffer();
         Buffer clone = original.clone();
         original.write("abc");
-        assertEquals(0, clone.byteSize());
+        assertEquals(0, clone.bytesAvailable());
     }
 
     @Test
@@ -379,7 +379,7 @@ public class BufferJavaTest {
         original.write("abc");
         Buffer clone = original.clone();
         assertEquals("abc", original.readString(3));
-        assertEquals(3, clone.byteSize());
+        assertEquals(3, clone.bytesAvailable());
         assertEquals("ab", clone.readString(2));
     }
 
@@ -388,7 +388,7 @@ public class BufferJavaTest {
         Buffer original = new RealBuffer();
         Buffer clone = original.clone();
         clone.write("abc");
-        assertEquals(0, original.byteSize());
+        assertEquals(0, original.bytesAvailable());
     }
 
     @Test
@@ -397,7 +397,7 @@ public class BufferJavaTest {
         original.write("abc");
         Buffer clone = original.clone();
         assertEquals("abc", clone.readString(3));
-        assertEquals(3, original.byteSize());
+        assertEquals(3, original.bytesAvailable());
         assertEquals("ab", original.readString(2));
     }
 
@@ -465,8 +465,8 @@ public class BufferJavaTest {
         MockWriter mockWriter = new MockWriter();
 
         assertEquals(Segment.SIZE * 3L, reader.transferTo(mockWriter));
-        assertEquals(0, reader.byteSize());
-        mockWriter.assertLog("write(" + write1 + ", " + write1.byteSize() + ")");
+        assertEquals(0, reader.bytesAvailable());
+        mockWriter.assertLog("write(" + write1 + ", " + write1.bytesAvailable() + ")");
     }
 
     @Test
@@ -475,7 +475,7 @@ public class BufferJavaTest {
         Buffer writer = new RealBuffer();
 
         assertEquals(Segment.SIZE * 3L, writer.transferFrom(reader));
-        assertEquals(0, reader.byteSize());
+        assertEquals(0, reader.bytesAvailable());
         assertEquals(repeat("a", Segment.SIZE * 3), writer.readString());
     }
 
@@ -538,7 +538,7 @@ public class BufferJavaTest {
         reader.write(as);
         reader.write(bs);
 
-        reader.copyTo(reader, 0, reader.byteSize());
+        reader.copyTo(reader, 0, reader.bytesAvailable());
         assertEquals(as + bs + as + bs, reader.readString());
     }
 

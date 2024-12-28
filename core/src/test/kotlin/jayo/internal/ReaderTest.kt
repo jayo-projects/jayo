@@ -418,7 +418,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         val writer = RealBuffer()
         writer.write("a".repeat(10))
         assertEquals(-1, reader.readAtMostTo(writer, 10))
-        assertEquals(10, writer.byteSize())
+        assertEquals(10, writer.bytesAvailable())
         assertTrue(reader.exhausted())
 
         if (reader is RealReader) {
@@ -437,7 +437,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         // Either 0 or -1 is reasonable here. For consistency with Android's
         // ByteArrayInputStream we return 0.
         assertEquals(-1, reader.readAtMostTo(writer, 0))
-        assertEquals(10, writer.byteSize())
+        assertEquals(10, writer.bytesAvailable())
         assertTrue(reader.exhausted())
     }
 
@@ -543,7 +543,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.flush()
         val writer = RealBuffer()
         reader.readTo(writer, 0)
-        assertEquals(0, writer.byteSize())
+        assertEquals(0, writer.bytesAvailable())
         assertEquals("test", reader.readString())
     }
 
@@ -554,7 +554,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         data.write("e".repeat(Segment.SIZE))
 
         val expected = data.copy().readByteArray()
-        writer.write(data, data.byteSize())
+        writer.write(data, data.bytesAvailable())
         writer.emit()
 
         val writer = ByteArray(Segment.SIZE + 5)
@@ -1376,7 +1376,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         reader.transferTo(discardingWriter())
 
         // Skip the rest of the buffered data
-        peek.skip(getBufferFromReader(peek).byteSize())
+        peek.skip(getBufferFromReader(peek).bytesAvailable())
         assertFailsWith<RuntimeException> {
             peek.readByte()
         }
@@ -1395,20 +1395,20 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         // Read 3 bytes. This reads some of the buffered data.
         assertTrue(peek.request(3))
-        assertThat(getBufferFromReader(reader).byteSize()).isGreaterThanOrEqualTo(6L)
-        assertThat(getBufferFromReader(reader).byteSize()).isGreaterThanOrEqualTo(6L)
+        assertThat(getBufferFromReader(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
+        assertThat(getBufferFromReader(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
         assertEquals("abc", peek.readString(3L))
 
         // Read 3 more bytes. This exhausts the buffered data.
         assertTrue(peek.request(3))
-        assertThat(getBufferFromReader(reader).byteSize()).isGreaterThanOrEqualTo(6L)
-        assertThat(getBufferFromReader(peek).byteSize()).isGreaterThanOrEqualTo(3L)
+        assertThat(getBufferFromReader(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
+        assertThat(getBufferFromReader(peek).bytesAvailable()).isGreaterThanOrEqualTo(3L)
         assertEquals("def", peek.readString(3L))
 
         // Read 3 more bytes. This draws new bytes.
         assertTrue(peek.request(3))
-        assertEquals(9, getBufferFromReader(reader).byteSize())
-        assertEquals(3, getBufferFromReader(peek).byteSize())
+        assertEquals(9, getBufferFromReader(reader).bytesAvailable())
+        assertEquals(3, getBufferFromReader(peek).bytesAvailable())
         assertEquals("ghi", peek.readString(3L))
     }
 

@@ -35,7 +35,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
     @Override
     public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
         Objects.requireNonNull(reader);
-        checkOffsetAndCount(reader.byteSize(), 0L, byteCount);
+        checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
         if (!(reader instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
@@ -54,7 +54,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "WritableByteChannelRawWriter: Start writing {0} bytes from " +
                             "Buffer(SegmentQueue#{1}; size={2}) to the WritableByteChannel{3}",
-                    byteCount, _reader.segmentQueue.hashCode(), _reader.byteSize(), System.lineSeparator());
+                    byteCount, _reader.segmentQueue.hashCode(), _reader.bytesAvailable(), System.lineSeparator());
         }
 
         var remaining = byteCount;

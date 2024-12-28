@@ -137,7 +137,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
         reader.readOrInflateAtMostTo(inflated, 1)
         reader.close()
         assertEquals("G", inflated.readString())
-        assertEquals(0, inflated.byteSize())
+        assertEquals(0, inflated.bytesAvailable())
     }
 
     @Test
@@ -148,7 +148,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
         reader.readAtMostTo(inflated, 11)
         reader.close()
         assertEquals("God help us", inflated.readString())
-        assertEquals(0, inflated.byteSize())
+        assertEquals(0, inflated.bytesAvailable())
     }
 
     @Test
