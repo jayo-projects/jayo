@@ -668,7 +668,7 @@ public final class RealBuffer implements Buffer {
                     SegmentPool.recycle(oldHead);
                 }
             } else {
-                final var toRead = (int) (offset - byteCount);
+                final var toRead = (int) (segmentSize - (offset - byteCount));
                 head.pos += toRead;
                 segmentQueue.decrementSize(toRead);
             }

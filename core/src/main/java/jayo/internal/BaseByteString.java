@@ -87,9 +87,6 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     @Override
     public @NonNull String decodeToString(final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
-        if (charset.equals(StandardCharsets.UTF_8)) {
-            return decodeToString();
-        }
 
         if (charset.equals(StandardCharsets.ISO_8859_1) && ALLOW_COMPACT_STRING) {
             return noCopyStringFromLatin1Bytes(internalArray());
