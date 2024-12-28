@@ -94,7 +94,12 @@ final class TlsUtils {
                 keyStore.setKeyEntry("private", heldCertificate.getKeyPair().getPrivate(), password, chain);
             }
 
-            factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            // https://github.com/bcgit/bc-java/issues/1160
+            final var algorithm = switch (keyStore.getProvider().getName()) {
+                case "BC", "BCFIPS" -> "PKIX";
+                default -> KeyManagerFactory.getDefaultAlgorithm();
+            };
+            factory = KeyManagerFactory.getInstance(algorithm);
             factory.init(keyStore, password);
         } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
             throw new IllegalStateException(e);
