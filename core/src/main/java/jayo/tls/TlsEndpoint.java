@@ -268,7 +268,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
          * as possible.
          */
         @NonNull
-        T sessionInitCallback(final @NonNull Consumer<SSLSession> sessionInitCallback);
+        T sessionInitCallback(final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback);
 
         /**
          * Whether to wait for TLS close confirmation when calling {@code close()} on this TLS endpoint or its
