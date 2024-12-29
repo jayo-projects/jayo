@@ -41,7 +41,7 @@ public final class GoldenValue {
         assertEquals(point, decoded);
     }
 
-    private static ByteString serialize(final Object o) throws IOException {
+    private static ByteString serialize(Object o) throws IOException {
         Buffer buffer = Buffer.create();
         try (ObjectOutputStream objectOut = new ObjectOutputStream(buffer.asOutputStream())) {
             objectOut.writeObject(o);
@@ -49,28 +49,25 @@ public final class GoldenValue {
         return buffer.readByteString();
     }
 
-    private static Object deserialize(final ByteString byteString) throws IOException, ClassNotFoundException {
+    private static Object deserialize(ByteString byteString) throws IOException, ClassNotFoundException {
         Buffer buffer = Buffer.create();
         buffer.write(byteString);
         try (final var objectIn = new ObjectInputStream(buffer.asInputStream())) {
             Object result = objectIn.readObject();
-            if (objectIn.read() != -1) throw new IOException("Unconsumed bytes in stream");
+            if (objectIn.read() != -1) {
+                throw new IOException("Unconsumed bytes in stream");
+            }
             return result;
         }
     }
 
-    public static final class Point implements Serializable {
-        double x;
-        double y;
-
-        Point(double x, double y) {
-            this.x = x;
-            this.y = y;
-        }
+    public record Point(double x, double y) implements Serializable {
     }
 
     private void assertEquals(Point a, Point b) {
-        if (a.x != b.x || a.y != b.y) throw new AssertionError();
+        if (a.x != b.x || a.y != b.y) {
+            throw new AssertionError();
+        }
     }
 
     public static void main(String... args) throws Exception {

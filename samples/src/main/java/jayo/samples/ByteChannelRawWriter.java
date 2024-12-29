@@ -38,19 +38,22 @@ import java.nio.channels.WritableByteChannel;
  * {@link ByteBuffer#wrap(byte[], int, int) ByteBuffer.wrap()} along with access to Buffer segments,
  * a WritableByteChannel can be given direct access to Buffer data without having to copy the data.
  */
-final class ByteChannelRawWriter implements RawWriter {
+public final class ByteChannelRawWriter implements RawWriter {
     private final WritableByteChannel channel;
-
     private final Buffer.UnsafeCursor cursor = Buffer.UnsafeCursor.create();
 
-    ByteChannelRawWriter(WritableByteChannel channel) {
+    public ByteChannelRawWriter(WritableByteChannel channel) {
         this.channel = channel;
     }
 
     @Override
-    public void write(@NonNull final Buffer reader, final long byteCount) {
-        if (!channel.isOpen()) throw new IllegalStateException("closed");
-        if (byteCount == 0) return;
+    public void write(@NonNull Buffer reader, long byteCount) {
+        if (!channel.isOpen()) {
+            throw new IllegalStateException("closed");
+        }
+        if (byteCount == 0) {
+            return;
+        }
 
         CancelToken cancelToken = CancelToken.getCancelToken();
 

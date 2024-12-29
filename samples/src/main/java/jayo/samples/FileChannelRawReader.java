@@ -34,18 +34,17 @@ import java.nio.channels.WritableByteChannel;
  * Special Reader for a FileChannel to take advantage of the
  * {@link FileChannel#transferTo(long, long, WritableByteChannel) transfer} method available.
  */
-final class FileChannelRawReader implements RawReader {
+public final class FileChannelRawReader implements RawReader {
     private final FileChannel channel;
-
     private long position;
 
-    FileChannelRawReader(FileChannel channel) throws IOException {
+    public FileChannelRawReader(FileChannel channel) throws IOException {
         this.channel = channel;
         this.position = channel.position();
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
+    public long readAtMostTo(@NonNull Buffer writer, long byteCount) {
         if (!channel.isOpen()) {
             throw new IllegalStateException("closed");
         }

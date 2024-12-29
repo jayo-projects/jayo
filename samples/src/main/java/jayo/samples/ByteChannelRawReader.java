@@ -38,20 +38,21 @@ import java.nio.channels.ReadableByteChannel;
  * {@link ByteBuffer#wrap(byte[], int, int) ByteBuffer.wrap()} along with access to Buffer segments,
  * a ReadableByteChannel can be given direct access to Buffer data without having to copy the data.
  */
-final class ByteChannelRawReader implements RawReader {
+public final class ByteChannelRawReader implements RawReader {
     private final ReadableByteChannel channel;
-
     private final Buffer.UnsafeCursor cursor = Buffer.UnsafeCursor.create();
 
-    ByteChannelRawReader(ReadableByteChannel channel) {
+    public ByteChannelRawReader(ReadableByteChannel channel) {
         this.channel = channel;
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
-        if (!channel.isOpen()) throw new IllegalStateException("closed");
+    public long readAtMostTo(@NonNull Buffer writer, long byteCount) {
+        if (!channel.isOpen()) {
+            throw new IllegalStateException("closed");
+        }
 
-        final var cancelToken = CancelToken.getCancelToken();
+        CancelToken cancelToken = CancelToken.getCancelToken();
 
         try (Buffer.UnsafeCursor ignored = writer.readAndWriteUnsafe(cursor)) {
             CancelToken.throwIfReached(cancelToken);

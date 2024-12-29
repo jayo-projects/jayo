@@ -34,12 +34,11 @@ import java.nio.channels.ReadableByteChannel;
  * Special Writer for a FileChannel to take advantage of the
  * {@link FileChannel#transferFrom(ReadableByteChannel, long, long) transfer} method available.
  */
-final class FileChannelRawWriter implements RawWriter {
+public final class FileChannelRawWriter implements RawWriter {
     private final FileChannel channel;
-
     private long position;
 
-    FileChannelRawWriter(FileChannel channel) throws IOException {
+    public FileChannelRawWriter(FileChannel channel) throws IOException {
         this.channel = channel;
         this.position = channel.position();
     }
@@ -65,7 +64,7 @@ final class FileChannelRawWriter implements RawWriter {
     @Override
     public void flush() {
         try {
-            // Cannot alter meta data through this Writer
+            // Cannot alter metadata through this Writer
             channel.force(false);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
