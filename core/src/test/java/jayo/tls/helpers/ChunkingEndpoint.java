@@ -14,6 +14,7 @@ import jayo.Buffer;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.endpoints.Endpoint;
+import org.jspecify.annotations.NonNull;
 
 public class ChunkingEndpoint implements Endpoint {
     private final Endpoint wrapped;
@@ -25,12 +26,12 @@ public class ChunkingEndpoint implements Endpoint {
     }
 
     @Override
-    public RawReader getReader() {
+    public @NonNull RawReader getReader() {
         final var reader = wrapped.getReader();
 
         return new RawReader() {
             @Override
-            public long readAtMostTo(Buffer writer, long byteCount) {
+            public long readAtMostTo(@NonNull Buffer writer, long byteCount) {
                 final var readSize = Math.min(chunkSize, byteCount);
                 return reader.readAtMostTo(writer, readSize);
             }
@@ -43,12 +44,12 @@ public class ChunkingEndpoint implements Endpoint {
     }
 
     @Override
-    public RawWriter getWriter() {
+    public @NonNull RawWriter getWriter() {
         final var writer = wrapped.getWriter();
 
         return new RawWriter() {
             @Override
-            public void write(Buffer reader, long byteCount) {
+            public void write(@NonNull Buffer reader, long byteCount) {
                 var remaining = byteCount;
                 while (remaining > 0L) {
                     final var writeSize = Math.min(chunkSize, remaining);
@@ -75,7 +76,7 @@ public class ChunkingEndpoint implements Endpoint {
     }
 
     @Override
-    public Endpoint getUnderlying() {
+    public @NonNull Endpoint getUnderlying() {
         return wrapped;
     }
 }
