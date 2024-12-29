@@ -10,12 +10,8 @@
 
 package jayo.tls;
 
-import jayo.Cancellable;
-import jayo.Jayo;
-import jayo.Reader;
-import jayo.Writer;
+import jayo.*;
 import jayo.endpoints.JayoClosedEndpointException;
-import jayo.JayoTimeoutException;
 import jayo.tls.helpers.SocketGroups.SocketGroup;
 import jayo.tls.helpers.SocketGroups.SocketPair;
 import jayo.tls.helpers.SocketPairFactory;
@@ -381,9 +377,8 @@ public class CloseTest {
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedEndpointException.class);
             // wait 100ms for second close_notify, JayoTimeoutException proves it would hang forever
             assertThatThrownBy(() ->
-                    Cancellable.withTimeout(Duration.ofMillis(100), _unused -> {
-                        clientGroup.tls.shutdown();
-                    })
+                    Cancellable
+                            .runWithTimeout(Duration.ofMillis(100), _unused -> clientGroup.tls.shutdown())
             ).isInstanceOf(JayoTimeoutException.class);
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {

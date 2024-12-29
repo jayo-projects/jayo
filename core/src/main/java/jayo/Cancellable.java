@@ -15,8 +15,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * This class allows to build <b>cancellable code blocks</b> via various utility methods for the most frequent
- * use-cases ({@link #withTimeout}, {@link #withCancellable}).
+ * This class allows to build <b>cancellable code blocks</b> with various utility methods for the most frequent
+ * use-cases like {@link #callWithTimeout}.
  * <p>
  * For advanced cancellable configuration, or of you need a cancellable instance that you can reuse to build multiple
  * cancellable code blocks with the same configuration, then use {@link #builder()}.
@@ -28,81 +28,54 @@ import java.util.function.Function;
  */
 public sealed interface Cancellable permits RealCancellable {
     /**
-     * Execute {@code block} in a cancellable context, throwing a
-     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
-     * All operations invoked in this code block, and in children threads, will respect the cancel scope : timeout,
-     * deadline, manual cancellation, await for {@link Condition} signal...
+     * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
+     * occurred. All operations invoked in this code block, and in children threads, will respect the cancel scope :
+     * timeout, deadline, manual cancellation, await for {@link Condition} signal...
      */
-    <T> T executeCancellable(final @NonNull Function<CancelScope, T> block);
+    void run(final @NonNull Consumer<CancelScope> block);
 
     /**
-     * Execute {@code block} in a cancellable context, throwing a
-     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
-     * All operations invoked in this code block, and in children threads, will respect the cancel scope : timeout,
-     * deadline, manual cancellation, await for {@link Condition} signal...
+     * Execute {@code block} and return its result in a cancellable context, throwing a
+     * {@link JayoInterruptedIOException} if a cancellation occurred. All operations invoked in this code block, and in
+     * children threads, will respect the cancel scope : timeout, deadline, manual cancellation, await for
+     * {@link Condition} signal...
      */
-    void executeCancellable(final @NonNull Consumer<CancelScope> block);
+    <T> T call(final @NonNull Function<CancelScope, T> block);
 
     static @NonNull Builder builder() {
         return new RealCancellable.Builder();
     }
 
-
     /**
-     * Execute {@code block} in a cancellable context, throwing a
-     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
-     * All operations invoked in this code block, and in children threads, will respect the cancel scope : manual cancellation,
-     * await for {@link Condition} signal...
-     */
-    static <T> T withCancellable(final @NonNull Function<CancelScope, T> block) {
-        Objects.requireNonNull(block);
-        final var cancellable = new RealCancellable();
-        return cancellable.executeCancellable(block);
-    }
-
-    /**
-     * Execute {@code block} in a cancellable context, throwing a
-     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
-     * All operations invoked in this code block, and in children threads, will wait at most {@code timeout} time before
-     * aborting, and will also respect the cancel scope : manual cancellation, await for {@link Condition} signal...
+     * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
+     * occurred. All operations invoked in this {@code block} will wait at most {@code timeout} time before aborting,
+     * and will also respect the cancel scope : manual cancellation, await for {@link Condition} signal...
      * <p>
      * Using a per-operation timeout means that as long as forward progress is being made, no sequence of operations
      * will fail.
      */
-    static <T> T withTimeout(final @NonNull Duration timeout, final @NonNull Function<CancelScope, T> block) {
+    static void runWithTimeout(final @NonNull Duration timeout,
+                               final @NonNull Consumer<CancelScope> block) {
         Objects.requireNonNull(timeout);
         Objects.requireNonNull(block);
         final var cancellable = new RealCancellable(timeout.toNanos(), 0L);
-        return cancellable.executeCancellable(block);
+        cancellable.run(block);
     }
 
     /**
-     * Execute {@code block} in a cancellable context, throwing a
-     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
-     * All operations invoked in this {@code block} will respect the cancel scope : manual cancellation,
-     * await for {@link Condition} signal...
-     */
-    static void withCancellable(final @NonNull Consumer<CancelScope> block) {
-        Objects.requireNonNull(block);
-        final var cancellable = new RealCancellable();
-        cancellable.executeCancellable(block);
-    }
-
-    /**
-     * Execute {@code block} in a cancellable context, throwing a
-     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
-     * All operations invoked in this {@code block} will wait at most {@code timeout} time before aborting, and will
-     * also respect the cancel scope : manual cancellation, await for {@link Condition} signal...
+     * Execute {@code block} and return its result in a cancellable context, throwing a
+     * {@link JayoInterruptedIOException} if a cancellation occurred. All operations invoked in this code block, and in
+     * children threads, will wait at most {@code timeout} time before aborting, and will also respect the cancel
+     * scope : manual cancellation, await for {@link Condition} signal...
      * <p>
      * Using a per-operation timeout means that as long as forward progress is being made, no sequence of operations
      * will fail.
      */
-    static void withTimeout(final @NonNull Duration timeout,
-                            final @NonNull Consumer<CancelScope> block) {
+    static <T> T callWithTimeout(final @NonNull Duration timeout, final @NonNull Function<CancelScope, T> block) {
         Objects.requireNonNull(timeout);
         Objects.requireNonNull(block);
         final var cancellable = new RealCancellable(timeout.toNanos(), 0L);
-        cancellable.executeCancellable(block);
+        return cancellable.call(block);
     }
 
     /**

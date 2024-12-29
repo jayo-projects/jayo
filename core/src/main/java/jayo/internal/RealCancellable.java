@@ -28,8 +28,7 @@ public final class RealCancellable implements Cancellable {
         this.deadlineNanos = deadlineNanos;
     }
 
-    @Override
-    public <T> T executeCancellable(final @NonNull Function<CancelScope, T> block) {
+    public <T> T call(final @NonNull Function<CancelScope, T> block) {
         Objects.requireNonNull(block);
         final var cancelToken = new RealCancelToken(timeoutNanos, deadlineNanos);
         CancellableUtils.addCancelToken(cancelToken);
@@ -40,8 +39,7 @@ public final class RealCancellable implements Cancellable {
         }
     }
 
-    @Override
-    public void executeCancellable(final @NonNull Consumer<CancelScope> block) {
+    public void run(final @NonNull Consumer<CancelScope> block) {
         Objects.requireNonNull(block);
         final var cancelToken = new RealCancelToken(timeoutNanos, deadlineNanos);
         CancellableUtils.addCancelToken(cancelToken);

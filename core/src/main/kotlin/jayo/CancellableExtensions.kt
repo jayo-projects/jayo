@@ -11,10 +11,10 @@ import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
 /**
- * Wait at most `timeout` time before aborting an operation. Using a per-operation timeout means that as long as forward
- * progress is being made, no sequence of operations will fail.
- *
- * If `timeout == null && unit == null`, operations will run indefinitely. (Operating system timeouts may still apply)
+ * Execute `block` and return its optional result in a cancellable context, throwing a
+ * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
+ * All operations invoked in this code block, and in children threads, will respect the cancel scope : timeout,
+ * deadline, manual cancellation, await for {@link Condition} signal...
  */
 public fun <T> cancelScope(
     timeout: Duration? = null,
@@ -30,5 +30,5 @@ public fun <T> cancelScope(
         }
     }.build()
 
-    return cancellable.executeCancellable(block)
+    return cancellable.call(block)
 }
