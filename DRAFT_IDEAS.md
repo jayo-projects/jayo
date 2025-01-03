@@ -49,10 +49,10 @@ https://www.rfc-editor.org/rfc/rfc9000.html#name-datagram-size
   * Scoped Values (incubator)
 * Java 21
   * Project Loom [virtual threads](https://openjdk.org/jeps/444) are promoted as stable.
-  * **Warning -> preview** : [Structured Concurrency](https://openjdk.org/jeps/453) treats multiple tasks running in
+  * [Structured Concurrency](https://openjdk.org/jeps/453) (preview) : treats multiple tasks running in
 different threads as a single unit of work, thereby streamlining error handling and cancellation, improving reliability,
 and enhancing observability.
-  * **Warning -> preview** : [Scoped Values](https://openjdk.org/jeps/446) enable the sharing of immutable data within
+  * [Scoped Values](https://openjdk.org/jeps/446) (preview) : enable the sharing of immutable data within
 and across threads. They are preferred to thread-local variables, especially when using large numbers of virtual
 threads.
   * [Sequenced Collections](https://www.baeldung.com/java-21-sequenced-collections) This feature injects new interfaces
@@ -92,7 +92,7 @@ involved to create all sorts of weird use cases !
     * [Okio recipes](https://square.github.io/okio/recipes)
     * [Okio with socket](https://square.github.io/okio/recipes/#communicate-on-a-socket-javakotlin)
     * [A closer look at the Okio library](https://medium.com/@jerzy.chalupski/a-closer-look-at-the-okio-library-90336e37261)
-    * [Okio.Options](https://medium.com/@jerzy.chalupski/okio-options-ce8f3ac1584f)
+    * [Okio options](https://medium.com/@jerzy.chalupski/okio-options-ce8f3ac1584f)
     * [Forcing bytes downward in Okio : flush() VS emit() VS emitCompleteSegments()](https://jakewharton.com/forcing-bytes-downward-in-okio/)
     * With a file you’re either reading or writing but with the network you can do both! Some protocols handle this by
 taking turns: write a request, read a response, repeat. You can implement this kind of protocol with a single thread.

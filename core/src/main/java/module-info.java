@@ -13,7 +13,7 @@ module jayo {
 
     exports jayo;
     exports jayo.crypto;
-    exports jayo.endpoints;
+    exports jayo.network;
     exports jayo.external;
     exports jayo.tls;
 }

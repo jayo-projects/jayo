@@ -11,8 +11,8 @@
 package jayo.internal;
 
 import jayo.Buffer;
-import jayo.endpoints.Endpoint;
-import jayo.endpoints.JayoClosedEndpointException;
+import jayo.Endpoint;
+import jayo.JayoClosedEndpointException;
 import jayo.JayoEOFException;
 import jayo.JayoException;
 import jayo.external.NonNegative;

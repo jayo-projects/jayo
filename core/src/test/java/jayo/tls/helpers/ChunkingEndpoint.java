@@ -13,7 +13,7 @@ package jayo.tls.helpers;
 import jayo.Buffer;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.endpoints.Endpoint;
+import jayo.Endpoint;
 import org.jspecify.annotations.NonNull;
 
 public class ChunkingEndpoint implements Endpoint {

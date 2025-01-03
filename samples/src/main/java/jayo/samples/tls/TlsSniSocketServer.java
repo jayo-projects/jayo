@@ -12,7 +12,8 @@ package jayo.samples.tls;
 
 import jayo.Buffer;
 import jayo.RawReader;
-import jayo.endpoints.SocketEndpoint;
+import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkServer;
 import jayo.tls.TlsEndpoint;
 
 import javax.net.ssl.SNIHostName;
@@ -20,8 +21,6 @@ import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.security.GeneralSecurityException;
 import java.util.function.Function;
 
@@ -51,16 +50,12 @@ public class TlsSniSocketServer {
             return null;
         };
 
-        // connect server socket normally
-        try (ServerSocket serverSocket = new ServerSocket()) {
-            serverSocket.bind(new InetSocketAddress(10000));
-
-            // accept raw connections normally
+        try (NetworkServer server = NetworkServer.tcpBind(new InetSocketAddress(10000))) {
+            // accept encrypted connections
             System.out.println("Waiting for connection...");
-            try (Socket rawSocket = serverSocket.accept()) {
-                SocketEndpoint socketEndpoint = SocketEndpoint.from(rawSocket);
+            try (NetworkEndpoint accepted = server.accept()) {
                 // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-                try (TlsEndpoint tlsEndpoint = TlsEndpoint.serverBuilder(socketEndpoint, exampleSslContextFactory)
+                try (TlsEndpoint tlsEndpoint = TlsEndpoint.serverBuilder(accepted, exampleSslContextFactory)
                         .build();
                      RawReader decryptedReader = tlsEndpoint.getReader()) {
                     Buffer buffer = Buffer.create();

@@ -13,7 +13,7 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.endpoints.Endpoint;
+import jayo.Endpoint;
 import jayo.external.NonNegative;
 import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;

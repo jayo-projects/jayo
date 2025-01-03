@@ -3,9 +3,8 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.endpoints;
+package jayo;
 
-import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -14,8 +13,11 @@ import java.nio.channels.ClosedChannelException;
 import java.util.Objects;
 
 /**
- * Wraps a {@link ClosedChannelException} or a {@link SocketException} with "Socket is closed" message with an unchecked
- * exception.
+ * Exception thrown when an attempt is made to invoke or complete an I/O operation upon endpoint that is closed, or at
+ * least closed to that operation.
+ * <p>
+ * It can also wrap a {@link ClosedChannelException} or a {@link SocketException} when its message is
+ * <i>"Socket is closed"</i> with this unchecked exception.
  */
 public final class JayoClosedEndpointException extends JayoException {
     public JayoClosedEndpointException() {

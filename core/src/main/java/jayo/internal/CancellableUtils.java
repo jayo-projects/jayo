@@ -5,11 +5,13 @@
 
 package jayo.internal;
 
+import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import jayo.external.NonNegative;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Objects;
 
 /**
  * Utils for cancellable, relies on {@link ThreadLocal}.
@@ -30,9 +32,18 @@ public final class CancellableUtils {
     };
 
     public static @Nullable RealCancelToken getCancelToken() {
+        return getCancelToken(0L);
+    }
+
+    public static @Nullable RealCancelToken getCancelToken(final @NonNegative long defaultTimeoutNanos) {
         final var cancelTokens = CANCEL_TOKENS.get();
         RealCancelToken result = null;
+
+        // cancellable context is empty, use defaultTimeoutNanos, if any
         if (cancelTokens.isEmpty()) {
+            if (defaultTimeoutNanos > 0L) {
+                result = new RealCancelToken(defaultTimeoutNanos, 0L);
+            }
             return result;
         }
 
@@ -49,17 +60,40 @@ public final class CancellableUtils {
                 result = cancelToken;
             }
         }
+
+        // fallback to defaultTimeoutNanos, if any, if no timeout is already present in the cancellable context
+        if (result != null && result.timeoutNanos == 0L && defaultTimeoutNanos > 0L) {
+            result.timeoutNanos = defaultTimeoutNanos;
+        }
         return result;
+    }
+
+    public static void addCancelToken(final @NonNull RealCancelToken cancelToken) {
+        assert cancelToken != null;
+
+        final var cancelTokens = CANCEL_TOKENS.get();
+        cancelTokens.addFirst(cancelToken); // always add first
+    }
+
+    static void finishCancelToken(final @NonNull RealCancelToken cancelToken) {
+        assert cancelToken != null;
+
+        cancelToken.finish();
+        final var cancelTokens = CANCEL_TOKENS.get();
+        cancelTokens.remove(cancelToken);
     }
 
     /**
      * Applies the intersection between this {@code one} and {@code two}.
      */
-    private static @NonNull RealCancelToken intersect(final @NonNull RealCancelToken previous, final @NonNull RealCancelToken current) {
-        Objects.requireNonNull(previous);
+    private static @NonNull RealCancelToken intersect(final @NonNull RealCancelToken previous,
+                                                      final @NonNull RealCancelToken current) {
+        assert previous != null;
+        assert current != null;
+
         Objects.requireNonNull(current);
         // Only the last timeout applies
-        final var timeoutNanos = (previous.timeoutNanos != 0) ? previous.timeoutNanos : current.timeoutNanos;
+        final var timeoutNanos = (previous.timeoutNanos != 0L) ? previous.timeoutNanos : current.timeoutNanos;
         final var deadlineNanoTime = minDeadline(previous.deadlineNanoTime, current.deadlineNanoTime);
         final var cancelled = previous.cancelled || current.cancelled;
         return new RealCancelToken(timeoutNanos, deadlineNanoTime, cancelled);
@@ -73,17 +107,5 @@ public final class CancellableUtils {
             return aNanos;
         }
         return Math.min(aNanos, bNanos);
-    }
-
-    public static void addCancelToken(final @NonNull RealCancelToken cancelToken) {
-        Objects.requireNonNull(cancelToken);
-        final var cancelTokens = CANCEL_TOKENS.get();
-        cancelTokens.addFirst(cancelToken); // always add first
-    }
-
-    static void finishCancelToken(final @NonNull RealCancelToken cancelToken) {
-        Objects.requireNonNull(cancelToken).finish();
-        final var cancelTokens = CANCEL_TOKENS.get();
-        cancelTokens.remove(cancelToken);
     }
 }

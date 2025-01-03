@@ -11,7 +11,7 @@
 package jayo.tls.helpers;
 
 import jayo.Jayo;
-import jayo.endpoints.Endpoint;
+import jayo.Endpoint;
 import jayo.tls.TlsEndpoint;
 
 import javax.net.ssl.SSLSocket;
