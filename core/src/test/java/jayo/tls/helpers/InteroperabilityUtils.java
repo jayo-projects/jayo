@@ -10,15 +10,11 @@
 
 package jayo.tls.helpers;
 
+import jayo.Endpoint;
 import jayo.Jayo;
-import jayo.endpoints.Endpoint;
 import jayo.tls.TlsEndpoint;
 
-import javax.net.ssl.SSLSocket;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
 
 public class InteroperabilityUtils {
 
@@ -34,26 +30,6 @@ public class InteroperabilityUtils {
         void write(byte[] array, int offset, int length) throws IOException;
 
         void close() throws IOException;
-    }
-
-    public static class SocketReader implements Reader {
-        private final Socket socket;
-        private final InputStream is;
-
-        public SocketReader(Socket socket) throws IOException {
-            this.socket = socket;
-            this.is = socket.getInputStream();
-        }
-
-        @Override
-        public int read(byte[] array, int offset, int length) throws IOException {
-            return is.read(array, offset, length);
-        }
-
-        @Override
-        public void close() throws IOException {
-            socket.close();
-        }
     }
 
     public static class EndpointReader implements Reader {
@@ -73,31 +49,6 @@ public class InteroperabilityUtils {
         @Override
         public void close() {
             endpoint.close();
-        }
-    }
-
-    public static class SSLSocketWriter implements Writer {
-        private final SSLSocket socket;
-        private final OutputStream os;
-
-        public SSLSocketWriter(SSLSocket socket) throws IOException {
-            this.socket = socket;
-            this.os = socket.getOutputStream();
-        }
-
-        @Override
-        public void write(byte[] array, int offset, int length) throws IOException {
-            os.write(array, offset, length);
-        }
-
-        @Override
-        public void renegotiate() throws IOException {
-            socket.startHandshake();
-        }
-
-        @Override
-        public void close() throws IOException {
-            socket.close();
         }
     }
 

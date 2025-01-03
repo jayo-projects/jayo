@@ -8,7 +8,7 @@ package jayo.kotlinx.serialization
 import jayo.Buffer
 import jayo.buffered
 import jayo.discardingWriter
-import jayo.endpoints.endpoint
+import jayo.reader
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
@@ -59,7 +59,7 @@ class SerializationTest {
             override fun getInputStream() = buffer.asInputStream()
             override fun isConnected() = true
         }
-        val reader = socket.endpoint().reader.buffered()
+        val reader = socket.reader().buffered()
         val decoded = kotlinxSerializationMapper.decodeFromReader(
             DefaultPixelEvent.serializer(),
             reader

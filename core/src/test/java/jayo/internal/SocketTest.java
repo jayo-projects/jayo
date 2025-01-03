@@ -6,33 +6,29 @@
 package jayo.internal;
 
 import jayo.Jayo;
-import jayo.endpoints.SocketEndpoint;
+import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkServer;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.InetSocketAddress;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 public class SocketTest {
     @Test
-    void socketTest() throws InterruptedException, IOException {
-        var freePortNumber = 54321;
-        try (var serverSocket = new ServerSocket(freePortNumber)) {
+    void socketTest() throws InterruptedException {
+        // Let the system pick up a local free port
+        try (var listener = NetworkServer.bindTcp(new InetSocketAddress(0))) {
             var serverThread = Thread.startVirtualThread(() -> {
-                try (var acceptedSocketEndpoint = SocketEndpoint.from(serverSocket.accept());
-                     var serverWriter = Jayo.buffer(acceptedSocketEndpoint.getWriter())) {
+                try (var serverEndpoint = listener.accept();
+                     var serverWriter = Jayo.buffer(serverEndpoint.getWriter())) {
                     serverWriter.write("The Answer to the Ultimate Question of Life is ")
                             .writeUtf8CodePoint('4')
                             .writeUtf8CodePoint('2');
-                } catch (IOException e) {
-                    fail("Unexpected exception", e);
                 }
             });
-            try (var clientSocketEndpoint = SocketEndpoint.from(new Socket("localhost", freePortNumber));
-                 var clientReader = Jayo.buffer(clientSocketEndpoint.getReader())) {
+            try (var clientEndpoint = NetworkEndpoint.connectTcp(listener.getLocalAddress());
+                 var clientReader = Jayo.buffer(clientEndpoint.getReader())) {
                 assertThat(clientReader.readString())
                         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
             }

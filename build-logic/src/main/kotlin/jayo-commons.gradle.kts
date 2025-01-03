@@ -22,7 +22,7 @@ val javaVersion = catalogVersion("java").toInt()
 val isCI = providers.gradleProperty("isCI")
 
 val koverage = mapOf(
-    "jayo" to if (isCI.isPresent) 82 else 84,
+    "jayo" to if (isCI.isPresent) 83 else 84,
     "jayo-3p-kotlinx-serialization" to 55,
 )
 

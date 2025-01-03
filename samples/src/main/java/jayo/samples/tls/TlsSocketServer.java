@@ -12,14 +12,13 @@ package jayo.samples.tls;
 
 import jayo.Buffer;
 import jayo.RawReader;
-import jayo.endpoints.SocketEndpoint;
+import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkServer;
 import jayo.tls.TlsEndpoint;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.security.GeneralSecurityException;
 
 /**
@@ -36,22 +35,17 @@ public class TlsSocketServer {
         // initialize the SSLContext, a configuration holder, reusable object
         SSLContext sslContext = ContextFactory.authenticatedContext("TLSv1.2");
 
-        // connect server socket normally
-        try (ServerSocket serverSocket = new ServerSocket()) {
-            serverSocket.bind(new InetSocketAddress(10000));
-
-            // accept raw connections normally
+        try (NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(10000))) {
+            // accept encrypted connections
             System.out.println("Waiting for connection...");
-            try (Socket rawSocket = serverSocket.accept()) {
-                SocketEndpoint socketEndpoint = SocketEndpoint.from(rawSocket);
-                // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-                try (TlsEndpoint tlsEndpoint = TlsEndpoint.serverBuilder(socketEndpoint, sslContext).build();
-                     RawReader decryptedReader = tlsEndpoint.getReader()) {
-                    Buffer buffer = Buffer.create();
-                    // write to stdout all data sent by the client
-                    while (decryptedReader.readAtMostTo(buffer, 10000L) != -1) {
-                        System.out.print(buffer.readString());
-                    }
+            try (NetworkEndpoint accepted = server.accept();
+                 // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
+                 TlsEndpoint tlsEndpoint = TlsEndpoint.serverBuilder(accepted, sslContext).build();
+                 RawReader decryptedReader = tlsEndpoint.getReader()) {
+                Buffer buffer = Buffer.create();
+                // write to stdout all data sent by the client
+                while (decryptedReader.readAtMostTo(buffer, 10000L) != -1) {
+                    System.out.print(buffer.readString());
                 }
             }
         }

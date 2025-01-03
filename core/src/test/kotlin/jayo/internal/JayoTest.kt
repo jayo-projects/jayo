@@ -21,7 +21,7 @@
 
 package jayo.internal
 
-import jayo.endpoints.endpoint
+import jayo.Jayo
 import jayo.reader
 import jayo.writer
 import org.assertj.core.api.Assertions.assertThat
@@ -136,8 +136,7 @@ class JayoTest {
             override fun getOutputStream() = baos
             override fun isConnected() = true
         }
-        val socketEndpoint = socket.endpoint()
-        val writer = socketEndpoint.writer
+        val writer = Jayo.writer(socket)
         writer.write(RealBuffer().write("a"), 1L)
         assertThat(baos.toByteArray()).isEqualTo(byteArrayOf(0x61))
     }
@@ -149,8 +148,7 @@ class JayoTest {
             override fun getInputStream() = bais
             override fun isConnected() = true
         }
-        val socketEndpoint = socket.endpoint()
-        val reader = socketEndpoint.reader
+        val reader = Jayo.reader(socket)
         val buffer = RealBuffer()
         reader.readAtMostTo(buffer, 1L)
         assertThat(buffer.readString()).isEqualTo("a")

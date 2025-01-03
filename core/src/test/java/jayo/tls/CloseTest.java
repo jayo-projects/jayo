@@ -11,7 +11,6 @@
 package jayo.tls;
 
 import jayo.*;
-import jayo.endpoints.JayoClosedEndpointException;
 import jayo.tls.helpers.SocketGroups.SocketGroup;
 import jayo.tls.helpers.SocketGroups.SocketPair;
 import jayo.tls.helpers.SocketPairFactory;

@@ -36,8 +36,7 @@ import java.util.concurrent.locks.Condition;
  * CancelToken is thread safe
  */
 public final class RealCancelToken implements CancelScope, CancelToken {
-
-    final @NonNegative long timeoutNanos;
+    @NonNegative long timeoutNanos;
     final @NonNegative long deadlineNanoTime;
     volatile boolean cancelled = false;
     volatile boolean shielded = false;
