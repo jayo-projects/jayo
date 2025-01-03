@@ -28,6 +28,7 @@ import jayo.internal.*;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
+import java.net.Socket;
 import java.nio.channels.FileChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -42,6 +43,7 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.WARNING;
 
 /**
  * Essential APIs for working with Jayo.
@@ -119,6 +121,48 @@ public final class Jayo {
     public static @NonNull RawReader reader(final @NonNull InputStream in) {
         Objects.requireNonNull(in);
         return new InputStreamRawReader(in);
+    }
+
+    /**
+     * @return a raw writer that writes to {@code socket}. Prefer this over {@link #writer(OutputStream)} because this
+     * method honors timeouts. When the socket write times out, the socket is asynchronously closed by a watchdog
+     * thread.
+     */
+    public static @NonNull RawWriter writer(final @NonNull Socket socket) {
+        Objects.requireNonNull(socket);
+        final var timeout = new RealAsyncTimeout(() -> {
+            try {
+                socket.close();
+            } catch (Exception e) {
+                LOGGER.log(WARNING, "Failed to close timed out socket " + socket, e);
+            }
+        });
+        try {
+            return timeout.writer(new OutputStreamRawWriter(socket.getOutputStream()), 0L);
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
+    }
+
+    /**
+     * @return a raw reader that reads from {@code socket}. Prefer this over {@link #reader(InputStream)} because this
+     * method honors timeouts. When the socket read times out, the socket is asynchronously closed by a watchdog
+     * thread.
+     */
+    public static @NonNull RawReader reader(final @NonNull Socket socket) {
+        Objects.requireNonNull(socket);
+        final var timeout = new RealAsyncTimeout(() -> {
+            try {
+                socket.close();
+            } catch (Exception e) {
+                LOGGER.log(WARNING, "Failed to close timed out socket " + socket, e);
+            }
+        });
+        try {
+            return timeout.reader(new InputStreamRawReader(socket.getInputStream()), 0L);
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
     }
 
     /**

@@ -23,51 +23,47 @@ package jayo.internal
 
 import jayo.Buffer
 import jayo.internal.TestUtil.bufferWithRandomSegmentLayout
-import java.util.Random
+import java.util.*
 
 enum class BufferFactory {
-  EMPTY {
-    override fun newBuffer(): Buffer {
-      return Buffer()
-    }
-  },
+    EMPTY {
+        override fun newBuffer(): Buffer {
+            return Buffer()
+        }
+    },
 
-  SMALL_BUFFER {
-    override fun newBuffer(): Buffer {
-      return Buffer().write("abcde")
-    }
-  },
+    SMALL_BUFFER {
+        override fun newBuffer(): Buffer {
+            return Buffer().write("abcde")
+        }
+    },
 
-  SMALL_SEGMENTED_BUFFER {
-    @Throws(Exception::class)
-    override fun newBuffer(): Buffer {
-      return bufferWithSegments("abc", "defg", "hijkl")
-    }
-  },
+    SMALL_SEGMENTED_BUFFER {
+        override fun newBuffer(): Buffer {
+            return bufferWithSegments("abc", "defg", "hijkl")
+        }
+    },
 
-  LARGE_BUFFER {
-    @Throws(Exception::class)
-    override fun newBuffer(): Buffer {
-      val dice = Random(0)
-      val largeByteArray = ByteArray(512 * 1024)
-      dice.nextBytes(largeByteArray)
+    LARGE_BUFFER {
+        override fun newBuffer(): Buffer {
+            val dice = Random(0)
+            val largeByteArray = ByteArray(512 * 1024)
+            dice.nextBytes(largeByteArray)
 
-      return Buffer().write(largeByteArray)
-    }
-  },
+            return Buffer().write(largeByteArray)
+        }
+    },
 
-  LARGE_BUFFER_WITH_RANDOM_LAYOUT {
-    @Throws(Exception::class)
-    override fun newBuffer(): Buffer {
-      val dice = Random(0)
-      val largeByteArray = ByteArray(512 * 1024)
-      dice.nextBytes(largeByteArray)
+    LARGE_BUFFER_WITH_RANDOM_LAYOUT {
+        override fun newBuffer(): Buffer {
+            val dice = Random(0)
+            val largeByteArray = ByteArray(512 * 1024)
+            dice.nextBytes(largeByteArray)
 
-      return bufferWithRandomSegmentLayout(dice, largeByteArray)
-    }
-  },
-  ;
+            return bufferWithRandomSegmentLayout(dice, largeByteArray)
+        }
+    },
+    ;
 
-  @Throws(Exception::class)
-  abstract fun newBuffer(): Buffer
+    abstract fun newBuffer(): Buffer
 }

@@ -74,16 +74,24 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     <T> T withTimeout(final @NonNull CancelScope cancelScope, final @NonNull Supplier<T> block);
 
     /**
+     * @param writer              the delegate writer.
+     * @param defaultTimeoutNanos The default timeout (in nanoseconds). It will be used as fallback for each write
+     *                            operation, only if no timeout is present in the cancellable context. It must be
+     *                            non-negative. A timeout of zero is interpreted as an infinite timeout.
      * @return a new writer that delegates to {@code writer}, using this to implement timeouts. If a timeout occurs, the
-     * {@code onTimeout} declared in {@link #create(Runnable)} will execute.
+     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
      */
     @NonNull
-    RawWriter writer(final @NonNull RawWriter writer);
+    RawWriter writer(final @NonNull RawWriter writer, final @NonNegative long defaultTimeoutNanos);
 
     /**
+     * @param reader              the delegate reader.
+     * @param defaultTimeoutNanos The default timeout (in nanoseconds). It will be used as fallback for each read
+     *                            operation, only if no timeout is present in the cancellable context. It must be
+     *                            non-negative. A timeout of zero is interpreted as an infinite timeout.
      * @return a new reader that delegates to {@code reader}, using this to implement timeouts. If a timeout occurs, the
-     * {@code onTimeout} declared in {@link #create(Runnable)} will execute.
+     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
      */
     @NonNull
-    RawReader reader(final @NonNull RawReader reader);
+    RawReader reader(final @NonNull RawReader reader, final @NonNegative long defaultTimeoutNanos);
 }

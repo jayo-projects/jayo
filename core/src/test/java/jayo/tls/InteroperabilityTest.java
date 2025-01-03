@@ -123,10 +123,10 @@ public class InteroperabilityTest {
     public void testOldToOldHalfDuplex() throws IOException, InterruptedException {
         SocketGroups.OldOldSocketPair socketPair = factory.oldOld(Optional.empty());
         halfDuplexStream(
-                new SSLSocketWriter(socketPair.server),
-                new SocketReader(socketPair.client),
-                new SSLSocketWriter(socketPair.client),
-                new SocketReader(socketPair.server));
+                new TlsEndpointWriter(socketPair.server),
+                new EndpointReader(socketPair.client),
+                new TlsEndpointWriter(socketPair.client),
+                new EndpointReader(socketPair.server));
     }
 
     // old-io -> old-io (full duplex)
@@ -134,10 +134,10 @@ public class InteroperabilityTest {
     public void testOldToOldFullDuplex() throws IOException, InterruptedException {
         SocketGroups.OldOldSocketPair socketPair = factory.oldOld(Optional.empty());
         fullDuplexStream(
-                new SSLSocketWriter(socketPair.server),
-                new SocketReader(socketPair.client),
-                new SSLSocketWriter(socketPair.client),
-                new SocketReader(socketPair.server));
+                new TlsEndpointWriter(socketPair.server),
+                new EndpointReader(socketPair.client),
+                new TlsEndpointWriter(socketPair.client),
+                new EndpointReader(socketPair.server));
     }
 
     // IO -> OLD IO
@@ -147,10 +147,10 @@ public class InteroperabilityTest {
     public void testIoToOldHalfDuplex() throws IOException, InterruptedException {
         SocketGroups.IoOldSocketPair socketPair = factory.ioOld(Optional.empty());
         halfDuplexStream(
-                new SSLSocketWriter(socketPair.server),
+                new TlsEndpointWriter(socketPair.server),
                 new EndpointReader(socketPair.client.tls),
                 new TlsEndpointWriter(socketPair.client.tls),
-                new SocketReader(socketPair.server));
+                new EndpointReader(socketPair.server));
     }
 
     // io -> old-io (full duplex)
@@ -158,10 +158,10 @@ public class InteroperabilityTest {
     public void testIoToOldFullDuplex() throws IOException, InterruptedException {
         SocketGroups.IoOldSocketPair socketPair = factory.ioOld(Optional.empty());
         fullDuplexStream(
-                new SSLSocketWriter(socketPair.server),
+                new TlsEndpointWriter(socketPair.server),
                 new EndpointReader(socketPair.client.tls),
                 new TlsEndpointWriter(socketPair.client.tls),
-                new SocketReader(socketPair.server));
+                new EndpointReader(socketPair.server));
     }
 
     // OLD IO -> IO
@@ -172,8 +172,8 @@ public class InteroperabilityTest {
         SocketGroups.OldIoSocketPair socketPair = factory.oldIo(Optional.empty());
         halfDuplexStream(
                 new TlsEndpointWriter(socketPair.server.tls),
-                new SocketReader(socketPair.client),
-                new SSLSocketWriter(socketPair.client),
+                new EndpointReader(socketPair.client),
+                new TlsEndpointWriter(socketPair.client),
                 new EndpointReader(socketPair.server.tls));
     }
 
@@ -183,8 +183,8 @@ public class InteroperabilityTest {
         SocketGroups.OldIoSocketPair socketPair = factory.oldIo(Optional.empty());
         fullDuplexStream(
                 new TlsEndpointWriter(socketPair.server.tls),
-                new SocketReader(socketPair.client),
-                new SSLSocketWriter(socketPair.client),
+                new EndpointReader(socketPair.client),
+                new TlsEndpointWriter(socketPair.client),
                 new EndpointReader(socketPair.server.tls));
     }
 
@@ -195,10 +195,10 @@ public class InteroperabilityTest {
     public void testNioToOldHalfDuplex() throws IOException, InterruptedException {
         SocketGroups.IoOldSocketPair socketPair = factory.nioOld(Optional.empty());
         halfDuplexStream(
-                new SSLSocketWriter(socketPair.server),
+                new TlsEndpointWriter(socketPair.server),
                 new EndpointReader(socketPair.client.tls),
                 new TlsEndpointWriter(socketPair.client.tls),
-                new SocketReader(socketPair.server));
+                new EndpointReader(socketPair.server));
     }
 
     // nio -> old-io (full duplex)
@@ -206,10 +206,10 @@ public class InteroperabilityTest {
     public void testNioToOldFullDuplex() throws IOException, InterruptedException {
         SocketGroups.IoOldSocketPair socketPair = factory.nioOld(Optional.empty());
         fullDuplexStream(
-                new SSLSocketWriter(socketPair.server),
+                new TlsEndpointWriter(socketPair.server),
                 new EndpointReader(socketPair.client.tls),
                 new TlsEndpointWriter(socketPair.client.tls),
-                new SocketReader(socketPair.server));
+                new EndpointReader(socketPair.server));
     }
 
     // OLD IO -> IO
@@ -220,8 +220,8 @@ public class InteroperabilityTest {
         SocketGroups.OldIoSocketPair socketPair = factory.oldNio(Optional.empty());
         halfDuplexStream(
                 new TlsEndpointWriter(socketPair.server.tls),
-                new SocketReader(socketPair.client),
-                new SSLSocketWriter(socketPair.client),
+                new EndpointReader(socketPair.client),
+                new TlsEndpointWriter(socketPair.client),
                 new EndpointReader(socketPair.server.tls));
     }
 
@@ -231,8 +231,8 @@ public class InteroperabilityTest {
         SocketGroups.OldIoSocketPair socketPair = factory.oldNio(Optional.empty());
         fullDuplexStream(
                 new TlsEndpointWriter(socketPair.server.tls),
-                new SocketReader(socketPair.client),
-                new SSLSocketWriter(socketPair.client),
+                new EndpointReader(socketPair.client),
+                new TlsEndpointWriter(socketPair.client),
                 new EndpointReader(socketPair.server.tls));
     }
 }

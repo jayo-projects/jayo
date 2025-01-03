@@ -3,19 +3,14 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.endpoints;
+package jayo;
 
-import jayo.JayoException;
-import jayo.RawReader;
-import jayo.RawWriter;
 import org.jspecify.annotations.NonNull;
 
 import java.io.Closeable;
-import java.net.Socket;
-import java.nio.channels.SocketChannel;
 
 /**
- * Your endpoint on an I/O connection between you and one or several peer(s).
+ * Your endpoint on an I/O connection between you and a peer.
  * <p>
  * An endpoint is plugged to an open connection, you can read incoming data thanks to {@link #getReader()} and write
  * data thanks to {@link #getWriter()}.
@@ -58,8 +53,8 @@ public interface Endpoint extends Closeable {
     void close();
 
     /**
-     * @return the underlying IO resource. For example a {@link Socket}, a {@link SocketChannel} or even another
-     * {@link Endpoint}.
+     * @return the underlying IO resource. For example a {@linkplain java.net.Socket IO Socket}, a
+     * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} or even another {@link Endpoint}.
      */
     @NonNull
     Object getUnderlying();

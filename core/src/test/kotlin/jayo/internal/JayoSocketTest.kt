@@ -5,91 +5,28 @@
 
 package jayo.internal
 
-import jayo.Buffer
-import jayo.buffered
-import jayo.cancelScope
-import jayo.endpoints.endpoint
-import jayo.JayoInterruptedIOException
-import jayo.JayoTimeoutException
+import jayo.*
 import org.assertj.core.api.AbstractThrowableAssert
-import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import java.io.OutputStream
 import java.net.Socket
 import kotlin.time.Duration.Companion.milliseconds
 
-class SocketEndpointTest {
-    @Test
-    fun `socket is not connected throws IllegalArgumentException`() {
-        val socket = object : Socket() {
-            override fun isConnected() = false
-        }
-        assertThatThrownBy {
-            socket.endpoint()
-        }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("Socket is not connected")
-    }
-
-    @Test
-    fun `socket is closed throws IllegalArgumentException`() {
-        val socket = object : Socket() {
-            override fun isConnected() = false
-            override fun isClosed() = true
-        }
-        assertThatThrownBy {
-            socket.endpoint()
-        }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("Socket is closed")
-    }
-
+class JayoSocketTest {
     @Test
     fun `negative read throws IllegalArgumentException`() {
         val buffer = Buffer()
-        val socketEndpoint = object : Socket() {
-            override fun isConnected() = true
-            override fun getInputStream() = buffer.asInputStream()
-        }.endpoint()
-
-        assertThatThrownBy {
-            socketEndpoint.reader.readAtMostTo(Buffer(), -1)
-        }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("byteCount < 0 : -1")
-    }
-
-    @Test
-    fun `underlying is the original socket`() {
         val socket = object : Socket() {
             override fun isConnected() = true
+            override fun getInputStream() = buffer.asInputStream()
         }
 
-        assertThat(socket.endpoint().underlying).isSameAs(socket)
-    }
-
-    @Test
-    fun `several invocations of getReader() always return the same instance`() {
-        val buffer = Buffer()
-        val socketEndpoint = object : Socket() {
-            override fun isConnected() = true
-            override fun getInputStream() = buffer.asInputStream()
-        }.endpoint()
-
-        val reader1 = socketEndpoint.reader
-        val reader2 = socketEndpoint.reader
-        assertThat(reader1).isSameAs(reader2)
-    }
-
-    @Test
-    fun `several invocations of getWriter() always return the same instance`() {
-        val buffer = Buffer()
-        val socketEndpoint = object : Socket() {
-            override fun isConnected() = true
-            override fun getOutputStream() = buffer.asOutputStream()
-        }.endpoint()
-
-        val writer1 = socketEndpoint.writer
-        val writer2 = socketEndpoint.writer
-        assertThat(writer1).isSameAs(writer2)
+        assertThatThrownBy {
+            Jayo.reader(socket).readAtMostTo(Buffer(), -1)
+        }.isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage("byteCount < 0 : -1")
     }
 
     @Test
@@ -105,7 +42,7 @@ class SocketEndpointTest {
             Thread.ofPlatform().start {
                 cancel()
                 Thread.currentThread().interrupt()
-                val reader = socket.endpoint().reader.buffered()
+                val reader = Jayo.reader(socket).buffered()
                 throwableAssert = assertThatThrownBy { reader.readByte() }
             }.join()
         }
@@ -126,7 +63,7 @@ class SocketEndpointTest {
             Thread.ofVirtual().start {
                 cancel()
                 Thread.currentThread().interrupt()
-                val reader = socket.endpoint().reader.buffered()
+                val reader = Jayo.reader(socket).buffered()
                 throwableAssert = assertThatThrownBy { reader.readByte() }
             }.join()
         }
@@ -147,7 +84,7 @@ class SocketEndpointTest {
             Thread.ofPlatform().start {
                 cancel()
                 Thread.currentThread().interrupt()
-                val writer = socket.endpoint().writer.buffered()
+                val writer = Jayo.writer(socket).buffered()
                 throwableAssert = assertThatThrownBy {
                     writer.writeByte(0)
                     writer.flush()
@@ -171,7 +108,7 @@ class SocketEndpointTest {
             Thread.ofVirtual().start {
                 cancel()
                 Thread.currentThread().interrupt()
-                val writer = socket.endpoint().writer.buffered()
+                val writer = Jayo.writer(socket).buffered()
                 throwableAssert = assertThatThrownBy {
                     writer.writeByte(0)
                     writer.flush()
@@ -187,13 +124,17 @@ class SocketEndpointTest {
     fun `close with timeout`() {
         val socket = object : Socket() {
             override fun isConnected() = true
-            override fun close() {
-                Thread.sleep(2)
+            override fun getOutputStream() = object : OutputStream() {
+                override fun write(b: Int) = TODO("Not yet implemented")
+
+                override fun close() {
+                    Thread.sleep(2)
+                }
             }
         }
         cancelScope(1.milliseconds) {
             assertThatThrownBy {
-                socket.endpoint().close()
+                Jayo.writer(socket).close()
             }.isInstanceOf(JayoTimeoutException::class.java)
                 .hasMessage("timeout")
         }
@@ -201,9 +142,11 @@ class SocketEndpointTest {
 
     @Test
     fun `close no timeout`() {
+        val buffer = Buffer()
         val socket = object : Socket() {
             override fun isConnected() = true
+            override fun getOutputStream() = buffer.asOutputStream()
         }
-        socket.endpoint().close()
+        Jayo.writer(socket).close()
     }
 }

@@ -6,8 +6,8 @@
 package jayo.internal.tls
 
 import jayo.buffered
-import jayo.endpoints.SocketEndpoint
-import jayo.endpoints.endpoint
+import jayo.network.NetworkEndpoint
+import jayo.network.NetworkServer
 import jayo.tls.JayoTlsHandshakeCallbackException
 import jayo.tls.TlsEndpoint
 import jayo.tls.build
@@ -18,8 +18,6 @@ import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.net.Socket
 import javax.net.ssl.SSLSession
 import javax.net.ssl.SSLSocket
 
@@ -47,9 +45,7 @@ class TlsEndpointTest {
                 }
             }
             val address = InetSocketAddress(localhost, listener.localPort)
-            val rawClient = Socket()
-            rawClient.connect(address)
-            val encryptedEndpoint = SocketEndpoint.from(rawClient)
+            val encryptedEndpoint = NetworkEndpoint.connectTcp(address)
             var sslSession: SSLSession? = null
             TlsEndpoint.clientBuilder(encryptedEndpoint, sslContext).build {
                 sessionInitCallback = { sslSession = it }
@@ -71,9 +67,7 @@ class TlsEndpointTest {
                 }
             }
             val address = InetSocketAddress(localhost, listener.localPort)
-            val rawClient = Socket()
-            rawClient.connect(address)
-            val encryptedEndpoint = SocketEndpoint.from(rawClient)
+            val encryptedEndpoint = NetworkEndpoint.connectTcp(address)
             TlsEndpoint.clientBuilder(encryptedEndpoint, sslContext).build {
                 sessionInitCallback = { throw Exception() }
             }.use { clientTlsEndpoint ->
@@ -89,9 +83,7 @@ class TlsEndpointTest {
     fun tlsClientEndpoint_EngineInServerMode() {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
             val address = InetSocketAddress(localhost, listener.localPort)
-            val rawClient = Socket()
-            rawClient.connect(address)
-            val encryptedEndpoint = SocketEndpoint.from(rawClient)
+            val encryptedEndpoint = NetworkEndpoint.connectTcp(address)
             assertThatThrownBy { TlsEndpoint.clientBuilder(encryptedEndpoint, sslContext.createSSLEngine()).build() }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessage("The provided SSL engine must use client mode")
@@ -100,11 +92,11 @@ class TlsEndpointTest {
 
     @Test
     fun fullTlsServerEndpointBuilder() {
-        ServerSocket(0 /* find free port */).use { listener ->
+        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             var sslSession: SSLSession? = null
             val serverThread = Thread.ofVirtual().start {
-                listener.accept().use { serverSocket ->
-                    TlsEndpoint.serverBuilder(serverSocket.endpoint(), sslContext).build {
+                listener.accept().use { serverEndpoint ->
+                    TlsEndpoint.serverBuilder(serverEndpoint, sslContext).build {
                         sessionInitCallback = { sslSession = it }
                         waitForCloseConfirmation = true
                         engineFactory = { it.createSSLEngine().apply { useClientMode = false } }
@@ -115,9 +107,8 @@ class TlsEndpointTest {
                     }
                 }
             }
-            val address = InetSocketAddress(localhost, listener.localPort)
             val client = sslSocketFactory.createSocket() as SSLSocket
-            client.connect(address)
+            client.connect(listener.localAddress)
             client.startHandshake()
             client.shutdownOutput() // needed to respect the 'waitForCloseConfirmation' config of server
             serverThread.join()
@@ -127,10 +118,10 @@ class TlsEndpointTest {
 
     @Test
     fun tlsServerEndpointBuilder_ExceptionInEngineFactory() {
-        ServerSocket(0 /* find free port */).use { listener ->
+        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             val serverThread = Thread.ofVirtual().start {
-                listener.accept().use { serverSocket ->
-                    TlsEndpoint.serverBuilder(serverSocket.endpoint(), sslContext).build {
+                listener.accept().use { serverEndpoint ->
+                    TlsEndpoint.serverBuilder(serverEndpoint, sslContext).build {
                         engineFactory = { throw Exception() }
                     }.use { serverTlsEndpoint ->
                         assertThatThrownBy {
@@ -142,9 +133,8 @@ class TlsEndpointTest {
                     }
                 }
             }
-            val address = InetSocketAddress(localhost, listener.localPort)
             val client = sslSocketFactory.createSocket() as SSLSocket
-            client.connect(address)
+            client.connect(listener.localAddress)
             assertThatThrownBy { client.startHandshake() }.isInstanceOf(IOException::class.java)
             serverThread.join()
         }

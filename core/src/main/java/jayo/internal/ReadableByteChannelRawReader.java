@@ -6,8 +6,8 @@
 package jayo.internal;
 
 import jayo.Buffer;
-import jayo.RawReader;
 import jayo.JayoException;
+import jayo.RawReader;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
@@ -41,9 +41,6 @@ public final class ReadableByteChannelRawReader implements RawReader {
         }
         if (!(writer instanceof RealBuffer _writer)) {
             throw new IllegalArgumentException("writer must be an instance of RealBuffer");
-        }
-        if (!in.isOpen()) {
-            throw new IllegalStateException("Channel is closed");
         }
 
         final var cancelToken = CancellableUtils.getCancelToken();

@@ -11,9 +11,9 @@
 package jayo.samples.tls
 
 import jayo.buffered
-import jayo.endpoints.endpoint
+import jayo.network.NetworkEndpoint
 import jayo.tls.TlsEndpoint
-import java.net.Socket
+import java.net.InetSocketAddress
 import javax.net.ssl.SSLContext
 
 private const val DOMAIN = "www.howsmyssl.com"
@@ -24,12 +24,11 @@ private val sslContext = SSLContext.getDefault()
 
 /** Client example. Connects to a public TLS reporting service. */
 fun main() {
-    // connect raw socket channel normally
-    Socket(DOMAIN, 443).use { rawSocket ->
+    NetworkEndpoint.connectTcp(InetSocketAddress(DOMAIN, 443)).use { client ->
         // create the TlsEndpoint, combining the socket endpoint and the SSLEngine, using minimal options
-        TlsEndpoint.clientBuilder(rawSocket.endpoint(), sslContext).build().use { tslEndpoint ->
-            tslEndpoint.getWriter().buffered().use { toEncryptWriter ->
-                tslEndpoint.getReader().buffered().use { decryptedReader ->
+        TlsEndpoint.clientBuilder(client, sslContext).build().use { tslEndpoint ->
+            tslEndpoint.writer.buffered().use { toEncryptWriter ->
+                tslEndpoint.reader.buffered().use { decryptedReader ->
                     // do HTTP interaction and print result
                     toEncryptWriter.write(HTTP_LINE, Charsets.US_ASCII)
                     toEncryptWriter.emit()

@@ -10,10 +10,10 @@
 
 package jayo.tls;
 
+import jayo.Endpoint;
 import jayo.JayoException;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.endpoints.Endpoint;
 import jayo.internal.ClientTlsEndpoint;
 import jayo.internal.RealTlsEndpoint;
 import jayo.internal.ServerTlsEndpoint;
@@ -32,9 +32,9 @@ import java.util.function.Function;
  * A TLS (Transport Layer Security) endpoint, either the client-side or server-side end of a TLS connection between two
  * peers.
  * <p>
- * Instances that implement this interface delegate all cryptographic operations to the standard Java TLS/SSL
- * implementation: {@link SSLEngine}; effectively hiding it behind an easy-to-use streaming API based on Jayo's reader
- * and writer, that allows to secure JVM applications with minimal added complexity.
+ * {@link TlsEndpoint} implementations delegate all cryptographic operations to the standard JDK's existing
+ * {@linkplain SSLEngine TLS/SSL Engine}; effectively hiding it behind an easy-to-use streaming API based on Jayo's
+ * reader and writer, that allows to secure JVM applications with minimal added complexity.
  * <p>
  * Note that this is an API adapter, not a cryptographic implementation: except for a few bytes that are parsed at
  * the beginning of the connection, to look for the SNI, the whole protocol implementation is done by the SSLEngine.
@@ -45,10 +45,9 @@ import java.util.function.Function;
  * {@link Endpoint} for encrypted bytes (typically, but not necessarily obtained from a
  * {@linkplain java.net.Socket Socket} or a {@linkplain java.nio.channels.SocketChannel SocketChannel}); and a
  * {@link SSLEngine} or a {@link SSLContext}.
- * <ul>
- *     <li>Please read {@link #handshake()}
- *     <li>Please read {@link #shutdown()} javadoc for a detailed explanation of the TLS shutdown phase.
- * </ul>
+ * <p>
+ * Please read {@link #handshake()} and {@link #shutdown()} javadoc for a detailed explanation of the TLS handshake and
+ * shutdown phases.
  *
  * @see <a href="https://www.ibm.com/docs/en/sdk-java-technology/8?topic=sslengine-">Java SSLEngine documentation</a>
  */
@@ -230,8 +229,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * <p>
      * For finer control of the TLS close, use {@link #shutdown()}.
      *
-     * @throws JayoException if the underlying endpoint throws an IO Exception during close. Exceptions
-     *                       thrown during any previous TLS close are not propagated.
+     * @throws JayoException if the underlying endpoint throws an IO Exception during close. Exceptions thrown during
+     *                       any previous TLS close are not propagated.
      */
     @Override
     void close();
@@ -245,8 +244,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     SSLContext getSslContext();
 
     /**
-     * @return the {@link SSLEngine} if present, or {@code null} if unknown. That can happen in server-side when
-     * the TLS connection has not been initialized, or before the SNI is received.
+     * @return the {@link SSLEngine} if present, or {@code null} if unknown. That can happen in server-side when the TLS
+     * connection has not been initialized, or before the SNI is received.
      */
     @Nullable
     SSLEngine getSslEngine();
@@ -266,6 +265,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
          * Register a callback function to be executed when the TLS session is established (or re-established). The
          * supplied function will run in the same thread as the rest of the handshake, so it should ideally run as fast
          * as possible.
+         * @see Handshake#get(SSLSession)
          */
         @NonNull
         T sessionInitCallback(final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback);

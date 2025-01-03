@@ -5,8 +5,7 @@
 
 package jayo;
 
-import jayo.endpoints.JayoClosedEndpointException;
-import jayo.endpoints.JayoEndpointException;
+import jayo.network.JayoSocketException;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeException;
 import jayo.tls.JayoTlsPeerUnverifiedException;
@@ -86,7 +85,7 @@ public class JayoException extends UncheckedIOException {
                         || BROKEN_PIPE_SOCKET_MESSAGE.equals(socketException.getMessage())) {
                     yield new JayoClosedEndpointException(socketException);
                 }
-                yield new JayoEndpointException(socketException);
+                yield new JayoSocketException(socketException);
             }
 
             // TLS/SSL related exceptions
@@ -95,7 +94,12 @@ public class JayoException extends UncheckedIOException {
                     new JayoTlsPeerUnverifiedException(sslPeerUnverifiedException);
             case SSLException sslException -> new JayoTlsException(sslException);
 
-            default -> new JayoException(ioException);
+            default -> {
+                if (BROKEN_PIPE_SOCKET_MESSAGE.equals(ioException.getMessage())) {
+                    yield new JayoClosedEndpointException(ioException);
+                }
+                yield new JayoException(ioException);
+            }
         };
     }
 }

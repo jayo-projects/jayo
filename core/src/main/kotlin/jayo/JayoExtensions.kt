@@ -26,11 +26,24 @@ package jayo
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.Socket
 import java.nio.channels.GatheringByteChannel
 import java.nio.channels.ReadableByteChannel
 import java.nio.channels.WritableByteChannel
 import java.nio.file.OpenOption
 import java.nio.file.Path
+
+/**
+ * @return a writer that writes to this [Socket]. Prefer this over [writer] because this method honors timeouts.
+ * When the socket write times out, it is asynchronously closed by a watchdog thread.
+ */
+public fun Socket.writer(): RawWriter = Jayo.writer(this)
+
+/**
+ * @return a reader that reads from this [Socket]. Prefer this over [reader] because this method honors timeouts.
+ * When the socket read times out, it is asynchronously closed by a watchdog thread.
+ */
+public fun Socket.reader(): RawReader = Jayo.reader(this)
 
 /** @return a writer that writes to this [OutputStream]. */
 public fun OutputStream.writer(): RawWriter = Jayo.writer(this)

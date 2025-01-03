@@ -6,8 +6,8 @@
 package jayo.internal;
 
 import jayo.Buffer;
-import jayo.RawWriter;
 import jayo.JayoException;
+import jayo.RawWriter;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
@@ -35,9 +35,6 @@ public final class WritableByteChannelRawWriter implements RawWriter {
         checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
         if (!(reader instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
-        }
-        if (!out.isOpen()) {
-            throw new IllegalStateException("Channel is closed");
         }
 
         // get cancel token immediately, if present it will be used in all I/O calls

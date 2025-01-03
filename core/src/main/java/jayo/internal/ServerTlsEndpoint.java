@@ -13,8 +13,8 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.endpoints.Endpoint;
-import jayo.endpoints.JayoClosedEndpointException;
+import jayo.Endpoint;
+import jayo.JayoClosedEndpointException;
 import jayo.JayoEOFException;
 import jayo.external.NonNegative;
 import jayo.tls.JayoTlsHandshakeCallbackException;
@@ -266,7 +266,6 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     }
 
     private sealed interface SslContextStrategy {
-
         @FunctionalInterface
         interface SniReader {
             @Nullable

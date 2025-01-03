@@ -14,7 +14,6 @@ import jayo.Jayo;
 import jayo.tls.helpers.SocketGroups.SocketGroup;
 import jayo.tls.helpers.SocketGroups.SocketPair;
 
-import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.SplittableRandom;
@@ -96,7 +95,7 @@ public class Loops {
             socketPair.client.plain.close();
             socketPair.server.plain.close();
 
-        } catch (InterruptedException | IOException e) {
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }

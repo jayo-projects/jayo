@@ -11,9 +11,8 @@
 package jayo.tls;
 
 import jayo.Buffer;
-import jayo.endpoints.Endpoint;
-import jayo.endpoints.SocketChannelEndpoint;
-import jayo.endpoints.SocketEndpoint;
+import jayo.Endpoint;
+import jayo.network.NetworkServer;
 import jayo.tls.helpers.SocketPairFactory;
 import jayo.tls.helpers.SslContextFactory;
 import jayo.tls.helpers.TlsTestUtil;
@@ -21,10 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Optional;
 
@@ -37,18 +33,16 @@ public class FailTest {
 
     @Test
     public void testIoPlanToTls() throws IOException, InterruptedException {
-        ServerSocket serverSocket = new ServerSocket();
-        serverSocket.bind(new InetSocketAddress(factory.localhost, 0 /* find free port */));
-        int chosenPort = ((InetSocketAddress) serverSocket.getLocalSocketAddress()).getPort();
+        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0));
+        int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
-        Socket rawServer = serverSocket.accept();
-        Endpoint serverEndpoint = SocketEndpoint.from(rawServer);
+        Endpoint serverEndpoint = server.accept();
         factory.createClientSslEngine(Optional.empty(), chosenPort);
         TlsEndpoint.ServerBuilder tlsServerEndpointBuilder = TlsEndpoint.serverBuilder(
                         serverEndpoint,
-                        nameOpt -> factory.sslContextFactory(factory.clientSniHostName, factory.sslContext, nameOpt))
+                        nameOpt -> factory.sslContextFactory(factory.sslContext, nameOpt))
                 .engineFactory(
                         sslContext -> factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
 
@@ -75,18 +69,16 @@ public class FailTest {
 
     @Test
     public void testNioPlanToTls() throws IOException, InterruptedException {
-        ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        serverSocketChannel.bind(new InetSocketAddress(factory.localhost, 0 /* find free port */));
-        int chosenPort = ((InetSocketAddress) serverSocketChannel.getLocalAddress()).getPort();
+        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0));
+        int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
-        SocketChannel rawServer = serverSocketChannel.accept();
-        Endpoint serverEndpoint = SocketChannelEndpoint.from(rawServer);
+        Endpoint serverEndpoint = server.accept();
         factory.createClientSslEngine(Optional.empty(), chosenPort);
         TlsEndpoint.ServerBuilder tlsServerEndpointBuilder = TlsEndpoint.serverBuilder(
                         serverEndpoint,
-                        nameOpt -> factory.sslContextFactory(factory.clientSniHostName, factory.sslContext, nameOpt))
+                        nameOpt -> factory.sslContextFactory(factory.sslContext, nameOpt))
                 .engineFactory(
                         sslContext -> factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
 

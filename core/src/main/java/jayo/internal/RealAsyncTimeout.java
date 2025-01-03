@@ -114,7 +114,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawWriter writer(final @NonNull RawWriter writer) {
+    public @NonNull RawWriter writer(final @NonNull RawWriter writer, final @NonNegative long defaultTimeoutNanos) {
         Objects.requireNonNull(writer);
         return new RawWriter() {
             @Override
@@ -126,7 +126,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 }
 
                 // get cancel token immediately, if present it will be used in all I/O calls
-                final var cancelToken = CancellableUtils.getCancelToken();
+                final var cancelToken = CancellableUtils.getCancelToken(defaultTimeoutNanos);
 
                 if (cancelToken == null) {
                     writer.write(reader, byteCount);
@@ -194,7 +194,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawReader reader(final @NonNull RawReader reader) {
+    public @NonNull RawReader reader(final @NonNull RawReader reader, final @NonNegative long defaultTimeoutNanos) {
         Objects.requireNonNull(reader);
         return new RawReader() {
             @Override
@@ -203,7 +203,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 if (byteCount < 0L) {
                     throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
                 }
-                final var cancelToken = CancellableUtils.getCancelToken();
+                final var cancelToken = CancellableUtils.getCancelToken(defaultTimeoutNanos);
                 if (cancelToken != null) {
                     return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));
                 }

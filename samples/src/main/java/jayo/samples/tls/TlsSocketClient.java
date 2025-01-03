@@ -13,13 +13,12 @@ package jayo.samples.tls;
 import jayo.Jayo;
 import jayo.Reader;
 import jayo.Writer;
-import jayo.endpoints.SocketEndpoint;
+import jayo.network.NetworkEndpoint;
 import jayo.tls.TlsEndpoint;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 
@@ -43,22 +42,18 @@ public class TlsSocketClient {
     }
 
     public static void main(String... args) throws IOException {
-        // connect raw socket channel normally
-        try (Socket rawSocket = new Socket()) {
-            rawSocket.connect(new InetSocketAddress(DOMAIN, 443));
-            SocketEndpoint socketEndpoint = SocketEndpoint.from(rawSocket);
-            // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-            try (TlsEndpoint tlsEndpoint = TlsEndpoint.clientBuilder(socketEndpoint, SSL_CONTEXT).build();
-                 Writer toEncryptWriter = Jayo.buffer(tlsEndpoint.getWriter());
-                 Reader decryptedReader = Jayo.buffer(tlsEndpoint.getReader())) {
-                // do HTTP interaction and print result
-                toEncryptWriter.write(HTTP_LINE, StandardCharsets.US_ASCII);
-                toEncryptWriter.emit();
+        try (NetworkEndpoint client = NetworkEndpoint.connectTcp(new InetSocketAddress(DOMAIN, 443));
+             // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
+             TlsEndpoint tlsEndpoint = TlsEndpoint.clientBuilder(client, SSL_CONTEXT).build();
+             Writer toEncryptWriter = Jayo.buffer(tlsEndpoint.getWriter());
+             Reader decryptedReader = Jayo.buffer(tlsEndpoint.getReader())) {
+            // do HTTP interaction and print result
+            toEncryptWriter.write(HTTP_LINE, StandardCharsets.US_ASCII);
+            toEncryptWriter.emit();
 
-                // being HTTP 1.0, the server will just close the connection at the end
-                String received = decryptedReader.readString();
-                System.out.println(received);
-            }
+            // being HTTP 1.0, the server will just close the connection at the end
+            String received = decryptedReader.readString();
+            System.out.println(received);
         }
     }
 }
