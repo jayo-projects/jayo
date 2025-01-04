@@ -29,6 +29,7 @@ import java.io.OutputStream
 import java.net.Socket
 import java.nio.channels.GatheringByteChannel
 import java.nio.channels.ReadableByteChannel
+import java.nio.channels.SocketChannel
 import java.nio.channels.WritableByteChannel
 import java.nio.file.OpenOption
 import java.nio.file.Path
@@ -50,6 +51,18 @@ public fun OutputStream.writer(): RawWriter = Jayo.writer(this)
 
 /** @return a reader that reads from this [InputStream]. */
 public fun InputStream.reader(): RawReader = Jayo.reader(this)
+
+/**
+ * @return a writer that writes to this [SocketChannel]. Prefer this over [writer] because this method honors timeouts.
+ * When the socket channel write times out, it is asynchronously closed by a watchdog thread.
+ */
+public fun SocketChannel.writer(): RawWriter = Jayo.writer(this)
+
+/**
+ * @return a reader that reads from this [SocketChannel]. Prefer this over [reader] because this method honors timeouts.
+ * When the socket channel read times out, it is asynchronously closed by a watchdog thread.
+ */
+public fun SocketChannel.reader(): RawReader = Jayo.reader(this)
 
 /** @return a writer that writes to this [GatheringByteChannel]. */
 public fun GatheringByteChannel.writer(): RawWriter = Jayo.writer(this)
