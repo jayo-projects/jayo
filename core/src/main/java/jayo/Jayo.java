@@ -29,10 +29,7 @@ import org.jspecify.annotations.NonNull;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.channels.FileChannel;
-import java.nio.channels.GatheringByteChannel;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.WritableByteChannel;
+import java.nio.channels.*;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -108,22 +105,6 @@ public final class Jayo {
     }
 
     /**
-     * @return a raw writer that writes to {@code out} stream.
-     */
-    public static @NonNull RawWriter writer(final @NonNull OutputStream out) {
-        Objects.requireNonNull(out);
-        return new OutputStreamRawWriter(out);
-    }
-
-    /**
-     * @return a raw reader that reads from {@code in} stream.
-     */
-    public static @NonNull RawReader reader(final @NonNull InputStream in) {
-        Objects.requireNonNull(in);
-        return new InputStreamRawReader(in);
-    }
-
-    /**
      * @return a raw writer that writes to {@code socket}. Prefer this over {@link #writer(OutputStream)} because this
      * method honors timeouts. When the socket write times out, the socket is asynchronously closed by a watchdog
      * thread.
@@ -163,6 +144,56 @@ public final class Jayo {
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
+    }
+
+    /**
+     * @return a raw writer that writes to {@code out} stream.
+     */
+    public static @NonNull RawWriter writer(final @NonNull OutputStream out) {
+        Objects.requireNonNull(out);
+        return new OutputStreamRawWriter(out);
+    }
+
+    /**
+     * @return a raw reader that reads from {@code in} stream.
+     */
+    public static @NonNull RawReader reader(final @NonNull InputStream in) {
+        Objects.requireNonNull(in);
+        return new InputStreamRawReader(in);
+    }
+
+    /**
+     * @return a raw writer that writes to {@code socketChannel}. Prefer this over {@link #writer(GatheringByteChannel)}
+     * because this method honors timeouts. When the socket channel write times out, the socket is asynchronously closed
+     * by a watchdog thread.
+     */
+    public static @NonNull RawWriter writer(final @NonNull SocketChannel socketChannel) {
+        Objects.requireNonNull(socketChannel);
+        final var timeout = new RealAsyncTimeout(() -> {
+            try {
+                socketChannel.close();
+            } catch (Exception e) {
+                LOGGER.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
+            }
+        });
+        return timeout.writer(new GatheringByteChannelRawWriter(socketChannel), 0L);
+    }
+
+    /**
+     * @return a raw reader that reads from {@code socketChannel}. Prefer this over {@link #reader(ReadableByteChannel)}
+     * because this method honors timeouts. When the socket channel read times out, the socket is asynchronously closed
+     * by a watchdog thread.
+     */
+    public static @NonNull RawReader reader(final @NonNull SocketChannel socketChannel) {
+        Objects.requireNonNull(socketChannel);
+        final var timeout = new RealAsyncTimeout(() -> {
+            try {
+                socketChannel.close();
+            } catch (Exception e) {
+                LOGGER.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
+            }
+        });
+        return timeout.reader(new ReadableByteChannelRawReader(socketChannel), 0L);
     }
 
     /**

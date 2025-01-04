@@ -21,9 +21,8 @@
 
 package jayo.internal
 
-import jayo.Jayo
-import jayo.reader
-import jayo.writer
+import jayo.*
+import jayo.network.NetworkServer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -31,8 +30,10 @@ import org.junit.jupiter.api.io.TempDir
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.channels.FileChannel
+import java.nio.channels.SocketChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 
@@ -193,5 +194,47 @@ class JayoTest {
         reader.readAtMostTo(buffer, 1L)
         assertThat(buffer.readString()).isEqualTo("a")
         assertThrows<IllegalArgumentException> { reader.readAtMostTo(buffer, -42) }
+    }
+
+    @Test
+    fun socketChannelWriter() {
+        // Let the system pick up a local free port
+        val buffer = Buffer()
+        NetworkServer.bindTcp(InetSocketAddress(0)).use { listener ->
+            val serverThread = Thread.startVirtualThread {
+                listener.accept().use { serverEndpoint ->
+                    serverEndpoint.reader.readAtMostTo(buffer, 1L)
+                }
+            }
+
+            SocketChannel.open(listener.localAddress).use { socketChannel ->
+                socketChannel.writer().buffered().use { clientWriter ->
+                    clientWriter.write("a")
+                }
+            }
+            serverThread!!.join()
+        }
+        assertThat(buffer.readString()).isEqualTo("a")
+    }
+
+    @Test
+    fun socketChannelReader() {
+        // Let the system pick up a local free port
+        NetworkServer.bindTcp(InetSocketAddress(0)).use { listener ->
+            val serverThread = Thread.startVirtualThread {
+                listener.accept().use { serverEndpoint ->
+                    serverEndpoint.writer.buffered().use { serverWriter ->
+                        serverWriter.write("a")
+                    }
+                }
+            }
+
+            SocketChannel.open(listener.localAddress).use { socketChannel ->
+                socketChannel.reader().buffered().use { clientReader ->
+                    assertThat(clientReader.readString()).isEqualTo("a")
+                }
+            }
+            serverThread!!.join()
+        }
     }
 }
