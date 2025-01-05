@@ -11,10 +11,9 @@ import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
 /**
- * Execute `block` and return its optional result in a cancellable context, throwing a
- * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a cancellation occurred.
- * All operations invoked in this code block, and in children threads, will respect the cancel scope : timeout,
- * deadline, manual cancellation, await for {@link Condition} signal...
+ * Execute `block` and return its optional result in a cancellable context, throwing a [JayoInterruptedIOException] if a
+ * cancellation occurred. All operations invoked in this code block, and in children threads, will respect the cancel
+ * scope : timeout, deadline, manual cancellation, await for [Condition][java.util.concurrent.locks.Condition] signal...
  */
 public fun <T> cancelScope(
     timeout: Duration? = null,

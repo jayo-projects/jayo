@@ -10,7 +10,6 @@ import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.locks.Condition;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -30,7 +29,8 @@ public sealed interface Cancellable permits RealCancellable {
     /**
      * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
      * occurred. All operations invoked in this code block, and in children threads, will respect the cancel scope :
-     * timeout, deadline, manual cancellation, await for {@link Condition} signal...
+     * timeout, deadline, manual cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition}
+     * signal...
      */
     void run(final @NonNull Consumer<CancelScope> block);
 
@@ -38,7 +38,7 @@ public sealed interface Cancellable permits RealCancellable {
      * Execute {@code block} and return its result in a cancellable context, throwing a
      * {@link JayoInterruptedIOException} if a cancellation occurred. All operations invoked in this code block, and in
      * children threads, will respect the cancel scope : timeout, deadline, manual cancellation, await for
-     * {@link Condition} signal...
+     * {@linkplain java.util.concurrent.locks.Condition Condition} signal...
      */
     <T> T call(final @NonNull Function<CancelScope, T> block);
 
@@ -48,8 +48,9 @@ public sealed interface Cancellable permits RealCancellable {
 
     /**
      * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
-     * occurred. All operations invoked in this {@code block} will wait at most {@code timeout} time before aborting,
-     * and will also respect the cancel scope : manual cancellation, await for {@link Condition} signal...
+     * occurred. All operations invoked in this code block, including children threads, will wait at most
+     * {@code timeout} time before aborting, and will also respect the cancel scope : manual cancellation, await for
+     * {@linkplain java.util.concurrent.locks.Condition Condition} signal...
      * <p>
      * Using a per-operation timeout means that as long as forward progress is being made, no sequence of operations
      * will fail.
@@ -64,9 +65,10 @@ public sealed interface Cancellable permits RealCancellable {
 
     /**
      * Execute {@code block} and return its result in a cancellable context, throwing a
-     * {@link JayoInterruptedIOException} if a cancellation occurred. All operations invoked in this code block, and in
-     * children threads, will wait at most {@code timeout} time before aborting, and will also respect the cancel
-     * scope : manual cancellation, await for {@link Condition} signal...
+     * {@link JayoInterruptedIOException} if a cancellation occurred. All operations invoked in this code block,
+     * including children threads, will wait at most {@code timeout} time before aborting, and will also respect the
+     * cancel scope : manual cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition} signal
+     * ...
      * <p>
      * Using a per-operation timeout means that as long as forward progress is being made, no sequence of operations
      * will fail.
