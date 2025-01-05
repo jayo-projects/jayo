@@ -40,7 +40,7 @@ import java.util.List;
  */
 public sealed interface Handshake permits RealHandshake {
     /**
-     * Build a Jayo HTTP Handshake from a {@link SSLSession}
+     * Build a Jayo Handshake from a {@link SSLSession}
      */
     static @NonNull Handshake get(final @NonNull SSLSession session) {
         return RealHandshake.get(session);

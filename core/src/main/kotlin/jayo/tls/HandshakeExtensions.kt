@@ -26,6 +26,6 @@ package jayo.tls
 import javax.net.ssl.SSLSession
 
 /**
- * Build a Jayo HTTP Handshake from this [SSLSession]
+ * Build a Jayo Handshake from this [SSLSession]
  */
 public fun SSLSession.handshake(): Handshake = Handshake.get(this)
