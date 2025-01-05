@@ -387,7 +387,7 @@ public final class RealTlsEndpoint {
 
             final var toRead = (int) Math.min(MAX_DATA_SIZE, remaining);
             final var read = source.segmentQueue.withHeadsAsByteBuffers(toRead, sources -> {
-                SSLEngineResult result = wrap(sources);
+                final var result = wrap(sources);
                 if (result.getStatus() == Status.CLOSED) {
                     return -2;
                 }
