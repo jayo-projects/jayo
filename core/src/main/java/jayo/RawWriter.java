@@ -66,25 +66,26 @@ public interface RawWriter extends Closeable, Flushable {
      *
      * @param reader    the reader to read data from.
      * @param byteCount the number of bytes to write.
-     * @throws IndexOutOfBoundsException     if the {@code reader}'s size is below {@code byteCount} or {@code byteCount}
-     *                                       is negative.
-     * @throws IllegalStateException         when this writer is closed.
-     * @throws JayoException if an I/O error occurs.
+     * @throws IndexOutOfBoundsException   if the {@code reader}'s size is below {@code byteCount} or {@code byteCount}
+     *                                     is negative.
+     * @throws JayoClosedResourceException when this writer is closed.
+     * @throws JayoException               if an I/O error occurs.
      */
     void write(final @NonNull Buffer reader, final @NonNegative long byteCount);
 
     /**
      * Pushes all buffered bytes to their final destination.
      *
-     * @throws IllegalStateException         if this writer is closed.
-     * @throws JayoException if an I/O error occurs.
+     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws JayoException               if an I/O error occurs.
      */
     @Override
     void flush();
 
     /**
-     * Pushes all buffered bytes to their final destination and releases the resources held by this writer. It is an
-     * error to write to a closed writer. It is safe to close a writer more than once.
+     * Pushes all buffered bytes to their final destination and releases the resources held by this writer. Trying to
+     * write to a closed writer will throw a {@link JayoClosedResourceException}. It is safe to close a writer more than
+     * once.
      *
      * @throws JayoException if an I/O error occurs.
      */

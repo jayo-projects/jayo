@@ -6,6 +6,7 @@
 package jayo.network;
 
 import jayo.Endpoint;
+import jayo.JayoClosedResourceException;
 import jayo.internal.network.NetworkEndpointBuilder;
 import jayo.internal.network.SocketChannelNetworkEndpoint;
 import jayo.internal.network.SocketNetworkEndpoint;
@@ -63,7 +64,7 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
 
     /**
      * @return the local address that this network endpoint's underlying socket is bound to.
-     * @throws jayo.JayoClosedEndpointException If this network endpoint is closed.
+     * @throws JayoClosedResourceException If this network endpoint is closed.
      * @throws jayo.JayoException               If an I/O error occurs.
      */
     @NonNull
@@ -71,7 +72,7 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
 
     /**
      * @return the peer address to which this network endpoint's underlying socket is connected.
-     * @throws jayo.JayoClosedEndpointException If this network endpoint is closed.
+     * @throws JayoClosedResourceException If this network endpoint is closed.
      * @throws jayo.JayoException               If an I/O error occurs.
      */
     @NonNull
@@ -82,7 +83,7 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
      * @param name The socket option
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
      * @throws UnsupportedOperationException    If the socket option is not supported by this channel
-     * @throws jayo.JayoClosedEndpointException If this network endpoint is closed.
+     * @throws JayoClosedResourceException If this network endpoint is closed.
      * @throws jayo.JayoException               If an I/O error occurs.
      * @see java.net.StandardSocketOptions
      */

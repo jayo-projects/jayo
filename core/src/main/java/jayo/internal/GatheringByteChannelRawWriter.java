@@ -6,7 +6,7 @@
 package jayo.internal;
 
 import jayo.Buffer;
-import jayo.JayoClosedEndpointException;
+import jayo.JayoClosedResourceException;
 import jayo.RawWriter;
 import jayo.JayoException;
 import jayo.external.CancelToken;
@@ -41,7 +41,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
         if (!out.isOpen()) {
-            throw new JayoClosedEndpointException();
+            throw new JayoClosedResourceException();
         }
 
         // get cancel token immediately, if present it will be used in all I/O calls

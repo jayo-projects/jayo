@@ -6,7 +6,7 @@
 package jayo.network;
 
 import jayo.Endpoint;
-import jayo.JayoClosedEndpointException;
+import jayo.JayoClosedResourceException;
 import jayo.external.NonNegative;
 import jayo.internal.network.NetworkServerBuilder;
 import jayo.internal.network.ServerSocketChannelNetworkServer;
@@ -78,7 +78,7 @@ public sealed interface NetworkServer extends Closeable
      * @throws IllegalArgumentException         If one of the socket options' value you set with
      *                                          {@link Builder#option(SocketOption, Object)} is not a valid value for
      *                                          this socket option.
-     * @throws jayo.JayoClosedEndpointException If this network server was closed when waiting for an incoming client
+     * @throws JayoClosedResourceException If this network server was closed when waiting for an incoming client
      *                                          request.
      * @throws jayo.JayoException               If an I/O error occurs.
      */
@@ -88,7 +88,7 @@ public sealed interface NetworkServer extends Closeable
     /**
      * Closes this network server.
      * <p>
-     * Any thread currently blocked in {@link #accept()} will throw a {@link JayoClosedEndpointException}.
+     * Any thread currently blocked in {@link #accept()} will throw a {@link JayoClosedResourceException}.
      * <p>
      * If this server endpoint is already closed then invoking this method has no effect.
      *
@@ -98,7 +98,7 @@ public sealed interface NetworkServer extends Closeable
 
     /**
      * @return the local address that this network server's underlying socket is bound to.
-     * @throws jayo.JayoClosedEndpointException If this network endpoint is closed.
+     * @throws JayoClosedResourceException If this network endpoint is closed.
      * @throws jayo.JayoException               If an I/O error occurs.
      */
     @NonNull
@@ -109,7 +109,7 @@ public sealed interface NetworkServer extends Closeable
      * @param name The socket option
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
      * @throws UnsupportedOperationException    If the socket option is not supported by this channel
-     * @throws jayo.JayoClosedEndpointException If this network endpoint is closed.
+     * @throws JayoClosedResourceException If this network endpoint is closed.
      * @throws jayo.JayoException               If an I/O error occurs.
      * @see java.net.StandardSocketOptions
      */

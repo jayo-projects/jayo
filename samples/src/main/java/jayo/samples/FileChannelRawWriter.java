@@ -22,6 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
+import jayo.JayoClosedResourceException;
 import jayo.RawWriter;
 import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
@@ -45,7 +46,9 @@ public final class FileChannelRawWriter implements RawWriter {
 
     @Override
     public void write(@NonNull Buffer reader, long byteCount) {
-        if (!channel.isOpen()) throw new IllegalStateException("closed");
+        if (!channel.isOpen()) {
+            throw new JayoClosedResourceException();
+        }
         if (byteCount == 0) return;
 
         final var readerAsByteChannel = reader.asReadableByteChannel();

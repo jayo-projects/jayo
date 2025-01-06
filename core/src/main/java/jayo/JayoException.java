@@ -79,11 +79,11 @@ public class JayoException extends UncheckedIOException {
             case UnknownHostException unknownHostException -> new JayoUnknownHostException(unknownHostException);
 
             // Endpoint related exceptions
-            case ClosedChannelException closedChanException -> new JayoClosedEndpointException(closedChanException);
+            case ClosedChannelException closedChanException -> new JayoClosedResourceException(closedChanException);
             case SocketException socketException -> {
                 if (CLOSED_SOCKET_MESSAGE.equals(socketException.getMessage())
                         || BROKEN_PIPE_SOCKET_MESSAGE.equals(socketException.getMessage())) {
-                    yield new JayoClosedEndpointException(socketException);
+                    yield new JayoClosedResourceException(socketException);
                 }
                 yield new JayoSocketException(socketException);
             }
@@ -96,7 +96,7 @@ public class JayoException extends UncheckedIOException {
 
             default -> {
                 if (BROKEN_PIPE_SOCKET_MESSAGE.equals(ioException.getMessage())) {
-                    yield new JayoClosedEndpointException(ioException);
+                    yield new JayoClosedResourceException(ioException);
                 }
                 yield new JayoException(ioException);
             }

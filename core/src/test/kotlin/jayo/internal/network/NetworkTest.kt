@@ -335,19 +335,19 @@ class NetworkTest {
         val closedServer = networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */))
         closedServer.close()
         assertThatThrownBy { closedServer.getOption(StandardSocketOptions.SO_REUSEADDR) }
-            .isInstanceOf(JayoClosedEndpointException::class.java)
+            .isInstanceOf(JayoClosedResourceException::class.java)
         assertThatThrownBy { closedServer.localAddress }
-            .isInstanceOf(JayoClosedEndpointException::class.java)
+            .isInstanceOf(JayoClosedResourceException::class.java)
 
         val server = networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */))
         val closedClient = networkFactory.networkEndpointBuilder().connect(server.localAddress)
         closedClient.close()
         assertThatThrownBy { closedClient.getOption(StandardSocketOptions.SO_REUSEADDR) }
-            .isInstanceOf(JayoClosedEndpointException::class.java)
+            .isInstanceOf(JayoClosedResourceException::class.java)
         assertThatThrownBy { closedClient.localAddress }
-            .isInstanceOf(JayoClosedEndpointException::class.java)
+            .isInstanceOf(JayoClosedResourceException::class.java)
         assertThatThrownBy { closedClient.peerAddress }
-            .isInstanceOf(JayoClosedEndpointException::class.java)
+            .isInstanceOf(JayoClosedResourceException::class.java)
     }
 
     @ParameterizedTest

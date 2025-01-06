@@ -22,6 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
+import jayo.JayoClosedResourceException;
 import jayo.RawWriter;
 import jayo.JayoException;
 import jayo.external.CancelToken;
@@ -49,7 +50,7 @@ public final class ByteChannelRawWriter implements RawWriter {
     @Override
     public void write(@NonNull Buffer reader, long byteCount) {
         if (!channel.isOpen()) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         if (byteCount == 0) {
             return;

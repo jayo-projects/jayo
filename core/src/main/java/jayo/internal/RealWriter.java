@@ -50,7 +50,7 @@ public final class RealWriter implements Writer {
     public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
         Objects.requireNonNull(reader);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(reader, byteCount);
@@ -61,7 +61,7 @@ public final class RealWriter implements Writer {
     public @NonNull Writer write(final @NonNull ByteString byteString) {
         Objects.requireNonNull(byteString);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(byteString);
@@ -74,7 +74,7 @@ public final class RealWriter implements Writer {
                                  final @NonNegative int byteCount) {
         Objects.requireNonNull(byteString);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(byteString, offset, byteCount);
@@ -85,7 +85,7 @@ public final class RealWriter implements Writer {
     public @NonNull Writer write(final @NonNull CharSequence charSequence) {
         Objects.requireNonNull(charSequence);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(charSequence);
@@ -98,7 +98,7 @@ public final class RealWriter implements Writer {
                                  final @NonNegative int endIndex) {
         Objects.requireNonNull(charSequence);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(charSequence, startIndex, endIndex);
@@ -108,7 +108,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeUtf8CodePoint(final @NonNegative int codePoint) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.writeUtf8CodePoint(codePoint);
@@ -120,7 +120,7 @@ public final class RealWriter implements Writer {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(string, charset);
@@ -135,7 +135,7 @@ public final class RealWriter implements Writer {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(string, startIndex, endIndex, charset);
@@ -146,7 +146,7 @@ public final class RealWriter implements Writer {
     public @NonNull Writer write(final byte @NonNull [] source) {
         Objects.requireNonNull(source);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(source);
@@ -159,7 +159,7 @@ public final class RealWriter implements Writer {
                                  final @NonNegative int byteCount) {
         Objects.requireNonNull(source);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return writePrivate(source, offset, byteCount);
     }
@@ -176,7 +176,7 @@ public final class RealWriter implements Writer {
     public @NonNegative int transferFrom(final @NonNull ByteBuffer source) {
         Objects.requireNonNull(source);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return transferFromPrivate(source);
     }
@@ -195,7 +195,7 @@ public final class RealWriter implements Writer {
         var totalBytesRead = 0L;
         while (true) {
             if (segmentQueue.closed) {
-                throw new IllegalStateException("closed");
+                throw new JayoClosedResourceException();
             }
             segmentQueue.pauseIfFull();
             final var readCount = reader.readAtMostTo(segmentQueue.buffer, Segment.SIZE);
@@ -217,7 +217,7 @@ public final class RealWriter implements Writer {
         var _byteCount = byteCount;
         while (_byteCount > 0L) {
             if (segmentQueue.closed) {
-                throw new IllegalStateException("closed");
+                throw new JayoClosedResourceException();
             }
             segmentQueue.pauseIfFull();
             final var read = reader.readAtMostTo(segmentQueue.buffer, _byteCount);
@@ -233,7 +233,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeByte(final byte b) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return writeBytePrivate(b);
     }
@@ -247,7 +247,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeShort(final short s) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.writeShort(s);
@@ -257,7 +257,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeInt(final int i) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.writeInt(i);
@@ -267,7 +267,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeLong(final long l) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.writeLong(l);
@@ -277,7 +277,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeDecimalLong(final long l) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.writeDecimalLong(l);
@@ -287,7 +287,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeHexadecimalUnsignedLong(final long l) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.writeHexadecimalUnsignedLong(l);
@@ -297,7 +297,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer emitCompleteSegments() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.emitCompleteSegments();
         return this;
@@ -306,7 +306,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer emit() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.emit(false);
         return this;
@@ -315,7 +315,7 @@ public final class RealWriter implements Writer {
     @Override
     public void flush() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.emit(true);
     }

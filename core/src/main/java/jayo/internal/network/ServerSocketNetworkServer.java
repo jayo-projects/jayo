@@ -5,7 +5,7 @@
 
 package jayo.internal.network;
 
-import jayo.JayoClosedEndpointException;
+import jayo.JayoClosedResourceException;
 import jayo.JayoException;
 import jayo.external.NonNegative;
 import jayo.network.NetworkEndpoint;
@@ -107,7 +107,7 @@ public final class ServerSocketNetworkServer implements NetworkServer {
 
     private void throwIfClosed() {
         if (serverSocket.isClosed()) {
-            throw new JayoClosedEndpointException();
+            throw new JayoClosedResourceException();
         }
     }
 }

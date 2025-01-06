@@ -63,7 +63,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
 
         if (segmentQueue.expectSize(1L) == 0L) {
@@ -76,7 +76,7 @@ public final class RealReader implements Reader {
     @Override
     public @NonNull ByteString readByteString() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
         return segmentQueue.buffer.readByteString();
@@ -91,7 +91,7 @@ public final class RealReader implements Reader {
     @Override
     public @NonNull Utf8 readUtf8() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
         return segmentQueue.buffer.readUtf8();
@@ -106,7 +106,7 @@ public final class RealReader implements Reader {
     @Override
     public @NonNull Utf8 readAscii() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
         return segmentQueue.buffer.readAscii();
@@ -122,7 +122,7 @@ public final class RealReader implements Reader {
     public int select(final @NonNull Options options) {
         Objects.requireNonNull(options);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         // expected size is the byte size of the longest option
         final var expectedSize = options.stream()
@@ -135,7 +135,7 @@ public final class RealReader implements Reader {
     @Override
     public byte @NonNull [] readByteArray() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return readByteArrayPrivate();
     }
@@ -151,7 +151,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return readByteArrayPrivate(byteCount);
     }
@@ -186,7 +186,7 @@ public final class RealReader implements Reader {
         Objects.requireNonNull(writer);
         checkOffsetAndCount(writer.length, offset, byteCount);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return readAtMostToPrivate(writer, offset, byteCount);
     }
@@ -204,7 +204,7 @@ public final class RealReader implements Reader {
     public int readAtMostTo(final @NonNull ByteBuffer writer) {
         Objects.requireNonNull(writer);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return readAtMostToPrivate(writer);
     }
@@ -223,7 +223,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         var remaining = byteCount;
         while (remaining > 0L) {
@@ -250,7 +250,7 @@ public final class RealReader implements Reader {
     public @NonNegative long transferTo(final @NonNull RawWriter writer) {
         Objects.requireNonNull(writer);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         var written = 0L;
         while (segmentQueue.expectSize(Segment.SIZE) > 0L) {
@@ -273,7 +273,7 @@ public final class RealReader implements Reader {
     @Override
     public @NonNull String readString() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
         return segmentQueue.buffer.readString();
@@ -292,7 +292,7 @@ public final class RealReader implements Reader {
     public @NonNull String readString(final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         segmentQueue.expectSize(INTEGER_MAX_PLUS_1);
         return segmentQueue.buffer.readString(charset);
@@ -373,7 +373,7 @@ public final class RealReader implements Reader {
     @Override
     public long bytesAvailable() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return segmentQueue.size();
     }
@@ -381,7 +381,7 @@ public final class RealReader implements Reader {
     @Override
     public boolean exhausted() {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         return segmentQueue.expectSize(1L) == 0L;
     }
@@ -392,7 +392,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         if (byteCount == 0) {
             return true;
@@ -449,7 +449,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         final var skipped = skipPrivate(byteCount);
         if (skipped < byteCount) {
@@ -485,7 +485,7 @@ public final class RealReader implements Reader {
     @Override
     public long indexOf(final byte b, final @NonNegative long startIndex, final @NonNegative long endIndex) {
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         if (startIndex < 0L || startIndex > endIndex) {
             throw new IllegalArgumentException("startIndex=" + startIndex + " endIndex=" + endIndex);
@@ -530,7 +530,7 @@ public final class RealReader implements Reader {
     public long indexOf(final @NonNull ByteString byteString, final @NonNegative long startIndex) {
         Objects.requireNonNull(byteString);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         if (startIndex < 0L) {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
@@ -570,7 +570,7 @@ public final class RealReader implements Reader {
     public long indexOfElement(final @NonNull ByteString targetBytes, final @NonNegative long startIndex) {
         Objects.requireNonNull(targetBytes);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         if (startIndex < 0L) {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
@@ -614,7 +614,7 @@ public final class RealReader implements Reader {
                                final @NonNegative int byteCount) {
         Objects.requireNonNull(byteString);
         if (segmentQueue.closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
 
         if (offset < 0L ||
