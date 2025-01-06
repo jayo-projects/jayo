@@ -10,25 +10,20 @@
 
 package jayo.tls.helpers;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.SplittableRandom;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import static java.lang.System.Logger.Level.WARNING;
 
 public class TlsTestUtil {
 
-    public static <A> Stream<A> removeAndCollect(Iterator<A> iterator) {
-        List<A> builder = new ArrayList<>();
-        while (iterator.hasNext()) {
-            builder.add(iterator.next());
-            iterator.remove();
-        }
-        return builder.stream();
+    // Reversed method not present before Java 21.
+    public static <T> List<T> reversed(List<T> list) {
+        @SuppressWarnings("unchecked")
+        List<T> reversedSizes = (List<T>) new ArrayList<>(list).clone();
+        Collections.reverse(reversedSizes);
+        return reversedSizes;
     }
 
     @FunctionalInterface

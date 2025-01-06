@@ -17,8 +17,6 @@ fun catalogVersion(lib: String) =
     versionCatalog.findVersion(lib).getOrNull()?.requiredVersion
         ?: throw GradleException("Version '$lib' is not specified in the toml version catalog")
 
-val javaVersion = catalogVersion("java").toInt()
-
 val isCI = providers.gradleProperty("isCI")
 
 val koverage = mapOf(
@@ -30,17 +28,13 @@ kotlin {
     compilerOptions {
         languageVersion.set(KOTLIN_2_1)
         apiVersion.set(KOTLIN_2_1)
-        javaParameters = true
         allWarningsAsErrors = true
         explicitApi = Strict
         freeCompilerArgs.addAll(
-            "-Xjvm-default=all",
             "-Xnullability-annotations=@org.jspecify.annotations:strict", // not really sure if this helps ;)
             "-opt-in=kotlin.contracts.ExperimentalContracts",
         )
     }
-
-    jvmToolchain(javaVersion)
 }
 
 repositories {
@@ -76,7 +70,6 @@ kover {
 tasks {
     withType<JavaCompile> {
         options.encoding = Charsets.UTF_8.toString()
-        options.release = javaVersion
 
         // replace '-' with '.' to match JPMS jigsaw module name
         val jpmsName = project.name.replace('-', '.')
@@ -112,15 +105,15 @@ tasks {
     }
 }
 
+java {
+    withSourcesJar()
+}
+
 // Generate javadoc jar for Java and Kotlin code in jvm artefacts.
 val dokkaJavadocJar by tasks.registering(Jar::class) {
     description = "A Javadoc JAR containing Dokka Javadoc for Java and Kotlin"
     from(tasks.dokkaGeneratePublicationJavadoc.flatMap { it.outputDirectory })
     archiveClassifier.set("javadoc")
-}
-
-java {
-    withSourcesJar()
 }
 
 publishing.publications.withType<MavenPublication> {

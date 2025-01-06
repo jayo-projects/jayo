@@ -88,11 +88,10 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
             final var protocol = sslEngine.getApplicationProtocol();
             // SSLEngine.getApplicationProtocol() returns "" if application protocols values will not be used. Observed
             // if you didn't specify SSLParameters.setApplicationProtocols
-            return switch (protocol) {
-                case null -> null;
-                case "" -> null;
-                default -> protocol;
-            };
+            if (protocol == null || protocol.isEmpty()) {
+                return null;
+            }
+            return protocol;
         } catch (UnsupportedOperationException ignored) {
             // https://docs.oracle.com/en/java/javase/21/docs/api/java.base/javax/net/ssl/SSLEngine.html#getApplicationProtocol()
             return null;

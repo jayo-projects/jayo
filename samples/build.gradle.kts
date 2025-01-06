@@ -21,4 +21,5 @@ dependencies {
 
 kotlin {
     explicitApi = Disabled
+    jvmToolchain(17)
 }

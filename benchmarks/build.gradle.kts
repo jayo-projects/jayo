@@ -23,20 +23,6 @@ repositories {
     mavenCentral()
 }
 
-jmh {
-    jvmArgs = listOf("-Djmh.separateClasspathJAR=true", "-Dorg.gradle.daemon=false", "-Djmh.executor=VIRTUAL")
-    duplicateClassesStrategy = WARN
-    jmhVersion = catalogVersion("jmh")
-
-//    includes.set(listOf("""jayo\.benchmarks\.BufferLatin1Benchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.BufferUtf8Benchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.JsonSerializationBenchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.SlowReaderBenchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.SlowWriterBenchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
-    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
-}
-
 dependencies {
     jmh(project(":third-party:jayo-3p-kotlinx-serialization"))
 
@@ -46,6 +32,24 @@ dependencies {
 
     jmhRuntimeOnly("org.slf4j:slf4j-simple:${catalogVersion("slf4j")}")
     jmhRuntimeOnly("org.slf4j:slf4j-jdk-platform-logging:${catalogVersion("slf4j")}")
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+jmh {
+    jvmArgs = listOf("-Djmh.separateClasspathJAR=true", "-Dorg.gradle.daemon=false", "-Djmh.executor=VIRTUAL")
+    duplicateClassesStrategy = WARN
+    jmhVersion = catalogVersion("jmh")
+
+//    includes.set(listOf("""jayo\.benchmarks\.BufferLatin1Benchmark.*"""))
+    includes.set(listOf("""jayo\.benchmarks\.BufferUtf8Benchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.JsonSerializationBenchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.SlowReaderBenchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.SlowWriterBenchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
 }
 
 tasks {

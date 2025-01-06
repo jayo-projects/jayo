@@ -63,7 +63,7 @@ final class DerWriter {
      */
     @Nullable
     Object typeHint() {
-        return typeHintStack.isEmpty() ? null : typeHintStack.getLast();
+        return typeHintStack.isEmpty() ? null : typeHintStack.get(typeHintStack.size() - 1);
     }
 
     void typeHint(final @Nullable Object typeHint) {
@@ -85,8 +85,8 @@ final class DerWriter {
             constructedBit = constructed ? 0b0010_0000 : 0;
             constructed = true; // The enclosing object is constructed.
         } finally {
-            stack.removeLast();
-            path.removeLast();
+            stack.remove(stack.size() - 1);
+            path.remove(path.size() - 1);
         }
 
         final var _writer = writer();
@@ -130,7 +130,7 @@ final class DerWriter {
         try {
             return block.get();
         } finally {
-            typeHintStack.removeLast();
+            typeHintStack.remove(typeHintStack.size() - 1);
         }
     }
 
@@ -211,7 +211,7 @@ final class DerWriter {
     }
 
     private @NonNull Writer writer() {
-        return stack.getLast();
+        return stack.get(stack.size() - 1);
     }
 
     /** Used for tags and sub-identifiers. */

@@ -5,9 +5,9 @@
 
 package jayo.internal;
 
-import jayo.RawWriter;
 import jayo.JayoClosedResourceException;
 import jayo.JayoInterruptedIOException;
+import jayo.RawWriter;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -111,14 +112,16 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
 
     final static class Async extends WriterSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.WriterSegmentQueue");
-        private final static Thread.Builder SINK_EMITTER_THREAD_BUILDER = Utils.threadBuilder("JayoWriterEmitter#");
+        private final static ThreadFactory SINK_EMITTER_THREAD_FACTORY =
+                JavaVersionUtils.threadBuilder("JayoWriterEmitter#");
 
         /**
          * A specific STOP event that will be sent to {@link #emitEvents} queue
          * to trigger the end of the async emitter thread
          */
         private final static EmitEvent STOP_EMITTER_THREAD = new EmitEvent(
-                new Segment(new byte[0], 0, 0, null, null, null, false),
+                new Segment(new byte[0], 0, 0, null, null,
+                        null, false),
                 false, -42, false);
 
         private volatile @Nullable RuntimeException exception = null;
@@ -137,7 +140,8 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
 
         Async(final @NonNull RawWriter writer) {
             super(writer);
-            writerEmitterThread = SINK_EMITTER_THREAD_BUILDER.start(new WriterEmitter());
+            writerEmitterThread = SINK_EMITTER_THREAD_FACTORY.newThread(new WriterEmitter());
+            writerEmitterThread.start();
         }
 
         @Override

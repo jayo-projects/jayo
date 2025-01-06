@@ -12,6 +12,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -93,8 +94,8 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
 
     final static class Async extends ReaderSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.AsyncReaderSegmentQueue");
-        private final static Thread.Builder SOURCE_CONSUMER_THREAD_BUILDER =
-                Utils.threadBuilder("JayoReaderConsumer#");
+        private final static ThreadFactory SOURCE_CONSUMER_THREAD_FACTORY =
+                JavaVersionUtils.threadBuilder("JayoReaderConsumer#");
 
         private final @NonNull Thread readerConsumerThread;
 
@@ -110,7 +111,8 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
 
         private Async(final @NonNull RawReader reader) {
             super(reader);
-            readerConsumerThread = SOURCE_CONSUMER_THREAD_BUILDER.start(new ReaderConsumer());
+            readerConsumerThread = SOURCE_CONSUMER_THREAD_FACTORY.newThread(new ReaderConsumer());
+            readerConsumerThread.start();
         }
 
         @NonNegative

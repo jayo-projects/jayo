@@ -19,13 +19,9 @@ dependencies {
 kotlin {
     compilerOptions {
         allWarningsAsErrors = false
+        freeCompilerArgs.add(
+            "-opt-in=kotlinx.serialization.json.internal.JsonFriendModuleApi",
+        )
     }
-
-    sourceSets {
-        configureEach {
-            languageSettings {
-                optIn("kotlinx.serialization.json.internal.JsonFriendModuleApi")
-            }
-        }
-    }
+    jvmToolchain(17)
 }

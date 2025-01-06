@@ -193,7 +193,7 @@ object TestUtil {
 
     @JvmStatic
     fun newThread(task: Runnable): Thread {
-        return Utils.threadBuilder("").unstarted(task)
+        return JavaVersionUtils.threadBuilder("").newThread(task)
     }
 
     @JvmStatic

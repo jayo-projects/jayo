@@ -7,6 +7,7 @@ plugins {
 
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.mrjar) apply false
     alias(libs.plugins.jmh) apply false
     alias(libs.plugins.shadow) apply false
 }

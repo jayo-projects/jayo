@@ -6,8 +6,8 @@ jobs:
   Gradle-Build:
     strategy:
       matrix:
-        distribution: [ 'oracle', 'temurin', 'zulu' ]
-        java: [ '21', '22' ] # replace '22' with '23' when JMH & Kotlin support it
+        distribution: [ 'temurin', 'corretto' ]
+        java: [ '17', '21', '22' ] # replace '22' with '23' when JMH & Kotlin support it
     runs-on: 'ubuntu-latest'
     steps:
       - uses: actions/checkout@v4

@@ -45,7 +45,7 @@ public final class SocksProxyServer {
     private static final byte COMMAND_CONNECT = 1;
     private static final byte REPLY_SUCCEEDED = 0;
 
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
     private NetworkServer networkServer;
     private final Set<NetworkEndpoint> openNetworkEndpoints = Collections.newSetFromMap(new ConcurrentHashMap<>());
 

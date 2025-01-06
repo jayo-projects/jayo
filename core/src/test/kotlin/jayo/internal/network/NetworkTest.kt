@@ -17,6 +17,7 @@ import java.net.InetSocketAddress
 import java.net.StandardSocketOptions
 import java.time.Duration
 import java.util.stream.Stream
+import kotlin.concurrent.thread
 import kotlin.time.Duration.Companion.seconds
 
 class NetworkTest {
@@ -37,7 +38,7 @@ class NetworkTest {
     @MethodSource("parameters")
     fun `read ok case`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 val accepted = server.accept()
                 accepted.writer.buffered().use { writer ->
                     writer.write(TO_WRITE)
@@ -69,7 +70,7 @@ class NetworkTest {
     @MethodSource("parameters")
     fun `negative read throws IllegalArgumentException`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
@@ -88,7 +89,7 @@ class NetworkTest {
         networkFactory: NetworkFactory
     ) {
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
@@ -106,7 +107,7 @@ class NetworkTest {
         networkFactory: NetworkFactory
     ) {
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
@@ -123,12 +124,12 @@ class NetworkTest {
     fun `read while cancelled and interrupted platform thread`(networkFactory: NetworkFactory) {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
             cancelScope {
-                Thread.ofPlatform().start {
+                thread(start = true) {
                     cancel()
                     Thread.currentThread().interrupt()
                     val reader = client.reader.buffered()
@@ -146,12 +147,12 @@ class NetworkTest {
     fun `read while cancelled and interrupted virtual thread`(networkFactory: NetworkFactory) {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
             cancelScope {
-                Thread.ofVirtual().start {
+                thread(start = true) {
                     cancel()
                     Thread.currentThread().interrupt()
                     val reader = client.reader.buffered()
@@ -169,12 +170,12 @@ class NetworkTest {
     fun `write while cancelled and interrupted platform thread`(networkFactory: NetworkFactory) {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
             cancelScope {
-                Thread.ofPlatform().start {
+                thread(start = true) {
                     cancel()
                     Thread.currentThread().interrupt()
                     val writer = client.writer.buffered()
@@ -195,12 +196,12 @@ class NetworkTest {
     fun `write while cancelled and interrupted virtual thread`(networkFactory: NetworkFactory) {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
             cancelScope {
-                Thread.ofVirtual().start {
+                thread(start = true) {
                     cancel()
                     Thread.currentThread().interrupt()
                     val writer = client.writer.buffered()
@@ -220,7 +221,7 @@ class NetworkTest {
     @MethodSource("parameters")
     fun `close ok case`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 server.accept()
             }
             val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
@@ -245,7 +246,7 @@ class NetworkTest {
     @MethodSource("parameters")
     fun `default read timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 val accepted = server.accept()
                 accepted.writer.buffered().use { writer ->
                     writer.write(TO_WRITE)
@@ -268,7 +269,7 @@ class NetworkTest {
     fun `default write timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder()
             .bind(InetSocketAddress(0 /* find free port */)).use { server ->
-                val serverThread = Thread.ofVirtual().start {
+                val serverThread = thread(start = true) {
                     server.accept()
                 }
                 val client = networkFactory.networkEndpointBuilder()
@@ -276,7 +277,8 @@ class NetworkTest {
                     .connect(server.localAddress)
 
                 assertThatThrownBy {
-                    client.writer.buffered().write(TO_WRITE)
+                    client.writer.buffered().write(TO_WRITE.repeat(5))
+                        .flush()
                 }.isInstanceOf(JayoTimeoutException::class.java)
                     .hasMessage("timeout")
 
@@ -288,7 +290,7 @@ class NetworkTest {
     @MethodSource("parameters")
     fun `default read timeout with declared timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 val accepted = server.accept()
                 accepted.writer.buffered().use { writer ->
                     writer.write(TO_WRITE)
@@ -312,7 +314,7 @@ class NetworkTest {
         networkFactory.networkServerBuilder()
             .writeTimeout(Duration.ofNanos(1))
             .bind(InetSocketAddress(0 /* find free port */)).use { server ->
-                val serverThread = Thread.ofVirtual().start {
+                val serverThread = thread(start = true) {
                     val accepted = server.accept()
                     accepted.writer.buffered().use { writer ->
                         cancelScope(timeout = 10.seconds) {

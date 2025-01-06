@@ -11,7 +11,6 @@ import jayo.writer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.RepeatedTest
 import java.io.OutputStream
-import java.time.Duration
 import kotlin.random.Random
 import kotlin.test.fail
 
@@ -48,7 +47,7 @@ class WriterAsyncTests {
             val toWrite = CHUNKS_BYTE_SIZE
             val bytes = ByteArray(toWrite)
             while (written < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 ARRAY.copyInto(bytes, 0, 0, toWrite)
                 writer.write(bytes)
                 written += toWrite
@@ -67,7 +66,7 @@ class WriterAsyncTests {
             val toWrite = CHUNKS_BYTE_SIZE
             val bytes = ByteArray(toWrite)
             while (written < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 ARRAY.copyInto(bytes, 0, 0, toWrite)
                 writer.write(bytes)
                 written += toWrite
@@ -86,7 +85,7 @@ class WriterAsyncTests {
             val toWrite = CHUNKS_BYTE_SIZE
             val bytes = ByteArray(toWrite)
             while (written < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 ARRAY.copyInto(bytes, 0, 0, toWrite)
                 writer.write(bytes)
                 written += toWrite
@@ -105,7 +104,7 @@ class WriterAsyncTests {
             val toWrite = CHUNKS_BYTE_SIZE
             val bytes = ByteArray(toWrite)
             while (written < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 ARRAY.copyInto(bytes, 0, 0, toWrite)
                 writer.write(bytes)
                 written += toWrite
@@ -134,7 +133,7 @@ class WriterAsyncTests {
                 fail()
             }
             if (delayed) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
             }
             b.copyInto(bytes, offset, off, len)
             offset += len

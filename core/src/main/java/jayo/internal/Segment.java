@@ -362,7 +362,7 @@ final class Segment {
         assert byteCount > 0;
 
         if (readByteBuffer == null) {
-            readByteBuffer = ByteBuffer.wrap(data).asReadOnlyBuffer();
+            readByteBuffer = JavaVersionUtils.asReadOnlyBuffer(ByteBuffer.wrap(data));
         }
 
         // just set position and limit, then return this BytBuffer

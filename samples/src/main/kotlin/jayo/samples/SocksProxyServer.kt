@@ -22,11 +22,12 @@
 package jayo.samples
 
 import jayo.*
-import jayo.JayoException
-import jayo.JayoProtocolException
 import jayo.network.NetworkEndpoint
 import jayo.network.NetworkServer
-import java.net.*
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.URI
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -43,7 +44,7 @@ private const val REPLY_SUCCEEDED: Byte = 0
  * See [RFC 1928](https://www.ietf.org/rfc/rfc1928.txt).
  */
 class KotlinSocksProxyServer {
-    private val executor = Executors.newVirtualThreadPerTaskExecutor()
+    private val executor = Executors.newCachedThreadPool()
     private lateinit var networkServer: NetworkServer
     private val openNetworkEndpoints: MutableSet<NetworkEndpoint> = Collections.newSetFromMap(ConcurrentHashMap())
 
