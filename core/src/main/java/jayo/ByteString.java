@@ -130,7 +130,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     /**
      * Decodes the hexadecimal-encoded bytes from {@code charSequence} and wraps them into a byte string.
      *
-     * @param charSequence the char sequence to decode Base64-encoded bytes from.
+     * @param charSequence the char sequence to decode hexadecimal-encoded bytes from.
      * @throws IllegalArgumentException if {@code charSequence} is not a valid hexadecimal-encoded char sequence.
      */
     static @NonNull ByteString decodeHex(final @NonNull CharSequence charSequence) {

@@ -132,7 +132,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * buffer.writeByte(' ');
      * buffer.write("You didn't say the magic word!");
      *
-     * assertThat(buffer.readUtf8()).isEqualTo("Uh uh uh! You didn't say the magic word!");
+     * assertThat(buffer.readString()).isEqualTo("Uh uh uh! You didn't say the magic word!");
      * }
      * </pre>
      *
@@ -155,7 +155,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * buffer.writeByte(' ');
      * buffer.write("I prefer to be called a hacker!\n", 24, 31);
      *
-     * assertThat(buffer.readUtf8()).isEqualTo("hacker nerd hacker!");
+     * assertThat(buffer.readString()).isEqualTo("hacker nerd hacker!");
      * }
      * </pre>
      *
@@ -361,7 +361,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * buffer.writeByte(' ');
      * buffer.writeDecimalLong(1L);
      *
-     * assertThat(buffer.readUtf8()).isEqualTo("8675309 -123 1");
+     * assertThat(buffer.readString()).isEqualTo("8675309 -123 1");
      * }
      * </pre>
      *
@@ -373,8 +373,8 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     Writer writeDecimalLong(final long l);
 
     /**
-     * Writes a long to this writer in hexadecimal form (i.e., as a string in base 16).
-     * Resulting string will not contain leading zeros, except the {@code 0} value itself.
+     * Writes a long to this writer in hexadecimal form (i.e., as a string in base 16). Resulting string will not
+     * contain leading zeros, except the {@code 0} value itself.
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
@@ -384,7 +384,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * buffer.writeByte(' ');
      * buffer.writeHexadecimalUnsignedLong(0x10L);
      *
-     * assertThat(buffer.readUtf8()).isEqualTo("ffff cafebabe 10");
+     * assertThat(buffer.readString()).isEqualTo("ffff cafebabe 10");
      * }
      * </pre>
      *

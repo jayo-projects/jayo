@@ -33,7 +33,7 @@ public class FailTest {
 
     @Test
     public void testIoPlanToTls() throws IOException, InterruptedException {
-        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0));
+        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
         int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
@@ -69,7 +69,7 @@ public class FailTest {
 
     @Test
     public void testNioPlanToTls() throws IOException, InterruptedException {
-        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0));
+        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
         int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
