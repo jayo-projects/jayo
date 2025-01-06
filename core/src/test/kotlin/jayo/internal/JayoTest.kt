@@ -201,7 +201,7 @@ class JayoTest {
     fun socketChannelWriter() {
         // Let the system pick up a local free port
         val buffer = Buffer()
-        NetworkServer.bindTcp(InetSocketAddress(0)).use { listener ->
+        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     serverEndpoint.reader.readAtMostTo(buffer, 1L)
@@ -220,8 +220,7 @@ class JayoTest {
 
     @Test
     fun socketChannelReader() {
-        // Let the system pick up a local free port
-        NetworkServer.bindTcp(InetSocketAddress(0)).use { listener ->
+        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     serverEndpoint.writer.buffered().use { serverWriter ->

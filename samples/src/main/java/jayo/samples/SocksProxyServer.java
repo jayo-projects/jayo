@@ -50,7 +50,7 @@ public final class SocksProxyServer {
     private final Set<NetworkEndpoint> openNetworkEndpoints = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public void start() {
-        networkServer = NetworkServer.bindTcp(new InetSocketAddress(0));
+        networkServer = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
         executor.execute(this::acceptSockets);
     }
 
