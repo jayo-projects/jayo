@@ -21,10 +21,7 @@
 
 package jayo.samples;
 
-import jayo.Buffer;
-import jayo.Jayo;
-import jayo.RawReader;
-import jayo.Reader;
+import jayo.*;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Random;
@@ -48,7 +45,7 @@ public final class Randoms {
         @Override
         public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
             if (bytesLeft == -1L) {
-                throw new IllegalStateException("closed");
+                throw new JayoClosedResourceException();
             }
             if (bytesLeft == 0L) {
                 return -1L;

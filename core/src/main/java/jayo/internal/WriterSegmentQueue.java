@@ -6,7 +6,7 @@
 package jayo.internal;
 
 import jayo.RawWriter;
-import jayo.JayoClosedEndpointException;
+import jayo.JayoClosedResourceException;
 import jayo.JayoInterruptedIOException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
@@ -79,7 +79,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             if (size > 0) {
                 writer.write(buffer, size);
             }
-        } catch (JayoInterruptedIOException | JayoClosedEndpointException ignored) {
+        } catch (JayoInterruptedIOException | JayoClosedResourceException ignored) {
             // cancellation lead to closing, and a closed endpoint must be ignored
         } catch (Throwable e) {
             thrown = e;

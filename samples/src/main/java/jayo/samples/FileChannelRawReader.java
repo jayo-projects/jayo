@@ -22,6 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
+import jayo.JayoClosedResourceException;
 import jayo.RawReader;
 import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
@@ -46,7 +47,7 @@ public final class FileChannelRawReader implements RawReader {
     @Override
     public long readAtMostTo(@NonNull Buffer writer, long byteCount) {
         if (!channel.isOpen()) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         try {
             if (position == channel.size()) {

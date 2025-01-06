@@ -14,7 +14,7 @@ import jayo.Buffer;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.Endpoint;
-import jayo.JayoClosedEndpointException;
+import jayo.JayoClosedResourceException;
 import jayo.JayoEOFException;
 import jayo.external.NonNegative;
 import jayo.tls.JayoTlsHandshakeCallbackException;
@@ -123,7 +123,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
             try {
                 initEngine();
             } catch (JayoEOFException e) {
-                throw new JayoClosedEndpointException();
+                throw new JayoClosedResourceException();
             }
         }
         assert impl != null;
@@ -136,7 +136,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
             try {
                 initEngine();
             } catch (JayoEOFException e) {
-                throw new JayoClosedEndpointException();
+                throw new JayoClosedResourceException();
             }
         }
         assert impl != null;
@@ -248,7 +248,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
                 try {
                     serverTlsEndpoint.initEngine();
                 } catch (JayoEOFException e) {
-                    throw new JayoClosedEndpointException();
+                    throw new JayoClosedResourceException();
                 }
             }
             assert serverTlsEndpoint.impl != null;

@@ -22,11 +22,7 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
-import jayo.InflaterRawReader;
-import jayo.RawReader;
-import jayo.JayoEOFException;
-import jayo.JayoException;
+import jayo.*;
 import jayo.external.CancelToken;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
@@ -76,7 +72,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
             throw new IllegalArgumentException("writer must be an instance of RealBuffer");
         }
         if (closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
         if (byteCount == 0L) {
             return 0L;
@@ -129,7 +125,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
             throw new IllegalArgumentException("writer must be an instance of RealBuffer");
         }
         if (closed) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
 
         final var cancelToken = CancellableUtils.getCancelToken();

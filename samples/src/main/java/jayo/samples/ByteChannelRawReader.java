@@ -22,8 +22,9 @@
 package jayo.samples;
 
 import jayo.Buffer;
-import jayo.RawReader;
+import jayo.JayoClosedResourceException;
 import jayo.JayoException;
+import jayo.RawReader;
 import jayo.external.CancelToken;
 import org.jspecify.annotations.NonNull;
 
@@ -49,7 +50,7 @@ public final class ByteChannelRawReader implements RawReader {
     @Override
     public long readAtMostTo(@NonNull Buffer writer, long byteCount) {
         if (!channel.isOpen()) {
-            throw new IllegalStateException("closed");
+            throw new JayoClosedResourceException();
         }
 
         CancelToken cancelToken = CancelToken.getCancelToken();

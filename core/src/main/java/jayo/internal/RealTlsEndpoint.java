@@ -12,7 +12,7 @@ package jayo.internal;
 
 import jayo.Buffer;
 import jayo.Endpoint;
-import jayo.JayoClosedEndpointException;
+import jayo.JayoClosedResourceException;
 import jayo.JayoEOFException;
 import jayo.JayoException;
 import jayo.external.NonNegative;
@@ -147,7 +147,7 @@ public final class RealTlsEndpoint {
         readLock.lock();
         try {
             if (invalid || shutdownSent) {
-                throw new JayoClosedEndpointException();
+                throw new JayoClosedResourceException();
             }
 
             // the decrypted buffer may already have available data
@@ -362,7 +362,7 @@ public final class RealTlsEndpoint {
         writeLock.lock();
         try {
             if (invalid || shutdownSent) {
-                throw new JayoClosedEndpointException();
+                throw new JayoClosedResourceException();
             }
 
             wrapAndWrite(_reader, byteCount);
@@ -456,7 +456,7 @@ public final class RealTlsEndpoint {
         try {
             doHandshake(true);
         } catch (TlsEOFException e) {
-            throw new JayoClosedEndpointException();
+            throw new JayoClosedResourceException();
         }
     }
 
@@ -467,7 +467,7 @@ public final class RealTlsEndpoint {
         try {
             doHandshake(false);
         } catch (TlsEOFException e) {
-            throw new JayoClosedEndpointException();
+            throw new JayoClosedResourceException();
         }
     }
 
@@ -479,7 +479,7 @@ public final class RealTlsEndpoint {
         initLock.lock();
         try {
             if (invalid || shutdownSent) {
-                throw new JayoClosedEndpointException();
+                throw new JayoClosedResourceException();
             }
             if (force || !handshakeCompleted) {
                 if (!handshakeStarted) {
@@ -628,7 +628,7 @@ public final class RealTlsEndpoint {
             writeLock.lock();
             try {
                 if (invalid) {
-                    throw new JayoClosedEndpointException();
+                    throw new JayoClosedResourceException();
                 }
 
                 if (!shutdownSent) {
@@ -658,7 +658,7 @@ public final class RealTlsEndpoint {
                         readAndUnwrap();
                         assert shutdownReceived;
                     } catch (TlsEOFException e) {
-                        throw new JayoClosedEndpointException();
+                        throw new JayoClosedResourceException();
                     }
                 }
                 freeBuffer();

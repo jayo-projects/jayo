@@ -21,7 +21,7 @@
 
 package jayo.internal.network;
 
-import jayo.JayoClosedEndpointException;
+import jayo.JayoClosedResourceException;
 import jayo.JayoException;
 import jayo.RawReader;
 import jayo.RawWriter;
@@ -224,7 +224,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
 
     private void throwIfClosed() {
         if (socket.isClosed()) {
-            throw new JayoClosedEndpointException();
+            throw new JayoClosedResourceException();
         }
     }
 }

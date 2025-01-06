@@ -17,7 +17,7 @@ import java.io.Closeable;
  * <p>
  * An endpoint is either open or closed. An endpoint is open upon creation, and once closed it remains closed. After an
  * endpoint is closed, any further attempt to invoke an I/O operation upon it will cause a
- * {@link JayoClosedEndpointException} to be thrown.
+ * {@link JayoClosedResourceException} to be thrown.
  * <p>
  * Note: <b>A file is not an endpoint.</b>
  */
@@ -44,7 +44,7 @@ public interface Endpoint extends Closeable {
      * Closes this endpoint.
      * <p>
      * After an endpoint is closed, any further attempt to invoke I/O operations upon it will cause a
-     * {@link JayoClosedEndpointException} to be thrown.
+     * {@link JayoClosedResourceException} to be thrown.
      * <p>
      * If this endpoint is already closed then invoking this method has no effect.
      *
