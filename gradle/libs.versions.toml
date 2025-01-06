@@ -1,7 +1,5 @@
 [versions]
 
-java = "21"
-
 # plugins
 # https://github.com/JetBrains/kotlin/releases
 kotlin = "2.1.0"
@@ -9,6 +7,8 @@ kotlin = "2.1.0"
 dokka = "2.0.0"
 # https://github.com/Kotlin/kotlinx-kover/releases
 kover = "0.9.0"
+# https://github.com/melix/mrjar-gradle-plugin/releases
+mrjar = "0.1.1"
 # https://github.com/melix/jmh-gradle-plugin/releases (for benchmarks)
 jmhPlugin = "0.7.2"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
@@ -60,6 +60,7 @@ kover-gradle-plugin = { group = "org.jetbrains.kotlinx", name = "kover-gradle-pl
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+mrjar = { id = "me.champeau.mrjar", version.ref = "mrjar" }
 jmh = { id = "me.champeau.jmh", version.ref = "jmhPlugin" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 release = { id = "net.researchgate.release", version.ref = "release" }

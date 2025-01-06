@@ -68,38 +68,58 @@ public class JayoException extends UncheckedIOException {
      */
     public static JayoException buildJayoException(final @NonNull IOException ioException) {
         Objects.requireNonNull(ioException);
-        return switch (ioException) {
-            case EOFException eofException -> new JayoEOFException(eofException);
-            case FileNotFoundException fileNotFoundException -> new JayoFileNotFoundException(fileNotFoundException);
-            case NoSuchFileException noSuchFileException -> new JayoFileNotFoundException(noSuchFileException);
-            case FileAlreadyExistsException faeException -> new JayoFileAlreadyExistsException(faeException);
-            case ProtocolException protocolException -> new JayoProtocolException(protocolException);
-            case SocketTimeoutException stoException -> new JayoTimeoutException(stoException);
-            case InterruptedIOException interuptIOException -> new JayoInterruptedIOException(interuptIOException);
-            case UnknownHostException unknownHostException -> new JayoUnknownHostException(unknownHostException);
+        if (ioException instanceof EOFException eofException) {
+            return new JayoEOFException(eofException);
+        }
+        if (ioException instanceof FileNotFoundException fileNotFoundException) {
+            return new JayoFileNotFoundException(fileNotFoundException);
+        }
+        if (ioException instanceof NoSuchFileException noSuchFileException) {
+            return new JayoFileNotFoundException(noSuchFileException);
+        }
+        if (ioException instanceof FileAlreadyExistsException faeException) {
+            return new JayoFileAlreadyExistsException(faeException);
+        }
+        if (ioException instanceof ProtocolException protocolException) {
+            return new JayoProtocolException(protocolException);
+        }
+        if (ioException instanceof SocketTimeoutException stoException) {
+            return new JayoTimeoutException(stoException);
+        }
+        if (ioException instanceof InterruptedIOException interuptIOException) {
+            return new JayoInterruptedIOException(interuptIOException);
+        }
+        if (ioException instanceof UnknownHostException unknownHostException) {
+            return new JayoUnknownHostException(unknownHostException);
+        }
 
-            // Endpoint related exceptions
-            case ClosedChannelException closedChanException -> new JayoClosedResourceException(closedChanException);
-            case SocketException socketException -> {
-                if (CLOSED_SOCKET_MESSAGE.equals(socketException.getMessage())
-                        || BROKEN_PIPE_SOCKET_MESSAGE.equals(socketException.getMessage())) {
-                    yield new JayoClosedResourceException(socketException);
-                }
-                yield new JayoSocketException(socketException);
+        // Endpoint related exceptions
+        if (ioException instanceof ClosedChannelException closedChanException) {
+            return new JayoClosedResourceException(closedChanException);
+        }
+        if (ioException instanceof SocketException socketException) {
+            if (CLOSED_SOCKET_MESSAGE.equals(socketException.getMessage())
+                    || BROKEN_PIPE_SOCKET_MESSAGE.equals(socketException.getMessage())) {
+                return new JayoClosedResourceException(socketException);
             }
+            return new JayoSocketException(socketException);
+        }
 
-            // TLS/SSL related exceptions
-            case SSLHandshakeException sslHandshakeException -> new JayoTlsHandshakeException(sslHandshakeException);
-            case SSLPeerUnverifiedException sslPeerUnverifiedException ->
-                    new JayoTlsPeerUnverifiedException(sslPeerUnverifiedException);
-            case SSLException sslException -> new JayoTlsException(sslException);
+        // TLS/SSL related exceptions
+        if (ioException instanceof SSLHandshakeException sslHandshakeException) {
+            return new JayoTlsHandshakeException(sslHandshakeException);
+        }
+        if (ioException instanceof SSLPeerUnverifiedException sslPeerUnverifiedException) {
+            return new JayoTlsPeerUnverifiedException(sslPeerUnverifiedException);
+        }
+        if (ioException instanceof SSLException sslException) {
+            return new JayoTlsException(sslException);
+        }
 
-            default -> {
-                if (BROKEN_PIPE_SOCKET_MESSAGE.equals(ioException.getMessage())) {
-                    yield new JayoClosedResourceException(ioException);
-                }
-                yield new JayoException(ioException);
-            }
-        };
+        // default
+        if (BROKEN_PIPE_SOCKET_MESSAGE.equals(ioException.getMessage())) {
+            return new JayoClosedResourceException(ioException);
+        }
+        return new JayoException(ioException);
     }
 }

@@ -36,6 +36,7 @@ import java.nio.channels.FileChannel
 import java.nio.channels.SocketChannel
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
+import kotlin.concurrent.thread
 
 class JayoTest {
 
@@ -201,7 +202,7 @@ class JayoTest {
         // Let the system pick up a local free port
         val buffer = Buffer()
         NetworkServer.bindTcp(InetSocketAddress(0)).use { listener ->
-            val serverThread = Thread.startVirtualThread {
+            val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     serverEndpoint.reader.readAtMostTo(buffer, 1L)
                 }
@@ -212,7 +213,7 @@ class JayoTest {
                     clientWriter.write("a")
                 }
             }
-            serverThread!!.join()
+            serverThread.join()
         }
         assertThat(buffer.readString()).isEqualTo("a")
     }
@@ -221,7 +222,7 @@ class JayoTest {
     fun socketChannelReader() {
         // Let the system pick up a local free port
         NetworkServer.bindTcp(InetSocketAddress(0)).use { listener ->
-            val serverThread = Thread.startVirtualThread {
+            val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     serverEndpoint.writer.buffered().use { serverWriter ->
                         serverWriter.write("a")
@@ -234,7 +235,7 @@ class JayoTest {
                     assertThat(clientReader.readString()).isEqualTo("a")
                 }
             }
-            serverThread!!.join()
+            serverThread.join()
         }
     }
 }

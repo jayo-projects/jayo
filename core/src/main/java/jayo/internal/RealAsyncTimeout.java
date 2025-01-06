@@ -33,6 +33,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -285,8 +286,8 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      */
     private static @Nullable RealAsyncTimeout head = null;
 
-    private final static Thread.Builder ASYNC_TIMEOUT_WATCHDOG_THREAD_BUILDER =
-            Utils.threadBuilder("JayoWatchdog#");
+    private final static ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
+            JavaVersionUtils.threadBuilder("JayoAsyncTimeoutWatchdog#");
 
     private static void scheduleTimeout(RealAsyncTimeout node, final long timeoutNanos, final long deadlineNanoTime) {
         LOCK.lock();
@@ -300,7 +301,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             if (head == null) {
                 head = new RealAsyncTimeout(() -> {
                 });
-                ASYNC_TIMEOUT_WATCHDOG_THREAD_BUILDER.start(new Watchdog());
+                ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(new Watchdog()).start();
             }
 
             final var now = System.nanoTime();

@@ -20,6 +20,7 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import javax.net.ssl.SSLSession
 import javax.net.ssl.SSLSocket
+import kotlin.concurrent.thread
 
 class TlsEndpointTest {
     companion object {
@@ -39,7 +40,7 @@ class TlsEndpointTest {
     @Test
     fun fullTlsClientEndpointBuilder() {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 listener.accept().use { serverSocket ->
                     serverSocket.outputStream.write(42)
                 }
@@ -61,7 +62,7 @@ class TlsEndpointTest {
     @Test
     fun tlsClientEndpointBuilder_ExceptionInSessionInitCallback() {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 listener.accept().use { serverSocket ->
                     serverSocket.outputStream.write(42)
                 }
@@ -94,7 +95,7 @@ class TlsEndpointTest {
     fun fullTlsServerEndpointBuilder() {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             var sslSession: SSLSession? = null
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     TlsEndpoint.serverBuilder(serverEndpoint, sslContext).build {
                         sessionInitCallback = { sslSession = it }
@@ -119,7 +120,7 @@ class TlsEndpointTest {
     @Test
     fun tlsServerEndpointBuilder_ExceptionInEngineFactory() {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
-            val serverThread = Thread.ofVirtual().start {
+            val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     TlsEndpoint.serverBuilder(serverEndpoint, sslContext).build {
                         engineFactory = { throw Exception() }

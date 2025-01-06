@@ -63,7 +63,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
             final var sortedIndex = Collections.binarySearch(list, byteString);
             indexes.set(sortedIndex, callerIndex);
         }
-        if (list.getFirst().byteSize() <= 0) {
+        if (list.get(0).byteSize() <= 0) {
             throw new IllegalArgumentException("the empty byte string is not a supported option");
         }
 

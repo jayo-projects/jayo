@@ -80,7 +80,7 @@ final class DerReader {
      */
     @Nullable
     Object typeHint() {
-        return typeHintStack.isEmpty() ? null : typeHintStack.getLast();
+        return typeHintStack.isEmpty() ? null : typeHintStack.get(typeHintStack.size() - 1);
     }
 
     void typeHint(final @Nullable Object typeHint) {
@@ -231,7 +231,7 @@ final class DerReader {
             limit = pushedLimit;
             constructed = pushedConstructed;
             if (name != null) {
-                path.removeLast();
+                path.remove(path.size() - 1);
             }
         }
     }
@@ -247,7 +247,7 @@ final class DerReader {
         try {
             return block.get();
         } finally {
-            typeHintStack.removeLast();
+            typeHintStack.remove(typeHintStack.size() - 1);
         }
     }
 

@@ -115,11 +115,10 @@ public final class BouncyCastleJssePlatform extends JdkJssePlatform {
         if (sslEngine instanceof BCSSLEngine bouncyCastleSSLEngine) {
             final var protocol = bouncyCastleSSLEngine.getApplicationProtocol();
             // Handles both un-configured and none selected.
-            return switch (protocol) {
-                case null -> null;
-                case "" -> null;
-                default -> protocol;
-            };
+            if (protocol == null || protocol.isEmpty()) {
+                return null;
+            }
+            return protocol;
         }
         // else
         return super.getSelectedProtocol(sslEngine);

@@ -149,7 +149,7 @@ public final class RealHandshake implements Handshake {
     @Override
     public @Nullable Principal getLocalPrincipal() {
         if (!localCertificates.isEmpty()
-                && localCertificates.getFirst() instanceof X509Certificate localX509Certificate) {
+                && localCertificates.get(0) instanceof X509Certificate localX509Certificate) {
             return localX509Certificate.getSubjectX500Principal();
         }
         return null;
@@ -158,7 +158,7 @@ public final class RealHandshake implements Handshake {
     @Override
     public @Nullable Principal getPeerPrincipal() {
         final var peerCertificates = getPeerCertificates();
-        if (!peerCertificates.isEmpty() && peerCertificates.getFirst() instanceof X509Certificate peerX509Certificate) {
+        if (!peerCertificates.isEmpty() && peerCertificates.get(0) instanceof X509Certificate peerX509Certificate) {
             return peerX509Certificate.getSubjectX500Principal();
         }
         return null;
