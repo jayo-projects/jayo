@@ -268,7 +268,7 @@ public class SocketPairFactory {
     }
 
     public IoOldSocketPair nioOld(Optional<String> cipher) {
-        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0));
+        NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
         InetSocketAddress address = (InetSocketAddress) server.getLocalAddress();
         int chosenPort = address.getPort();
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);

@@ -49,7 +49,7 @@ class KotlinSocksProxyServer {
     private val openNetworkEndpoints: MutableSet<NetworkEndpoint> = Collections.newSetFromMap(ConcurrentHashMap())
 
     fun start() {
-        networkServer = NetworkServer.bindTcp(InetSocketAddress(0))
+        networkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */))
         executor.execute { acceptClients() }
     }
 
