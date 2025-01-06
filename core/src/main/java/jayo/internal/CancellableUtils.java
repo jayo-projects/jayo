@@ -9,9 +9,9 @@ import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * Utils for cancellable, relies on {@link ThreadLocal}.
@@ -27,7 +27,7 @@ public final class CancellableUtils {
     private static final ThreadLocal<Deque<RealCancelToken>> CANCEL_TOKENS = new InheritableThreadLocal<>() {
         @Override
         protected Deque<RealCancelToken> initialValue() {
-            return new ArrayDeque<>();
+            return new ConcurrentLinkedDeque<>();
         }
     };
 
