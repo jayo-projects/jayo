@@ -15,7 +15,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.Objects;
 
-import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.INFO;
 import static java.lang.System.Logger.Level.TRACE;
 
 /**
@@ -52,15 +52,15 @@ final class UnsafeUtils {
         if (maybeUnsafe instanceof Throwable) {
             UNSAFE = null;
             if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(DEBUG, "sun.misc.Unsafe.theUnsafe: unavailable", (Throwable) maybeUnsafe);
+                LOGGER.log(INFO, "sun.misc.Unsafe.theUnsafe: unavailable", (Throwable) maybeUnsafe);
             } else {
-                LOGGER.log(DEBUG, "sun.misc.Unsafe.theUnsafe: unavailable: {0}",
+                LOGGER.log(INFO, "sun.misc.Unsafe.theUnsafe: unavailable: {0}",
                         ((Throwable) maybeUnsafe).getMessage());
             }
             UNSAFE_AVAILABLE = false;
         } else {
             UNSAFE = (Unsafe) maybeUnsafe;
-            LOGGER.log(DEBUG, "sun.misc.Unsafe.theUnsafe: available");
+            LOGGER.log(INFO, "sun.misc.Unsafe.theUnsafe: available");
             UNSAFE_AVAILABLE = true;
         }
         if (UNSAFE_AVAILABLE) {

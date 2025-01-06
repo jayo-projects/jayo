@@ -9,6 +9,11 @@ plugins {
     id("jayo-commons")
     id("jayo.build.optional-dependencies")
     `java-test-fixtures`
+    alias(libs.plugins.mrjar)
+}
+
+multiRelease {
+    targetVersions(17, 21)
 }
 
 val versionCatalog: VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -19,6 +24,8 @@ fun catalogVersion(lib: String) =
 
 dependencies {
     optional("org.jetbrains.kotlin:kotlin-stdlib")
+
+    api("org.jspecify:jspecify:${catalogVersion("jspecify")}")
 
     // These compileOnly dependencies must also be listed in the OSGi configuration above (todo).
     compileOnly("org.bouncycastle:bctls-jdk18on:${catalogVersion("bouncycastle")}")

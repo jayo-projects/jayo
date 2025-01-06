@@ -16,6 +16,7 @@ import jayo.tls.helpers.SocketPairFactory;
 import jayo.tls.helpers.SocketPairFactory.ChuckSizes;
 import jayo.tls.helpers.SocketPairFactory.ChunkSizeConfig;
 import jayo.tls.helpers.SslContextFactory;
+import jayo.tls.helpers.TlsTestUtil;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
@@ -36,7 +37,7 @@ public class BlockingTest {
     public Collection<DynamicTest> testIoHalfDuplexWireRenegotiations() {
         List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .toList();
-        List<Integer> reversedSizes = sizes.reversed();
+        List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();
         for (int i = 0; i < sizes.size(); i++) {
             int size1 = sizes.get(i);
@@ -61,7 +62,7 @@ public class BlockingTest {
     public Collection<DynamicTest> testIoFullDuplex() {
         List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .collect(Collectors.toList());
-        List<Integer> reversedSizes = sizes.reversed();
+        List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();
         for (int i = 0; i < sizes.size(); i++) {
             int size1 = sizes.get(i);
@@ -86,7 +87,7 @@ public class BlockingTest {
     public Collection<DynamicTest> testNioHalfDuplexWireRenegotiations() {
         List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .toList();
-        List<Integer> reversedSizes = sizes.reversed();
+        List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();
         for (int i = 0; i < sizes.size(); i++) {
             int size1 = sizes.get(i);
@@ -111,7 +112,7 @@ public class BlockingTest {
     public Collection<DynamicTest> testNioFullDuplex() {
         List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
                 .collect(Collectors.toList());
-        List<Integer> reversedSizes = sizes.reversed();
+        List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();
         for (int i = 0; i < sizes.size(); i++) {
             int size1 = sizes.get(i);

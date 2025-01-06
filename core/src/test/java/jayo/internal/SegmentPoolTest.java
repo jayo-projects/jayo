@@ -33,7 +33,7 @@ public class SegmentPoolTest {
         final var segmentThreadId = getSegmentFromOtherVirtalThread(initialBucketId, true);
 
         assertThat(initialSegment).isSameAs(segmentThreadId.segment);
-        assertThat(Thread.currentThread().threadId()).isNotEqualTo(segmentThreadId.threadId);
+        assertThat(JavaVersionUtils.threadId(Thread.currentThread())).isNotEqualTo(segmentThreadId.threadId);
     }
 
     @Test
@@ -50,7 +50,7 @@ public class SegmentPoolTest {
         getSegmentFromOtherVirtalThread(initialBucketId, true);
 
         assertThat(initialSegment).isNotSameAs(segmentThreadId.segment);
-        assertThat(Thread.currentThread().threadId()).isNotEqualTo(segmentThreadId.threadId);
+        assertThat(JavaVersionUtils.threadId(Thread.currentThread())).isNotEqualTo(segmentThreadId.threadId);
     }
 
     private SegmentThreadId getSegmentFromOtherVirtalThread(
@@ -77,7 +77,7 @@ public class SegmentPoolTest {
         // wait until the virtual thread has finished its work and stopped executing
         newThread.join();
 
-        return new SegmentThreadId(segments.getFirst(), newThread.threadId());
+        return new SegmentThreadId(segments.get(0), JavaVersionUtils.threadId(newThread));
     }
 
     private record SegmentThreadId(Segment segment, long threadId) {

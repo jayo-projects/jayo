@@ -101,12 +101,15 @@ public final class RealHeldCertificate implements HeldCertificate {
         }
 
         // The private key doesn't tell us its type but it's okay because the certificate knows!
-        final var keyType =
-                switch (certificate.getPublicKey()) {
-                    case ECPublicKey ignored -> "EC";
-                    case RSAPublicKey ignored -> "RSA";
-                    default -> throw new IllegalArgumentException("unexpected key type: " + certificate.getPublicKey());
-                };
+        final var certificatePublicKey = certificate.getPublicKey();
+        final String keyType;
+        if (certificatePublicKey instanceof ECPublicKey) {
+            keyType = "EC";
+        } else if (certificatePublicKey instanceof RSAPublicKey) {
+            keyType = "RSA";
+        } else {
+            throw new IllegalArgumentException("unexpected key type: " + certificatePublicKey);
+        }
 
         final var privateKey = decodePkcs8(pkcs8Bytes, keyType);
 

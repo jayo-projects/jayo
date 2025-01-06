@@ -27,7 +27,6 @@ import jayo.Reader;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLEngineResult;
-import java.lang.Thread.Builder;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -145,10 +144,11 @@ public final class Utils {
     }
 
     public static Buffer getBufferFromReader(final Reader reader) {
-        return switch (reader) {
-            case RealBuffer _buffer -> _buffer;
-            case RealReader _reader -> _reader.segmentQueue.buffer;
-        };
+        if (reader instanceof RealReader _reader) {
+            return _reader.segmentQueue.buffer;
+        }
+
+        return (Buffer) reader;
     }
 
     static String toHexString(final byte b) {
@@ -226,13 +226,6 @@ public final class Utils {
 
         // Round up to the nearest full byte
         return (int) ((x + 3) / 4);
-    }
-
-    static @NonNull Builder threadBuilder(final @NonNull String prefix) {
-        assert prefix != null;
-        return Thread.ofVirtual()
-                .name(prefix, 0)
-                .inheritInheritableThreadLocals(true);
     }
 
     // Comes from tls-channel

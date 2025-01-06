@@ -41,7 +41,7 @@ import static jayo.internal.Segment.WRITING;
  * lock-free it does use a sentinel {@link #DOOR} value to defend against races. To reduce the contention, the pool
  * consists of several buckets (see {@link #HASH_BUCKET_COUNT}), each holding a reference to its own segments cache.
  * Every {@link #take()} or {@link #recycle(Segment)} choose one of the buckets depending on a
- * {@link Thread#currentThread()}'s {@linkplain Thread#threadId() threadId}.
+ * {@link Thread#currentThread()}'s {@linkplain JavaVersionUtils#threadId(Thread) threadId}.
  * <p>
  * On {@link #take()}, a caller swaps the Thread's corresponding segment cache with the {@link #DOOR} sentinel. If the
  * segment cache was not already locked, the caller pop the first segment from the cache.
@@ -314,6 +314,6 @@ public final class SegmentPool {
 
     static int bucketId(final @NonNull Thread thread, final long mask) {
         Objects.requireNonNull(thread);
-        return (int) (thread.threadId() & mask);
+        return (int) (JavaVersionUtils.threadId(thread) & mask);
     }
 }

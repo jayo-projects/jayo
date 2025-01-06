@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.io.OutputStream
 import java.net.Socket
+import kotlin.concurrent.thread
 import kotlin.time.Duration.Companion.milliseconds
 
 class JayoSocketTest {
@@ -39,7 +40,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            Thread.ofPlatform().start {
+            thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
                 val reader = Jayo.reader(socket).buffered()
@@ -60,7 +61,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            Thread.ofVirtual().start {
+            thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
                 val reader = Jayo.reader(socket).buffered()
@@ -81,7 +82,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            Thread.ofPlatform().start {
+            thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
                 val writer = Jayo.writer(socket).buffered()
@@ -105,7 +106,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            Thread.ofVirtual().start {
+            thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
                 val writer = Jayo.writer(socket).buffered()

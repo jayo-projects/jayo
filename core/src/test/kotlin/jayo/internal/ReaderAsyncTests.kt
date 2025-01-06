@@ -9,7 +9,6 @@ import jayo.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.RepeatedTest
 import java.io.InputStream
-import java.time.Duration
 import kotlin.random.Random
 
 // these tests are a good race-condition test, do them several times !
@@ -40,7 +39,7 @@ class ReaderAsyncTests {
         var offset = 0
         inputStream.reader().buffered().use { reader ->
             while (offset < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
                 offset += CHUNKS_BYTE_SIZE * 2
             }
@@ -57,7 +56,7 @@ class ReaderAsyncTests {
         var offset = 0
         inputStream.reader().buffered(true).use { reader ->
             while (offset < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE * 2)
                 offset += CHUNKS_BYTE_SIZE * 2
             }
@@ -74,7 +73,7 @@ class ReaderAsyncTests {
         var offset = 0
         inputStream.reader().buffered().use { reader ->
             while (offset < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
                 offset += CHUNKS_BYTE_SIZE / 2
             }
@@ -91,7 +90,7 @@ class ReaderAsyncTests {
         var offset = 0
         Jayo.bufferAsync(inputStream.reader()).use { reader ->
             while (offset < EXPECTED_SIZE) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
                 reader.readTo(bytes, offset, CHUNKS_BYTE_SIZE / 2)
                 offset += CHUNKS_BYTE_SIZE / 2
             }
@@ -119,7 +118,7 @@ class ReaderAsyncTests {
                 return -1
             }
             if (delayed) {
-                Thread.sleep(Duration.ofNanos(Random.nextLong(5L)))
+                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
             }
             val toWrite = minOf(len, CHUNKS_BYTE_SIZE)
             ARRAY.copyInto(b, off, 0, toWrite)
