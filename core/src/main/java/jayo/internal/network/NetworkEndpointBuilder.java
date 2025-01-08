@@ -21,17 +21,9 @@ import java.util.Objects;
 @SuppressWarnings("RawUseOfParameterized")
 public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Builder<T>>
         implements NetworkEndpoint.Builder<T> {
-    private @NonNegative long connectTimeoutNanos = 0L;
     private @NonNegative long readTimeoutNanos = 0L;
     private @NonNegative long writeTimeoutNanos = 0L;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
-
-    @Override
-    public final @NonNull T connectTimeout(final @NonNull Duration connectTimeout) {
-        Objects.requireNonNull(connectTimeout);
-        this.connectTimeoutNanos = connectTimeout.toNanos();
-        return getThis();
-    }
 
     @Override
     public final @NonNull T readTimeout(final @NonNull Duration readTimeout) {
@@ -57,21 +49,28 @@ public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Bu
     @Override
     public final @NonNull NetworkEndpoint connect(final @NonNull SocketAddress peerAddress) {
         Objects.requireNonNull(peerAddress);
-        return connectInternal(peerAddress, connectTimeoutNanos, readTimeoutNanos, writeTimeoutNanos, socketOptions);
+        return connectInternal(peerAddress, readTimeoutNanos, writeTimeoutNanos, socketOptions);
     }
 
     abstract @NonNull T getThis();
 
     abstract @NonNull NetworkEndpoint connectInternal(
             final @NonNull SocketAddress peerAddress,
-            final @NonNegative long connectTimeoutNanos,
             final @NonNegative long defaultReadTimeoutNanos,
             final @NonNegative long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions);
 
     public static final class Nio extends NetworkEndpointBuilder<NetworkEndpoint.NioBuilder>
             implements NetworkEndpoint.NioBuilder {
+        private @NonNegative long connectTimeoutNanos = 0L;
         private @Nullable ProtocolFamily family = null;
+
+        @Override
+        public @NonNull Nio connectTimeout(final @NonNull Duration connectTimeout) {
+            Objects.requireNonNull(connectTimeout);
+            this.connectTimeoutNanos = connectTimeout.toNanos();
+            return getThis();
+        }
 
         @Override
         public @NonNull Nio protocolFamily(final @NonNull ProtocolFamily family) {
@@ -88,7 +87,6 @@ public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Bu
         @Override
         @NonNull
         NetworkEndpoint connectInternal(final @NonNull SocketAddress peerAddress,
-                                        final @NonNegative long connectTimeoutNanos,
                                         final @NonNegative long defaultReadTimeoutNanos,
                                         final @NonNegative long defaultWriteTimeoutNanos,
                                         final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions) {
@@ -114,14 +112,12 @@ public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Bu
         @Override
         @NonNull
         NetworkEndpoint connectInternal(final @NonNull SocketAddress peerAddress,
-                                        final @NonNegative long connectTimeoutNanos,
                                         final @NonNegative long defaultReadTimeoutNanos,
                                         final @NonNegative long defaultWriteTimeoutNanos,
                                         final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions) {
             assert peerAddress != null;
             return SocketNetworkEndpoint.connect(
                     peerAddress,
-                    connectTimeoutNanos,
                     defaultReadTimeoutNanos,
                     defaultWriteTimeoutNanos,
                     socketOptions);

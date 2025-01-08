@@ -25,7 +25,6 @@ enum class NetworkFactory {
 
         override fun networkEndpointBuilder() =
             NetworkEndpoint.builderForIO().kotlin {
-                connectTimeout = 10.seconds
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
                 option(StandardSocketOptions.SO_REUSEADDR, true)

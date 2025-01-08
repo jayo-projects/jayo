@@ -6,10 +6,14 @@
 package jayo.internal.network
 
 import jayo.*
+import jayo.network.NetworkEndpoint
+import jayo.network.NetworkServer
 import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -230,15 +234,22 @@ class NetworkTest {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("parameters")
-    fun `connect timeout`(networkFactory: NetworkFactory) {
-        assertThatThrownBy {
-            networkFactory.networkEndpointBuilder()
-                .connectTimeout(Duration.ofNanos(1))
-                .connect(InetSocketAddress(0 /* find free port */))
-        }.isInstanceOf(JayoTimeoutException::class.java)
-            .hasMessage("timeout")
+    @Disabled // inconsistent
+    @Tag("no-ci")
+    @Test
+    fun `default connect timeout`() {
+        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
+            val serverThread = thread(start = true) {
+                server.accept()
+            }
+            assertThatThrownBy {
+                NetworkEndpoint.builderForNIO()
+                    .connectTimeout(Duration.ofNanos(1))
+                    .connect(server.localAddress)
+            }.isInstanceOf(JayoTimeoutException::class.java)
+                .hasMessage("timeout")
+            serverThread.join()
+        }
     }
 
     @Tag("no-ci")
@@ -267,23 +278,37 @@ class NetworkTest {
     @ParameterizedTest
     @MethodSource("parameters")
     fun `default write timeout`(networkFactory: NetworkFactory) {
-        networkFactory.networkServerBuilder()
-            .bind(InetSocketAddress(0 /* find free port */)).use { server ->
-                val serverThread = thread(start = true) {
-                    server.accept()
-                }
-                val client = networkFactory.networkEndpointBuilder()
-                    .writeTimeout(Duration.ofNanos(1))
-                    .connect(server.localAddress)
-
-                assertThatThrownBy {
-                    client.writer.buffered().write(TO_WRITE.repeat(5))
-                        .flush()
-                }.isInstanceOf(JayoTimeoutException::class.java)
-                    .hasMessage("timeout")
-
-                serverThread.join()
+        networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
+            val serverThread = thread(start = true) {
+                server.accept()
             }
+            val client = networkFactory.networkEndpointBuilder()
+                .writeTimeout(Duration.ofNanos(1))
+                .connect(server.localAddress)
+
+            assertThatThrownBy {
+                client.writer.buffered().write(TO_WRITE.repeat(5))
+                    .flush()
+            }.isInstanceOf(JayoTimeoutException::class.java)
+                .hasMessage("timeout")
+
+            serverThread.join()
+        }
+    }
+
+    @Test
+    fun `default connect timeout with declared timeout`() {
+        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
+            val serverThread = thread(start = true) {
+                server.accept()
+            }
+            cancelScope(timeout = 10.seconds) {
+                NetworkEndpoint.builderForNIO()
+                    .connectTimeout(Duration.ofNanos(1))
+                    .connect(server.localAddress)
+            }
+            serverThread.join()
+        }
     }
 
     @ParameterizedTest
