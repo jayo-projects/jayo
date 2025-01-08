@@ -65,7 +65,7 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
     /**
      * @return the local address that this network endpoint's underlying socket is bound to.
      * @throws JayoClosedResourceException If this network endpoint is closed.
-     * @throws jayo.JayoException               If an I/O error occurs.
+     * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
     SocketAddress getLocalAddress();
@@ -73,7 +73,7 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
     /**
      * @return the peer address to which this network endpoint's underlying socket is connected.
      * @throws JayoClosedResourceException If this network endpoint is closed.
-     * @throws jayo.JayoException               If an I/O error occurs.
+     * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
     SocketAddress getPeerAddress();
@@ -82,9 +82,9 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
      * @param <T>  The type of the socket option value
      * @param name The socket option
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
-     * @throws UnsupportedOperationException    If the socket option is not supported by this channel
-     * @throws JayoClosedResourceException If this network endpoint is closed.
-     * @throws jayo.JayoException               If an I/O error occurs.
+     * @throws UnsupportedOperationException If the socket option is not supported by this channel
+     * @throws JayoClosedResourceException   If this network endpoint is closed.
+     * @throws jayo.JayoException            If an I/O error occurs.
      * @see java.net.StandardSocketOptions
      */
     <T> @Nullable T getOption(final @NonNull SocketOption<T> name);
@@ -94,13 +94,6 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
      */
     sealed interface Builder<T extends Builder<T>>
             permits IoBuilder, NioBuilder, NetworkEndpointBuilder {
-        /**
-         * Sets the connect timeout used in the {@link #connect(SocketAddress)} method. Default is zero. A timeout of
-         * zero is interpreted as an infinite timeout.
-         */
-        @NonNull
-        T connectTimeout(final @NonNull Duration connectTimeout);
-
         /**
          * Sets the default read timeout of all read operations of the network endpoints produced by this builder.
          * Default is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -131,8 +124,6 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
          * {@code peerAddress} socket address. The connection blocks until established or an error occurs.
          * <h3>Timeouts</h3>
          * <ul>
-         *     <li>The specified {@linkplain #connectTimeout(Duration) connect timeout value} is used in this method for
-         *     the connect operation.
          *     <li>The specified {@linkplain #readTimeout(Duration) read timeout value} will be used as default for each
          *     read operation made by the {@linkplain Endpoint#getReader() Endpoint's reader}.
          *     <li>The specified {@linkplain #writeTimeout(Duration) write timeout value} will be used as default for
@@ -156,6 +147,13 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
      */
     sealed interface NioBuilder extends Builder<NioBuilder> permits NetworkEndpointBuilder.Nio {
         /**
+         * Sets the connect timeout used in the {@link #connect(SocketAddress)} method. Default is zero. A timeout of
+         * zero is interpreted as an infinite timeout.
+         */
+        @NonNull
+        NioBuilder connectTimeout(final @NonNull Duration connectTimeout);
+
+        /**
          * Sets the {@link ProtocolFamily protocol family} to use when opening the underlying NIO sockets. The default
          * protocol family is platform (and possibly configuration) dependent and therefore unspecified.
          *
@@ -164,6 +162,31 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
          */
         @NonNull
         NioBuilder protocolFamily(final @NonNull ProtocolFamily family);
+
+        /**
+         * @return a new client-side {@link NetworkEndpoint} connected to the server using the provided
+         * {@code peerAddress} socket address. The connection blocks until established or an error occurs.
+         * <h3>Timeouts</h3>
+         * <ul>
+         *     <li>The specified {@linkplain #connectTimeout(Duration) connect timeout value} is used in this method for
+         *     the connect operation.
+         *     <li>The specified {@linkplain #readTimeout(Duration) read timeout value} will be used as default for each
+         *     read operation made by the {@linkplain Endpoint#getReader() Endpoint's reader}.
+         *     <li>The specified {@linkplain #writeTimeout(Duration) write timeout value} will be used as default for
+         *     each write operation made by the {@linkplain Endpoint#getWriter() Endpoint's writer}.
+         * </ul>
+         * A timeout of zero is interpreted as an infinite timeout.
+         * @throws UnsupportedOperationException If one of the socket options you set with
+         *                                       {@link #option(SocketOption, Object)} is not supported by the
+         *                                       network endpoint.
+         * @throws IllegalArgumentException      If one of the socket options' value you set with
+         *                                       {@link #option(SocketOption, Object)} is not a valid value for this
+         *                                       socket option.
+         * @throws jayo.JayoException            If an I/O error occurs.
+         */
+        @Override
+        @NonNull
+        NetworkEndpoint connect(final @NonNull SocketAddress peerAddress);
     }
 
     /**

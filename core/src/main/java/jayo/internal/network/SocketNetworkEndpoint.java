@@ -26,7 +26,6 @@ import jayo.JayoException;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.external.NonNegative;
-import jayo.internal.CancellableUtils;
 import jayo.internal.InputStreamRawReader;
 import jayo.internal.OutputStreamRawWriter;
 import jayo.internal.RealAsyncTimeout;
@@ -54,54 +53,27 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
     static @NonNull NetworkEndpoint connect(
             final @NonNull SocketAddress peerAddress,
-            final @NonNegative long connectTimeoutNanos,
             final @NonNegative long defaultReadTimeoutNanos,
             final @NonNegative long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions
     ) {
         assert peerAddress != null;
-        assert connectTimeoutNanos >= 0L;
         assert defaultReadTimeoutNanos >= 0L;
         assert defaultWriteTimeoutNanos >= 0L;
         assert socketOptions != null;
 
         final var socket = new Socket();
         try {
-            final var asyncTimeout = buildAsyncTimeout(socket);
-            final var cancelToken = CancellableUtils.getCancelToken(connectTimeoutNanos);
-            if (cancelToken != null) {
-                asyncTimeout.withTimeout(cancelToken, () -> {
-                    try {
-                        socket.connect(peerAddress);
-                    } catch (IOException e) {
-                        throw JayoException.buildJayoException(e);
-                    }
-                    return null;
-                });
-            } else {
-                socket.connect(peerAddress);
-            }
+            socket.connect(peerAddress);
 
             for (final var socketOption : socketOptions.entrySet()) {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
 
-            return new SocketNetworkEndpoint(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos, asyncTimeout);
+            return new SocketNetworkEndpoint(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
-    }
-
-    @NonNull
-    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull Socket socket) {
-        assert socket != null;
-        return new RealAsyncTimeout(() -> {
-            try {
-                socket.close();
-            } catch (Exception e) {
-                LOGGER_TIMEOUT.log(WARNING, "Failed to close timed out socket " + socket, e);
-            }
-        });
     }
 
     private final @NonNull Socket socket;
@@ -131,22 +103,20 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     SocketNetworkEndpoint(final @NonNull Socket socket,
                           final @NonNegative long defaultReadTimeoutNanos,
                           final @NonNegative long defaultWriteTimeoutNanos) {
-        this(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos, buildAsyncTimeout(socket));
-    }
-
-    private SocketNetworkEndpoint(final @NonNull Socket socket,
-                                  final @NonNegative long defaultReadTimeoutNanos,
-                                  final @NonNegative long defaultWriteTimeoutNanos,
-                                  final @NonNull RealAsyncTimeout asyncTimeout) {
         assert socket != null;
         assert defaultReadTimeoutNanos >= 0L;
         assert defaultWriteTimeoutNanos >= 0L;
-        assert asyncTimeout != null;
 
         this.socket = socket;
         this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
         this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
-        this.asyncTimeout = asyncTimeout;
+        this.asyncTimeout = new RealAsyncTimeout(() -> {
+            try {
+                socket.close();
+            } catch (Exception e) {
+                LOGGER_TIMEOUT.log(WARNING, "Failed to close timed out socket " + socket, e);
+            }
+        });
     }
 
     @Override

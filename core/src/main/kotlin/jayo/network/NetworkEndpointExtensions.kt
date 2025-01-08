@@ -29,6 +29,17 @@ public class NioNetworkEndpointBuilderDsl internal constructor(
     private val builder: NetworkEndpoint.NioBuilder
 ) : NetworkEndpointBuilderDsl(builder) {
     /**
+     * Sets the connect timeout used in the [Builder.connect][NetworkEndpoint.Builder.connect] method. Default is
+     * zero. A timeout of zero is interpreted as an infinite timeout.
+     */
+    public var connectTimeout: Duration
+        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
+        get() = error("unsupported")
+        set(value) {
+            builder.connectTimeout(value.toJavaDuration())
+        }
+
+    /**
      * Sets the [protocol family][ProtocolFamily] to use when opening the underlying NIO sockets. The default protocol
      * family is platform (and possibly configuration) dependent and therefore unspecified.
      *
@@ -54,17 +65,6 @@ public fun NetworkEndpoint.IoBuilder.kotlin(config: IoNetworkEndpointBuilderDsl.
 public class IoNetworkEndpointBuilderDsl(builder: NetworkEndpoint.IoBuilder) : NetworkEndpointBuilderDsl(builder)
 
 public sealed class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoint.Builder<*>) {
-    /**
-     * Sets the connect timeout used in the [Builder.connect][NetworkEndpoint.Builder.connect] method. Default is
-     * zero. A timeout of zero is interpreted as an infinite timeout.
-     */
-    public var connectTimeout: Duration
-        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-        get() = error("unsupported")
-        set(value) {
-            builder.connectTimeout(value.toJavaDuration())
-        }
-
     /**
      * Sets the default read timeout of all read operations of the network endpoints produced by this builder. Default
      * is zero. A timeout of zero is interpreted as an infinite timeout.
