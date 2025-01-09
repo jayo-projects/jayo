@@ -20,23 +20,27 @@ import java.net.SocketOption;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.lang.System.Logger.Level.DEBUG;
+
 /**
  * A {@link NetworkServer} backed by an underlying {@linkplain ServerSocket IO ServerSocket}.
  */
 @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
 public final class ServerSocketNetworkServer implements NetworkServer {
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.ServerSocketNetworkServer");
+
     private final @NonNull ServerSocket serverSocket;
     private final @NonNegative long defaultReadTimeoutNanos;
     private final @NonNegative long defaultWriteTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
-    ServerSocketNetworkServer(final @NonNull SocketAddress local,
+    ServerSocketNetworkServer(final @NonNull SocketAddress localAddress,
                               final @NonNegative long defaultReadTimeoutNanos,
                               final @NonNegative long defaultWriteTimeoutNanos,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                               final @NonNegative int maxPendingConnections) {
-        assert local != null;
+        assert localAddress != null;
         assert defaultReadTimeoutNanos >= 0L;
         assert defaultWriteTimeoutNanos >= 0L;
         assert socketOptions != null;
@@ -45,14 +49,22 @@ public final class ServerSocketNetworkServer implements NetworkServer {
 
         try {
             final var serverSocket = new ServerSocket();
-            serverSocket.bind(local, maxPendingConnections);
+            serverSocket.bind(localAddress, maxPendingConnections);
 
             for (final var serverSocketOption : serverSocketOptions.entrySet()) {
                 serverSocket.setOption(serverSocketOption.getKey(), serverSocketOption.getValue());
             }
 
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "new ServerSocketNetworkServer bound to {0}{1}provided socket options = {2}",
+                        localAddress, System.lineSeparator(), serverSocketOptions);
+            }
+
             this.serverSocket = serverSocket;
         } catch (IOException e) {
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "new ServerSocketNetworkServer failed to bind to " + localAddress, e);
+            }
             throw JayoException.buildJayoException(e);
         }
 
@@ -68,8 +80,18 @@ public final class ServerSocketNetworkServer implements NetworkServer {
             for (final var socketOption : socketOptions.entrySet()) {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "accepted server SocketNetworkEndpoint connected to {0}{1}default read " +
+                                "timeout = {2} ns, default write timeout = {3} ns{4}provided socket options = {5}",
+                        socket.getRemoteSocketAddress(), System.lineSeparator(), defaultReadTimeoutNanos,
+                        defaultWriteTimeoutNanos, System.lineSeparator(), socketOptions);
+            }
+
             return new SocketNetworkEndpoint(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos);
         } catch (IOException e) {
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "ServerSocketNetworkServer failed to accept a client connection", e);
+            }
             throw JayoException.buildJayoException(e);
         }
     }

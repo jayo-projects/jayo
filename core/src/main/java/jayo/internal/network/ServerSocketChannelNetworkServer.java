@@ -20,25 +20,29 @@ import java.nio.channels.ServerSocketChannel;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.lang.System.Logger.Level.DEBUG;
+
 /**
  * A {@link NetworkServer} backed by an underlying {@linkplain ServerSocketChannel NIO ServerSocketChannel}.
  */
 @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
 public final class ServerSocketChannelNetworkServer implements NetworkServer {
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.ServerSocketChannelNetworkServer");
+
     private final @NonNull ServerSocketChannel serverSocketChannel;
     private final @NonNegative long defaultReadTimeoutNanos;
     private final @NonNegative long defaultWriteTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
     ServerSocketChannelNetworkServer(
-            final @NonNull SocketAddress local,
+            final @NonNull SocketAddress localAddress,
             final @NonNegative long defaultReadTimeoutNanos,
             final @NonNegative long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
             final @NonNegative int maxPendingConnections,
             final @Nullable ProtocolFamily family) {
-        assert local != null;
+        assert localAddress != null;
         assert defaultReadTimeoutNanos >= 0;
         assert defaultWriteTimeoutNanos >= 0;
         assert socketOptions != null;
@@ -49,14 +53,23 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
             final var serverSocketChannel = (family != null)
                     ? ServerSocketChannel.open(family)
                     : ServerSocketChannel.open();
-            serverSocketChannel.bind(local, maxPendingConnections);
+            serverSocketChannel.bind(localAddress, maxPendingConnections);
 
             for (final var serverSocketOption : serverSocketOptions.entrySet()) {
                 serverSocketChannel.setOption(serverSocketOption.getKey(), serverSocketOption.getValue());
             }
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG,
+                        "new ServerSocketChannelNetworkServer bound to {0}, protocol family = {1}{2}provided " +
+                                "socket options = {3}",
+                        localAddress, family, System.lineSeparator(), serverSocketOptions);
+            }
 
             this.serverSocketChannel = serverSocketChannel;
         } catch (IOException e) {
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "new ServerSocketChannelNetworkServer failed to bind to " + localAddress, e);
+            }
             throw JayoException.buildJayoException(e);
         }
 
@@ -72,8 +85,18 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
             for (final var socketOption : socketOptions.entrySet()) {
                 socketChannel.setOption(socketOption.getKey(), socketOption.getValue());
             }
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "accepted server SocketChannelNetworkEndpoint connected to {0}{1}default " +
+                                "read timeout = {2} ns, default write timeout = {3} ns{4}provided socket options = {5}",
+                        socketChannel.getRemoteAddress(), System.lineSeparator(), defaultReadTimeoutNanos,
+                        defaultWriteTimeoutNanos, System.lineSeparator(), socketOptions);
+            }
+
             return new SocketChannelNetworkEndpoint(socketChannel, defaultReadTimeoutNanos, defaultWriteTimeoutNanos);
         } catch (IOException e) {
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "ServerSocketChannelNetworkServer failed to accept a client connection", e);
+            }
             throw JayoException.buildJayoException(e);
         }
     }

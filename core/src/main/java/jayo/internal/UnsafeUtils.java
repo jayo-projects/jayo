@@ -16,7 +16,7 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.INFO;
-import static java.lang.System.Logger.Level.TRACE;
+import static java.lang.System.Logger.Level.DEBUG;
 
 /**
  * This class exposes unsafe operations
@@ -51,7 +51,7 @@ final class UnsafeUtils {
         // the runtime permission accessClassInPackage.sun.misc
         if (maybeUnsafe instanceof Throwable) {
             UNSAFE = null;
-            if (LOGGER.isLoggable(TRACE)) {
+            if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(INFO, "sun.misc.Unsafe.theUnsafe: unavailable", (Throwable) maybeUnsafe);
             } else {
                 LOGGER.log(INFO, "sun.misc.Unsafe.theUnsafe: unavailable: {0}",
