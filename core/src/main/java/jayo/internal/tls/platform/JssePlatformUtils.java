@@ -62,7 +62,7 @@ public final class JssePlatformUtils {
             final var conscrypt = ConscryptJssePlatform.buildIfSupported();
 
             if (conscrypt != null) {
-                LOGGER.log(INFO, "Use Conscrypt JSSE");
+                LOGGER.log(INFO, "Using Conscrypt JSSE");
                 return conscrypt;
             }
         }
@@ -74,14 +74,14 @@ public final class JssePlatformUtils {
 
             if (bc != null) {
                 if (LOGGER.isLoggable(INFO)) {
-                    LOGGER.log(INFO, isBcFips ? "Use BouncyCastle FIPS JSSE" : "Use BouncyCastle JSSE");
+                    LOGGER.log(INFO, isBcFips ? "Using BouncyCastle FIPS JSSE" : "Using BouncyCastle JSSE");
                 }
                 return bc;
             }
         }
 
         // 3) fallback to the builtin JDK JSSE
-        LOGGER.log(INFO, "Use builtin JDK JSSE");
+        LOGGER.log(INFO, "Using builtin JDK JSSE");
         return new JdkJssePlatform();
     }
 }

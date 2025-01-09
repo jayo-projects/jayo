@@ -27,14 +27,14 @@ import java.nio.channels.SocketChannel;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
 
 /**
  * A {@link NetworkEndpoint} backed by an underlying {@linkplain SocketChannel NIO SocketChannel}.
  */
 public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
-    private static final System.Logger LOGGER_TIMEOUT =
-            System.getLogger("jayo.network.SocketChannelNetworkEndpoint");
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketChannelNetworkEndpoint");
 
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
     static @NonNull NetworkEndpoint connect(
@@ -73,12 +73,24 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
                 socketChannel.setOption(socketOption.getKey(), socketOption.getValue());
             }
 
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "new client SocketChannelNetworkEndpoint connected to {0}{1}protocol family " +
+                                "= {2}, default read timeout = {3} ns, default write timeout = {4} ns{5}provided " +
+                                "socket options = {6}",
+                        peerAddress, System.lineSeparator(), family, defaultReadTimeoutNanos, defaultWriteTimeoutNanos,
+                        System.lineSeparator(), socketOptions);
+            }
+
             return new SocketChannelNetworkEndpoint(
                     socketChannel,
                     defaultReadTimeoutNanos,
                     defaultWriteTimeoutNanos,
                     asyncTimeout);
         } catch (IOException e) {
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG,
+                        "new client SocketChannelNetworkEndpoint failed to connect to " + peerAddress, e);
+            }
             throw JayoException.buildJayoException(e);
         }
     }
@@ -90,7 +102,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             try {
                 socketChannel.close();
             } catch (Exception e) {
-                LOGGER_TIMEOUT.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
+                LOGGER.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
             }
         });
     }

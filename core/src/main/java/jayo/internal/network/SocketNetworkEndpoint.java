@@ -42,13 +42,14 @@ import java.net.SocketOption;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
 
 /**
  * A {@link NetworkEndpoint} backed by an underlying {@linkplain Socket IO Socket}.
  */
 public final class SocketNetworkEndpoint implements NetworkEndpoint {
-    private static final System.Logger LOGGER_TIMEOUT = System.getLogger("jayo.network.SocketNetworkEndpoint");
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketNetworkEndpoint");
 
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
     static @NonNull NetworkEndpoint connect(
@@ -69,9 +70,18 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             for (final var socketOption : socketOptions.entrySet()) {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "new client SocketNetworkEndpoint connected to {0}{1}default read timeout =" +
+                                " {2} ns, default write timeout = {3} ns{4}provided socket options = {5}",
+                        peerAddress, System.lineSeparator(), defaultReadTimeoutNanos, defaultWriteTimeoutNanos,
+                        System.lineSeparator(), socketOptions);
+            }
 
             return new SocketNetworkEndpoint(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos);
         } catch (IOException e) {
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "new client SocketNetworkEndpoint failed to connect to " + peerAddress, e);
+            }
             throw JayoException.buildJayoException(e);
         }
     }
@@ -114,7 +124,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             try {
                 socket.close();
             } catch (Exception e) {
-                LOGGER_TIMEOUT.log(WARNING, "Failed to close timed out socket " + socket, e);
+                LOGGER.log(WARNING, "Failed to close timed out socket " + socket, e);
             }
         });
     }

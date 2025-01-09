@@ -21,7 +21,7 @@ final class JavaVersionUtils {
     }
 
     static {
-        LOGGER.log(INFO, "Using Java 21 compatibility");
+        LOGGER.log(INFO, "Using Java 21 compatibility, virtual threads in use !");
     }
 
     /**
