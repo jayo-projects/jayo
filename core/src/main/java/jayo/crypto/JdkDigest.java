@@ -8,13 +8,9 @@ package jayo.crypto;
 import org.jspecify.annotations.NonNull;
 
 /**
- * JVM included digests. There is no guaranty that all JVM provides all these algorithms.
+ * JDK included digests. There is no guaranty that all JVM provides all these algorithms.
  */
-public final class Digests {
-    // un-instantiable
-    private Digests() {
-    }
-
+public enum JdkDigest implements Digest {
     /**
      * 128-bit MD5 hash algorithm.
      * <p>
@@ -23,7 +19,7 @@ public final class Digests {
      * MD5 is both insecure and obsolete because it is inexpensive to reverse! This hash is offered because it is
      * popular and convenient for use in legacy systems that are not security-sensitive.
      */
-    public static final @NonNull Digest MD5 = new Digest("MD5");
+    MD5("MD5"),
 
     /**
      * 160-bit SHA-1 hash algorithm.
@@ -33,55 +29,67 @@ public final class Digests {
      * Consider upgrading from SHA-1 to SHA-256 ! This hash is offered because it is popular and convenient for use in
      * legacy systems that are not security-sensitive.
      */
-    public static final @NonNull Digest SHA_1 = new Digest("SHA-1");
+    SHA_1("SHA-1"),
 
     /**
      * 224-bit SHA-224 hash algorithm.
      */
-    public static final @NonNull Digest SHA_224 = new Digest("SHA-224");
+    SHA_224("SHA-224"),
 
     /**
      * 256-bit SHA-256 hash algorithm.
      */
-    public static final @NonNull Digest SHA_256 = new Digest("SHA-256");
+    SHA_256("SHA-256"),
 
     /**
      * 384-bit SHA-384 hash algorithm.
      */
-    public static final @NonNull Digest SHA_384 = new Digest("SHA-384");
+    SHA_384("SHA-384"),
 
     /**
      * 512-bit SHA-512 hash algorithm.
      */
-    public static final @NonNull Digest SHA_512 = new Digest("SHA-512");
+    SHA_512("SHA-512"),
 
     /**
      * 224-bit SHA-512/224 hash algorithm, a truncated variant of SHA-512.
      */
-    public static final @NonNull Digest SHA_512_224 = new Digest("SHA-512/224");
+    SHA_512_224("SHA-512/224"),
 
     /**
      * 256-bit SHA-512/256 hash algorithm, a truncated variant of SHA-512.
      */
-    public static final @NonNull Digest SHA_512_256 = new Digest("SHA-512/256");
+    SHA_512_256("SHA-512/256"),
 
     /**
      * 224-bit SHA3-224 hash algorithm.
      */
-    public static final @NonNull Digest SHA3_224 = new Digest("SHA3-224");
+    SHA3_224("SHA3-224"),
 
     /**
      * 256-bit SHA3-256 hash algorithm.
      */
-    public static final @NonNull Digest SHA3_256 = new Digest("SHA3-256");
+    SHA3_256("SHA3-256"),
 
     /**
      * 384-bit SHA3-384 hash algorithm.
      */
-    public static final @NonNull Digest SHA3_384 = new Digest("SHA3-384");
+    SHA3_384("SHA3-384"),
 
     /**
      * 512-bit SHA3-512 hash algorithm.
      */
-    public static final @NonNull Digest SHA3_512 = new Digest("SHA3-512");
+    SHA3_512("SHA3-512"),
+    ;
+
+    private final @NonNull String algorithm;
+
+    JdkDigest(final @NonNull String algorithm) {
+        this.algorithm = algorithm;
+    }
+
+    @Override
+    public @NonNull String toString() {
+        return algorithm;
+    }
 }

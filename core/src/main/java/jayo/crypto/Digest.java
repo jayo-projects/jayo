@@ -8,10 +8,15 @@ package jayo.crypto;
 import org.jspecify.annotations.NonNull;
 
 /**
- * A message digest algorithm. Message digests are secure one-way hash functions that take arbitrary-sized data and
- * output a fixed-length hash value.
- *
- * @param algorithm the name of the requested algorithm.
+ * A message digest algorithm. Message digests are secure one-way cryptographic hash functions, e.g., SHA256 or SHA384,
+ * that take arbitrary-sized data and output a fixed-length hash value.
  */
-public record Digest(@NonNull String algorithm) {
+public interface Digest {
+    /**
+     * @return the string digest algorithm used as parameter in
+     * {@linkplain java.security.MessageDigest#getInstance(String) MessageDigest.getInstance(algorithm)}
+     */
+    @Override
+    @NonNull
+    String toString();
 }

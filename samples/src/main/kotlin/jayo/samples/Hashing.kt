@@ -22,8 +22,8 @@
 package jayo.samples
 
 import jayo.*
-import jayo.crypto.Digests
-import jayo.crypto.Hmacs
+import jayo.crypto.JdkDigest.*
+import jayo.crypto.JdkHmac.*
 import java.io.IOException
 import java.nio.file.Path
 
@@ -33,20 +33,20 @@ class KotlinHashing {
 
         println("ByteString")
         val byteString = readByteString(path)
-        println("       md5: " + byteString.hash(Digests.MD5).hex())
-        println("      sha1: " + byteString.hash(Digests.SHA_1).hex())
-        println("    sha256: " + byteString.hash(Digests.SHA_256).hex())
-        println("    sha512: " + byteString.hash(Digests.SHA_512).hex())
-        println("  sha3_512: " + byteString.hash(Digests.SHA3_512).hex())
+        println("       md5: " + byteString.hash(MD5).hex())
+        println("      sha1: " + byteString.hash(SHA_1).hex())
+        println("    sha256: " + byteString.hash(SHA_256).hex())
+        println("    sha512: " + byteString.hash(SHA_512).hex())
+        println("  sha3_512: " + byteString.hash(SHA3_512).hex())
         println()
 
         println("Buffer")
         val buffer = readBuffer(path)
-        println("       md5: " + buffer.hash(Digests.MD5).hex())
-        println("      sha1: " + buffer.hash(Digests.SHA_1).hex())
-        println("    sha256: " + buffer.hash(Digests.SHA_256).hex())
-        println("    sha512: " + buffer.hash(Digests.SHA_512).hex())
-        println("  sha3_512: " + buffer.hash(Digests.SHA3_512).hex())
+        println("       md5: " + buffer.hash(MD5).hex())
+        println("      sha1: " + buffer.hash(SHA_1).hex())
+        println("    sha256: " + buffer.hash(SHA_256).hex())
+        println("    sha512: " + buffer.hash(SHA_512).hex())
+        println("  sha3_512: " + buffer.hash(SHA3_512).hex())
         println()
 
 //    println("HashingReader")
@@ -72,7 +72,7 @@ class KotlinHashing {
 
         println("HMAC")
         val secret = "7065616e7574627574746572".decodeHex()
-        println("hmacSha256: " + byteString.hmac(Hmacs.HMAC_SHA_256, secret).hex())
+        println("hmacSha256: " + byteString.hmac(HMAC_SHA_256, secret).hex())
         println()
     }
 

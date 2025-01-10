@@ -30,9 +30,9 @@ public final class HashingUtils {
         Objects.requireNonNull(digest);
         final MessageDigest messageDigest;
         try {
-            messageDigest = MessageDigest.getInstance(digest.algorithm());
+            messageDigest = MessageDigest.getInstance(digest.toString());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + digest.algorithm(), e);
+            throw new IllegalArgumentException("Algorithm is not available : " + digest, e);
         }
         try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
             var remaining = segmentQueue.expectSize(Long.MAX_VALUE);
@@ -69,12 +69,12 @@ public final class HashingUtils {
         Objects.requireNonNull(key);
         final javax.crypto.Mac javaMac;
         try {
-            javaMac = javax.crypto.Mac.getInstance(hMac.algorithm());
+            javaMac = javax.crypto.Mac.getInstance(hMac.toString());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
+            throw new IllegalArgumentException("Algorithm is not available : " + hMac, e);
         }
         try {
-            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.algorithm()));
+            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.toString()));
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }

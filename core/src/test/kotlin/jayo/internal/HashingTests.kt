@@ -6,8 +6,8 @@
 package jayo.internal
 
 import jayo.*
-import jayo.crypto.Digests
-import jayo.crypto.Hmacs
+import jayo.crypto.JdkDigest
+import jayo.crypto.JdkHmac
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -19,15 +19,15 @@ class HashingTests {
 
         // ByteString
         val byteString = bytes.toByteString()
-        assertThat(byteString.hash(Digests.MD5).hex()).isEqualTo(expectedMd5)
+        assertThat(byteString.hash(JdkDigest.MD5).hex()).isEqualTo(expectedMd5)
         println()
 
         // Buffer
         val buffer = Buffer().write(bytes)
-        assertThat(buffer.hash(Digests.MD5).hex()).isEqualTo(expectedMd5)
+        assertThat(buffer.hash(JdkDigest.MD5).hex()).isEqualTo(expectedMd5)
         
         // hash from reader
-        assertThat((buffer as RawReader).hash(Digests.MD5).hex()).isEqualTo(expectedMd5)
+        assertThat((buffer as RawReader).hash(JdkDigest.MD5).hex()).isEqualTo(expectedMd5)
     }
 
     @Test
@@ -38,14 +38,14 @@ class HashingTests {
 
         // ByteString
         val byteString = bytes.toByteString()
-        assertThat(byteString.hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
+        assertThat(byteString.hmac(JdkHmac.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
         println()
 
         // Buffer
         val buffer = Buffer().write(bytes)
-        assertThat(buffer.hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
+        assertThat(buffer.hmac(JdkHmac.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
 
         // hash from reader
-        assertThat((buffer as RawReader).hmac(Hmacs.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
+        assertThat((buffer as RawReader).hmac(JdkHmac.HMAC_MD5, key).hex()).isEqualTo(expectedMd5)
     }
 }
