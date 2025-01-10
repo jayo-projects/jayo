@@ -10,6 +10,7 @@ import org.jspecify.annotations.NonNull;
 /**
  * A message digest algorithm. Message digests are secure one-way cryptographic hash functions, e.g., SHA256 or SHA384,
  * that take arbitrary-sized data and output a fixed-length hash value.
+ * @see JdkDigest
  */
 public interface Digest {
     /**
