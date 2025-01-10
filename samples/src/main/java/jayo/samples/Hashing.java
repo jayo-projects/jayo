@@ -24,8 +24,8 @@ package jayo.samples;
 import jayo.Buffer;
 import jayo.ByteString;
 import jayo.Jayo;
-import jayo.crypto.Digests;
-import jayo.crypto.Hmacs;
+import static jayo.crypto.JdkDigest.*;
+import static jayo.crypto.JdkHmac.*;
 
 import java.nio.file.Path;
 
@@ -35,20 +35,20 @@ public final class Hashing {
 
         System.out.println("ByteString");
         ByteString byteString = readByteString(path);
-        System.out.println("       md5: " + byteString.hash(Digests.MD5).hex());
-        System.out.println("      sha1: " + byteString.hash(Digests.SHA_1).hex());
-        System.out.println("    sha256: " + byteString.hash(Digests.SHA_256).hex());
-        System.out.println("    sha512: " + byteString.hash(Digests.SHA_512).hex());
-        System.out.println("  sha3_512: " + byteString.hash(Digests.SHA3_512).hex());
+        System.out.println("       md5: " + byteString.hash(MD5).hex());
+        System.out.println("      sha1: " + byteString.hash(SHA_1).hex());
+        System.out.println("    sha256: " + byteString.hash(SHA_256).hex());
+        System.out.println("    sha512: " + byteString.hash(SHA_512).hex());
+        System.out.println("  sha3_512: " + byteString.hash(SHA3_512).hex());
         System.out.println();
 
         System.out.println("Buffer");
         Buffer buffer = readBuffer(path);
-        System.out.println("       md5: " + buffer.hash(Digests.MD5).hex());
-        System.out.println("      sha1: " + buffer.hash(Digests.SHA_1).hex());
-        System.out.println("    sha256: " + buffer.hash(Digests.SHA_256).hex());
-        System.out.println("    sha512: " + buffer.hash(Digests.SHA_512).hex());
-        System.out.println("  sha3_512: " + buffer.hash(Digests.SHA3_512).hex());
+        System.out.println("       md5: " + buffer.hash(MD5).hex());
+        System.out.println("      sha1: " + buffer.hash(SHA_1).hex());
+        System.out.println("    sha256: " + buffer.hash(SHA_256).hex());
+        System.out.println("    sha512: " + buffer.hash(SHA_512).hex());
+        System.out.println("  sha3_512: " + buffer.hash(SHA3_512).hex());
         System.out.println();
 
 //        System.out.println("HashingReader");
@@ -71,7 +71,7 @@ public final class Hashing {
 
         System.out.println("HMAC");
         ByteString secret = ByteString.decodeHex("7065616e7574627574746572");
-        System.out.println("hmacSha256: " + byteString.hmac(Hmacs.HMAC_SHA_256, secret).hex());
+        System.out.println("hmacSha256: " + byteString.hmac(HMAC_SHA_256, secret).hex());
         System.out.println();
     }
 
