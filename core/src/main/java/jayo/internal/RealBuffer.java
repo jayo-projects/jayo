@@ -24,8 +24,6 @@ package jayo.internal;
 import jayo.*;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.JayoEOFException;
-import jayo.JayoException;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -1170,11 +1168,6 @@ public final class RealBuffer implements Buffer {
     public @NonNull Buffer write(final @NonNull CharSequence charSequence,
                                  final @NonNegative int startIndex,
                                  final @NonNegative int endIndex) {
-        if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start writeUtf8 {1} bytes{2}",
-                    segmentQueue.hashCode(), endIndex - startIndex, System.lineSeparator());
-        }
-
         Objects.requireNonNull(charSequence);
         if (endIndex < startIndex) {
             throw new IllegalArgumentException("endIndex < beginIndex: " + endIndex + " < " + startIndex);
@@ -1190,11 +1183,85 @@ public final class RealBuffer implements Buffer {
             return this;
         }
 
-        // Transcode a UTF-16 Java String to UTF-8 bytes.
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE,
+                    "Buffer(SegmentQueue#{0}) : Start writing {1} chars from CharSequence encoded in UTF-8{2}",
+                    segmentQueue.hashCode(), endIndex - startIndex, System.lineSeparator());
+        }
+
+        // fast-path for ISO_8859_1 encoding
+        if (UNSAFE_AVAILABLE && charSequence instanceof String string && isLatin1(string)) {
+            final var stringBytes = getBytes(string);
+            writeLatin1ToUtf8(stringBytes, startIndex, endIndex);
+        } else {
+            writeUtf16ToUtf8(charSequence, startIndex, endIndex);
+        }
+
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, """
+                            Buffer(SegmentQueue#{0}) : Finished writing {1} chars from CharSequence encoded in UTF-8 to this segment queue
+                            {2}{3}""",
+                    segmentQueue.hashCode(), endIndex - startIndex, segmentQueue, System.lineSeparator());
+        }
+        return this;
+    }
+
+    /**
+     * Transcode a ISO_8859_1-encoded byte array to UTF-8 bytes.
+     */
+    private void writeLatin1ToUtf8(final byte @NonNull [] stringBytes,
+                                   final @NonNegative int startIndex,
+                                   final @NonNegative int endIndex) {
         final var i = new Wrapper.Int(startIndex);
         while (i.value < endIndex) {
-            // We require at least 4 writable bytes in the tail to write one code point of this char-sequence : the max byte
-            // size of a char code point is 4 !
+            // We require at least 2 writable bytes in the tail to write one ISO_8859_1 byte of this byte array : the
+            // max byte size of a ISO_8859_1 byte is 2 !
+            segmentQueue.withWritableTail(2, tail -> {
+                var limit = tail.limit();
+                while (i.value < endIndex && (Segment.SIZE - limit) > 1) {
+                    final var data = tail.data;
+                    final int c = stringBytes[i.value] & 0xff;
+                    if (c < 0x80) {
+                        final var segmentOffset = limit - i.value;
+                        final var runLimit = Math.min(endIndex, Segment.SIZE - segmentOffset);
+
+                        // Emit a 7-bit character with 1 byte.
+                        data[segmentOffset + i.value++] = (byte) c; // 0xxxxxxx
+
+                        // Fast-path contiguous runs of ASCII characters. This is ugly, but yields a ~4x performance
+                        // improvement over independent calls to writeByte().
+                        while (i.value < runLimit) {
+                            final int c1 = stringBytes[i.value] & 0xff;
+                            if (c1 >= 0x80) {
+                                break;
+                            }
+                            data[segmentOffset + i.value++] = (byte) c1; // 0xxxxxxx
+                        }
+
+                        limit = i.value + segmentOffset; // Equivalent to i - (previous i).
+                    } else {
+                        // Emit a 11-bit character with 2 bytes.
+                        data[limit++] = (byte) ((c >> 6) | 0xc0); // 110xxxxx
+                        data[limit++] = (byte) ((c & 0x3f) | 0x80); // 10xxxxxx
+                        i.value++;
+                    }
+                }
+                tail.limitVolatile(limit);
+                return null;
+            });
+        }
+    }
+
+    /**
+     * Transcode a UTF-16 Java String to UTF-8 bytes.
+     */
+    private void writeUtf16ToUtf8(final @NonNull CharSequence charSequence,
+                                  final int startIndex,
+                                  final int endIndex) {
+        final var i = new Wrapper.Int(startIndex);
+        while (i.value < endIndex) {
+            // We require at least 4 writable bytes in the tail to write one code point of this char-sequence : the max
+            // byte size of a char code point is 4 !
             segmentQueue.withWritableTail(4, tail -> {
                 var limit = tail.limit();
                 while (i.value < endIndex && (Segment.SIZE - limit) > 3) {
@@ -1255,14 +1322,6 @@ public final class RealBuffer implements Buffer {
                 return null;
             });
         }
-
-        if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, """
-                            Buffer(SegmentQueue#{0}) : Finished writeUtf8 {1} bytes to this segment queue
-                            {2}{3}""",
-                    segmentQueue.hashCode(), endIndex - startIndex, segmentQueue, System.lineSeparator());
-        }
-        return this;
     }
 
     @Override
