@@ -129,9 +129,9 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
         Objects.requireNonNull(digest);
 
         try {
-            return MessageDigest.getInstance(digest.algorithm());
+            return MessageDigest.getInstance(digest.toString());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + digest.algorithm(), e);
+            throw new IllegalArgumentException("Algorithm is not available : " + digest, e);
         }
     }
 
@@ -147,12 +147,12 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
 
         final javax.crypto.Mac javaMac;
         try {
-            javaMac = javax.crypto.Mac.getInstance(hMac.algorithm());
+            javaMac = javax.crypto.Mac.getInstance(hMac.toString());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + hMac.algorithm(), e);
+            throw new IllegalArgumentException("Algorithm is not available : " + hMac, e);
         }
         try {
-            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.algorithm()));
+            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.toString()));
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
