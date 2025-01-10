@@ -61,6 +61,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
      * @param sslContext        the {@link SSLContext} to be used.
      * @see JssePlatform#newSSLContext()
+     * @see HandshakeCertificates#sslContext()
      */
     static @NonNull ClientBuilder clientBuilder(final @NonNull Endpoint encryptedEndpoint,
                                                 final @NonNull SSLContext sslContext) {
@@ -96,6 +97,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
      * @param sslContext        the fixed SSL context (and so the correct certificate) to be used.
      * @see JssePlatform#newSSLContext()
+     * @see HandshakeCertificates#sslContext()
      */
     static @NonNull ServerBuilder serverBuilder(final @NonNull Endpoint encryptedEndpoint,
                                                 final @NonNull SSLContext sslContext) {
@@ -122,6 +124,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * SSLEngine.
      * @see <a href="https://tools.ietf.org/html/rfc6066#section-3">Server Name Indication</a>
      * @see JssePlatform#newSSLContext()
+     * @see HandshakeCertificates#sslContext()
      */
     static @NonNull ServerBuilder serverBuilder(
             final @NonNull Endpoint encryptedEndpoint,
@@ -265,6 +268,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
          * Register a callback function to be executed when the TLS session is established (or re-established). The
          * supplied function will run in the same thread as the rest of the handshake, so it should ideally run as fast
          * as possible.
+         *
          * @see Handshake#get(SSLSession)
          */
         @NonNull

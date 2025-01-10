@@ -108,6 +108,7 @@ public final class Jayo {
      * @return a raw writer that writes to {@code socket}. Prefer this over {@link #writer(OutputStream)} because this
      * method honors timeouts. When the socket write times out, the socket is asynchronously closed by a watchdog
      * thread.
+     * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawWriter writer(final @NonNull Socket socket) {
         Objects.requireNonNull(socket);
@@ -129,6 +130,7 @@ public final class Jayo {
      * @return a raw reader that reads from {@code socket}. Prefer this over {@link #reader(InputStream)} because this
      * method honors timeouts. When the socket read times out, the socket is asynchronously closed by a watchdog
      * thread.
+     * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawReader reader(final @NonNull Socket socket) {
         Objects.requireNonNull(socket);
@@ -166,6 +168,7 @@ public final class Jayo {
      * @return a raw writer that writes to {@code socketChannel}. Prefer this over {@link #writer(GatheringByteChannel)}
      * because this method honors timeouts. When the socket channel write times out, the socket is asynchronously closed
      * by a watchdog thread.
+     * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawWriter writer(final @NonNull SocketChannel socketChannel) {
         Objects.requireNonNull(socketChannel);
@@ -183,6 +186,7 @@ public final class Jayo {
      * @return a raw reader that reads from {@code socketChannel}. Prefer this over {@link #reader(ReadableByteChannel)}
      * because this method honors timeouts. When the socket channel read times out, the socket is asynchronously closed
      * by a watchdog thread.
+     * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawReader reader(final @NonNull SocketChannel socketChannel) {
         Objects.requireNonNull(socketChannel);

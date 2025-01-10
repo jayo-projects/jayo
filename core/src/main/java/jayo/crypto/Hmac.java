@@ -14,6 +14,7 @@ import org.jspecify.annotations.NonNull;
  * transmitted between these parties. A MAC mechanism that is based on cryptographic hash functions is referred to as
  * HMAC. HMAC can be used with any cryptographic hash function, e.g., SHA256 or SHA384, in combination with a secret
  * shared key.
+ * @see JdkHmac
  */
 public interface Hmac {
     /**
