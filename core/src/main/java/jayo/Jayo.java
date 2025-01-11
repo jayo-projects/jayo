@@ -120,7 +120,7 @@ public final class Jayo {
             }
         });
         try {
-            return timeout.writer(new OutputStreamRawWriter(socket.getOutputStream()), 0L);
+            return timeout.writer(new OutputStreamRawWriter(socket.getOutputStream()));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -142,7 +142,7 @@ public final class Jayo {
             }
         });
         try {
-            return timeout.reader(new InputStreamRawReader(socket.getInputStream()), 0L);
+            return timeout.reader(new InputStreamRawReader(socket.getInputStream()));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -179,7 +179,7 @@ public final class Jayo {
                 LOGGER.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
             }
         });
-        return timeout.writer(new GatheringByteChannelRawWriter(socketChannel), 0L);
+        return timeout.writer(new GatheringByteChannelRawWriter(socketChannel));
     }
 
     /**
@@ -197,7 +197,7 @@ public final class Jayo {
                 LOGGER.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
             }
         });
-        return timeout.reader(new ReadableByteChannelRawReader(socketChannel), 0L);
+        return timeout.reader(new ReadableByteChannelRawReader(socketChannel));
     }
 
     /**

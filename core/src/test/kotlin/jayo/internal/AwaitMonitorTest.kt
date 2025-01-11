@@ -38,8 +38,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Tag("no-ci")
 class AwaitMonitorTest {
-
-    val monitor = Object()
+    private val monitor = Object()
 
     companion object {
         @JvmStatic
@@ -78,59 +77,21 @@ class AwaitMonitorTest {
         assumeNotWindows()
         cancelScope(100.milliseconds) {
             val start = now()
-            assertThatThrownBy {
-                waitUntilNotified(monitor)
-            }
+            assertThatThrownBy { waitUntilNotified(monitor) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the monitor was notified")
+                .hasMessage("timeout")
             assertElapsed(100.0, start)
         }
     }
 
     @Test
-    fun deadline() = synchronized(monitor) {
+    fun timeoutAlreadyReached() = synchronized(monitor) {
         assumeNotWindows()
-        cancelScope(deadline = 100.milliseconds) {
+        cancelScope(1.milliseconds) {
             val start = now()
             assertThatThrownBy { waitUntilNotified(monitor) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the monitor was notified")
-            assertElapsed(100.0, start)
-        }
-    }
-
-    @Test
-    fun deadlineBeforeTimeout() = synchronized(monitor) {
-        assumeNotWindows()
-        cancelScope(500.milliseconds, 100.milliseconds) {
-            val start = now()
-            assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the monitor was notified")
-            assertElapsed(100.0, start)
-        }
-    }
-
-    @Test
-    fun timeoutBeforeDeadline() = synchronized(monitor) {
-        assumeNotWindows()
-        cancelScope(100.milliseconds, 500.milliseconds) {
-            val start = now()
-            assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the monitor was notified")
-            assertElapsed(100.0, start)
-        }
-    }
-
-    @Test
-    fun deadlineAlreadyReached() = synchronized(monitor) {
-        assumeNotWindows()
-        cancelScope(deadline = 1.milliseconds) {
-            val start = now()
-            assertThatThrownBy { waitUntilNotified(monitor) }
-                .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the monitor was notified")
+                .hasMessage("timeout")
             assertElapsed(0.0, start)
         }
     }
@@ -147,7 +108,7 @@ class AwaitMonitorTest {
                 .hasMessage("current thread is interrupted")
         }
         assertThat(Thread.interrupted()).isTrue
-        assertElapsed(25.0, start)
+        assertElapsed(25.0, start, true)
     }
 
     @Test
@@ -170,7 +131,8 @@ class AwaitMonitorTest {
      * Fails the test unless the time from start until now is duration, accepting differences in
      * -50..+450 milliseconds.
      */
-    private fun assertElapsed(duration: Double, start: Double) {
-        assertThat(now() - start - 20.0).isEqualTo(duration, within(50.0))
+    private fun assertElapsed(duration: Double, start: Double, extraDiffAllowed: Boolean = false) {
+        val offset = if (extraDiffAllowed) within(60.0) else within(25.0)
+        assertThat(now() - start - 20.0).isEqualTo(duration, offset)
     }
 }

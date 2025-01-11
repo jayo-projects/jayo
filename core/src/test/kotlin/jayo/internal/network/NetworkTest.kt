@@ -6,12 +6,12 @@
 package jayo.internal.network
 
 import jayo.*
+import jayo.internal.TestUtil.SEGMENT_SIZE
 import jayo.network.NetworkEndpoint
 import jayo.network.NetworkServer
 import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -35,7 +35,7 @@ class NetworkTest {
         }
 
         @JvmStatic
-        val TO_WRITE = "42".repeat(10_000)
+        val TO_WRITE = "a".repeat(SEGMENT_SIZE * 4)
     }
 
     @ParameterizedTest
@@ -171,33 +171,7 @@ class NetworkTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    fun `write while cancelled and interrupted platform thread`(networkFactory: NetworkFactory) {
-        var throwableAssert: AbstractThrowableAssert<*, *>? = null
-        networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = thread(start = true) {
-                server.accept()
-            }
-            val client = networkFactory.networkEndpointBuilder().connect(server.localAddress)
-            cancelScope {
-                thread(start = true) {
-                    cancel()
-                    Thread.currentThread().interrupt()
-                    val writer = client.writer.buffered()
-                    throwableAssert = assertThatThrownBy {
-                        writer.writeByte(0)
-                            .flush()
-                    }
-                }.join()
-            }
-            serverThread.join()
-        }
-        throwableAssert!!.isInstanceOf(JayoInterruptedIOException::class.java)
-            .hasMessage("current thread is interrupted")
-    }
-
-    @ParameterizedTest
-    @MethodSource("parameters")
-    fun `write while cancelled and interrupted virtual thread`(networkFactory: NetworkFactory) {
+    fun `write while cancelled and interrupted thread`(networkFactory: NetworkFactory) {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bind(InetSocketAddress(0 /* find free port */)).use { server ->
             val serverThread = thread(start = true) {
@@ -234,12 +208,11 @@ class NetworkTest {
         }
     }
 
-    @Disabled // inconsistent
     @Tag("no-ci")
     @Test
     fun `default connect timeout`() {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = thread(start = true) {
+            val serverThread = thread(start = true, isDaemon = true) {
                 server.accept()
             }
             assertThatThrownBy {
@@ -287,7 +260,7 @@ class NetworkTest {
                 .connect(server.localAddress)
 
             assertThatThrownBy {
-                client.writer.buffered().write(TO_WRITE.repeat(5))
+                client.writer.buffered().write(TO_WRITE)
                     .flush()
             }.isInstanceOf(JayoTimeoutException::class.java)
                 .hasMessage("timeout")

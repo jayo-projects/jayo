@@ -376,8 +376,7 @@ public class CloseTest {
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
             // wait 100ms for second close_notify, JayoTimeoutException proves it would hang forever
             assertThatThrownBy(() ->
-                    Cancellable
-                            .runWithTimeout(Duration.ofMillis(100), _unused -> clientGroup.tls.shutdown())
+                    Cancellable.run(Duration.ofMillis(100), _unused -> clientGroup.tls.shutdown())
             ).isInstanceOf(JayoTimeoutException.class);
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
