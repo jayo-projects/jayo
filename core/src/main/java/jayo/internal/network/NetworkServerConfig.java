@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 
 @SuppressWarnings("RawUseOfParameterized")
-public abstract sealed class NetworkServerBuilder<T extends NetworkServer.Builder<T>>
-        implements NetworkServer.Builder<T> {
+public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<T>>
+        implements NetworkServer.Config<T> {
     private @NonNegative long readTimeoutNanos = 0L;
     private @NonNegative long writeTimeoutNanos = 0L;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
@@ -64,7 +64,6 @@ public abstract sealed class NetworkServerBuilder<T extends NetworkServer.Builde
         return getThis();
     }
 
-    @Override
     public final @NonNull NetworkServer bind(final @NonNull SocketAddress localAddress) {
         Objects.requireNonNull(localAddress);
         return bindInternal(localAddress,
@@ -85,8 +84,8 @@ public abstract sealed class NetworkServerBuilder<T extends NetworkServer.Builde
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
             final @NonNegative int maxPendingConnections);
 
-    public static final class Nio extends NetworkServerBuilder<NetworkServer.NioBuilder>
-            implements NetworkServer.NioBuilder {
+    public static final class Nio extends NetworkServerConfig<NetworkServer.NioConfig>
+            implements NetworkServer.NioConfig {
         private @Nullable ProtocolFamily family = null;
 
         @Override
@@ -123,8 +122,8 @@ public abstract sealed class NetworkServerBuilder<T extends NetworkServer.Builde
         }
     }
 
-    public static final class Io extends NetworkServerBuilder<NetworkServer.IoBuilder>
-            implements NetworkServer.IoBuilder {
+    public static final class Io extends NetworkServerConfig<NetworkServer.IoConfig>
+            implements NetworkServer.IoConfig {
         @Override
         @NonNull
         Io getThis() {

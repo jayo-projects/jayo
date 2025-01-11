@@ -60,10 +60,10 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             asyncTimeout.withTimeoutOrDefault(cancelToken, connectTimeoutNanos, () -> {
                 try {
                     socketChannel.connect(peerAddress);
+                    return null;
                 } catch (IOException e) {
                     throw JayoException.buildJayoException(e);
                 }
-                return null;
             });
 
             for (final var socketOption : socketOptions.entrySet()) {

@@ -152,7 +152,8 @@ public class SocketPairFactory {
     }
 
     public OldIoSocketPair oldIo(Optional<String> cipher) {
-        NetworkServer networkServer = NetworkServer.builderForIO().bind(new InetSocketAddress(0 /* find free port */));
+        NetworkServer networkServer = NetworkServer.bind(new InetSocketAddress(0 /* find free port */),
+                NetworkServer.configForIO());
         TlsEndpoint client = createTlsClientEndpoint(cipher, networkServer.getLocalAddress());
         assert client.getSslEngine() != null;
         SSLParameters sslParameters = client.getSslEngine().getSSLParameters(); // returns a value object

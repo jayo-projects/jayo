@@ -15,28 +15,28 @@ import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
-public fun NetworkEndpoint.NioBuilder.kotlin(
-    config: NioNetworkEndpointBuilderDsl.() -> Unit
-): NetworkEndpoint.NioBuilder {
+public fun NetworkEndpoint.NioConfig.kotlin(
+    config: NioNetworkEndpointConfigDsl.() -> Unit
+): NetworkEndpoint.NioConfig {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(NioNetworkEndpointBuilderDsl(this))
+    config(NioNetworkEndpointConfigDsl(this))
     return this
 }
 
 @JayoDslMarker
-public class NioNetworkEndpointBuilderDsl internal constructor(
-    private val builder: NetworkEndpoint.NioBuilder
-) : NetworkEndpointBuilderDsl(builder) {
+public class NioNetworkEndpointConfigDsl internal constructor(
+    private val config: NetworkEndpoint.NioConfig
+) : NetworkEndpointConfigDsl(config) {
     /**
-     * Sets the connect timeout used in the [Builder.connect][NetworkEndpoint.Builder.connect] method. Default is
-     * zero. A timeout of zero is interpreted as an infinite timeout.
+     * Sets the connect timeout used in the [NetworkEndpoint.connect] method. Default is zero. A timeout of zero is
+     * interpreted as an infinite timeout.
      */
     public var connectTimeout: Duration
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.connectTimeout(value.toJavaDuration())
+            config.connectTimeout(value.toJavaDuration())
         }
 
     /**
@@ -50,21 +50,21 @@ public class NioNetworkEndpointBuilderDsl internal constructor(
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.protocolFamily(value)
+            config.protocolFamily(value)
         }
 }
 
-public fun NetworkEndpoint.IoBuilder.kotlin(config: IoNetworkEndpointBuilderDsl.() -> Unit): NetworkEndpoint.IoBuilder {
+public fun NetworkEndpoint.IoConfig.kotlin(config: IoNetworkEndpointConfigDsl.() -> Unit): NetworkEndpoint.IoConfig {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(IoNetworkEndpointBuilderDsl(this))
+    config(IoNetworkEndpointConfigDsl(this))
     return this
 }
 
 @JayoDslMarker
-public class IoNetworkEndpointBuilderDsl(builder: NetworkEndpoint.IoBuilder) : NetworkEndpointBuilderDsl(builder)
+public class IoNetworkEndpointConfigDsl(config: NetworkEndpoint.IoConfig) : NetworkEndpointConfigDsl(config)
 
-public sealed class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoint.Builder<*>) {
+public sealed class NetworkEndpointConfigDsl(private val config: NetworkEndpoint.Config<*>) {
     /**
      * Sets the default read timeout of all read operations of the network endpoints produced by this builder. Default
      * is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -73,7 +73,7 @@ public sealed class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoi
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.readTimeout(value.toJavaDuration())
+            config.readTimeout(value.toJavaDuration())
         }
 
     /**
@@ -84,7 +84,7 @@ public sealed class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoi
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.writeTimeout(value.toJavaDuration())
+            config.writeTimeout(value.toJavaDuration())
         }
 
     /**
@@ -95,6 +95,6 @@ public sealed class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoi
      * @see java.net.StandardSocketOptions
      */
     public fun <T> option(name: SocketOption<T>, value: T?) {
-        builder.option(name, value)
+        config.option(name, value)
     }
 }

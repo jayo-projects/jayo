@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 
 @SuppressWarnings("RawUseOfParameterized")
-public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Builder<T>>
-        implements NetworkEndpoint.Builder<T> {
+public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Config<T>>
+        implements NetworkEndpoint.Config<T> {
     private @NonNegative long readTimeoutNanos = 0L;
     private @NonNegative long writeTimeoutNanos = 0L;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
@@ -46,7 +46,6 @@ public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Bu
         return getThis();
     }
 
-    @Override
     public final @NonNull NetworkEndpoint connect(final @NonNull SocketAddress peerAddress) {
         Objects.requireNonNull(peerAddress);
         return connectInternal(peerAddress, readTimeoutNanos, writeTimeoutNanos, socketOptions);
@@ -60,8 +59,8 @@ public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Bu
             final @NonNegative long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions);
 
-    public static final class Nio extends NetworkEndpointBuilder<NetworkEndpoint.NioBuilder>
-            implements NetworkEndpoint.NioBuilder {
+    public static final class Nio extends NetworkEndpointConfig<NetworkEndpoint.NioConfig>
+            implements NetworkEndpoint.NioConfig {
         private @NonNegative long connectTimeoutNanos = 0L;
         private @Nullable ProtocolFamily family = null;
 
@@ -101,8 +100,8 @@ public abstract sealed class NetworkEndpointBuilder<T extends NetworkEndpoint.Bu
         }
     }
 
-    public static final class Io extends NetworkEndpointBuilder<NetworkEndpoint.IoBuilder>
-            implements NetworkEndpoint.IoBuilder {
+    public static final class Io extends NetworkEndpointConfig<NetworkEndpoint.IoConfig>
+            implements NetworkEndpoint.IoConfig {
         @Override
         @NonNull
         Io getThis() {
