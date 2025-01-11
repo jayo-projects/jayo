@@ -95,15 +95,17 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
     sealed interface Builder<T extends Builder<T>>
             permits IoBuilder, NioBuilder, NetworkEndpointBuilder {
         /**
-         * Sets the default read timeout of all read operations of the network endpoints produced by this builder.
-         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
+         * Sets the default read timeout that will apply on each low-level read operation of the underlying socket of
+         * the network endpoints that uses this configuration. Default is zero. A timeout of zero is interpreted as an
+         * infinite timeout.
          */
         @NonNull
         T readTimeout(final @NonNull Duration readTimeout);
 
         /**
-         * Sets the default write timeout of all write operations of the network endpoints produced by this builder.
-         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
+         * Sets the default write timeout that will apply on each low-level write operation of the underlying socket of
+         * the network endpoints that uses this configuration. Default is zero. A timeout of zero is interpreted as an
+         * infinite timeout.
          */
         @NonNull
         T writeTimeout(final @NonNull Duration writeTimeout);

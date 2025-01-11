@@ -29,22 +29,24 @@ import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 
 /**
  * CancelToken is thread safe
  */
 public final class RealCancelToken implements CancelScope, CancelToken {
-    @NonNegative long timeoutNanos;
+    @NonNegative
+    long timeoutNanos;
     final @NonNegative long deadlineNanoTime;
-    volatile boolean cancelled = false;
+    volatile boolean cancelled;
     volatile boolean shielded = false;
     volatile boolean finished = false;
 
-    RealCancelToken(final @NonNegative long timeoutNanos, final @NonNegative long deadlineNanos) {
-        this.timeoutNanos = timeoutNanos;
-        this.deadlineNanoTime = (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L;
+    RealCancelToken(final @NonNegative long deadlineNanos) {
+        this(0L,
+                // deadline is set immediately
+                (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L,
+                false);
     }
 
     RealCancelToken(final @NonNegative long timeoutNanos,
@@ -80,35 +82,34 @@ public final class RealCancelToken implements CancelScope, CancelToken {
 
         try {
             // CancelToken is finished, shielded or there is no timeout and no deadline : wait forever.
-            if (cancelToken.finished || cancelToken.shielded || (cancelToken.deadlineNanoTime == 0L
-                    && cancelToken.timeoutNanos == 0L)) {
+            if (cancelToken.finished || cancelToken.shielded ||
+                    (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
                 condition.await();
                 return;
             }
 
             // Compute how long we'll wait.
-            final var start = System.nanoTime();
-            final long waitNanos;
-            if (cancelToken.deadlineNanoTime != 0L && cancelToken.timeoutNanos != 0L) {
-                final var deadlineNanos = cancelToken.deadlineNanoTime - start;
-                waitNanos = Math.min(cancelToken.timeoutNanos, deadlineNanos);
-            } else if (cancelToken.deadlineNanoTime != 0L) {
-                waitNanos = cancelToken.deadlineNanoTime - start;
+            long remainingNanos;
+            if (cancelToken.deadlineNanoTime > 0L) {
+                remainingNanos = cancelToken.deadlineNanoTime - System.nanoTime();
             } else {
-                waitNanos = cancelToken.timeoutNanos;
+                remainingNanos = cancelToken.timeoutNanos;
             }
 
             // Attempt to wait that long. This will break out early if the condition is notified.
-            var elapsedNanos = 0L;
-            if (waitNanos > 0L) {
-                condition.await(waitNanos, TimeUnit.NANOSECONDS);
-                elapsedNanos = System.nanoTime() - start;
+            // timeout may already be reached
+            if (remainingNanos <= 0) {
+                cancel();
+                throw new JayoTimeoutException("timeout");
             }
 
-            // Throw if the timeout elapsed before the condition was signalled.
-            if (elapsedNanos >= waitNanos) {
+            // await for condition
+            remainingNanos = condition.awaitNanos(remainingNanos);
+
+            // check again if timeout was reached immediately after condition is notified.
+            if (remainingNanos <= 0) {
                 cancel();
-                throw new JayoTimeoutException("timeout or deadline elapsed before the condition was signalled");
+                throw new JayoTimeoutException("timeout");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Retain interrupted status.
@@ -125,36 +126,36 @@ public final class RealCancelToken implements CancelScope, CancelToken {
 
         try {
             // CancelToken is finished, shielded or there is no timeout and no deadline : wait forever.
-            if (cancelToken.finished || cancelToken.shielded || (cancelToken.deadlineNanoTime == 0L
-                    && cancelToken.timeoutNanos == 0L)) {
+            if (cancelToken.finished || cancelToken.shielded ||
+                    (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
                 monitor.wait();
                 return;
             }
 
             // Compute how long we'll wait.
-            final var start = System.nanoTime();
-            final long waitNanos;
-            if (cancelToken.deadlineNanoTime != 0L && cancelToken.timeoutNanos != 0L) {
-                final var deadlineNanos = cancelToken.deadlineNanoTime - start;
-                waitNanos = Math.min(cancelToken.timeoutNanos, deadlineNanos);
-            } else if (cancelToken.deadlineNanoTime != 0L) {
-                waitNanos = cancelToken.deadlineNanoTime - start;
+            long remainingNanos;
+            if (cancelToken.deadlineNanoTime > 0L) {
+                remainingNanos = cancelToken.deadlineNanoTime - System.nanoTime();
             } else {
-                waitNanos = cancelToken.timeoutNanos;
+                remainingNanos = cancelToken.timeoutNanos;
             }
 
             // Attempt to wait that long. This will break out early if the monitor is notified.
-            var elapsedNanos = 0L;
-            if (waitNanos > 0L) {
-                final var waitMillis = waitNanos / 1000000L;
-                monitor.wait(waitMillis, (int) (waitNanos - waitMillis * 1000000L));
-                elapsedNanos = System.nanoTime() - start;
+            // timeout may be reached now
+            if (remainingNanos <= 0) {
+                cancel();
+                throw new JayoTimeoutException("timeout");
             }
 
-            // Throw if the timeout elapsed before the monitor was notified.
-            if (elapsedNanos >= waitNanos) {
+            // await for monitor
+            final var remainingMillis = (long) Math.ceil(remainingNanos / 1000000d);
+            monitor.wait(remainingMillis);
+
+            // check again if timeout was reached immediately after monitor is notified.
+            remainingNanos = deadlineNanoTime - System.nanoTime();
+            if (remainingNanos <= 0) {
                 cancel();
-                throw new JayoTimeoutException("timeout or deadline elapsed before the monitor was notified");
+                throw new JayoTimeoutException("timeout");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Retain interrupted status.
@@ -173,7 +174,18 @@ public final class RealCancelToken implements CancelScope, CancelToken {
 
         if (deadlineNanoTime != 0L && (deadlineNanoTime - System.nanoTime()) <= 0) {
             cancel();
-            throw new JayoTimeoutException("deadline reached");
+            throw new JayoTimeoutException("timeout");
         }
+    }
+
+    @Override
+    public String toString() {
+        return "RealCancelToken{" +
+                "timeoutNanos=" + timeoutNanos +
+                ", deadlineNanoTime=" + deadlineNanoTime +
+                ", cancelled=" + cancelled +
+                ", shielded=" + shielded +
+                ", finished=" + finished +
+                '}';
     }
 }
