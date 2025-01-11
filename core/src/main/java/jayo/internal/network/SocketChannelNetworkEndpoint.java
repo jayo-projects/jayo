@@ -54,20 +54,17 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             // SocketChannel defaults to blocking-mode, that's what we want
             final var socketChannel = (family != null) ? SocketChannel.open(family) : SocketChannel.open();
 
-            final var asyncTimeout = buildAsyncTimeout(socketChannel);
-            final var cancelToken = CancellableUtils.getCancelToken(connectTimeoutNanos);
-            if (cancelToken != null) {
-                asyncTimeout.withTimeout(cancelToken, () -> {
-                    try {
-                        socketChannel.connect(peerAddress);
-                    } catch (IOException e) {
-                        throw JayoException.buildJayoException(e);
-                    }
-                    return null;
-                });
-            } else {
-                socketChannel.connect(peerAddress);
-            }
+            final var asyncTimeout = buildAsyncTimeout(socketChannel, defaultReadTimeoutNanos,
+                    defaultWriteTimeoutNanos);
+            final var cancelToken = CancellableUtils.getCancelToken();
+            asyncTimeout.withTimeoutOrDefault(cancelToken, connectTimeoutNanos, () -> {
+                try {
+                    socketChannel.connect(peerAddress);
+                } catch (IOException e) {
+                    throw JayoException.buildJayoException(e);
+                }
+                return null;
+            });
 
             for (final var socketOption : socketOptions.entrySet()) {
                 socketChannel.setOption(socketOption.getKey(), socketOption.getValue());
@@ -83,8 +80,6 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
 
             return new SocketChannelNetworkEndpoint(
                     socketChannel,
-                    defaultReadTimeoutNanos,
-                    defaultWriteTimeoutNanos,
                     asyncTimeout);
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
@@ -96,9 +91,11 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     @NonNull
-    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull SocketChannel socketChannel) {
+    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull SocketChannel socketChannel,
+                                                      final @NonNegative long defaultReadTimeoutNanos,
+                                                      final @NonNegative long defaultWriteTimeoutNanos) {
         assert socketChannel != null;
-        return new RealAsyncTimeout(() -> {
+        return new RealAsyncTimeout(defaultReadTimeoutNanos, defaultWriteTimeoutNanos, () -> {
             try {
                 socketChannel.close();
             } catch (Exception e) {
@@ -109,8 +106,6 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
 
     private final @NonNull SocketChannel socketChannel;
     private final @NonNull RealAsyncTimeout asyncTimeout;
-    private final @NonNegative long defaultReadTimeoutNanos;
-    private final @NonNegative long defaultWriteTimeoutNanos;
 
     @SuppressWarnings("FieldMayBeFinal")
     private volatile RawReader reader = null;
@@ -134,21 +129,15 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel,
                                  final @NonNegative long defaultReadTimeoutNanos,
                                  final @NonNegative long defaultWriteTimeoutNanos) {
-        this(socketChannel, defaultReadTimeoutNanos, defaultWriteTimeoutNanos, buildAsyncTimeout(socketChannel));
+        this(socketChannel, buildAsyncTimeout(socketChannel, defaultReadTimeoutNanos, defaultWriteTimeoutNanos));
     }
 
     private SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel,
-                                         final @NonNegative long defaultReadTimeoutNanos,
-                                         final @NonNegative long defaultWriteTimeoutNanos,
                                          final @NonNull RealAsyncTimeout asyncTimeout) {
         assert socketChannel != null;
-        assert defaultReadTimeoutNanos >= 0L;
-        assert defaultWriteTimeoutNanos >= 0L;
         assert asyncTimeout != null;
 
         this.socketChannel = socketChannel;
-        this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
-        this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
         this.asyncTimeout = asyncTimeout;
     }
 
@@ -156,7 +145,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     public @NonNull RawReader getReader() {
         var reader = this.reader;
         if (reader == null) {
-            reader = asyncTimeout.reader(new ReadableByteChannelRawReader(socketChannel), defaultReadTimeoutNanos);
+            reader = asyncTimeout.reader(new ReadableByteChannelRawReader(socketChannel));
             if (!READER.compareAndSet(this, null, reader)) {
                 reader = this.reader;
             }
@@ -168,7 +157,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     public @NonNull RawWriter getWriter() {
         var writer = this.writer;
         if (writer == null) {
-            writer = asyncTimeout.writer(new GatheringByteChannelRawWriter(socketChannel), defaultWriteTimeoutNanos);
+            writer = asyncTimeout.writer(new GatheringByteChannelRawWriter(socketChannel));
             if (!WRITER.compareAndSet(this, null, writer)) {
                 writer = this.writer;
             }

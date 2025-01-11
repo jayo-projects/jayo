@@ -79,55 +79,19 @@ class AwaitSignalTest {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the condition was signalled")
+                .hasMessage("timeout")
             assertElapsed(100.0, start)
         }
     }
 
     @Test
-    fun deadline() = lock.withLock {
+    fun timeoutAlreadyReached() = lock.withLock {
         assumeNotWindows()
-        cancelScope(deadline = 100.milliseconds) {
+        cancelScope(1.milliseconds) {
             val start = now()
             assertThatThrownBy { awaitSignal(condition) }
                 .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the condition was signalled")
-            assertElapsed(100.0, start)
-        }
-    }
-
-    @Test
-    fun deadlineBeforeTimeout() = lock.withLock {
-        assumeNotWindows()
-        cancelScope(500.milliseconds, 100.milliseconds) {
-            val start = now()
-            assertThatThrownBy { awaitSignal(condition) }
-                .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the condition was signalled")
-            assertElapsed(100.0, start)
-        }
-    }
-
-    @Test
-    fun timeoutBeforeDeadline() = lock.withLock {
-        assumeNotWindows()
-        cancelScope(100.milliseconds, 500.milliseconds) {
-            val start = now()
-            assertThatThrownBy { awaitSignal(condition) }
-                .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the condition was signalled")
-            assertElapsed(100.0, start)
-        }
-    }
-
-    @Test
-    fun deadlineAlreadyReached() = lock.withLock {
-        assumeNotWindows()
-        cancelScope(deadline = 1.milliseconds) {
-            val start = now()
-            assertThatThrownBy { awaitSignal(condition) }
-                .isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout or deadline elapsed before the condition was signalled")
+                .hasMessage("timeout")
             assertElapsed(0.0, start)
         }
     }

@@ -50,7 +50,7 @@ public final class SocketTimeoutTest {
     public void readWithoutTimeout() throws Exception {
         try (var socket = socket(ONE_MB, 0);
              var reader = Jayo.buffer(Jayo.reader(socket))) {
-            Cancellable.runWithTimeout(Duration.ofMillis(500), _scope -> reader.require(ONE_MB));
+            Cancellable.run(Duration.ofMillis(500), _scope -> reader.require(ONE_MB));
         }
     }
 
@@ -58,7 +58,7 @@ public final class SocketTimeoutTest {
     public void readWithTimeout() throws Exception {
         try (var socket = socket(0, 0);
              var reader = Jayo.buffer(Jayo.reader(socket))) {
-            Cancellable.runWithTimeout(Duration.ofMillis(25), _scope ->
+            Cancellable.run(Duration.ofMillis(25), _scope ->
                     assertThatThrownBy(() -> reader.require(ONE_MB))
                             // we may fail when expecting 1MB and socket is reading, or after the read, exception is not
                             // the same
@@ -70,7 +70,7 @@ public final class SocketTimeoutTest {
     public void readWitManualCancellation() throws Exception {
         try (var socket = socket(ONE_MB, 0);
              var reader = Jayo.buffer(Jayo.reader(socket))) {
-            Cancellable.create().run(scope -> {
+            Cancellable.run(scope -> {
                 scope.cancel();
                 assertThatThrownBy(() -> reader.require(ONE_MB))
                         .isInstanceOf(JayoInterruptedIOException.class)
@@ -83,7 +83,7 @@ public final class SocketTimeoutTest {
     public void writeWithoutTimeout() throws Exception {
         try (var socket = socket(0, ONE_MB);
              var writer = Jayo.buffer(Jayo.writer(socket))) {
-            Cancellable.runWithTimeout(Duration.ofMillis(50), _scope -> {
+            Cancellable.run(Duration.ofMillis(50), _scope -> {
                 byte[] data = new byte[ONE_MB];
                 writer.write(new RealBuffer().write(data), data.length);
                 writer.flush();
@@ -94,19 +94,18 @@ public final class SocketTimeoutTest {
     @Test
     public void writeWithTimeout() throws Exception {
         try (var socket = socket(ONE_MB, 0)) {
-            Cancellable.runWithTimeout(Duration.ofMillis(50), _scope -> {
-                try (var writer = Jayo.buffer(Jayo.writer(socket))) {
-                    byte[] data = new byte[ONE_MB];
-                    long start = System.nanoTime();
-                    assertThatThrownBy(() -> {
-                        writer.write(new RealBuffer().write(data), data.length);
-                        writer.flush();
-                    }).isInstanceOf(JayoTimeoutException.class);
-                    long elapsed = System.nanoTime() - start;
-                    assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) >= 50).isTrue();
-                    assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) <= 500).isTrue();
-                }
-            });
+            long start = System.nanoTime();
+            assertThatThrownBy(() -> Cancellable.run(Duration.ofMillis(1), _scope -> {
+                        try (var writer = Jayo.buffer(Jayo.writer(socket))) {
+                            byte[] data = new byte[ONE_MB];
+                            writer.write(new RealBuffer().write(data), data.length);
+                            writer.flush();
+                        }
+                    })
+            ).isInstanceOf(JayoTimeoutException.class);
+            long elapsed = System.nanoTime() - start;
+            assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) >= 1).isTrue();
+            assertThat(TimeUnit.NANOSECONDS.toMillis(elapsed) <= 500).isTrue();
         }
     }
 

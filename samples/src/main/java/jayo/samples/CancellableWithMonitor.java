@@ -62,6 +62,6 @@ public final class CancellableWithMonitor {
         // start the game ! Will throw the dice every 500 millis
         dice.rollAtFixedRate(500, TimeUnit.MILLISECONDS);
         // wait until total dice rolls reaches 42
-        Cancellable.create().run(cancelScope -> dice.awaitTotal(cancelScope, 42));
+        Cancellable.run(cancelScope -> dice.awaitTotal(cancelScope, 42));
     }
 }

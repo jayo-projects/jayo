@@ -25,10 +25,11 @@ import jayo.internal.RealCancelToken;
 import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.locks.Condition;
+import java.util.function.Function;
 
 /**
  * Defines a scope for cancellable blocks. Every <b>cancellable builder</b> like
- * {@linkplain Cancellable#callWithTimeout callWithTimeout} creates a {@code CancelScope} implementation that is
+ * {@linkplain Cancellable#call(Function) call} creates a {@code CancelScope} implementation that is
  * available to manually {@link #cancel} code execution, or {@link #shield()} its content from outside existing
  * cancellations.
  */

@@ -10,7 +10,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Deque;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
@@ -32,19 +31,12 @@ public final class CancellableUtils {
     };
 
     public static @Nullable RealCancelToken getCancelToken() {
-        return getCancelToken(0L);
-    }
-
-    public static @Nullable RealCancelToken getCancelToken(final @NonNegative long defaultTimeoutNanos) {
         final var cancelTokens = CANCEL_TOKENS.get();
         RealCancelToken result = null;
 
         // cancellable context is empty, use defaultTimeoutNanos, if any
         if (cancelTokens.isEmpty()) {
-            if (defaultTimeoutNanos > 0L) {
-                result = new RealCancelToken(defaultTimeoutNanos, 0L);
-            }
-            return result;
+            return null;
         }
 
         final var cancelTokensIterator = cancelTokens.iterator();
@@ -61,10 +53,6 @@ public final class CancellableUtils {
             }
         }
 
-        // fallback to defaultTimeoutNanos, if any, if no timeout is already present in the cancellable context
-        if (result != null && result.timeoutNanos == 0L && defaultTimeoutNanos > 0L) {
-            result.timeoutNanos = defaultTimeoutNanos;
-        }
         return result;
     }
 
@@ -91,10 +79,16 @@ public final class CancellableUtils {
         assert previous != null;
         assert current != null;
 
-        Objects.requireNonNull(current);
-        // Only the last timeout applies
-        final var timeoutNanos = (previous.timeoutNanos != 0L) ? previous.timeoutNanos : current.timeoutNanos;
         final var deadlineNanoTime = minDeadline(previous.deadlineNanoTime, current.deadlineNanoTime);
+
+        // Only the last default timeout applies, if no deadline
+        final long timeoutNanos;
+        if (deadlineNanoTime == 0L) {
+            timeoutNanos = (previous.timeoutNanos != 0L) ? previous.timeoutNanos : current.timeoutNanos;
+        } else {
+            timeoutNanos = 0L;
+        }
+
         final var cancelled = previous.cancelled || current.cancelled;
         return new RealCancelToken(timeoutNanos, deadlineNanoTime, cancelled);
     }

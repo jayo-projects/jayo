@@ -88,8 +88,6 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
 
     private final @NonNull Socket socket;
     private final @NonNull RealAsyncTimeout asyncTimeout;
-    private final @NonNegative long defaultReadTimeoutNanos;
-    private final @NonNegative long defaultWriteTimeoutNanos;
 
     @SuppressWarnings("FieldMayBeFinal")
     private volatile RawReader reader = null;
@@ -118,9 +116,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
         assert defaultWriteTimeoutNanos >= 0L;
 
         this.socket = socket;
-        this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
-        this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
-        this.asyncTimeout = new RealAsyncTimeout(() -> {
+        this.asyncTimeout = new RealAsyncTimeout(defaultReadTimeoutNanos, defaultWriteTimeoutNanos, () -> {
             try {
                 socket.close();
             } catch (Exception e) {
@@ -136,7 +132,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             // always get the input stream from socket that does some checks
             final var in = socket.getInputStream();
             if (reader == null) {
-                reader = asyncTimeout.reader(new InputStreamRawReader(in), defaultReadTimeoutNanos);
+                reader = asyncTimeout.reader(new InputStreamRawReader(in));
                 if (!READER.compareAndSet(this, null, reader)) {
                     reader = this.reader;
                 }
@@ -154,7 +150,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             // always get the output stream from socket that does some checks
             final var out = socket.getOutputStream();
             if (writer == null) {
-                writer = asyncTimeout.writer(new OutputStreamRawWriter(out), defaultWriteTimeoutNanos);
+                writer = asyncTimeout.writer(new OutputStreamRawWriter(out));
                 if (!WRITER.compareAndSet(this, null, writer)) {
                     writer = this.writer;
                 }

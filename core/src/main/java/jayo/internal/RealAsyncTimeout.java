@@ -21,12 +21,7 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
-import jayo.CancelScope;
-import jayo.RawReader;
-import jayo.RawWriter;
-import jayo.JayoException;
-import jayo.JayoTimeoutException;
+import jayo.*;
 import jayo.external.AsyncTimeout;
 import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
@@ -65,10 +60,50 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      */
     static final int TIMEOUT_WRITE_SIZE = 4 * Segment.SIZE;
 
+    /*
+     *                                       .-------------.
+     *                                       |             |
+     *            .------------ exit() ------|  CANCELED   |
+     *            |                          |             |
+     *            |                          '-------------'
+     *            |                                 ^
+     *            |                                 |  cancel()
+     *            v                                 |
+     *     .-------------.                   .-------------.
+     *     |             |---- enter() ----->|             |
+     *     |    IDLE     |                   |  IN QUEUE   |
+     *     |             |<---- exit() ------|             |
+     *     '-------------'                   '-------------'
+     *            ^                                 |
+     *            |                                 |  time out
+     *            |                                 v
+     *            |                          .-------------.
+     *            |                          |             |
+     *            '------------ exit() ------|  TIMED OUT  |
+     *                                       |             |
+     *                                       '-------------'
+     *
+     * Notes:
+     *  * enter() crashes if called from a state other than IDLE.
+     *  * If there's no timeout (ie. wait forever), then enter() is a no-op. There's no state to track entered but not
+     *    in the queue.
+     *  * exit() is a no-op from IDLE. This is probably too lenient, but it made it simpler for early implementations to
+     *    support cases where enter() as a no-op.
+     *  * cancel() is a no-op from every state but IN QUEUE.
+     */
+
+    private static final int STATE_IDLE = 0;
+    private static final int STATE_IN_QUEUE = 1;
+    private static final int STATE_TIMED_OUT = 2;
+    private static final int STATE_CANCELED = 3;
+
     /**
      * True if this node is currently in the queue.
      */
-    private boolean inQueue = false;
+    private int state = STATE_IDLE;
+
+    private static final Lock LOCK = new ReentrantLock();
+    private static final Condition CONDITION = LOCK.newCondition();
 
     /**
      * The next node in the linked list.
@@ -80,10 +115,32 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      * If scheduled, this is the time that the watchdog should time this out.
      */
     private long timeoutAt = 0L;
+    private final @NonNegative long defaultReadTimeoutNanos;
+    private final @NonNegative long defaultWriteTimeoutNanos;
 
     private final @NonNull Runnable onTimeout;
 
     public RealAsyncTimeout(final @NonNull Runnable onTimeout) {
+        this(0L, 0L, onTimeout);
+    }
+
+    /**
+     * @param defaultReadTimeoutNanos  The default read timeout (in nanoseconds). It will be used as fallback for each
+     *                                 read operation, only if no timeout is present in the cancellable context. It must
+     *                                 be non-negative. A timeout of zero is interpreted as an infinite timeout.
+     * @param defaultWriteTimeoutNanos The default write timeout (in nanoseconds). It will be used as fallback for each
+     *                                 write operation, only if no timeout is present in the cancellable context. It
+     *                                 must be non-negative. A timeout of zero is interpreted as an infinite timeout.
+     */
+    public RealAsyncTimeout(final @NonNegative long defaultReadTimeoutNanos,
+                            final @NonNegative long defaultWriteTimeoutNanos,
+                            final @NonNull Runnable onTimeout) {
+        assert defaultReadTimeoutNanos >= 0;
+        assert defaultWriteTimeoutNanos >= 0;
+        assert onTimeout != null;
+
+        this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
+        this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
         this.onTimeout = onTimeout;
     }
 
@@ -94,16 +151,54 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             throw new IllegalArgumentException("cancelScope must be an instance of CancelToken");
         }
         // CancelToken is finished, shielded or there is no timeout and no deadline : Don't bother with the queue.
-        if (cancelToken.finished || cancelToken.shielded || (cancelToken.deadlineNanoTime == 0L
-                && cancelToken.timeoutNanos == 0L)) {
+        if (cancelToken.finished || cancelToken.shielded ||
+                (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
             return;
         }
-        scheduleTimeout(this, cancelToken.timeoutNanos, cancelToken.deadlineNanoTime);
+
+        LOCK.lock();
+        try {
+            if (state != STATE_IDLE) {
+                throw new IllegalStateException("Unbalanced enter/exit");
+            }
+            state = STATE_IN_QUEUE;
+            insertIntoQueue(this, cancelToken.timeoutNanos, cancelToken.deadlineNanoTime);
+        } finally {
+            LOCK.unlock();
+        }
     }
 
     @Override
     public boolean exit() {
-        return cancelScheduledTimeout(this);
+        LOCK.lock();
+        try {
+            final var oldState = this.state;
+            state = STATE_IDLE;
+
+            if (oldState == STATE_IN_QUEUE) {
+                removeFromQueue(this);
+                return false;
+            }
+            // else
+            return oldState == STATE_TIMED_OUT;
+        } finally {
+            LOCK.unlock();
+        }
+    }
+
+    void cancel(final boolean isTimeout) {
+        LOCK.lock();
+        try {
+            if (state == STATE_IN_QUEUE) {
+                removeFromQueue(this);
+                state = STATE_CANCELED;
+            }
+            if (isTimeout) {
+                state = STATE_TIMED_OUT;
+            }
+        } finally {
+            LOCK.unlock();
+        }
     }
 
     /**
@@ -115,7 +210,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawWriter writer(final @NonNull RawWriter writer, final @NonNegative long defaultTimeoutNanos) {
+    public @NonNull RawWriter writer(final @NonNull RawWriter writer) {
         Objects.requireNonNull(writer);
         return new RawWriter() {
             @Override
@@ -126,19 +221,40 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     throw new IllegalArgumentException("reader must be an instance of RealBuffer");
                 }
 
-                // get cancel token immediately, if present it will be used in all I/O calls
-                final var cancelToken = CancellableUtils.getCancelToken(defaultTimeoutNanos);
+                // get cancel token immediately, if present it will be used in all I/O calls of this write operation
+                var cancelToken = CancellableUtils.getCancelToken();
+                if (cancelToken != null) {
+                    cancelToken.timeoutNanos = defaultWriteTimeoutNanos;
+                    try {
+                        writeCancellable(_reader, byteCount, cancelToken);
+                        return;
+                    } finally {
+                        cancelToken.timeoutNanos = 0L;
+                    }
+                }
 
-                if (cancelToken == null) {
+                // no need for cancellation case
+                if (defaultWriteTimeoutNanos == 0L) {
                     writer.write(reader, byteCount);
                     return;
                 }
 
+                // use defaultWriteTimeoutNanos to create a temporary cancel token, just for this write operation
+                cancelToken = new RealCancelToken(defaultWriteTimeoutNanos, 0L, false);
+                CancellableUtils.addCancelToken(cancelToken);
+                try {
+                    writeCancellable(_reader, byteCount, cancelToken);
+                } finally {
+                    CancellableUtils.finishCancelToken(cancelToken);
+                }
+            }
+
+            private void writeCancellable(RealBuffer reader, long byteCount, RealCancelToken cancelToken) {
                 var remaining = byteCount;
                 while (remaining > 0L) {
                     // Count how many bytes to write. This loop guarantees we split on a segment boundary.
                     var _toWrite = 0L;
-                    var segment = _reader.segmentQueue.head();
+                    var segment = reader.segmentQueue.head();
                     while (_toWrite < TIMEOUT_WRITE_SIZE) {
                         assert segment != null;
                         final var segmentSize = segment.limitVolatile() - segment.pos;
@@ -195,7 +311,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawReader reader(final @NonNull RawReader reader, final @NonNegative long defaultTimeoutNanos) {
+    public @NonNull RawReader reader(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
         return new RawReader() {
             @Override
@@ -204,11 +320,11 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 if (byteCount < 0L) {
                     throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
                 }
-                final var cancelToken = CancellableUtils.getCancelToken(defaultTimeoutNanos);
-                if (cancelToken != null) {
-                    return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));
-                }
-                return reader.readAtMostTo(writer, byteCount);
+
+                // get cancel token immediately, if present it will be used in all I/O calls of this read operation
+                var cancelToken = CancellableUtils.getCancelToken();
+                return withTimeoutOrDefault(cancelToken, defaultReadTimeoutNanos,
+                        () -> reader.readAtMostTo(writer, byteCount));
             }
 
             @Override
@@ -230,6 +346,36 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 return "AsyncTimeout.reader(" + reader + ")";
             }
         };
+    }
+
+    public <T> T withTimeoutOrDefault(final @Nullable RealCancelToken cancelToken,
+                                      final @NonNegative long defaultTimeoutNanos,
+                                      final @NonNull Supplier<T> block) {
+        assert defaultTimeoutNanos >= 0L;
+        assert block != null;
+
+        if (cancelToken != null) {
+            cancelToken.timeoutNanos = defaultTimeoutNanos;
+            try {
+                return withTimeout(cancelToken, block);
+            } finally {
+                cancelToken.timeoutNanos = 0L;
+            }
+        }
+
+        // no need for cancellation case
+        if (defaultTimeoutNanos == 0L) {
+            return block.get();
+        }
+
+        // use defaultTimeoutNanos to create a temporary cancel token, just for this operation
+        final var tempCancelToken = new RealCancelToken(defaultTimeoutNanos, 0L, false);
+        CancellableUtils.addCancelToken(tempCancelToken);
+        try {
+            return withTimeout(tempCancelToken, block);
+        } finally {
+            CancellableUtils.finishCancelToken(tempCancelToken);
+        }
     }
 
     @Override
@@ -260,15 +406,16 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      * cause of the returned exception.
      */
     private @NonNull JayoTimeoutException newTimeoutException(final @Nullable JayoException cause) {
+        // if exception is already a timeout, just return it as-is
+        if (cause instanceof JayoTimeoutException jayoTimeoutException) {
+            return jayoTimeoutException;
+        }
         final var e = new JayoTimeoutException("timeout");
         if (cause != null) {
             e.initCause(cause);
         }
         return e;
     }
-
-    private static final Lock LOCK = new ReentrantLock();
-    private static final Condition CONDITION = LOCK.newCondition();
 
     /**
      * Duration for the watchdog thread to be idle before it shuts itself down.
@@ -289,81 +436,60 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private final static ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
             JavaVersionUtils.threadBuilder("JayoAsyncTimeoutWatchdog#");
 
-    private static void scheduleTimeout(RealAsyncTimeout node, final long timeoutNanos, final long deadlineNanoTime) {
-        LOCK.lock();
-        try {
-            if (node.inQueue) {
-                throw new IllegalStateException("Unbalanced enter/exit");
-            }
-            node.inQueue = true;
+    private static void insertIntoQueue(final @NonNull RealAsyncTimeout node,
+                                        final long timeoutNanos,
+                                        final long deadlineNanoTime) {
+        assert node != null;
+        assert timeoutNanos > 0L || deadlineNanoTime > 0L;
 
-            // Start the watchdog thread and create the head node when the first timeout is scheduled.
-            if (head == null) {
-                head = new RealAsyncTimeout(() -> {
-                });
-                ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(new Watchdog()).start();
-            }
+        // Start the watchdog thread and create the head node when the first timeout is scheduled.
+        if (head == null) {
+            head = new RealAsyncTimeout(() -> {
+            });
+            ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(new Watchdog()).start();
+        }
 
-            final var now = System.nanoTime();
-            if (timeoutNanos != 0L && deadlineNanoTime != 0L) {
-                // Compute the earliest event; either timeout or deadline. Because nanoTime can wrap
-                // around, minOf() is undefined for absolute values, but meaningful for relative ones.
-                node.timeoutAt = now + Math.min(timeoutNanos, deadlineNanoTime - now);
-            } else if (timeoutNanos != 0L) {
-                node.timeoutAt = now + timeoutNanos;
-            } else if (deadlineNanoTime != 0L) {
-                node.timeoutAt = deadlineNanoTime;
-            } else {
-                throw new AssertionError();
-            }
+        final var now = System.nanoTime();
+        if (deadlineNanoTime > 0L) {
+            node.timeoutAt = deadlineNanoTime;
+        } else {
+            node.timeoutAt = now + timeoutNanos;
+        }
 
-            // Insert the node in sorted order.
-            final var remainingNanos = node.remainingNanos(now);
-            var prev = head;
-            while (true) {
-                if (prev.next == null || remainingNanos < prev.next.remainingNanos(now)) {
-                    node.next = prev.next;
-                    prev.next = node;
-                    if (prev == head) {
-                        // Wake up the watchdog when inserting at the front.
-                        CONDITION.signal();
-                    }
-                    break;
+        // Insert the node in sorted order.
+        final var remainingNanos = node.remainingNanos(now);
+        var prev = head;
+        // Insert the node in sorted order.
+        while (true) {
+            if (prev.next == null || remainingNanos < prev.next.remainingNanos(now)) {
+                node.next = prev.next;
+                prev.next = node;
+                if (prev == head) {
+                    // Wake up the watchdog when inserting at the front.
+                    CONDITION.signal();
                 }
-                prev = prev.next;
+                break;
             }
-        } finally {
-            LOCK.unlock();
+            prev = prev.next;
         }
     }
 
     /**
      * Returns true if the timeout occurred.
      */
-    private static boolean cancelScheduledTimeout(final @NonNull RealAsyncTimeout node) {
-        LOCK.lock();
-        try {
-            if (!node.inQueue) {
-                return false;
+    private static void removeFromQueue(final @NonNull RealAsyncTimeout node) {
+        // Remove the node from the linked list.
+        var prev = head;
+        while (prev != null) {
+            if (prev.next == node) {
+                prev.next = node.next;
+                node.next = null;
+                return;
             }
-            node.inQueue = false;
-
-            // Remove the node from the linked list.
-            var prev = head;
-            while (prev != null) {
-                if (prev.next == node) {
-                    prev.next = node.next;
-                    node.next = null;
-                    return false;
-                }
-                prev = prev.next;
-            }
-
-            // The node wasn't found in the linked list: it must have timed out!
-            return true;
-        } finally {
-            LOCK.unlock();
+            prev = prev.next;
         }
+
+        throw new IllegalStateException("node was not found in the queue");
     }
 
     /**
@@ -381,23 +507,24 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         // The queue is empty. Wait until either something is enqueued or the idle timeout elapses.
         if (node == null) {
             final var startNanos = System.nanoTime();
-            CONDITION.await(IDLE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+            final var ignored = CONDITION.await(IDLE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
             return (head.next == null && System.nanoTime() - startNanos >= IDLE_TIMEOUT_NANOS)
                     ? head // The idle timeout elapsed.
                     : null; // The situation has changed.
         }
 
-        var waitNanos = node.remainingNanos(System.nanoTime());
+        final var waitNanos = node.remainingNanos(System.nanoTime());
 
         // The head of the queue hasn't timed out yet. Await that.
         if (waitNanos > 0) {
-            CONDITION.await(waitNanos, TimeUnit.NANOSECONDS);
+            final var ignored = CONDITION.awaitNanos(waitNanos);
             return null;
         }
 
         // The head of the queue has timed out. Remove it.
         head.next = node.next;
         node.next = null;
+        node.state = STATE_TIMED_OUT;
         return node;
     }
 

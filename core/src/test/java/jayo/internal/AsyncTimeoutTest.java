@@ -51,7 +51,7 @@ public final class AsyncTimeoutTest {
     public void noTimeoutRun() {
         AsyncTimeout timeout = recordingAsyncTimeout();
         // with cancel scope but no timeout
-        Cancellable.create().run(cancelScope -> {
+        Cancellable.run(cancelScope -> {
             timeout.enter(cancelScope);
             try {
                 Thread.sleep(25);
@@ -67,7 +67,7 @@ public final class AsyncTimeoutTest {
     public void noTimeoutCall() {
         AsyncTimeout timeout = recordingAsyncTimeout();
         // with cancel scope but no timeout
-        Cancellable.create().call(cancelScope -> {
+        Cancellable.call(cancelScope -> {
             timeout.enter(cancelScope);
             try {
                 Thread.sleep(25);
@@ -82,7 +82,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void singleInstanceTimedOutRun() {
-        Cancellable.runWithTimeout(Duration.ofMillis(25), cancelScope -> {
+        Cancellable.run(Duration.ofMillis(25), cancelScope -> {
             a.enter(cancelScope);
             try {
                 Thread.sleep(50);
@@ -96,7 +96,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void singleInstanceTimedOutCall() {
-        Cancellable.callWithTimeout(Duration.ofMillis(25), cancelScope -> {
+        Cancellable.call(Duration.ofMillis(25), cancelScope -> {
             a.enter(cancelScope);
             try {
                 Thread.sleep(50);
@@ -111,7 +111,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void singleInstanceNotTimedOutRun() {
-        Cancellable.runWithTimeout(Duration.ofMillis(50), cancelScope -> {
+        Cancellable.run(Duration.ofMillis(50), cancelScope -> {
             b.enter(cancelScope);
             try {
                 Thread.sleep(25);
@@ -126,14 +126,14 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void instancesAddedAtEnd() {
-        Cancellable.runWithTimeout(Duration.ofMillis(100), cancelScope1 -> {
+        Cancellable.run(Duration.ofMillis(100), cancelScope1 -> {
             a.enter(cancelScope1);
             b.enter(cancelScope1);
             c.enter(cancelScope1);
             d.enter(cancelScope1);
-            Cancellable.runWithTimeout(Duration.ofMillis(75), cancelScope2 ->
-                    Cancellable.runWithTimeout(Duration.ofMillis(50), cancelScope3 ->
-                            Cancellable.runWithTimeout(Duration.ofMillis(25), cancelScope4 -> {
+            Cancellable.run(Duration.ofMillis(75), cancelScope2 ->
+                    Cancellable.run(Duration.ofMillis(50), cancelScope3 ->
+                            Cancellable.run(Duration.ofMillis(25), cancelScope4 -> {
                         try {
                             Thread.sleep(125);
                         } catch (InterruptedException e) {
@@ -150,7 +150,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void instancesRemovedAtFront() {
-        Cancellable.create().run(cancelScope -> {
+        Cancellable.run(cancelScope -> {
             a.enter(cancelScope);
             b.enter(cancelScope);
             c.enter(cancelScope);
@@ -165,7 +165,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void doubleEnter() {
-        Cancellable.runWithTimeout(Duration.ofMillis(25), cancelScope -> {
+        Cancellable.run(Duration.ofMillis(25), cancelScope -> {
             a.enter(cancelScope);
             assertThatThrownBy(() -> a.enter(cancelScope))
                     .isInstanceOf(IllegalStateException.class);
@@ -174,7 +174,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void reEnter() {
-        Cancellable.runWithTimeout(Duration.ofSeconds(1), cancelScope -> {
+        Cancellable.run(Duration.ofSeconds(1), cancelScope -> {
             a.enter(cancelScope);
             assertFalse(a.exit());
             a.enter(cancelScope);
@@ -184,7 +184,7 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void reEnterAfterTimeout() {
-        Cancellable.runWithTimeout(Duration.ofSeconds(1), cancelScope -> {
+        Cancellable.run(Duration.ofSeconds(1), cancelScope -> {
             a.enter(cancelScope);
             try {
                 assertSame(a, timedOut.take());
@@ -198,10 +198,8 @@ public final class AsyncTimeoutTest {
     }
 
     @Test
-    public void deadlineOnly() {
-        final var builder = Cancellable.builder();
-        builder.deadline(Duration.ofMillis(25));
-        builder.build().run(cancelScope -> {
+    public void timeout() {
+        Cancellable.run(Duration.ofMillis(25), cancelScope -> {
             final var timeout = recordingAsyncTimeout();
             timeout.enter(cancelScope);
             try {
@@ -215,47 +213,9 @@ public final class AsyncTimeoutTest {
     }
 
     @Test
-    public void deadlineBeforeTimeout() {
+    public void timeoutStartsBeforeEnter() {
         final var timeout = recordingAsyncTimeout();
-        final var builder = Cancellable.builder();
-        builder.timeout(Duration.ofMillis(75));
-        builder.deadline(Duration.ofMillis(25));
-        builder.build().run(cancelScope -> {
-            timeout.enter(cancelScope);
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            assertTrue(timeout.exit());
-            assertTimedOut(timeout);
-        });
-    }
-
-    @Test
-    public void deadlineAfterTimeout() {
-        final var timeout = recordingAsyncTimeout();
-        final var builder = Cancellable.builder();
-        builder.timeout(Duration.ofMillis(25));
-        builder.deadline(Duration.ofMillis(75));
-        builder.build().run(cancelScope -> {
-            timeout.enter(cancelScope);
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            assertTrue(timeout.exit());
-            assertTimedOut(timeout);
-        });
-    }
-
-    @Test
-    public void deadlineStartsBeforeEnter() {
-        final var timeout = recordingAsyncTimeout();
-        final var builder = Cancellable.builder();
-        builder.deadline(Duration.ofMillis(50));
-        builder.build().run(cancelScope -> {
+        Cancellable.run(Duration.ofMillis(50), cancelScope -> {
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
@@ -273,11 +233,9 @@ public final class AsyncTimeoutTest {
     }
 
     @Test
-    public void shortDeadlineReached() {
+    public void shortTimeoutReached() {
         final var timeout = recordingAsyncTimeout();
-        final var builder = Cancellable.builder();
-        builder.deadline(Duration.ofNanos(1));
-        builder.build().run(cancelScope -> {
+        Cancellable.run(Duration.ofNanos(1), cancelScope -> {
             timeout.enter(cancelScope);
             try {
                 Thread.sleep(25);
