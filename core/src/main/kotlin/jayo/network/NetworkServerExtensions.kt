@@ -16,19 +16,19 @@ import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
-public fun NetworkServer.NioBuilder.kotlin(
-    config: NioNetworkServerBuilderDsl.() -> Unit
-): NetworkServer.NioBuilder {
+public fun NetworkServer.NioConfig.kotlin(
+    config: NioNetworkServerConfigDsl.() -> Unit
+): NetworkServer.NioConfig {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(NioNetworkServerBuilderDsl(this))
+    config(NioNetworkServerConfigDsl(this))
     return this
 }
 
 @JayoDslMarker
-public class NioNetworkServerBuilderDsl internal constructor(
-    private val builder: NetworkServer.NioBuilder
-) : NetworkServerBuilderDsl(builder) {
+public class NioNetworkServerConfigDsl internal constructor(
+    private val config: NetworkServer.NioConfig
+) : NetworkServerConfigDsl(config) {
     /**
      * Sets the [protocol family][ProtocolFamily] to use when opening the underlying NIO sockets. The default protocol
      * family is platform (and possibly configuration) dependent and therefore unspecified.
@@ -40,21 +40,21 @@ public class NioNetworkServerBuilderDsl internal constructor(
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.protocolFamily(value)
+            config.protocolFamily(value)
         }
 }
 
-public fun NetworkServer.IoBuilder.kotlin(config: IoNetworkServerBuilderDsl.() -> Unit): NetworkServer.IoBuilder {
+public fun NetworkServer.IoConfig.kotlin(config: IoNetworkServerConfigDsl.() -> Unit): NetworkServer.IoConfig {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(IoNetworkServerBuilderDsl(this))
+    config(IoNetworkServerConfigDsl(this))
     return this
 }
 
 @JayoDslMarker
-public class IoNetworkServerBuilderDsl(builder: NetworkServer.IoBuilder) : NetworkServerBuilderDsl(builder)
+public class IoNetworkServerConfigDsl(config: NetworkServer.IoConfig) : NetworkServerConfigDsl(config)
 
-public sealed class NetworkServerBuilderDsl(private val builder: NetworkServer.Builder<*>) {
+public sealed class NetworkServerConfigDsl(private val config: NetworkServer.Config<*>) {
     /**
      * Sets the default read timeout of all read operations of the [accepted network endpoints][NetworkServer.accept] by
      * the [NetworkServer] built by this builder. Default is zero. A timeout of zero is interpreted as an infinite
@@ -64,7 +64,7 @@ public sealed class NetworkServerBuilderDsl(private val builder: NetworkServer.B
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.readTimeout(value.toJavaDuration())
+            config.readTimeout(value.toJavaDuration())
         }
 
     /**
@@ -76,7 +76,7 @@ public sealed class NetworkServerBuilderDsl(private val builder: NetworkServer.B
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.writeTimeout(value.toJavaDuration())
+            config.writeTimeout(value.toJavaDuration())
         }
 
     /**
@@ -88,7 +88,7 @@ public sealed class NetworkServerBuilderDsl(private val builder: NetworkServer.B
      * @see java.net.StandardSocketOptions
      */
     public fun <T> option(name: SocketOption<T>, value: T?) {
-        builder.option(name, value)
+        config.option(name, value)
     }
 
     /**
@@ -99,7 +99,7 @@ public sealed class NetworkServerBuilderDsl(private val builder: NetworkServer.B
      * @see java.net.StandardSocketOptions
      */
     public fun <T> serverOption(name: SocketOption<T>, value: T?) {
-        builder.serverOption(name, value)
+        config.serverOption(name, value)
     }
 
     /**
@@ -110,6 +110,6 @@ public sealed class NetworkServerBuilderDsl(private val builder: NetworkServer.B
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(@NonNegative value) {
-            builder.maxPendingConnections(value)
+            config.maxPendingConnections(value)
         }
 }
