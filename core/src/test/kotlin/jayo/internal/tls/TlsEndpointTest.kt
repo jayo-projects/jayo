@@ -8,6 +8,7 @@ package jayo.internal.tls
 import jayo.buffered
 import jayo.network.NetworkEndpoint
 import jayo.network.NetworkServer
+import jayo.tls.Handshake
 import jayo.tls.JayoTlsHandshakeCallbackException
 import jayo.tls.TlsEndpoint
 import jayo.tls.helpers.SslContextFactory
@@ -52,11 +53,16 @@ class TlsEndpointTest {
                 sessionInitCallback = { sslSession = it }
                 waitForCloseConfirmation = true
             }
-            TlsEndpoint.createClient(encryptedEndpoint, sslContext, konfig).use { clientTlsEndpoint ->
-                clientTlsEndpoint.handshake()
+            TlsEndpoint.createClient(encryptedEndpoint, sslContext, konfig).use { tlsClient ->
+                assertThat(sslSession).isNotNull
+                val handshake = tlsClient.handshake
+                assertThat(handshake).isNotNull
+                assertThat(handshake.localCertificates).isEmpty()
+                assertThat(handshake.localPrincipal).isNull()
+                assertThat(handshake.peerCertificates).isNotEmpty.hasSize(1)
+                assertThat(handshake.peerPrincipal).isNotNull
             }
             serverThread.join()
-            assertThat(sslSession).isNotNull
         }
     }
 
@@ -73,11 +79,9 @@ class TlsEndpointTest {
             val konfig = TlsEndpoint.configForClient().kotlin {
                 sessionInitCallback = { throw Exception() }
             }
-            TlsEndpoint.createClient(encryptedEndpoint, sslContext, konfig).use { clientTlsEndpoint ->
-                assertThatThrownBy { clientTlsEndpoint.handshake() }
-                    .isInstanceOf(JayoTlsHandshakeCallbackException::class.java)
-                    .hasMessage("Session initialization callback failed")
-            }
+            assertThatThrownBy { TlsEndpoint.createClient(encryptedEndpoint, sslContext, konfig) }
+                .isInstanceOf(JayoTlsHandshakeCallbackException::class.java)
+                .hasMessage("Session initialization callback failed")
             serverThread.join()
         }
     }
@@ -97,6 +101,7 @@ class TlsEndpointTest {
     fun fullTlsServerEndpointBuilder() {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             var sslSession: SSLSession? = null
+            var handshake: Handshake? = null
             val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     val konfig = TlsEndpoint.configForServer().kotlin {
@@ -104,10 +109,11 @@ class TlsEndpointTest {
                         waitForCloseConfirmation = true
                         engineFactory = { it.createSSLEngine().apply { useClientMode = false } }
                     }
-                    TlsEndpoint.createServer(serverEndpoint, sslContext, konfig).use { serverTlsEndpoint ->
-                        serverTlsEndpoint.writer.buffered()
+                    TlsEndpoint.createServer(serverEndpoint, sslContext, konfig).use { tlsServer ->
+                        tlsServer.writer.buffered()
                             .writeInt(42)
                             .flush()
+                        handshake = tlsServer.handshake
                     }
                 }
             }
@@ -117,6 +123,11 @@ class TlsEndpointTest {
             client.shutdownOutput() // needed to respect the 'waitForCloseConfirmation' config of server
             serverThread.join()
             assertThat(sslSession).isNotNull
+            assertThat(handshake).isNotNull
+            assertThat(handshake!!.localCertificates).isNotEmpty.hasSize(1)
+            assertThat(handshake!!.localPrincipal).isNotNull
+            assertThat(handshake!!.peerCertificates).isEmpty()
+            assertThat(handshake!!.peerPrincipal).isNull()
         }
     }
 

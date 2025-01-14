@@ -12,6 +12,7 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.external.NonNegative;
+import jayo.tls.Handshake;
 import jayo.tls.JayoTlsHandshakeCallbackException;
 import jayo.tls.JayoTlsHandshakeException;
 import jayo.tls.TlsEndpoint;
@@ -22,8 +23,6 @@ import javax.net.ssl.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Objects;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -37,17 +36,8 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     private static final System.Logger LOGGER = System.getLogger("jayo.tls.ServerTlsEndpoint");
 
     private final @NonNull Endpoint encryptedEndpoint;
-    private final @NonNull SslContextStrategy sslContextStrategy;
-    private final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> engineFactory;
-    private final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback;
-    private final boolean waitForCloseConfirmation;
-
-    private final @NonNull Lock initLock = new ReentrantLock();
-
     private final @NonNull RealReader encryptedReader;
-
-    private volatile boolean sniRead = false;
-    private @Nullable RealTlsEndpoint impl = null;
+    private final @NonNull RealTlsEndpoint impl;
 
     @SuppressWarnings("FieldMayBeFinal")
     private volatile RawReader reader = null;
@@ -80,18 +70,40 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
         assert sessionInitCallback != null;
 
         this.encryptedEndpoint = encryptedEndpoint;
-        this.sslContextStrategy = sslContextStrategy;
-        this.engineFactory = engineFactory;
-        this.sessionInitCallback = sessionInitCallback;
-        this.waitForCloseConfirmation = waitForCloseConfirmation;
-        encryptedReader = new RealReader(encryptedEndpoint.getReader());
+        try {
+            encryptedReader = new RealReader(encryptedEndpoint.getReader());
+
+            final var sslContext = sslContextStrategy.getSslContext(this::getServerNameIndication);
+            // call client code
+            final SSLEngine engine;
+            try {
+                engine = engineFactory.apply(sslContext);
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE, "Client threw exception in SSLEngine factory.", e);
+                } else if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "Client threw exception in SSLEngine factory: {0}.",
+                            e.getMessage());
+                }
+                throw new JayoTlsHandshakeCallbackException("SSLEngine creation callback failed", e);
+            }
+            impl = new RealTlsEndpoint(
+                    encryptedEndpoint,
+                    engine,
+                    encryptedReader,
+                    sessionInitCallback,
+                    waitForCloseConfirmation);
+        } catch (JayoException e) {
+            encryptedEndpoint.close();
+            throw e;
+        }
     }
 
     @Override
     public @NonNull RawReader getReader() {
         var reader = this.reader;
         if (reader == null) {
-            reader = new ServerTlsEndpointRawReader(this);
+            reader = new ServerTlsEndpointRawReader(impl);
             if (!READER.compareAndSet(this, null, reader)) {
                 reader = this.reader;
             }
@@ -103,7 +115,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     public @NonNull RawWriter getWriter() {
         var writer = this.writer;
         if (writer == null) {
-            writer = new ServerTlsEndpointRawWriter(this);
+            writer = new ServerTlsEndpointRawWriter(impl);
             if (!WRITER.compareAndSet(this, null, writer)) {
                 writer = this.writer;
             }
@@ -112,37 +124,8 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     }
 
     @Override
-    public void renegotiate() {
-        if (!sniRead) {
-            try {
-                initEngine();
-            } catch (JayoEOFException e) {
-                throw new JayoClosedResourceException();
-            }
-        }
-        assert impl != null;
-        impl.renegotiate();
-    }
-
-    @Override
-    public void handshake() {
-        if (!sniRead) {
-            try {
-                initEngine();
-            } catch (JayoEOFException e) {
-                throw new JayoClosedResourceException();
-            }
-        }
-        assert impl != null;
-        impl.handshake();
-    }
-
-    @Override
-    public @Nullable SSLEngine getSslEngine() {
-        if (impl != null) {
-            return impl.engine;
-        }
-        return null;
+    public @NonNull Handshake getHandshake() {
+        return impl.getHandshake();
     }
 
     @Override
@@ -152,56 +135,22 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
 
     @Override
     public boolean shutdown() {
-        return impl != null && impl.shutdown();
+        return impl.shutdown();
     }
 
     @Override
     public boolean shutdownReceived() {
-        return impl != null && impl.shutdownReceived;
+        return impl.shutdownReceived;
     }
 
     @Override
     public boolean shutdownSent() {
-        return impl != null && impl.shutdownSent;
+        return impl.shutdownSent;
     }
 
     @Override
     public void close() {
-        if (impl != null) {
-            impl.close();
-        }
-        encryptedEndpoint.close();
-    }
-
-    private void initEngine() {
-        initLock.lock();
-        try {
-            if (!sniRead) {
-                final var sslContext = sslContextStrategy.getSslContext(this::getServerNameIndication);
-                // call client code
-                final SSLEngine engine;
-                try {
-                    engine = engineFactory.apply(sslContext);
-                } catch (Exception e) {
-                    if (LOGGER.isLoggable(TRACE)) {
-                        LOGGER.log(TRACE, "Client threw exception in SSLEngine factory.", e);
-                    } else if (LOGGER.isLoggable(DEBUG)) {
-                        LOGGER.log(DEBUG, "Client threw exception in SSLEngine factory: {0}.",
-                                e.getMessage());
-                    }
-                    throw new JayoTlsHandshakeCallbackException("SSLEngine creation callback failed", e);
-                }
-                impl = new RealTlsEndpoint(
-                        encryptedEndpoint,
-                        engine,
-                        encryptedReader,
-                        sessionInitCallback,
-                        waitForCloseConfirmation);
-                sniRead = true;
-            }
-        } finally {
-            initLock.unlock();
-        }
+        impl.close();
     }
 
     private @Nullable SNIServerName getServerNameIndication() {
@@ -210,38 +159,22 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
         return (hostName instanceof SNIHostName) ? hostName : null;
     }
 
-    private record ServerTlsEndpointRawReader(@NonNull ServerTlsEndpoint serverTlsEndpoint) implements RawReader {
+    private record ServerTlsEndpointRawReader(@NonNull RealTlsEndpoint impl) implements RawReader {
         @Override
         public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
-            if (!serverTlsEndpoint.sniRead) {
-                try {
-                    serverTlsEndpoint.initEngine();
-                } catch (JayoEOFException e) {
-                    return -1;
-                }
-            }
-            assert serverTlsEndpoint.impl != null;
-            return serverTlsEndpoint.impl.readAtMostTo(writer, byteCount);
+            return impl.readAtMostTo(writer, byteCount);
         }
 
         @Override
         public void close() {
-            serverTlsEndpoint.close();
+            impl.close();
         }
     }
 
-    private record ServerTlsEndpointRawWriter(@NonNull ServerTlsEndpoint serverTlsEndpoint) implements RawWriter {
+    private record ServerTlsEndpointRawWriter(@NonNull RealTlsEndpoint impl) implements RawWriter {
         @Override
         public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
-            if (!serverTlsEndpoint.sniRead) {
-                try {
-                    serverTlsEndpoint.initEngine();
-                } catch (JayoEOFException e) {
-                    throw new JayoClosedResourceException();
-                }
-            }
-            assert serverTlsEndpoint.impl != null;
-            serverTlsEndpoint.impl.write(reader, byteCount);
+            impl.write(reader, byteCount);
         }
 
         @Override
@@ -250,7 +183,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
 
         @Override
         public void close() {
-            serverTlsEndpoint.close();
+            impl.close();
         }
     }
 

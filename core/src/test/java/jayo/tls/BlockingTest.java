@@ -50,7 +50,7 @@ public class BlockingTest {
                                         new ChuckSizes(Optional.of(size1), Optional.of(size2)),
                                         new ChuckSizes(Optional.of(size1), Optional.of(size2)))),
                                 false);
-                        Loops.halfDuplex(socketPair, dataSize, true);
+                        Loops.halfDuplex(socketPair, dataSize);
                         System.out.printf("%5d -eng-> %5d -net-> %5d -eng-> %5d\n", size1, size2, size1, size2);
                     }));
         }
@@ -100,7 +100,7 @@ public class BlockingTest {
                                         new ChuckSizes(Optional.of(size1), Optional.of(size2)),
                                         new ChuckSizes(Optional.of(size1), Optional.of(size2)))),
                                 false);
-                        Loops.halfDuplex(socketPair, dataSize, true);
+                        Loops.halfDuplex(socketPair, dataSize);
                         System.out.printf("%5d -eng-> %5d -net-> %5d -eng-> %5d\n", size1, size2, size1, size2);
                     }));
         }

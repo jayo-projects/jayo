@@ -35,21 +35,20 @@ public class Loops {
      */
     public static final int bufferSize = 4 * 5000;
 
-    private static final int renegotiatePeriod = 10000;
     public static final String hashAlgorithm = "MD5"; // for speed
 
     /**
      * Test a half-duplex interaction, with (optional) renegotiation before reversing the direction of the flow (as in
      * HTTP)
      */
-    public static void halfDuplex(SocketPair socketPair, int dataSize, boolean renegotiation) {
+    public static void halfDuplex(SocketPair socketPair, int dataSize) {
         Thread clientWriterThread = new Thread(
-                () -> Loops.writerLoop(dataSize, socketPair.client, renegotiation, false, false),
+                () -> Loops.writerLoop(dataSize, socketPair.client, false, false),
                 "client-writer");
         Thread serverReaderThread = new Thread(
                 () -> Loops.readerLoop(dataSize, socketPair.server, false, false), "server-reader");
         Thread serverWriterThread = new Thread(
-                () -> Loops.writerLoop(dataSize, socketPair.server, renegotiation, true, true),
+                () -> Loops.writerLoop(dataSize, socketPair.server, true, true),
                 "server-writer");
         Thread clientReaderThread = new Thread(
                 () -> Loops.readerLoop(dataSize, socketPair.client, true, true), "client-reader");
@@ -73,9 +72,9 @@ public class Loops {
 
     public static void fullDuplex(SocketPair socketPair, int dataSize) {
         Thread clientWriterThread = new Thread(
-                () -> Loops.writerLoop(dataSize, socketPair.client, false, false, false), "client-writer");
+                () -> Loops.writerLoop(dataSize, socketPair.client, false, false), "client-writer");
         Thread serverWriterThread = new Thread(
-                () -> Loops.writerLoop(dataSize, socketPair.server, false, false, false), "server-write");
+                () -> Loops.writerLoop(dataSize, socketPair.server, false, false), "server-write");
         Thread clientReaderThread =
                 new Thread(() -> Loops.readerLoop(dataSize, socketPair.client, false, false), "client-reader");
         Thread serverReaderThread =
@@ -103,27 +102,20 @@ public class Loops {
     public static void writerLoop(
             int size,
             SocketGroup socketGroup,
-            boolean renegotiate,
             boolean shutdown,
             boolean close) {
         TlsTestUtil.cannotFail(() -> {
             logger.fine(() -> String.format(
-                    "Starting writer loop, size: %s, renegotiate: %s", size, renegotiate));
+                    "Starting writer loop, size: %s", size));
             SplittableRandom random = new SplittableRandom(seed);
-            int bytesSinceRenegotiation = 0;
             int bytesRemaining = size;
             byte[] bufferArray = new byte[bufferSize];
             final var writer = Jayo.buffer(socketGroup.tls.getWriter());
             while (bytesRemaining > 0) {
                 final var toWrite = Math.min(bufferSize, bytesRemaining);
                 TlsTestUtil.nextBytes(random, bufferArray, toWrite);
-                if (renegotiate && bytesSinceRenegotiation > renegotiatePeriod) {
-                    socketGroup.tls.renegotiate();
-                    bytesSinceRenegotiation = 0;
-                }
                 writer.write(bufferArray, 0, toWrite);
                 writer.flush();
-                bytesSinceRenegotiation += toWrite;
                 bytesRemaining -= toWrite;
                 assertThat(bytesRemaining).isNotNegative();
             }

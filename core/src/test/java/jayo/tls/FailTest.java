@@ -10,7 +10,6 @@
 
 package jayo.tls;
 
-import jayo.Buffer;
 import jayo.Endpoint;
 import jayo.network.NetworkServer;
 import jayo.tls.helpers.SocketPairFactory;
@@ -32,7 +31,7 @@ public class FailTest {
     private final SocketPairFactory factory = new SocketPairFactory(sslContextFactory.getDefaultContext());
 
     @Test
-    public void testIoPlanToTls() throws IOException, InterruptedException {
+    public void testIoPlanToTls() throws IOException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
         int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
@@ -43,26 +42,19 @@ public class FailTest {
         final var config = TlsEndpoint.configForServer()
                 .engineFactory(sslContext ->
                         factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
-        TlsEndpoint tlsServerEndpoint = TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
-                factory.sslContextFactory(factory.sslContext, nameOpt));
 
-        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> {
-            Buffer buffer = Buffer.create();
-            assertThatThrownBy(() -> tlsServerEndpoint.getReader().readAtMostTo(buffer, 10000L))
-                    .isInstanceOf(JayoTlsHandshakeException.class)
-                    .hasMessage("Not a handshake record");
-            tlsServerEndpoint.close();
-        });
+        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
+                factory.sslContextFactory(factory.sslContext, nameOpt)))
+                .isInstanceOf(JayoTlsHandshakeException.class)
+                .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");
         serverThread.start();
-
         String message = "12345\n";
+
         clientChannel.write(ByteBuffer.wrap(message.getBytes()));
         ByteBuffer buffer = ByteBuffer.allocate(1);
         assertEquals(-1, clientChannel.read(buffer));
         clientChannel.close();
-
-        serverThread.join();
     }
 
     @Test
@@ -77,16 +69,11 @@ public class FailTest {
         final var config = TlsEndpoint.configForServer()
                 .engineFactory(sslContext ->
                         factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
-        TlsEndpoint tlsServerEndpoint = TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
-                factory.sslContextFactory(factory.sslContext, nameOpt));
 
-        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> {
-            Buffer buffer = Buffer.create();
-            assertThatThrownBy(() -> tlsServerEndpoint.getReader().readAtMostTo(buffer, 10000L))
-                    .isInstanceOf(JayoTlsHandshakeException.class)
-                    .hasMessage("Not a handshake record");
-            tlsServerEndpoint.close();
-        });
+        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
+                factory.sslContextFactory(factory.sslContext, nameOpt)))
+                .isInstanceOf(JayoTlsHandshakeException.class)
+                .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");
         serverThread.start();
 
