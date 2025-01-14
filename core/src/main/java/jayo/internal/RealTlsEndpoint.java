@@ -10,11 +10,7 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
-import jayo.Endpoint;
-import jayo.JayoClosedResourceException;
-import jayo.JayoEOFException;
-import jayo.JayoException;
+import jayo.*;
 import jayo.external.NonNegative;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeCallbackException;
@@ -710,19 +706,12 @@ public final class RealTlsEndpoint {
     /**
      * The base class for builders of {@link TlsEndpoint}.
      */
-    public static abstract sealed class Builder<T extends TlsEndpoint.Builder<T>> implements TlsEndpoint.Builder<T>
-            permits ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
-        final @NonNull Endpoint encryptedEndpoint;
-
+    public static abstract sealed class Config<T extends TlsEndpoint.Config<T>> implements TlsEndpoint.Config<T>
+            permits ClientTlsEndpoint.Config, ServerTlsEndpoint.Config {
         // @formatter:off
         @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
         // @formatter:on
         boolean waitForCloseConfirmation = false;
-
-        Builder(final @NonNull Endpoint encryptedEndpoint) {
-            assert encryptedEndpoint != null;
-            this.encryptedEndpoint = encryptedEndpoint;
-        }
 
         abstract @NonNull T getThis();
 

@@ -11,13 +11,12 @@
 package jayo.internal;
 
 import jayo.Buffer;
+import jayo.Endpoint;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.Endpoint;
 import jayo.external.NonNegative;
 import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -31,7 +30,6 @@ import java.util.function.Consumer;
  */
 public final class ClientTlsEndpoint implements TlsEndpoint {
     private final @NonNull Endpoint encryptedEndpoint;
-    private final @Nullable SSLContext sslContext;
     private final @NonNull RealTlsEndpoint impl;
 
     @SuppressWarnings("FieldMayBeFinal")
@@ -55,7 +53,6 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
 
     private ClientTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
-            final @Nullable SSLContext sslContext,
             final @NonNull SSLEngine engine,
             final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
             final boolean waitForCloseConfirmation) {
@@ -64,7 +61,6 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
         assert engine != null;
 
         this.encryptedEndpoint = encryptedEndpoint;
-        this.sslContext = sslContext;
 
         impl = new RealTlsEndpoint(
                 encryptedEndpoint,
@@ -109,11 +105,6 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
     }
 
     @Override
-    public @Nullable SSLContext getSslContext() {
-        return sslContext;
-    }
-
-    @Override
     public @NonNull SSLEngine getSslEngine() {
         return impl.engine;
     }
@@ -146,38 +137,29 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
     /**
      * Builder of {@link ClientTlsEndpoint}
      */
-    public static final class Builder extends RealTlsEndpoint.Builder<ClientBuilder> implements ClientBuilder {
-        private final @Nullable SSLContext sslContext;
-        private final @NonNull SSLEngine engine;
-
-        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLContext sslContext) {
-            super(encryptedEndpoint);
-            assert sslContext != null;
-
-            this.sslContext = sslContext;
-            engine = sslContext.createSSLEngine();
-            engine.setUseClientMode(true);
-        }
-
-        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLEngine engine) {
-            super(encryptedEndpoint);
-            assert engine != null;
-
-            this.sslContext = null;
-            this.engine = engine;
-        }
-
+    public static final class Config extends RealTlsEndpoint.Config<ClientConfig> implements ClientConfig {
         @Override
         @NonNull
-        Builder getThis() {
+        Config getThis() {
             return this;
         }
 
-        @Override
-        public @NonNull TlsEndpoint build() {
+        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint,
+                                          final @NonNull SSLContext sslContext) {
+            assert encryptedEndpoint != null;
+            assert sslContext != null;
+
+            final var engine = sslContext.createSSLEngine();
+            engine.setUseClientMode(true);
+            return build(encryptedEndpoint, engine);
+        }
+
+        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLEngine engine) {
+            assert encryptedEndpoint != null;
+            assert engine != null;
+
             return new ClientTlsEndpoint(
                     encryptedEndpoint,
-                    sslContext,
                     engine,
                     sessionInitCallback,
                     waitForCloseConfirmation);
