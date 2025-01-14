@@ -56,7 +56,7 @@ public class NullEngineTest {
                                 new ChuckSizes(Optional.of(size1), Optional.empty()),
                                 new ChuckSizes(Optional.of(size1), Optional.empty()))),
                         false);
-                Loops.halfDuplex(socketPair, dataSize, false);
+                Loops.halfDuplex(socketPair, dataSize);
                 System.out.printf("-eng-> %5d -net-> %5d -eng->\n", size1, size1);
             });
             tests.add(test);
@@ -78,7 +78,7 @@ public class NullEngineTest {
                                 new ChuckSizes(Optional.of(size1), Optional.empty()),
                                 new ChuckSizes(Optional.of(size1), Optional.empty()))),
                         false);
-                Loops.halfDuplex(socketPair, dataSize, false);
+                Loops.halfDuplex(socketPair, dataSize);
                 System.out.printf("-eng-> %5d -net-> %5d -eng->\n", size1, size1);
             });
             tests.add(test);
@@ -100,7 +100,7 @@ public class NullEngineTest {
                                 new ChuckSizes(Optional.of(size1), Optional.empty()),
                                 new ChuckSizes(Optional.of(size1), Optional.empty()))),
                         false);
-                Loops.halfDuplex(socketPair, dataSize, false);
+                Loops.halfDuplex(socketPair, dataSize);
                 System.out.printf("-eng-> %5d -net-> %5d -eng->\n", size1, size1);
             });
             tests.add(test);
@@ -122,7 +122,7 @@ public class NullEngineTest {
                                 new ChuckSizes(Optional.of(size1), Optional.empty()),
                                 new ChuckSizes(Optional.of(size1), Optional.empty()))),
                         false);
-                Loops.halfDuplex(socketPair, dataSize, false);
+                Loops.halfDuplex(socketPair, dataSize);
                 System.out.printf("-eng-> %5d -net-> %5d -eng->\n", size1, size1);
             });
             tests.add(test);

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 /**
@@ -132,51 +133,64 @@ public class SocketPairFactory {
         return TlsEndpoint.createServer(endpoint, sslContext, config);
     }
 
-    private TlsEndpoint createTlsClientEndpoint(Optional<String> cipher, SocketAddress address) {
+    private TlsEndpoint createTlsClientEndpoint(Optional<String> cipher,
+                                                SocketAddress address,
+                                                SNIHostName clientSniHostName) {
         SSLEngine engine = sslContext.createSSLEngine();
         engine.setUseClientMode(true);
         cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}));
+        SSLParameters sslParameters = engine.getSSLParameters(); // returns a value object
+        sslParameters.setServerNames(Collections.singletonList(clientSniHostName));
+        engine.setSSLParameters(sslParameters);
         return TlsEndpoint.createClient(NetworkEndpoint.connectTcp(address), engine);
     }
 
-    public OldOldSocketPair oldOld(Optional<String> cipher) {
+    public OldOldSocketPair oldOld(Optional<String> cipher) throws InterruptedException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
-        TlsEndpoint client = createTlsClientEndpoint(cipher, server.getLocalAddress());
-        assert client.getSslEngine() != null;
-        SSLParameters sslParameters = client.getSslEngine().getSSLParameters(); // returns a value object
-        sslParameters.setServerNames(Collections.singletonList(clientSniHostName));
-        client.getSslEngine().setSSLParameters(sslParameters);
-        TlsEndpoint tlsServer = createTlsServerEndpoint(cipher, server.accept());
-        server.close();
-        return new OldOldSocketPair(client, tlsServer);
+        AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
+        var thread = new Thread(() -> {
+            tlsServer.set(createTlsServerEndpoint(cipher, server.accept()));
+            server.close();
+        });
+        thread.start();
+        TlsEndpoint client = createTlsClientEndpoint(cipher, server.getLocalAddress(), clientSniHostName);
+        thread.join();
+        return new OldOldSocketPair(client, tlsServer.get());
     }
 
-    public OldIoSocketPair oldIo(Optional<String> cipher) {
+    public OldIoSocketPair oldIo(Optional<String> cipher) throws InterruptedException {
         NetworkServer networkServer = NetworkServer.bind(new InetSocketAddress(0 /* find free port */),
                 NetworkServer.configForIO());
-        TlsEndpoint client = createTlsClientEndpoint(cipher, networkServer.getLocalAddress());
-        assert client.getSslEngine() != null;
-        SSLParameters sslParameters = client.getSslEngine().getSSLParameters(); // returns a value object
-        sslParameters.setServerNames(Collections.singletonList(clientSniHostName));
-        client.getSslEngine().setSSLParameters(sslParameters);
-        NetworkEndpoint serverEndpoint = networkServer.accept();
-        networkServer.close();
-        final var config = TlsEndpoint.configForServer()
-                .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x));
-        TlsEndpoint server = TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
-                sslContextFactory(sslContext, nameOpt));
-        return new OldIoSocketPair(client, new SocketGroup(server, serverEndpoint));
+        AtomicReference<NetworkEndpoint> serverEndpoint = new AtomicReference<>();
+        AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
+        var thread = new Thread(() -> {
+            serverEndpoint.set(networkServer.accept());
+            networkServer.close();
+            final var config = TlsEndpoint.configForServer()
+                    .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x));
+            tlsServer.set(TlsEndpoint.createServer(serverEndpoint.get(), config, nameOpt ->
+                    sslContextFactory(sslContext, nameOpt)));
+        });
+        thread.start();
+        TlsEndpoint client = createTlsClientEndpoint(cipher, networkServer.getLocalAddress(), clientSniHostName);
+        thread.join();
+        return new OldIoSocketPair(client, new SocketGroup(tlsServer.get(), serverEndpoint.get()));
     }
 
-    public IoOldSocketPair ioOld(Optional<String> cipher) {
+    public IoOldSocketPair ioOld(Optional<String> cipher) throws InterruptedException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
         InetSocketAddress address = (InetSocketAddress) server.getLocalAddress();
+        AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
+        var thread = new Thread(() -> {
+            tlsServer.set(createTlsServerEndpoint(cipher, server.accept()));
+            server.close();
+        });
+        thread.start();
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);
-        TlsEndpoint tlsServer = createTlsServerEndpoint(cipher, server.accept());
-        server.close();
         TlsEndpoint client =
                 TlsEndpoint.createClient(encryptedEndpoint, createClientSslEngine(cipher, address.getPort()));
-        return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer);
+        thread.join();
+        return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer.get());
     }
 
     public SocketPair ioIo(
@@ -197,6 +211,36 @@ public class SocketPairFactory {
             InetSocketAddress address = new InetSocketAddress(localhost, chosenPort);
             List<SocketPair> pairs = new ArrayList<>();
             for (int i = 0; i < qtty; i++) {
+                AtomicReference<SocketGroup> serverPair = new AtomicReference<>();
+                var thread = new Thread(() -> {
+                    NetworkEndpoint rawServerEndpoint = server.accept();
+                    Endpoint plainServerEndpoint;
+                    if (chunkSizeConfig.isPresent()) {
+                        Optional<Integer> internalSize = chunkSizeConfig.get().serverChunkSize.internalSize;
+                        if (internalSize.isPresent()) {
+                            plainServerEndpoint = new ChunkingEndpoint(rawServerEndpoint, internalSize.get());
+                        } else {
+                            plainServerEndpoint = rawServerEndpoint;
+                        }
+                    } else {
+                        plainServerEndpoint = rawServerEndpoint;
+                    }
+                    var serverConfig = TlsEndpoint.configForServer()
+                            .waitForCloseConfirmation(waitForCloseConfirmation);
+                    final TlsEndpoint serverTlsEndpoint;
+                    if (cipher.equals(Optional.of(NULL_CIPHER))) {
+                        serverTlsEndpoint = TlsEndpoint.createServer(plainServerEndpoint, new NullSslContext(), serverConfig);
+                    } else {
+                        serverConfig = serverConfig
+                                .engineFactory(ctx -> fixedCipherServerSslEngineFactory(cipher, ctx));
+                        serverTlsEndpoint = TlsEndpoint.createServer(plainServerEndpoint, serverConfig,
+                                nameOpt -> sslContextFactory(sslContext, nameOpt));
+
+                    }
+                    serverPair.set(new SocketGroup(serverTlsEndpoint, rawServerEndpoint));
+                });
+                thread.start();
+
                 NetworkEndpoint rawClient = NetworkEndpoint.connectTcp(address);
                 Endpoint plainClientEndpoint;
                 if (chunkSizeConfig.isPresent()) {
@@ -220,63 +264,48 @@ public class SocketPairFactory {
                 TlsEndpoint clientTlsEndpoint = TlsEndpoint.createClient(plainClientEndpoint, clientEngine, config);
                 SocketGroup clientPair = new SocketGroup(clientTlsEndpoint, rawClient);
 
-                NetworkEndpoint rawServerEndpoint = server.accept();
-                Endpoint plainServerEndpoint;
-                if (chunkSizeConfig.isPresent()) {
-                    Optional<Integer> internalSize = chunkSizeConfig.get().serverChunkSize.internalSize;
-                    if (internalSize.isPresent()) {
-                        plainServerEndpoint = new ChunkingEndpoint(rawServerEndpoint, internalSize.get());
-                    } else {
-                        plainServerEndpoint = rawServerEndpoint;
-                    }
-                } else {
-                    plainServerEndpoint = rawServerEndpoint;
-                }
-                var serverConfig = TlsEndpoint.configForServer()
-                        .waitForCloseConfirmation(waitForCloseConfirmation);
-                final TlsEndpoint serverTlsEndpoint;
-                if (cipher.equals(Optional.of(NULL_CIPHER))) {
-                    serverTlsEndpoint = TlsEndpoint.createServer(plainServerEndpoint, new NullSslContext(), serverConfig);
-                } else {
-                    serverConfig = serverConfig
-                            .engineFactory(ctx -> fixedCipherServerSslEngineFactory(cipher, ctx));
-                    serverTlsEndpoint = TlsEndpoint.createServer(plainServerEndpoint, serverConfig,
-                            nameOpt -> sslContextFactory(sslContext, nameOpt));
+                thread.join();
 
-                }
-                SocketGroup serverPair = new SocketGroup(serverTlsEndpoint, rawServerEndpoint);
-
-                pairs.add(new SocketPair(clientPair, serverPair));
+                pairs.add(new SocketPair(clientPair, serverPair.get()));
             }
             return pairs;
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public OldIoSocketPair oldNio(Optional<String> cipher) {
+    public OldIoSocketPair oldNio(Optional<String> cipher) throws InterruptedException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(localhost, 0 /* find free port */));
-        TlsEndpoint client = createTlsClientEndpoint(cipher, server.getLocalAddress());
-        assert client.getSslEngine() != null;
-        SSLParameters sslParameters = client.getSslEngine().getSSLParameters(); // returns a value object
-        sslParameters.setServerNames(Collections.singletonList(clientSniHostName));
-        client.getSslEngine().setSSLParameters(sslParameters);
-        NetworkEndpoint encryptedEndpoint = server.accept();
-        server.close();
         final var config = TlsEndpoint.configForServer()
                 .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x));
-        TlsEndpoint tlsServer = TlsEndpoint.createServer(encryptedEndpoint, config, nameOpt ->
-                sslContextFactory(sslContext, nameOpt));
-        return new OldIoSocketPair(client, new SocketGroup(tlsServer, encryptedEndpoint));
+        AtomicReference<NetworkEndpoint> encryptedEndpoint = new AtomicReference<>();
+        AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
+        var thread = new Thread(() -> {
+            encryptedEndpoint.set(server.accept());
+            server.close();
+            tlsServer.set(TlsEndpoint.createServer(encryptedEndpoint.get(), config, nameOpt ->
+                    sslContextFactory(sslContext, nameOpt)));
+        });
+        thread.start();
+        TlsEndpoint client = createTlsClientEndpoint(cipher, server.getLocalAddress(), clientSniHostName);
+        thread.join();
+        return new OldIoSocketPair(client, new SocketGroup(tlsServer.get(), encryptedEndpoint.get()));
     }
 
-    public IoOldSocketPair nioOld(Optional<String> cipher) {
+    public IoOldSocketPair nioOld(Optional<String> cipher) throws InterruptedException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
         InetSocketAddress address = (InetSocketAddress) server.getLocalAddress();
         int chosenPort = address.getPort();
+        AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
+        var thread = new Thread(() -> {
+            tlsServer.set(createTlsServerEndpoint(cipher, server.accept()));
+            server.close();
+        });
+        thread.start();
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);
-        TlsEndpoint tlsServer = createTlsServerEndpoint(cipher, server.accept());
-        server.close();
         TlsEndpoint client = TlsEndpoint.createClient(encryptedEndpoint, createClientSslEngine(cipher, chosenPort));
-        return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer);
+        thread.join();
+        return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer.get());
     }
 
     public SocketPair nioNio(

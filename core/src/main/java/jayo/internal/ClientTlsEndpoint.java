@@ -15,6 +15,7 @@ import jayo.Endpoint;
 import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.external.NonNegative;
+import jayo.tls.Handshake;
 import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
 
@@ -95,18 +96,8 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
     }
 
     @Override
-    public void renegotiate() {
-        impl.renegotiate();
-    }
-
-    @Override
-    public void handshake() {
-        impl.handshake();
-    }
-
-    @Override
-    public @NonNull SSLEngine getSslEngine() {
-        return impl.engine;
+    public @NonNull Handshake getHandshake() {
+        return impl.getHandshake();
     }
 
     @Override

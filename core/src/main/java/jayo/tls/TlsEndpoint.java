@@ -30,7 +30,8 @@ import java.util.function.Function;
 
 /**
  * A TLS (Transport Layer Security) endpoint, either the client-side or server-side end of a TLS connection between two
- * peers.
+ * peers. {@link TlsEndpoint} guarantee that the TLS connection is initialized and its <b>initial handshake was done</b>
+ * upon creation.
  * <p>
  * {@link TlsEndpoint} implementations delegate all cryptographic operations to the standard JDK's existing
  * {@linkplain SSLEngine TLS/SSL Engine}; effectively hiding it behind an easy-to-use streaming API based on Jayo's
@@ -43,8 +44,7 @@ import java.util.function.Function;
  * {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a network socket); and a
  * {@link SSLEngine} or a {@link SSLContext}.
  * <p>
- * Please read {@link #handshake()} and {@link #shutdown()} javadoc for a detailed explanation of the TLS handshake and
- * shutdown phases.
+ * Please read the {@link #shutdown()} javadoc for a detailed explanation of the TLS shutdown phase.
  *
  * @see <a href="https://www.ibm.com/docs/en/sdk-java-technology/8?topic=sslengine-">Java SSLEngine documentation</a>
  */
@@ -264,35 +264,10 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     RawWriter getWriter();
 
     /**
-     * Forces the initial TLS handshake. Calling this method is usually not needed, as a handshake will happen
-     * automatically when doing the first read operation on {@link #getReader()} or the first write operation on
-     * {@link #getWriter()}. Calling this method after the initial handshake has been done has no effect.
-     * <p>
-     * This method may be invoked at any time. If another thread has already initiated a read, write, or handshaking
-     * operation upon this TLS connection, however, then an invocation of this method will block until this ongoing
-     * operation is complete because of the locks that prevent concurrent calls.
-     *
-     * @throws JayoTlsException if the {@link SSLEngine} or the TLS mechanism on top of it failed.
-     * @throws JayoException    if another IO Exception occurred.
+     * @return the result of the initial handshake on this TLS connection.
      */
-    void handshake();
-
-    /**
-     * Initiates a handshake (initial or renegotiation) on this TLS connection. This method is usually not needed for
-     * the initial handshake, as a handshake will happen automatically when doing the first read operation on
-     * {@link #getReader()} or the first write operation on {@link #getWriter()}.
-     * <p>
-     * Note that <b>renegotiation is a problematic feature of the TLS protocol, therefore it was removed in TLS 1.3</b>,
-     * that should only be initiated at a quiet point of the protocol.
-     * <p>
-     * This method may be invoked at any time. If another thread has already initiated a read, write, or handshaking
-     * operation upon this TLS connection, however, then an invocation of this method will block until this ongoing
-     * operation is complete because of the locks that prevent concurrent calls.
-     *
-     * @throws JayoTlsException if the {@link SSLEngine} or the TLS mechanism on top of it failed.
-     * @throws JayoException    if another IO Exception occurred.
-     */
-    void renegotiate();
+    @NonNull
+    Handshake getHandshake();
 
     /**
      * Shuts down the TLS connection. This method emulates the behavior of OpenSSL's
@@ -352,13 +327,6 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      */
     @Override
     void close();
-
-    /**
-     * @return the {@link SSLEngine} if present, or {@code null} if unknown. That can happen in server-side when the TLS
-     * connection has not been initialized, or before the SNI is received.
-     */
-    @Nullable
-    SSLEngine getSslEngine();
 
     /**
      * @return the underlying {@link Endpoint} that read and write encrypted data.

@@ -12,6 +12,7 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.external.NonNegative;
+import jayo.tls.Handshake;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeCallbackException;
 import jayo.tls.TlsEndpoint;
@@ -60,16 +61,13 @@ public final class RealTlsEndpoint {
 
     private final @NonNull RealReader encryptedReader;
     private final @NonNull WriterSegmentQueue encryptedWriterSegmentQueue;
-    final @NonNull SSLEngine engine;
+    private final @NonNull SSLEngine engine;
     private final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback;
     private final boolean waitForCloseConfirmation;
 
-    private final Lock initLock = new ReentrantLock();
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
 
-    private boolean handshakeStarted = false;
-    private volatile boolean handshakeCompleted = false;
     private Boolean isTls = null;
     /**
      * Whether an IOException was received from the underlying endpoint or from the {@link SSLEngine}.
@@ -122,6 +120,13 @@ public final class RealTlsEndpoint {
         this.engine = engine;
         this.sessionInitCallback = sessionInitCallback;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
+        handshake(); // THE initial handshake, this is an important step !
+    }
+
+    @NonNull
+    Handshake getHandshake() {
+        // on-demand Handshake creation, only if user calls it
+        return Handshake.get(engine.getSession());
     }
 
     // read
@@ -137,8 +142,6 @@ public final class RealTlsEndpoint {
         if (byteCount == 0L) {
             return 0L;
         }
-
-        handshake();
 
         readLock.lock();
         try {
@@ -349,8 +352,6 @@ public final class RealTlsEndpoint {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
 
-        handshake();
-
         /*
          * Note that we should enter the write loop even in the case that the reader buffer has no remaining bytes,
          * as it could be the case, that the user is forced to call write again, just to write pending encrypted bytes.
@@ -438,82 +439,41 @@ public final class RealTlsEndpoint {
     // handshake
 
     /**
-     * Force a new negotiation.
-     */
-    void renegotiate() {
-        /*
-         * Renegotiation was removed in TLS 1.3. We have to do the check at this level because SSLEngine will not check
-         * that, and would just enter into undefined behavior.
-         */
-        // relying on hopefully-robust lexicographic ordering of protocol names
-        if (engine.getSession().getProtocol().compareTo("TLSv1.3") >= 0) {
-            throw new JayoTlsException("renegotiation not supported in TLS 1.3 or latter");
-        }
-        try {
-            doHandshake(true);
-        } catch (TlsEOFException e) {
-            throw new JayoClosedResourceException();
-        }
-    }
-
-    /**
      * Do a negotiation if this TLS connection is new, and it hasn't been done already.
      */
-    void handshake() {
+    private void handshake() {
         try {
-            doHandshake(false);
+            doHandshake();
         } catch (TlsEOFException e) {
             throw new JayoClosedResourceException();
         }
     }
 
-    private void doHandshake(final boolean force) throws TlsEOFException {
-        if (!force && handshakeCompleted) {
-            return;
+    private void doHandshake() throws TlsEOFException {
+        LOGGER.log(TRACE, "Calling SSLEngine.beginHandshake()");
+        try {
+            engine.beginHandshake();
+        } catch (SSLException e) {
+            throw new JayoTlsException(e);
         }
 
-        initLock.lock();
+        writeAndHandshake();
+
+        if (engine.getSession().getProtocol().startsWith("DTLS")) {
+            throw new IllegalArgumentException("DTLS not supported");
+        }
+
+        // call client code
         try {
-            if (invalid || shutdownSent) {
-                throw new JayoClosedResourceException();
+            sessionInitCallback.accept(engine.getSession());
+        } catch (Exception e) {
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(DEBUG, "Client code threw exception in session initialization callback.", e);
+            } else if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "Client code threw exception in session initialization callback: {0}.",
+                        e.getMessage());
             }
-            if (force || !handshakeCompleted) {
-                if (!handshakeStarted) {
-                    LOGGER.log(TRACE, "Calling SSLEngine.beginHandshake()");
-                    try {
-                        engine.beginHandshake();
-                    } catch (SSLException e) {
-                        throw new JayoTlsException(e);
-                    }
-
-                    // Some engines that do not support renegotiations may be sensitive to calling
-                    // SSLEngine.beginHandshake() more than once. This guard prevents that.
-                    handshakeStarted = true;
-                }
-
-                writeAndHandshake();
-
-                if (engine.getSession().getProtocol().startsWith("DTLS")) {
-                    throw new IllegalArgumentException("DTLS not supported");
-                }
-
-                handshakeCompleted = true;
-
-                // call client code
-                try {
-                    sessionInitCallback.accept(engine.getSession());
-                } catch (Exception e) {
-                    if (LOGGER.isLoggable(TRACE)) {
-                        LOGGER.log(TRACE, "Client code threw exception in session initialization callback.", e);
-                    } else if (LOGGER.isLoggable(DEBUG)) {
-                        LOGGER.log(DEBUG, "Client code threw exception in session initialization callback: {0}.",
-                                e.getMessage());
-                    }
-                    throw new JayoTlsHandshakeCallbackException("Session initialization callback failed", e);
-                }
-            }
-        } finally {
-            initLock.unlock();
+            throw new JayoTlsHandshakeCallbackException("Session initialization callback failed", e);
         }
     }
 

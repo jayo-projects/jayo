@@ -53,14 +53,13 @@ public class CipherTest {
                             SocketPairFactory socketFactory = new SocketPairFactory(ctxFactory.getDefaultContext());
                             SocketPair socketPair = socketFactory.ioIo(
                                     Optional.of(cipher), Optional.empty(), false);
-                            Loops.halfDuplex(socketPair, dataSize, protocol.compareTo("TLSv1.2") < 0);
-                            String actualProtocol = socketPair
+                            Loops.halfDuplex(socketPair, dataSize);
+                            final var tlVersion = socketPair
                                     .client
                                     .tls
-                                    .getSslEngine()
-                                    .getSession()
-                                    .getProtocol();
-                            String p = String.format("%s (%s)", protocol, actualProtocol);
+                                    .getHandshake()
+                                    .getTlsVersion();
+                            String p = String.format("%s (%s)", protocol, tlVersion);
                             System.out.printf("%-18s %-50s\n", p, cipher);
                         }));
             }
@@ -81,13 +80,12 @@ public class CipherTest {
                             SocketPair socketPair = socketFactory.ioIo(
                                     Optional.of(cipher), Optional.empty(), false);
                             Loops.fullDuplex(socketPair, dataSize);
-                            String actualProtocol = socketPair
+                            final var tlVersion = socketPair
                                     .client
                                     .tls
-                                    .getSslEngine()
-                                    .getSession()
-                                    .getProtocol();
-                            String p = String.format("%s (%s)", protocol, actualProtocol);
+                                    .getHandshake()
+                                    .getTlsVersion();
+                            String p = String.format("%s (%s)", protocol, tlVersion);
                             System.out.printf("%-18s %-50s\n", p, cipher);
                         }));
             }
@@ -108,14 +106,13 @@ public class CipherTest {
                             SocketPairFactory socketFactory = new SocketPairFactory(ctxFactory.getDefaultContext());
                             SocketPair socketPair = socketFactory.nioNio(
                                     Optional.of(cipher), Optional.empty(), false);
-                            Loops.halfDuplex(socketPair, dataSize, protocol.compareTo("TLSv1.2") < 0);
-                            String actualProtocol = socketPair
+                            Loops.halfDuplex(socketPair, dataSize);
+                            final var tlVersion = socketPair
                                     .client
                                     .tls
-                                    .getSslEngine()
-                                    .getSession()
-                                    .getProtocol();
-                            String p = String.format("%s (%s)", protocol, actualProtocol);
+                                    .getHandshake()
+                                    .getTlsVersion();
+                            String p = String.format("%s (%s)", protocol, tlVersion);
                             System.out.printf("%-18s %-50s\n", p, cipher);
                         }));
             }
@@ -136,13 +133,12 @@ public class CipherTest {
                             SocketPair socketPair = socketFactory.nioNio(
                                     Optional.of(cipher), Optional.empty(), false);
                             Loops.fullDuplex(socketPair, dataSize);
-                            String actualProtocol = socketPair
+                            final var tlVersion = socketPair
                                     .client
                                     .tls
-                                    .getSslEngine()
-                                    .getSession()
-                                    .getProtocol();
-                            String p = String.format("%s (%s)", protocol, actualProtocol);
+                                    .getHandshake()
+                                    .getTlsVersion();
+                            String p = String.format("%s (%s)", protocol, tlVersion);
                             System.out.printf("%-18s %-50s\n", p, cipher);
                         }));
             }

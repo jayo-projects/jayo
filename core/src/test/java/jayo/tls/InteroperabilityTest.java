@@ -41,11 +41,10 @@ public class InteroperabilityTest {
 
     private final int margin = random.nextInt(100);
 
-    private void writerLoop(Writer writer, boolean renegotiate) {
+    private void writerLoop(Writer writer) {
         TlsTestUtil.cannotFail(() -> {
             int remaining = dataSize;
             while (remaining > 0) {
-                if (renegotiate) writer.renegotiate();
                 int chunkSize = random.nextInt(remaining) + 1; // 1 <= chunkSize <= remaining
                 writer.write(data, dataSize - remaining, chunkSize);
                 remaining -= chunkSize;
@@ -75,8 +74,8 @@ public class InteroperabilityTest {
      */
     private void halfDuplexStream(Writer serverWriter, Reader clientReader, Writer clientWriter, Reader serverReader)
             throws IOException, InterruptedException {
-        Thread clientWriterThread = new Thread(() -> writerLoop(clientWriter, true), "client-writer");
-        Thread serverWriterThread = new Thread(() -> writerLoop(serverWriter, true), "server-writer");
+        Thread clientWriterThread = new Thread(() -> writerLoop(clientWriter), "client-writer");
+        Thread serverWriterThread = new Thread(() -> writerLoop(serverWriter), "server-writer");
         Thread clientReaderThread = new Thread(() -> readerLoop(clientReader), "client-reader");
         Thread serverReaderThread = new Thread(() -> readerLoop(serverReader), "server-reader");
         serverReaderThread.start();
@@ -84,10 +83,6 @@ public class InteroperabilityTest {
         serverReaderThread.join();
         clientWriterThread.join();
         clientReaderThread.start();
-        // renegotiate three times, to test idempotency
-        for (int i = 0; i < 3; i++) {
-            serverWriter.renegotiate();
-        }
         serverWriterThread.start();
         clientReaderThread.join();
         serverWriterThread.join();
@@ -100,8 +95,8 @@ public class InteroperabilityTest {
      */
     private void fullDuplexStream(Writer serverWriter, Reader clientReader, Writer clientWriter, Reader serverReader)
             throws IOException, InterruptedException {
-        Thread clientWriterThread = new Thread(() -> writerLoop(clientWriter, false), "client-writer");
-        Thread serverWriterThread = new Thread(() -> writerLoop(serverWriter, false), "server-writer");
+        Thread clientWriterThread = new Thread(() -> writerLoop(clientWriter), "client-writer");
+        Thread serverWriterThread = new Thread(() -> writerLoop(serverWriter), "server-writer");
         Thread clientReaderThread = new Thread(() -> readerLoop(clientReader), "client-reader");
         Thread serverReaderThread = new Thread(() -> readerLoop(serverReader), "server-reader");
         serverReaderThread.start();

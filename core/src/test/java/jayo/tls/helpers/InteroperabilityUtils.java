@@ -25,8 +25,6 @@ public class InteroperabilityUtils {
     }
 
     public interface Writer {
-        void renegotiate() throws IOException;
-
         void write(byte[] array, int offset, int length) throws IOException;
 
         void close() throws IOException;
@@ -65,11 +63,6 @@ public class InteroperabilityUtils {
         public void write(byte[] array, int offset, int length) {
             jayoWriter.write(array, offset, length)
                     .flush();
-        }
-
-        @Override
-        public void renegotiate() {
-            tlsEndpoint.renegotiate();
         }
 
         @Override
