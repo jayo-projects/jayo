@@ -44,7 +44,7 @@ public class TlsSocketClient {
     public static void main(String... args) throws IOException {
         try (NetworkEndpoint client = NetworkEndpoint.connectTcp(new InetSocketAddress(DOMAIN, 443));
              // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-             TlsEndpoint tlsEndpoint = TlsEndpoint.clientBuilder(client, SSL_CONTEXT).build();
+             TlsEndpoint tlsEndpoint = TlsEndpoint.createClient(client, SSL_CONTEXT);
              Writer toEncryptWriter = Jayo.buffer(tlsEndpoint.getWriter());
              Reader decryptedReader = Jayo.buffer(tlsEndpoint.getReader())) {
             // do HTTP interaction and print result

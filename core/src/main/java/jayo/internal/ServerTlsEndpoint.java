@@ -10,12 +10,7 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
-import jayo.RawReader;
-import jayo.RawWriter;
-import jayo.Endpoint;
-import jayo.JayoClosedResourceException;
-import jayo.JayoEOFException;
+import jayo.*;
 import jayo.external.NonNegative;
 import jayo.tls.JayoTlsHandshakeCallbackException;
 import jayo.tls.JayoTlsHandshakeException;
@@ -52,7 +47,6 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     private final @NonNull RealReader encryptedReader;
 
     private volatile boolean sniRead = false;
-    private @Nullable SSLContext sslContext = null;
     private @Nullable RealTlsEndpoint impl = null;
 
     @SuppressWarnings("FieldMayBeFinal")
@@ -144,11 +138,6 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     }
 
     @Override
-    public @Nullable SSLContext getSslContext() {
-        return sslContext;
-    }
-
-    @Override
     public @Nullable SSLEngine getSslEngine() {
         if (impl != null) {
             return impl.engine;
@@ -188,7 +177,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
         initLock.lock();
         try {
             if (!sniRead) {
-                sslContext = sslContextStrategy.getSslContext(this::getServerNameIndication);
+                final var sslContext = sslContextStrategy.getSslContext(this::getServerNameIndication);
                 // call client code
                 final SSLEngine engine;
                 try {
@@ -324,38 +313,40 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     /**
      * Builder of {@link ServerTlsEndpoint}
      */
-    public static final class Builder extends RealTlsEndpoint.Builder<ServerBuilder> implements ServerBuilder {
-        private final @NonNull SslContextStrategy internalSslContextFactory;
+    public static final class Config extends RealTlsEndpoint.Config<ServerConfig> implements ServerConfig {
         private @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory = null;
-
-        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLContext sslContext) {
-            super(encryptedEndpoint);
-            assert sslContext != null;
-            this.internalSslContextFactory = new FixedSslContextStrategy(sslContext);
-        }
-
-        public Builder(final @NonNull Endpoint encryptedEndpoint,
-                       final @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sniSslCF) {
-            super(encryptedEndpoint);
-            assert sniSslCF != null;
-            this.internalSslContextFactory = new SniSslContextStrategy(sniSslCF);
-        }
 
         @Override
         @NonNull
-        ServerBuilder getThis() {
+        Config getThis() {
             return this;
         }
 
         @Override
-        public @NonNull ServerBuilder engineFactory(
+        public @NonNull Config engineFactory(
                 final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory) {
             this.sslEngineFactory = Objects.requireNonNull(sslEngineFactory);
             return this;
         }
 
-        @Override
-        public @NonNull TlsEndpoint build() {
+        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint,
+                                          final @NonNull SSLContext sslContext) {
+            assert encryptedEndpoint != null;
+            assert sslContext != null;
+            return build(encryptedEndpoint, new FixedSslContextStrategy(sslContext));
+        }
+
+        public @NonNull TlsEndpoint build(
+                final @NonNull Endpoint encryptedEndpoint,
+                final @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sniSslCF
+        ) {
+            assert encryptedEndpoint != null;
+            assert sniSslCF != null;
+            return build(encryptedEndpoint, new SniSslContextStrategy(sniSslCF));
+        }
+
+        private @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint,
+                                           final @NonNull SslContextStrategy internalSslContextFactory) {
             return new ServerTlsEndpoint(
                     encryptedEndpoint,
                     internalSslContextFactory,

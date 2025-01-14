@@ -40,13 +40,11 @@ public class FailTest {
 
         Endpoint serverEndpoint = server.accept();
         factory.createClientSslEngine(Optional.empty(), chosenPort);
-        TlsEndpoint.ServerBuilder tlsServerEndpointBuilder = TlsEndpoint.serverBuilder(
-                        serverEndpoint,
-                        nameOpt -> factory.sslContextFactory(factory.sslContext, nameOpt))
-                .engineFactory(
-                        sslContext -> factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
-
-        TlsEndpoint tlsServerEndpoint = tlsServerEndpointBuilder.build();
+        final var config = TlsEndpoint.configForServer()
+                .engineFactory(sslContext ->
+                        factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
+        TlsEndpoint tlsServerEndpoint = TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
+                factory.sslContextFactory(factory.sslContext, nameOpt));
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> {
             Buffer buffer = Buffer.create();
@@ -76,13 +74,11 @@ public class FailTest {
 
         Endpoint serverEndpoint = server.accept();
         factory.createClientSslEngine(Optional.empty(), chosenPort);
-        TlsEndpoint.ServerBuilder tlsServerEndpointBuilder = TlsEndpoint.serverBuilder(
-                        serverEndpoint,
-                        nameOpt -> factory.sslContextFactory(factory.sslContext, nameOpt))
-                .engineFactory(
-                        sslContext -> factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
-
-        TlsEndpoint tlsServerEndpoint = tlsServerEndpointBuilder.build();
+        final var config = TlsEndpoint.configForServer()
+                .engineFactory(sslContext ->
+                        factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
+        TlsEndpoint tlsServerEndpoint = TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
+                factory.sslContextFactory(factory.sslContext, nameOpt));
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> {
             Buffer buffer = Buffer.create();

@@ -40,7 +40,7 @@ public class TlsSocketServer {
             System.out.println("Waiting for connection...");
             try (NetworkEndpoint accepted = server.accept();
                  // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-                 TlsEndpoint tlsEndpoint = TlsEndpoint.serverBuilder(accepted, sslContext).build();
+                 TlsEndpoint tlsEndpoint = TlsEndpoint.createServer(accepted, sslContext);
                  RawReader decryptedReader = tlsEndpoint.getReader()) {
                 Buffer buffer = Buffer.create();
                 // write to stdout all data sent by the client

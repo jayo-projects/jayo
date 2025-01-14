@@ -122,21 +122,21 @@ public class SocketPairFactory {
     }
 
     private TlsEndpoint createTlsServerEndpoint(Optional<String> cipher, NetworkEndpoint endpoint) {
-        return TlsEndpoint.serverBuilder(endpoint, sslContext)
+        final var config = TlsEndpoint.configForServer()
                 .engineFactory(sslContext -> {
                     SSLEngine engine = sslContext.createSSLEngine();
                     engine.setUseClientMode(false);
                     cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}));
                     return engine;
-                })
-                .build();
+                });
+        return TlsEndpoint.createServer(endpoint, sslContext, config);
     }
 
     private TlsEndpoint createTlsClientEndpoint(Optional<String> cipher, SocketAddress address) {
         SSLEngine engine = sslContext.createSSLEngine();
         engine.setUseClientMode(true);
         cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}));
-        return TlsEndpoint.clientBuilder(NetworkEndpoint.connectTcp(address), engine).build();
+        return TlsEndpoint.createClient(NetworkEndpoint.connectTcp(address), engine);
     }
 
     public OldOldSocketPair oldOld(Optional<String> cipher) {
@@ -161,10 +161,10 @@ public class SocketPairFactory {
         client.getSslEngine().setSSLParameters(sslParameters);
         NetworkEndpoint serverEndpoint = networkServer.accept();
         networkServer.close();
-        TlsEndpoint server = TlsEndpoint.serverBuilder(serverEndpoint, nameOpt ->
-                        sslContextFactory(sslContext, nameOpt))
-                .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x))
-                .build();
+        final var config = TlsEndpoint.configForServer()
+                .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x));
+        TlsEndpoint server = TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
+                sslContextFactory(sslContext, nameOpt));
         return new OldIoSocketPair(client, new SocketGroup(server, serverEndpoint));
     }
 
@@ -175,8 +175,7 @@ public class SocketPairFactory {
         TlsEndpoint tlsServer = createTlsServerEndpoint(cipher, server.accept());
         server.close();
         TlsEndpoint client =
-                TlsEndpoint.clientBuilder(encryptedEndpoint, createClientSslEngine(cipher, address.getPort()))
-                        .build();
+                TlsEndpoint.createClient(encryptedEndpoint, createClientSslEngine(cipher, address.getPort()));
         return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer);
     }
 
@@ -216,9 +215,9 @@ public class SocketPairFactory {
                 } else {
                     clientEngine = createClientSslEngine(cipher, chosenPort);
                 }
-                TlsEndpoint clientTlsEndpoint = TlsEndpoint.clientBuilder(plainClientEndpoint, clientEngine)
-                        .waitForCloseConfirmation(waitForCloseConfirmation)
-                        .build();
+                final var config = TlsEndpoint.configForClient()
+                        .waitForCloseConfirmation(waitForCloseConfirmation);
+                TlsEndpoint clientTlsEndpoint = TlsEndpoint.createClient(plainClientEndpoint, clientEngine, config);
                 SocketGroup clientPair = new SocketGroup(clientTlsEndpoint, rawClient);
 
                 NetworkEndpoint rawServerEndpoint = server.accept();
@@ -233,17 +232,18 @@ public class SocketPairFactory {
                 } else {
                     plainServerEndpoint = rawServerEndpoint;
                 }
-                TlsEndpoint.ServerBuilder serverTlsEndpointBuilder;
+                var serverConfig = TlsEndpoint.configForServer()
+                        .waitForCloseConfirmation(waitForCloseConfirmation);
+                final TlsEndpoint serverTlsEndpoint;
                 if (cipher.equals(Optional.of(NULL_CIPHER))) {
-                    serverTlsEndpointBuilder = TlsEndpoint.serverBuilder(plainServerEndpoint, new NullSslContext());
+                    serverTlsEndpoint = TlsEndpoint.createServer(plainServerEndpoint, new NullSslContext(), serverConfig);
                 } else {
-                    serverTlsEndpointBuilder = TlsEndpoint.serverBuilder(plainServerEndpoint, nameOpt ->
-                                    sslContextFactory(sslContext, nameOpt))
+                    serverConfig = serverConfig
                             .engineFactory(ctx -> fixedCipherServerSslEngineFactory(cipher, ctx));
+                    serverTlsEndpoint = TlsEndpoint.createServer(plainServerEndpoint, serverConfig,
+                            nameOpt -> sslContextFactory(sslContext, nameOpt));
+
                 }
-                TlsEndpoint serverTlsEndpoint = serverTlsEndpointBuilder
-                        .waitForCloseConfirmation(waitForCloseConfirmation)
-                        .build();
                 SocketGroup serverPair = new SocketGroup(serverTlsEndpoint, rawServerEndpoint);
 
                 pairs.add(new SocketPair(clientPair, serverPair));
@@ -261,10 +261,10 @@ public class SocketPairFactory {
         client.getSslEngine().setSSLParameters(sslParameters);
         NetworkEndpoint encryptedEndpoint = server.accept();
         server.close();
-        TlsEndpoint tlsServer = TlsEndpoint.serverBuilder(encryptedEndpoint, nameOpt ->
-                        sslContextFactory(sslContext, nameOpt))
-                .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x))
-                .build();
+        final var config = TlsEndpoint.configForServer()
+                .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x));
+        TlsEndpoint tlsServer = TlsEndpoint.createServer(encryptedEndpoint, config, nameOpt ->
+                sslContextFactory(sslContext, nameOpt));
         return new OldIoSocketPair(client, new SocketGroup(tlsServer, encryptedEndpoint));
     }
 
@@ -275,8 +275,7 @@ public class SocketPairFactory {
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);
         TlsEndpoint tlsServer = createTlsServerEndpoint(cipher, server.accept());
         server.close();
-        TlsEndpoint client = TlsEndpoint.clientBuilder(encryptedEndpoint, createClientSslEngine(cipher, chosenPort))
-                .build();
+        TlsEndpoint client = TlsEndpoint.createClient(encryptedEndpoint, createClientSslEngine(cipher, chosenPort));
         return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer);
     }
 
@@ -286,70 +285,5 @@ public class SocketPairFactory {
             boolean waitForCloseConfirmation) {
         return ioIoN(cipher, 1, chunkSizeConfig, waitForCloseConfirmation)
                 .get(0);
-    }
-
-    public List<SocketPair> nioNioN(
-            Optional<String> cipher,
-            int qtty,
-            Optional<ChunkSizeConfig> chunkSizeConfig,
-            boolean waitForCloseConfirmation) {
-        try (NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(localhost, 0 /* find free port */))) {
-            int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
-            InetSocketAddress address = new InetSocketAddress(localhost, chosenPort);
-            List<SocketPair> pairs = new ArrayList<>();
-            for (int i = 0; i < qtty; i++) {
-                NetworkEndpoint rawClient = NetworkEndpoint.connectTcp(address);
-
-                Endpoint plainClientEndpoint;
-                if (chunkSizeConfig.isPresent()) {
-                    Optional<Integer> internalSize = chunkSizeConfig.get().clientChuckSize.internalSize;
-                    if (internalSize.isPresent()) {
-                        plainClientEndpoint = new ChunkingEndpoint(rawClient, internalSize.get());
-                    } else {
-                        plainClientEndpoint = rawClient;
-                    }
-                } else {
-                    plainClientEndpoint = rawClient;
-                }
-                SSLEngine clientEngine;
-                if (cipher.equals(Optional.of(NULL_CIPHER))) {
-                    clientEngine = new NullSslEngine();
-                } else {
-                    clientEngine = createClientSslEngine(cipher, chosenPort);
-                }
-                TlsEndpoint clientTlsEndpoint = TlsEndpoint.clientBuilder(plainClientEndpoint, clientEngine)
-                        .waitForCloseConfirmation(waitForCloseConfirmation)
-                        .build();
-                SocketGroup clientPair = new SocketGroup(clientTlsEndpoint, rawClient);
-
-                NetworkEndpoint rawServerEndpoint = server.accept();
-                Endpoint plainServerEndpoint;
-                if (chunkSizeConfig.isPresent()) {
-                    Optional<Integer> internalSize = chunkSizeConfig.get().serverChunkSize.internalSize;
-                    if (internalSize.isPresent()) {
-                        plainServerEndpoint = new ChunkingEndpoint(rawServerEndpoint, internalSize.get());
-                    } else {
-                        plainServerEndpoint = rawServerEndpoint;
-                    }
-                } else {
-                    plainServerEndpoint = rawServerEndpoint;
-                }
-                TlsEndpoint.ServerBuilder serverTlsEndpointBuilder;
-                if (cipher.equals(Optional.of(NULL_CIPHER))) {
-                    serverTlsEndpointBuilder = TlsEndpoint.serverBuilder(plainServerEndpoint, new NullSslContext());
-                } else {
-                    serverTlsEndpointBuilder = TlsEndpoint.serverBuilder(plainServerEndpoint, nameOpt ->
-                                    sslContextFactory(sslContext, nameOpt))
-                            .engineFactory(ctx -> fixedCipherServerSslEngineFactory(cipher, ctx));
-                }
-                TlsEndpoint serverTlsEndpoint = serverTlsEndpointBuilder
-                        .waitForCloseConfirmation(waitForCloseConfirmation)
-                        .build();
-                SocketGroup serverPair = new SocketGroup(serverTlsEndpoint, rawServerEndpoint);
-
-                pairs.add(new SocketPair(clientPair, serverPair));
-            }
-            return pairs;
-        }
     }
 }

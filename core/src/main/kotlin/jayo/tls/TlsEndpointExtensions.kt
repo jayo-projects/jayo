@@ -14,16 +14,16 @@ import javax.net.ssl.SSLSession
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-public fun TlsEndpoint.ClientBuilder.build(config: TlsClientEndpointBuilderDsl.() -> Unit): TlsEndpoint {
+public fun TlsEndpoint.ClientConfig.kotlin(config: ClientTlsEndpointConfigDsl.() -> Unit): TlsEndpoint.ClientConfig {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(TlsClientEndpointBuilderDsl(this))
-    return build()
+    config(ClientTlsEndpointConfigDsl(this))
+    return this
 }
 
 @JayoDslMarker
 @JvmInline
-public value class TlsClientEndpointBuilderDsl internal constructor(private val builder: TlsEndpoint.ClientBuilder) {
+public value class ClientTlsEndpointConfigDsl internal constructor(private val builder: TlsEndpoint.ClientConfig) {
     /**
      * Register a callback function to be executed when the TLS session is established (or re-established). The supplied
      * function will run in the same thread as the rest of the handshake, so it should ideally run as fast as possible.
@@ -57,16 +57,16 @@ public value class TlsClientEndpointBuilderDsl internal constructor(private val 
         }
 }
 
-public fun TlsEndpoint.ServerBuilder.build(config: TlsServerEndpointBuilderDsl.() -> Unit): TlsEndpoint {
+public fun TlsEndpoint.ServerConfig.kotlin(config: ServerTlsEndpointConfigDsl.() -> Unit): TlsEndpoint.ServerConfig {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(TlsServerEndpointBuilderDsl(this))
-    return build()
+    config(ServerTlsEndpointConfigDsl(this))
+    return this
 }
 
 @JayoDslMarker
 @JvmInline
-public value class TlsServerEndpointBuilderDsl internal constructor(private val builder: TlsEndpoint.ServerBuilder) {
+public value class ServerTlsEndpointConfigDsl internal constructor(private val builder: TlsEndpoint.ServerConfig) {
     /**
      * Register a callback function to be executed when the TLS session is established (or re-established). The supplied
      * function will run in the same thread as the rest of the handshake, so it should ideally run as fast as possible.
