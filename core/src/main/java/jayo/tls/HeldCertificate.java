@@ -32,6 +32,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.time.Instant;
 
 /**
  * A certificate and its private key. These are some properties of certificates that are used with TLS:
@@ -166,12 +167,10 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
      */
     sealed interface Builder permits RealHeldCertificate.Builder {
         /**
-         * Sets the certificate to be valid in {@code [notBefore..notAfter]}. Both timestamp values must be specified in
-         * the format of {@code System.currentTimeMillis}. Specify {@code -1L} for both values to use the default
-         * interval = 24 hours starting when the certificate is created.
+         * Sets the certificate to be valid in {@code [notBefore..notAfter]}.
          */
         @NonNull
-        Builder validityInterval(final long notBefore, final long notAfter);
+        Builder validityInterval(final @NonNull Instant notBefore, final @NonNull Instant notAfter);
 
         /**
          * Sets the certificate to be valid immediately and until the specified duration has elapsed. The precision of

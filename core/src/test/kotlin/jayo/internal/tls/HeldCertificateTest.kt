@@ -39,6 +39,7 @@ import java.security.KeyFactory
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.time.Duration
+import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -71,7 +72,8 @@ class HeldCertificateTest {
         // 5 seconds starting on 1970-01-01.
         val heldCertificate =
             HeldCertificate.builder()
-                .validityInterval(5000L, 10000L)
+                .validityInterval(
+                    Instant.ofEpochMilli(5000L), Instant.ofEpochMilli(10000L))
                 .build()
         val certificate = heldCertificate.certificate
         assertThat(certificate.notBefore.time).isEqualTo(5000L)
@@ -138,7 +140,7 @@ class HeldCertificateTest {
                 commonName = "cash.app"
                 organizationalUnit = "cash"
                 // 5 seconds starting on 1970-01-01.
-                validityInterval = 5000L to 10000L
+                validityInterval = Instant.ofEpochMilli(5000L) to Instant.ofEpochMilli(10000L)
                 addSubjectAlternativeName("1.1.1.1")
                 addSubjectAlternativeName("cash.app")
             }
@@ -203,7 +205,7 @@ class HeldCertificateTest {
             HeldCertificate.builder()
                 .keyPair(publicKey, privateKey)
                 .commonName("cash.app")
-                .validityInterval(0L, 1000L)
+                .validityInterval(Instant.EPOCH, Instant.ofEpochMilli(1000L))
                 .keyFormat(RSA_2048)
                 .build()
         assertThat(
