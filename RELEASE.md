@@ -1,7 +1,7 @@
 ## Release
 * verify the current version you want to release in gradle.properties
 * verify you are using SSH with GIT
-* use openJDK 21 as project JDK
+* use Temurin 21 as project JDK
 * do **publish** task
 * go to *build/repos/releases* on **core** and **kotlinx-serial**
 * remove the "maven-metadata.xml" (and all files in the same directory) for both projects
