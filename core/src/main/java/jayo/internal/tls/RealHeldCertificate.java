@@ -39,6 +39,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -191,12 +192,15 @@ public final class RealHeldCertificate implements HeldCertificate {
         private @NonNull CertificateKeyFormat keyFormat = CertificateKeyFormat.ECDSA_256;
 
         @Override
-        public @NonNull Builder validityInterval(final long notBefore, final long notAfter) {
-            if (notBefore >= notAfter || !(notBefore == -1L == (notAfter == -1L))) {
-                throw new IllegalArgumentException("invalid interval: " + notBefore + ".." + notAfter);
+        public @NonNull Builder validityInterval(final @NonNull Instant notBefore, final @NonNull Instant notAfter) {
+            Objects.requireNonNull(notBefore);
+            Objects.requireNonNull(notAfter);
+
+            if (notBefore.compareTo(notAfter) >= 0) {
+                throw new IllegalArgumentException("invalid interval: " + notBefore + " .. " + notAfter);
             }
-            this.notBefore = notBefore;
-            this.notAfter = notAfter;
+            this.notBefore = notBefore.toEpochMilli();
+            this.notAfter = notAfter.toEpochMilli();
             return this;
         }
 
@@ -204,8 +208,8 @@ public final class RealHeldCertificate implements HeldCertificate {
         public @NonNull Builder duration(final @NonNull Duration duration) {
             Objects.requireNonNull(duration);
 
-            final var now = System.currentTimeMillis();
-            return validityInterval(now, now + duration.toMillis());
+            final var now = Instant.now();
+            return validityInterval(now, now.plus(duration));
         }
 
         @Override

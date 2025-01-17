@@ -14,6 +14,7 @@ import java.math.BigInteger
 import java.security.KeyPair
 import java.security.PrivateKey
 import java.security.PublicKey
+import java.time.Instant
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.time.Duration
@@ -34,7 +35,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
      * [System.currentTimeMillis]. Specify -1L for both values to use the default interval = 24 hours starting when the
      * certificate is created.
      */
-    public var validityInterval: Pair<Long, Long>
+    public var validityInterval: Pair<Instant, Instant>
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {

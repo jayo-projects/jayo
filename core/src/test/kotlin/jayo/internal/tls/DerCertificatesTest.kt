@@ -36,6 +36,7 @@ import java.security.KeyFactory
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 
 class DerCertificatesTest {
@@ -661,7 +662,7 @@ class DerCertificatesTest {
                 .organizationalUnit("Gene Research")
                 .addSubjectAlternativeName("*.example.com")
                 .addSubjectAlternativeName("www.example.org")
-                .validityInterval(-1000L, 2000L)
+                .validityInterval(Instant.ofEpochMilli(-1000L), Instant.ofEpochMilli(2000L))
                 .serialNumber(17L)
                 .build()
 
@@ -701,7 +702,7 @@ class DerCertificatesTest {
                 .certificateAuthority(3)
                 .commonName("Jurassic Park")
                 .organizationalUnit("Gene Research")
-                .validityInterval(-1000L, 2000L)
+                .validityInterval(Instant.ofEpochMilli(-1000L), Instant.ofEpochMilli(2000L))
                 .serialNumber(17L)
                 .build()
 
