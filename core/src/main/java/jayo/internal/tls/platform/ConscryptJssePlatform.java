@@ -21,7 +21,7 @@
 
 package jayo.internal.tls.platform;
 
-import jayo.tls.AlpnProtocol;
+import jayo.tls.Protocol;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.ConscryptHostnameVerifier;
 import org.jspecify.annotations.NonNull;
@@ -102,7 +102,7 @@ public final class ConscryptJssePlatform extends JdkJssePlatform {
     public void configureTlsExtensions(
             final @NonNull SSLEngine sslEngine,
             final @Nullable String hostname,
-            final @NonNull List<AlpnProtocol> protocols) {
+            final @NonNull List<Protocol> protocols) {
         assert sslEngine != null;
         assert protocols != null;
 

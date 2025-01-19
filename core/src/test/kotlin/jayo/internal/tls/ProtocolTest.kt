@@ -23,37 +23,37 @@
 package jayo.internal.tls
 
 import jayo.JayoException
-import jayo.tls.AlpnProtocol
+import jayo.tls.Protocol
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import kotlin.test.assertFailsWith
 
-class AlpnProtocolTest {
+class ProtocolTest {
     @Test
     fun testGetKnown() {
-        assertThat(AlpnProtocol.get("http/1.0")).isEqualTo(AlpnProtocol.HTTP_1_0)
-        assertThat(AlpnProtocol.get("http/1.1")).isEqualTo(AlpnProtocol.HTTP_1_1)
-        assertThat(AlpnProtocol.get("h2")).isEqualTo(AlpnProtocol.HTTP_2)
-        assertThat(AlpnProtocol.get("h2_prior_knowledge"))
-            .isEqualTo(AlpnProtocol.H2_PRIOR_KNOWLEDGE)
-        assertThat(AlpnProtocol.get("quic")).isEqualTo(AlpnProtocol.QUIC)
-        assertThat(AlpnProtocol.get("h3")).isEqualTo(AlpnProtocol.HTTP_3)
-        assertThat(AlpnProtocol.get("h3-29")).isEqualTo(AlpnProtocol.HTTP_3)
+        assertThat(Protocol.get("http/1.0")).isEqualTo(Protocol.HTTP_1_0)
+        assertThat(Protocol.get("http/1.1")).isEqualTo(Protocol.HTTP_1_1)
+        assertThat(Protocol.get("h2")).isEqualTo(Protocol.HTTP_2)
+        assertThat(Protocol.get("h2_prior_knowledge"))
+            .isEqualTo(Protocol.H2_PRIOR_KNOWLEDGE)
+        assertThat(Protocol.get("quic")).isEqualTo(Protocol.QUIC)
+        assertThat(Protocol.get("h3")).isEqualTo(Protocol.HTTP_3)
+        assertThat(Protocol.get("h3-29")).isEqualTo(Protocol.HTTP_3)
     }
 
     @Test
     fun testGetUnknown() {
-        assertFailsWith<JayoException> { AlpnProtocol.get("tcp") }
+        assertFailsWith<JayoException> { Protocol.get("tcp") }
     }
 
     @Test
     fun testToString() {
-        assertThat(AlpnProtocol.HTTP_1_0.toString()).isEqualTo("http/1.0")
-        assertThat(AlpnProtocol.HTTP_1_1.toString()).isEqualTo("http/1.1")
-        assertThat(AlpnProtocol.HTTP_2.toString()).isEqualTo("h2")
-        assertThat(AlpnProtocol.H2_PRIOR_KNOWLEDGE.toString())
+        assertThat(Protocol.HTTP_1_0.toString()).isEqualTo("http/1.0")
+        assertThat(Protocol.HTTP_1_1.toString()).isEqualTo("http/1.1")
+        assertThat(Protocol.HTTP_2.toString()).isEqualTo("h2")
+        assertThat(Protocol.H2_PRIOR_KNOWLEDGE.toString())
             .isEqualTo("h2_prior_knowledge")
-        assertThat(AlpnProtocol.QUIC.toString()).isEqualTo("quic")
-        assertThat(AlpnProtocol.HTTP_3.toString()).isEqualTo("h3")
+        assertThat(Protocol.QUIC.toString()).isEqualTo("quic")
+        assertThat(Protocol.HTTP_3.toString()).isEqualTo("h3")
     }
 }

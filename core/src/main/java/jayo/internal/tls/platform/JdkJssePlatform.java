@@ -21,7 +21,7 @@
 
 package jayo.internal.tls.platform;
 
-import jayo.tls.AlpnProtocol;
+import jayo.tls.Protocol;
 import jayo.tls.JssePlatform;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -70,7 +70,7 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
     public void configureTlsExtensions(
             final @NonNull SSLEngine sslEngine,
             final @Nullable String hostname,
-            final @NonNull List<AlpnProtocol> protocols) {
+            final @NonNull List<Protocol> protocols) {
         assert sslEngine != null;
         assert protocols != null;
 
@@ -98,11 +98,11 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
         }
     }
 
-    static @NonNull List<String> alpnProtocolNames(final @NonNull List<AlpnProtocol> protocols) {
+    static @NonNull List<String> alpnProtocolNames(final @NonNull List<Protocol> protocols) {
         assert protocols != null;
 
         return protocols.stream()
-                .filter(p -> !AlpnProtocol.HTTP_1_0.equals(p))
+                .filter(p -> !Protocol.HTTP_1_0.equals(p))
                 .map(Object::toString)
                 .toList();
     }
