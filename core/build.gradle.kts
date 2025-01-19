@@ -1,3 +1,4 @@
+import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import org.jetbrains.kotlin.config.KotlinCompilerVersion.VERSION as KOTLIN_VERSION
 
@@ -16,6 +17,19 @@ multiRelease {
     targetVersions(17, 21)
 }
 
+// Temporary workaround for https://github.com/melix/mrjar-gradle-plugin/issues/3
+// Remove this block when https://github.com/melix/mrjar-gradle-plugin/pull/10 is released
+configurations.matching { config -> config.name.startsWith("java21") }
+    .configureEach {
+        val noPrefix = this.name.replace("java21", "")
+        val sharedName = "${noPrefix.substring(0, 1).lowercase(Locale.getDefault())}${noPrefix.substring(1)}"
+        val sharedConfig = configurations.findByName(sharedName)
+
+        if (sharedConfig != null) {
+            this.extendsFrom(sharedConfig)
+        }
+    }
+
 val versionCatalog: VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 fun catalogVersion(lib: String) =
@@ -25,7 +39,7 @@ fun catalogVersion(lib: String) =
 dependencies {
     optional("org.jetbrains.kotlin:kotlin-stdlib")
 
-    api("org.jspecify:jspecify:${catalogVersion("jspecify")}")
+    implementation("org.jspecify:jspecify:${catalogVersion("jspecify")}")
 
     // These compileOnly dependencies must also be listed in the OSGi configuration above (todo).
     compileOnly("org.bouncycastle:bctls-jdk18on:${catalogVersion("bouncycastle")}")

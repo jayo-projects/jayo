@@ -49,7 +49,7 @@ final class JavaVersionUtils {
      */
     static @NonNull ByteBuffer asReadOnlyBuffer(final @NonNull ByteBuffer wrap) {
         assert wrap != null;
-        return wrap; // sad !
+        return wrap; // truly sad !
     }
 
     private static final class PlatformThreadFactory implements ThreadFactory {
