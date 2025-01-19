@@ -52,7 +52,7 @@ public sealed interface JssePlatform permits JdkJssePlatform {
      */
     void configureTlsExtensions(final @NonNull SSLEngine sslEngine,
                                 final @Nullable String hostname,
-                                final @NonNull List<AlpnProtocol> protocols);
+                                final @NonNull List<Protocol> protocols);
 
     /**
      * Returns the negotiated protocol, or null if no protocol was negotiated.

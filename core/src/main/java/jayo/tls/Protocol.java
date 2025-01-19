@@ -35,7 +35,7 @@ import java.util.Objects;
  * https, etc.) of the URL, not the protocol (http/1.1, spdy/3.1, etc.). Jayo uses the word <b>protocol</b> to identify
  * how HTTP messages are framed.
  */
-public enum AlpnProtocol {
+public enum Protocol {
     /**
      * An obsolete plaintext framing protocol that does not use persistent sockets by default.
      */
@@ -80,7 +80,7 @@ public enum AlpnProtocol {
 
     private final @NonNull String protocol;
 
-    AlpnProtocol(final @NonNull String protocol) {
+    Protocol(final @NonNull String protocol) {
         this.protocol = protocol;
     }
 
@@ -94,7 +94,7 @@ public enum AlpnProtocol {
         return protocol;
     }
 
-    public static @NonNull AlpnProtocol get(final @NonNull String protocol) {
+    public static @NonNull Protocol get(final @NonNull String protocol) {
         Objects.requireNonNull(protocol);
         // Unroll the loop over values() to save an allocation.
         return switch (protocol) {
