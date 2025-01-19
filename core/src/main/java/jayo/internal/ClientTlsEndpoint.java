@@ -128,27 +128,32 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
     /**
      * Builder of {@link ClientTlsEndpoint}
      */
-    public static final class Config extends RealTlsEndpoint.Config<ClientConfig> implements ClientConfig {
+    public static final class Builder extends RealTlsEndpoint.Builder<ClientBuilder> implements ClientBuilder {
+        private final @NonNull SSLEngine engine;
+
+        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLContext sslContext) {
+            super(encryptedEndpoint);
+            assert sslContext != null;
+
+            engine = sslContext.createSSLEngine();
+            engine.setUseClientMode(true);
+        }
+
+        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLEngine engine) {
+            super(encryptedEndpoint);
+            assert engine != null;
+
+            this.engine = engine;
+        }
+
         @Override
         @NonNull
-        Config getThis() {
+        Builder getThis() {
             return this;
         }
 
-        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint,
-                                          final @NonNull SSLContext sslContext) {
-            assert encryptedEndpoint != null;
-            assert sslContext != null;
-
-            final var engine = sslContext.createSSLEngine();
-            engine.setUseClientMode(true);
-            return build(encryptedEndpoint, engine);
-        }
-
-        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLEngine engine) {
-            assert encryptedEndpoint != null;
-            assert engine != null;
-
+        @Override
+        public @NonNull TlsEndpoint build() {
             return new ClientTlsEndpoint(
                     encryptedEndpoint,
                     engine,

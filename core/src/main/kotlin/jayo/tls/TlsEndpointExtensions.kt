@@ -14,7 +14,7 @@ import javax.net.ssl.SSLSession
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-public fun TlsEndpoint.ClientConfig.kotlin(config: ClientTlsEndpointConfigDsl.() -> Unit): TlsEndpoint.ClientConfig {
+public fun TlsEndpoint.ClientBuilder.kotlin(config: ClientTlsEndpointConfigDsl.() -> Unit): TlsEndpoint.ClientBuilder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
     config(ClientTlsEndpointConfigDsl(this))
@@ -23,7 +23,7 @@ public fun TlsEndpoint.ClientConfig.kotlin(config: ClientTlsEndpointConfigDsl.()
 
 @JayoDslMarker
 @JvmInline
-public value class ClientTlsEndpointConfigDsl internal constructor(private val builder: TlsEndpoint.ClientConfig) {
+public value class ClientTlsEndpointConfigDsl internal constructor(private val builder: TlsEndpoint.ClientBuilder) {
     /**
      * Register a callback function to be executed when the TLS session is established (or re-established). The supplied
      * function will run in the same thread as the rest of the handshake, so it should ideally run as fast as possible.
@@ -57,7 +57,7 @@ public value class ClientTlsEndpointConfigDsl internal constructor(private val b
         }
 }
 
-public fun TlsEndpoint.ServerConfig.kotlin(config: ServerTlsEndpointConfigDsl.() -> Unit): TlsEndpoint.ServerConfig {
+public fun TlsEndpoint.ServerBuilder.kotlin(config: ServerTlsEndpointConfigDsl.() -> Unit): TlsEndpoint.ServerBuilder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
     config(ServerTlsEndpointConfigDsl(this))
@@ -66,7 +66,7 @@ public fun TlsEndpoint.ServerConfig.kotlin(config: ServerTlsEndpointConfigDsl.()
 
 @JayoDslMarker
 @JvmInline
-public value class ServerTlsEndpointConfigDsl internal constructor(private val builder: TlsEndpoint.ServerConfig) {
+public value class ServerTlsEndpointConfigDsl internal constructor(private val builder: TlsEndpoint.ServerBuilder) {
     /**
      * Register a callback function to be executed when the TLS session is established (or re-established). The supplied
      * function will run in the same thread as the rest of the handshake, so it should ideally run as fast as possible.
