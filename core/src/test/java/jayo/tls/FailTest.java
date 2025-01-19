@@ -39,12 +39,13 @@ public class FailTest {
 
         Endpoint serverEndpoint = server.accept();
         factory.createClientSslEngine(Optional.empty(), chosenPort);
-        final var config = TlsEndpoint.configForServer()
-                .engineFactory(sslContext ->
-                        factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
 
-        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
-                factory.sslContextFactory(factory.sslContext, nameOpt)))
+        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
+                TlsEndpoint.serverBuilder(serverEndpoint, nameOpt ->
+                                factory.sslContextFactory(factory.sslContext, nameOpt))
+                        .engineFactory(sslContext ->
+                                factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
+                        .build())
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");
@@ -66,12 +67,13 @@ public class FailTest {
 
         Endpoint serverEndpoint = server.accept();
         factory.createClientSslEngine(Optional.empty(), chosenPort);
-        final var config = TlsEndpoint.configForServer()
-                .engineFactory(sslContext ->
-                        factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext));
 
-        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> TlsEndpoint.createServer(serverEndpoint, config, nameOpt ->
-                factory.sslContextFactory(factory.sslContext, nameOpt)))
+        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
+                TlsEndpoint.serverBuilder(serverEndpoint, nameOpt ->
+                                factory.sslContextFactory(factory.sslContext, nameOpt))
+                        .engineFactory(sslContext ->
+                                factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
+                        .build())
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");

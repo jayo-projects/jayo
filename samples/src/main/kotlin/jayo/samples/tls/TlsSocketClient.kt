@@ -26,7 +26,7 @@ private val sslContext = SSLContext.getDefault()
 fun main() {
     NetworkEndpoint.connectTcp(InetSocketAddress(DOMAIN, 443)).use { client ->
         // create the TlsEndpoint, combining the socket endpoint and the SSLEngine, using minimal options
-        TlsEndpoint.createClient(client, sslContext).use { tslEndpoint ->
+        TlsEndpoint.clientBuilder(client, sslContext).build().use { tslEndpoint ->
             tslEndpoint.writer.buffered().use { toEncryptWriter ->
                 tslEndpoint.reader.buffered().use { decryptedReader ->
                     // do HTTP interaction and print result

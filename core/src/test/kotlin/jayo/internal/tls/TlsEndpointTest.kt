@@ -49,11 +49,10 @@ class TlsEndpointTest {
             val address = InetSocketAddress(localhost, listener.localPort)
             val encryptedEndpoint = NetworkEndpoint.connectTcp(address)
             var sslSession: SSLSession? = null
-            val konfig = TlsEndpoint.configForClient().kotlin {
+            TlsEndpoint.clientBuilder(encryptedEndpoint, sslContext).kotlin {
                 sessionInitCallback = { sslSession = it }
                 waitForCloseConfirmation = true
-            }
-            TlsEndpoint.createClient(encryptedEndpoint, sslContext, konfig).use { tlsClient ->
+            }.build().use { tlsClient ->
                 assertThat(sslSession).isNotNull
                 val handshake = tlsClient.handshake
                 assertThat(handshake).isNotNull
@@ -76,10 +75,11 @@ class TlsEndpointTest {
             }
             val address = InetSocketAddress(localhost, listener.localPort)
             val encryptedEndpoint = NetworkEndpoint.connectTcp(address)
-            val konfig = TlsEndpoint.configForClient().kotlin {
-                sessionInitCallback = { throw Exception() }
+            assertThatThrownBy {
+                TlsEndpoint.clientBuilder(encryptedEndpoint, sslContext).kotlin {
+                    sessionInitCallback = { throw Exception() }
+                }.build()
             }
-            assertThatThrownBy { TlsEndpoint.createClient(encryptedEndpoint, sslContext, konfig) }
                 .isInstanceOf(JayoTlsHandshakeCallbackException::class.java)
                 .hasMessage("Session initialization callback failed")
             serverThread.join()
@@ -91,7 +91,7 @@ class TlsEndpointTest {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
             val address = InetSocketAddress(localhost, listener.localPort)
             val encryptedEndpoint = NetworkEndpoint.connectTcp(address)
-            assertThatThrownBy { TlsEndpoint.createClient(encryptedEndpoint, sslContext.createSSLEngine()) }
+            assertThatThrownBy { TlsEndpoint.clientBuilder(encryptedEndpoint, sslContext.createSSLEngine()).build() }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessage("The provided SSL engine must use client mode")
         }
@@ -104,12 +104,11 @@ class TlsEndpointTest {
             var handshake: Handshake? = null
             val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
-                    val konfig = TlsEndpoint.configForServer().kotlin {
+                    TlsEndpoint.serverBuilder(serverEndpoint, sslContext).kotlin {
                         sessionInitCallback = { sslSession = it }
                         waitForCloseConfirmation = true
                         engineFactory = { it.createSSLEngine().apply { useClientMode = false } }
-                    }
-                    TlsEndpoint.createServer(serverEndpoint, sslContext, konfig).use { tlsServer ->
+                    }.build().use { tlsServer ->
                         tlsServer.writer.buffered()
                             .writeInt(42)
                             .flush()
@@ -136,10 +135,9 @@ class TlsEndpointTest {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
-                    val konfig = TlsEndpoint.configForServer().kotlin {
+                    TlsEndpoint.serverBuilder(serverEndpoint, sslContext).kotlin {
                         engineFactory = { throw Exception() }
-                    }
-                    TlsEndpoint.createServer(serverEndpoint, sslContext, konfig).use { serverTlsEndpoint ->
+                    }.build().use { serverTlsEndpoint ->
                         assertThatThrownBy {
                             serverTlsEndpoint.writer.buffered()
                                 .writeInt(42)
