@@ -1,7 +1,7 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode.Strict
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
 import kotlin.jvm.optionals.getOrNull
 
 plugins {
@@ -26,8 +26,8 @@ val koverage = mapOf(
 
 kotlin {
     compilerOptions {
-        languageVersion.set(KOTLIN_2_1)
-        apiVersion.set(KOTLIN_2_1)
+        languageVersion.set(KOTLIN_2_0)
+        apiVersion.set(KOTLIN_2_0)
         allWarningsAsErrors = true
         explicitApi = Strict
         freeCompilerArgs.addAll(
