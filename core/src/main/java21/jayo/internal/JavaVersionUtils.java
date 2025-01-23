@@ -15,7 +15,7 @@ import static java.lang.System.Logger.Level.INFO;
 /**
  * Java 21 utils
  */
-final class JavaVersionUtils {
+public final class JavaVersionUtils {
     private static final System.Logger LOGGER = System.getLogger("jayo.JavaVersionUtils");
 
     // un-instantiable
@@ -29,7 +29,7 @@ final class JavaVersionUtils {
     /**
      * Java 21 has Virtual Thread support, so we use them
      */
-    static @NonNull ThreadFactory threadBuilder(final @NonNull String prefix) {
+    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix) {
         assert prefix != null;
         return Thread.ofVirtual()
                 .name(prefix, 0)
