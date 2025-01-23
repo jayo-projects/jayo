@@ -21,21 +21,8 @@
 
 package jayo
 
-import java.util.concurrent.ThreadFactory
-
 object JayoTestUtil {
     /** See `org.graalvm.nativeimage.ImageInfo`. */
     @JvmStatic
     val isGraalVmImage = System.getProperty("org.graalvm.nativeimage.imagecode") != null
-
-    @JvmStatic
-    fun threadFactory(name: String): ThreadFactory {
-        return object : ThreadFactory {
-            private var nextId = 1
-
-            override fun newThread(runnable: Runnable): Thread {
-                return Thread(runnable, "$name-${nextId++}")
-            }
-        }
-    }
 }

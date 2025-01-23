@@ -21,7 +21,7 @@
 
 package jayo.internal.tls
 
-import jayo.JayoTestUtil.threadFactory
+import jayo.internal.JavaVersionUtils.threadFactory
 import jayo.tls.*
 import jayo.toByteString
 import org.assertj.core.api.Assertions.assertThat
