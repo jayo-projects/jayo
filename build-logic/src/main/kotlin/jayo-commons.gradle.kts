@@ -44,13 +44,10 @@ repositories {
 dependencies {
     api("org.jspecify:jspecify:${catalogVersion("jspecify")}")
 
-    testImplementation(platform("org.junit:junit-bom:${catalogVersion("junit")}"))
+    testImplementation("org.junit.jupiter:junit-jupiter:${catalogVersion("junit")}")
     testImplementation("org.assertj:assertj-core:${catalogVersion("assertj")}")
-    testImplementation("org.junit.jupiter:junit-jupiter-api")
-    testImplementation("org.junit.jupiter:junit-jupiter-params")
     testImplementation(kotlin("test"))
 
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.slf4j:slf4j-jdk-platform-logging:${catalogVersion("slf4j")}")
     testRuntimeOnly("ch.qos.logback:logback-classic:${catalogVersion("logback")}")
 }

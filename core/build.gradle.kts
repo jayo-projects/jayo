@@ -45,19 +45,17 @@ dependencies {
     compileOnly("org.bouncycastle:bctls-jdk18on:${catalogVersion("bouncycastle")}")
     compileOnly("org.conscrypt:conscrypt-openjdk-uber:${catalogVersion("conscrypt")}")
 
-    testFixturesImplementation(platform("org.junit:junit-bom:${catalogVersion("junit")}"))
-    testFixturesImplementation("org.assertj:assertj-core:${catalogVersion("assertj")}")
-    testFixturesImplementation("ch.qos.logback:logback-classic:${catalogVersion("logback")}")
-
-    testFixturesApi("org.junit.jupiter:junit-jupiter-api")
-    testFixturesApi("org.junit.jupiter:junit-jupiter-params")
+    testFixturesApi("org.junit.jupiter:junit-jupiter:${catalogVersion("junit")}")
     testFixturesApi("org.hamcrest:hamcrest:${catalogVersion("hamcrest")}")
     testFixturesApi("org.bouncycastle:bcprov-jdk18on:${catalogVersion("bouncycastle")}")
     testFixturesApi("org.conscrypt:conscrypt-openjdk-uber:${catalogVersion("conscrypt")}")
+
     // classifier for AmazonCorrettoCryptoProvider = linux-x86_64
     testFixturesApi("software.amazon.cryptools:AmazonCorrettoCryptoProvider:${catalogVersion("amazonCorretto")}:linux-x86_64")
     testFixturesImplementation("org.bouncycastle:bcpkix-jdk18on:${catalogVersion("bouncycastle")}")
     testFixturesImplementation("org.bouncycastle:bctls-jdk18on:${catalogVersion("bouncycastle")}")
+    testFixturesImplementation("org.assertj:assertj-core:${catalogVersion("assertj")}")
+    testFixturesImplementation("ch.qos.logback:logback-classic:${catalogVersion("logback")}")
 }
 
 tasks {

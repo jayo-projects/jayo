@@ -1,5 +1,4 @@
 [versions]
-
 # plugins
 # https://github.com/JetBrains/kotlin/releases
 kotlin = "2.1.0"

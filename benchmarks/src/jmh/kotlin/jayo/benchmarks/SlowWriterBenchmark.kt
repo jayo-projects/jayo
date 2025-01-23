@@ -38,7 +38,7 @@ open class SlowWriterBenchmark {
         private val OKIO_ARRAY = ByteArray(OKIO_EXPECTED_SIZE) { 0x61 }
     }
 
-    @Setup(Level.Trial)
+    @Setup
     fun setup() {
         val delayedOutputStreamJayo = object : OutputStream() {
             val bytes = ByteArray(JAYO_EXPECTED_SIZE)
@@ -89,7 +89,7 @@ open class SlowWriterBenchmark {
         }
     }
 
-    @TearDown(Level.Trial)
+    @TearDown
     fun tearDown() {
         when (type) {
             "jayo" -> jayoWriter.close()

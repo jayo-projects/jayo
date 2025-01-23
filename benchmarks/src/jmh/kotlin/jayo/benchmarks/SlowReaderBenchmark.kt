@@ -32,7 +32,7 @@ open class SlowReaderBenchmark {
         private val ARRAY = ByteArray(CHUNKS_BYTE_SIZE) { 0x61 }
     }
 
-    @Setup(Level.Trial)
+    @Setup
     fun setup() {
         val delayedInputStream = object : InputStream() {
             override fun read(): Int {
@@ -60,7 +60,7 @@ open class SlowReaderBenchmark {
         }
     }
 
-    @TearDown(Level.Trial)
+    @TearDown
     fun tearDown() {
         when (type) {
             "jayo" -> jayoReader.close()
