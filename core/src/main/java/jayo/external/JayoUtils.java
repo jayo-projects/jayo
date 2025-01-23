@@ -45,4 +45,15 @@ public final class JayoUtils {
                 ? inetSocketAddress.getHostName()
                 : address.toString();
     }
+
+    /**
+     * If {@code string} starts with the given {@code prefix}, returns a copy of this string with the prefix removed.
+     * Otherwise, returns this string.
+     */
+    public static @NonNull String removePrefix(final @NonNull String string, final @NonNull String prefix) {
+        if (string.startsWith(prefix)) {
+            return string.substring(prefix.length());
+        }
+        return string;
+    }
 }

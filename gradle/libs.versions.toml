@@ -26,29 +26,29 @@ bouncycastle = "1.80"
 # https://mvnrepository.com/artifact/org.conscrypt/conscrypt-openjdk-uber
 conscrypt = "2.5.2"
 
-# test fixtures
-# https://mvnrepository.com/artifact/org.hamcrest/hamcrest
-hamcrest = "3.0"
-# https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
-amazonCorretto = "2.4.1"
-
-# tests
+# test + test fixtures
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
 junit = "5.11.4"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
 assertj = "3.27.2"
-# https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
+# https://mvnrepository.com/artifact/org.hamcrest/hamcrest
+hamcrest = "3.0"
+# https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
+amazonCorretto = "2.4.1"
+# https://mvnrepository.com/artifact/org.slf4j/slf4j-jdk-platform-logging
 slf4j = "2.0.16"
+# https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
+logback = "1.5.16"
 
 # third-parties
 # https://github.com/Kotlin/kotlinx.serialization/releases
 kotlinxSerialization = "1.8.0"
 
 # benchmarks
-# https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-jackson = "2.18.2"
 # https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-core
 jmh = "1.37"
+# https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
+jackson = "2.18.2"
 # https://github.com/square/okio/tags
 okio = "3.10.2"
 

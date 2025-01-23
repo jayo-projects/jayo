@@ -8,6 +8,8 @@ package jayo.internal;
 import org.jspecify.annotations.NonNull;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import static java.lang.System.Logger.Level.INFO;
@@ -38,7 +40,16 @@ public final class JavaVersionUtils {
     }
 
     /**
-     * Java 21 has {thread.threadId()} final method
+     * Java 21 has Virtual Thread support, so we use them through
+     * {@link Executors#newThreadPerTaskExecutor(ThreadFactory)} with our {@link #threadFactory(String)}
+     */
+    public static @NonNull ExecutorService executorService(final @NonNull String prefix) {
+        assert prefix != null;
+        return Executors.newThreadPerTaskExecutor(threadFactory(prefix));
+    }
+
+    /**
+     * Java 21 has the {thread.threadId()} final method
      */
     static long threadId(final @NonNull Thread thread) {
         assert thread != null;
@@ -54,5 +65,13 @@ public final class JavaVersionUtils {
     static @NonNull ByteBuffer asReadOnlyBuffer(final @NonNull ByteBuffer wrap) {
         assert wrap != null;
         return wrap.asReadOnlyBuffer();
+    }
+
+    /**
+     * Java 21 has the {executor.close()} method
+     */
+    public static void close(@NonNull ExecutorService executor) {
+        assert executor != null;
+        executor.close();
     }
 }

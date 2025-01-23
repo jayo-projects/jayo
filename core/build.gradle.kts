@@ -46,6 +46,8 @@ dependencies {
     compileOnly("org.conscrypt:conscrypt-openjdk-uber:${catalogVersion("conscrypt")}")
 
     testFixturesImplementation(platform("org.junit:junit-bom:${catalogVersion("junit")}"))
+    testFixturesImplementation("org.assertj:assertj-core:${catalogVersion("assertj")}")
+    testFixturesImplementation("ch.qos.logback:logback-classic:${catalogVersion("logback")}")
 
     testFixturesApi("org.junit.jupiter:junit-jupiter-api")
     testFixturesApi("org.junit.jupiter:junit-jupiter-params")
