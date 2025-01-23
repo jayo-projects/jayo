@@ -16,7 +16,7 @@ import static java.lang.System.Logger.Level.INFO;
 /**
  * Java 17 utils
  */
-final class JavaVersionUtils {
+public final class JavaVersionUtils {
     private static final System.Logger LOGGER = System.getLogger("jayo.JavaVersionUtils");
 
     // un-instantiable
@@ -30,7 +30,7 @@ final class JavaVersionUtils {
     /**
      * Java 17 has no Virtual Thread support, so we use platform threads
      */
-    static @NonNull ThreadFactory threadBuilder(final @NonNull String prefix) {
+    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix) {
         assert prefix != null;
         return new PlatformThreadFactory(prefix);
     }

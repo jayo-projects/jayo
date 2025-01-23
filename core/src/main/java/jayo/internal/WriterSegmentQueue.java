@@ -113,7 +113,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
     final static class Async extends WriterSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.WriterSegmentQueue");
         private final static ThreadFactory SINK_EMITTER_THREAD_FACTORY =
-                JavaVersionUtils.threadBuilder("JayoWriterEmitter#");
+                JavaVersionUtils.threadFactory("JayoWriterEmitter#");
 
         /**
          * A specific STOP event that will be sent to {@link #emitEvents} queue

@@ -95,7 +95,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
     final static class Async extends ReaderSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.AsyncReaderSegmentQueue");
         private final static ThreadFactory SOURCE_CONSUMER_THREAD_FACTORY =
-                JavaVersionUtils.threadBuilder("JayoReaderConsumer#");
+                JavaVersionUtils.threadFactory("JayoReaderConsumer#");
 
         private final @NonNull Thread readerConsumerThread;
 
