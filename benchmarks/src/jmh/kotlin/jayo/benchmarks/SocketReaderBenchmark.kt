@@ -38,7 +38,7 @@ open class SocketReaderBenchmark {
         private val array = ByteArray(BYTE_COUNT) { 0x61 }
     }
 
-    @Setup(Level.Trial)
+    @Setup
     fun setup() {
         serverSocket = ServerSocket(0)
         // start sender server
@@ -92,7 +92,7 @@ open class SocketReaderBenchmark {
         }
     }
 
-    @TearDown(Level.Trial)
+    @TearDown
     fun tearDown() {
         clientOutputStream.close()
         clientSocket.close()
