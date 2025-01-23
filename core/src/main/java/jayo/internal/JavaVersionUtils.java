@@ -8,7 +8,7 @@ package jayo.internal;
 import org.jspecify.annotations.NonNull;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static java.lang.System.Logger.Level.INFO;
@@ -36,6 +36,25 @@ public final class JavaVersionUtils {
     }
 
     /**
+     * Java 17 has no Virtual Thread support, so we use pooled platform threads through
+     * {@link ThreadPoolExecutor} with our {@link #threadFactory(String)}
+     */
+    public static @NonNull ExecutorService executorService(final @NonNull String prefix) {
+        assert prefix != null;
+        return new ThreadPoolExecutor(
+                // corePoolSize:
+                0,
+                // maximumPoolSize:
+                Integer.MAX_VALUE,
+                // keepAliveTime:
+                60L,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                threadFactory(prefix)
+                );
+    }
+
+    /**
      * Java 17 has no {thread.threadId()} final method
      */
     static long threadId(final @NonNull Thread thread) {
@@ -50,6 +69,32 @@ public final class JavaVersionUtils {
     static @NonNull ByteBuffer asReadOnlyBuffer(final @NonNull ByteBuffer wrap) {
         assert wrap != null;
         return wrap; // truly sad !
+    }
+
+    /**
+     * Java 17 has no {executor.close()}, we add it here
+     */
+    public static void close(@NonNull ExecutorService executor) {
+        assert executor != null;
+
+        var terminated = executor.isTerminated();
+        if (!terminated) {
+            executor.shutdown();
+            var interrupted = false;
+            while (!terminated) {
+                try {
+                    terminated = executor.awaitTermination(1L, TimeUnit.DAYS);
+                } catch (InterruptedException e) {
+                    if (!interrupted) {
+                        executor.shutdownNow();
+                        interrupted = true;
+                    }
+                }
+            }
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     private static final class PlatformThreadFactory implements ThreadFactory {
