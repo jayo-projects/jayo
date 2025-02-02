@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-package jayo.external;
+package jayo.tools;
 
 import jayo.CancelScope;
 import jayo.JayoInterruptedIOException;
@@ -74,7 +74,7 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     <T> T withTimeout(final @NonNull CancelScope cancelScope, final @NonNull Supplier<T> block);
 
     /**
-     * @param writer              the delegate writer.
+     * @param writer the delegate writer.
      * @return a new writer that delegates to {@code writer}, using this to implement timeouts. If a timeout occurs, the
      * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
      */
@@ -82,7 +82,7 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     RawWriter writer(final @NonNull RawWriter writer);
 
     /**
-     * @param reader              the delegate reader.
+     * @param reader the delegate reader.
      * @return a new reader that delegates to {@code reader}, using this to implement timeouts. If a timeout occurs, the
      * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
      */

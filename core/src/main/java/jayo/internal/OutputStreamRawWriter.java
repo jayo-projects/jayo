@@ -24,7 +24,7 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.JayoException;
 import jayo.RawWriter;
-import jayo.external.CancelToken;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 
 import java.io.FileOutputStream;
@@ -33,7 +33,7 @@ import java.io.OutputStream;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.external.JayoUtils.checkOffsetAndCount;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class OutputStreamRawWriter implements RawWriter {
     private static final System.Logger LOGGER = System.getLogger("jayo.OutputStreamRawWriter");

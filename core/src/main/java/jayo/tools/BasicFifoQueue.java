@@ -3,7 +3,7 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.external;
+package jayo.tools;
 
 import jayo.internal.SinglyLinkedBasicFifoQueue;
 import org.jspecify.annotations.NonNull;

@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-package jayo.external;
+package jayo.tools;
 
 import org.jspecify.annotations.NonNull;
 
