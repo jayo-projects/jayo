@@ -21,7 +21,6 @@
 
 package jayo.internal;
 
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -176,26 +175,24 @@ final class Segment {
         return (@Nullable Segment) NEXT.getVolatile(this);
     }
 
-    @NonNegative
     int limit() {
         return (int) LIMIT.get(this);
     }
 
-    @NonNegative
     int limitVolatile() {
         return (int) LIMIT.getVolatile(this);
     }
 
     // Use only this non-volatile set from SegmentPool or Buffer.UnsafeCursor !
-    void limit(final @NonNegative int limit) {
+    void limit(final int limit) {
         LIMIT.set(this, limit);
     }
 
-    void limitVolatile(final @NonNegative int limit) {
+    void limitVolatile(final int limit) {
         LIMIT.setVolatile(this, limit); // test less strict than volatile
     }
 
-    void incrementLimitVolatile(final @NonNegative int increment) {
+    void incrementLimitVolatile(final int increment) {
         LIMIT.getAndAdd(this, increment); // test less strict than volatile
     }
 
@@ -301,7 +298,7 @@ final class Segment {
      * @return the new head of the queue.
      */
     @NonNull
-    Segment splitHead(final @NonNegative int byteCount) {
+    Segment splitHead(final int byteCount) {
         final Segment prefix;
 
         // We have two competing performance goals:
@@ -333,7 +330,7 @@ final class Segment {
     /**
      * Moves {@code byteCount} bytes from this segment to {@code targetSegment}.
      */
-    void writeTo(final @NonNull Segment targetSegment, final @NonNegative int byteCount) {
+    void writeTo(final @NonNull Segment targetSegment, final int byteCount) {
         Objects.requireNonNull(targetSegment);
         assert targetSegment.owner;
         var writerCurrentLimit = targetSegment.limit();
@@ -358,7 +355,7 @@ final class Segment {
     }
 
     @NonNull
-    ByteBuffer asReadByteBuffer(final @NonNegative int byteCount) {
+    ByteBuffer asReadByteBuffer(final int byteCount) {
         assert byteCount > 0;
 
         if (readByteBuffer == null) {
@@ -372,7 +369,7 @@ final class Segment {
     }
 
     @NonNull
-    ByteBuffer asWriteByteBuffer(final @NonNegative int byteCount) {
+    ByteBuffer asWriteByteBuffer(final int byteCount) {
         assert byteCount > 0;
 
         if (writeByteBuffer == null) {

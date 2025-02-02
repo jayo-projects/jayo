@@ -22,12 +22,7 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
-import jayo.InflaterRawReader;
-import jayo.RawReader;
-import jayo.JayoEOFException;
-import jayo.JayoException;
-import jayo.external.NonNegative;
+import jayo.*;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -72,7 +67,7 @@ public final class GzipRawReader implements RawReader {
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -208,8 +203,8 @@ public final class GzipRawReader implements RawReader {
     }
 
     private void updateCrc(final @NonNull SegmentQueue segmentQueue,
-                           final @NonNegative long offset,
-                           final @NonNegative long byteCount) {
+                           final long offset,
+                           final long byteCount) {
         assert segmentQueue != null;
 
         var _offset = offset;

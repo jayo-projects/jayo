@@ -23,7 +23,6 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.external.AsyncTimeout;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -115,8 +114,8 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      * If scheduled, this is the time that the watchdog should time this out.
      */
     private long timeoutAt = 0L;
-    private final @NonNegative long defaultReadTimeoutNanos;
-    private final @NonNegative long defaultWriteTimeoutNanos;
+    private final long defaultReadTimeoutNanos;
+    private final long defaultWriteTimeoutNanos;
 
     private final @NonNull Runnable onTimeout;
 
@@ -132,8 +131,8 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      *                                 write operation, only if no timeout is present in the cancellable context. It
      *                                 must be non-negative. A timeout of zero is interpreted as an infinite timeout.
      */
-    public RealAsyncTimeout(final @NonNegative long defaultReadTimeoutNanos,
-                            final @NonNegative long defaultWriteTimeoutNanos,
+    public RealAsyncTimeout(final long defaultReadTimeoutNanos,
+                            final long defaultWriteTimeoutNanos,
                             final @NonNull Runnable onTimeout) {
         assert defaultReadTimeoutNanos >= 0;
         assert defaultWriteTimeoutNanos >= 0;
@@ -214,7 +213,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         Objects.requireNonNull(writer);
         return new RawWriter() {
             @Override
-            public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+            public void write(final @NonNull Buffer reader, final long byteCount) {
                 Objects.requireNonNull(reader);
                 checkOffsetAndCount(reader.bytesAvailable(), 0, byteCount);
                 if (!(reader instanceof RealBuffer _reader)) {
@@ -315,7 +314,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         Objects.requireNonNull(reader);
         return new RawReader() {
             @Override
-            public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+            public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
                 Objects.requireNonNull(writer);
                 if (byteCount < 0L) {
                     throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
@@ -349,7 +348,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     public <T> T withTimeoutOrDefault(final @Nullable RealCancelToken cancelToken,
-                                      final @NonNegative long defaultTimeoutNanos,
+                                      final long defaultTimeoutNanos,
                                       final @NonNull Supplier<T> block) {
         assert defaultTimeoutNanos >= 0L;
         assert block != null;

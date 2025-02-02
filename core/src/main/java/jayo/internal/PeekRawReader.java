@@ -24,7 +24,6 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.RawReader;
 import jayo.Reader;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -47,7 +46,7 @@ final class PeekRawReader implements RawReader {
     private @Nullable Segment expectedSegment;
     private int expectedPos;
     private boolean closed = false;
-    private @NonNegative long pos = 0L;
+    private long pos = 0L;
 
     public PeekRawReader(final @NonNull Reader upstream) {
         this.upstream = Objects.requireNonNull(upstream);
@@ -64,7 +63,7 @@ final class PeekRawReader implements RawReader {
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0 : " + byteCount);

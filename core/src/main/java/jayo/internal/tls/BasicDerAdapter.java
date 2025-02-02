@@ -22,7 +22,6 @@
 package jayo.internal.tls;
 
 import jayo.JayoProtocolException;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -41,16 +40,16 @@ import org.jspecify.annotations.Nullable;
  */
 record BasicDerAdapter<T>(
         @NonNull String name,
-        @NonNegative int tagClass,
-        @NonNegative long tag,
+        int tagClass,
+        long tag,
         @NonNull Codec<T> codec,
         boolean isOptional,
         @Nullable T defaultValue,
         boolean typeHint
 ) implements DerAdapter<T> {
     BasicDerAdapter(final @NonNull String name,
-                    final @NonNegative int tagClass,
-                    final @NonNegative long tag,
+                    final int tagClass,
+                    final long tag,
                     final @NonNull Codec<T> codec) {
         this(name, tagClass, tag, codec, false, null, false);
     }
@@ -122,11 +121,11 @@ record BasicDerAdapter<T>(
      * </pre>
      */
     @NonNull
-    BasicDerAdapter<T> withTag(final @NonNegative int tagClass, final @NonNegative long tag) {
+    BasicDerAdapter<T> withTag(final int tagClass, final long tag) {
         return new BasicDerAdapter<>(name, tagClass, tag, codec, isOptional, defaultValue, typeHint);
     }
 
-    BasicDerAdapter<T> withTag(final @NonNegative long tag) {
+    BasicDerAdapter<T> withTag(final long tag) {
         return withTag(DerHeader.TAG_CLASS_CONTEXT_SPECIFIC, tag);
     }
 
@@ -149,7 +148,7 @@ record BasicDerAdapter<T>(
 
     @Override
     public @NonNull String toString() {
-        return name + " ["+ tagClass + "/" + tag + "]";
+        return name + " [" + tagClass + "/" + tag + "]";
     }
 
     /**

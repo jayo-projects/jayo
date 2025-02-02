@@ -25,7 +25,6 @@ import jayo.ByteString;
 import jayo.JayoException;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -53,8 +52,8 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     public RealByteString(final byte @NonNull [] data,
-                          final @NonNegative int offset,
-                          final @NonNegative int byteCount) {
+                          final int offset,
+                          final int byteCount) {
         Objects.requireNonNull(data);
         checkOffsetAndCount(data.length, offset, byteCount);
         this.data = Arrays.copyOfRange(data, offset, offset + byteCount);
@@ -114,12 +113,12 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     @Override
-    public @NonNull ByteString substring(final @NonNegative int startIndex) {
+    public @NonNull ByteString substring(final int startIndex) {
         return substring(startIndex, byteSize());
     }
 
     @Override
-    public @NonNull ByteString substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
+    public @NonNull ByteString substring(final int startIndex, final int endIndex) {
         checkSubstringParameters(startIndex, endIndex, byteSize());
         if (startIndex == 0 && endIndex == data.length) {
             return this;
@@ -128,12 +127,12 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     @Override
-    public byte getByte(final @NonNegative int index) {
+    public byte getByte(final int index) {
         return data[index];
     }
 
     @Override
-    public @NonNegative int byteSize() {
+    public int byteSize() {
         return data.length;
     }
 
@@ -165,32 +164,32 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
      * Writes the contents of this byte string to {@code buffer}.
      */
     void write(final @NonNull RealBuffer buffer,
-               final @NonNegative int offset,
-               final @NonNegative int byteCount) {
+               final int offset,
+               final int byteCount) {
         Objects.requireNonNull(buffer).write(data, offset, byteCount);
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative int offset,
+    public boolean rangeEquals(final int offset,
                                final @NonNull ByteString other,
-                               final @NonNegative int otherOffset,
-                               final @NonNegative int byteCount) {
+                               final int otherOffset,
+                               final int byteCount) {
         return Objects.requireNonNull(other).rangeEquals(otherOffset, this.data, offset, byteCount);
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative int offset,
+    public boolean rangeEquals(final int offset,
                                final byte @NonNull [] other,
-                               final @NonNegative int otherOffset,
-                               final @NonNegative int byteCount) {
+                               final int otherOffset,
+                               final int byteCount) {
         return rangeEqualsStatic(data, offset, other, otherOffset, byteCount);
     }
 
     @Override
-    public void copyInto(final @NonNegative int offset,
+    public void copyInto(final int offset,
                          final byte @NonNull [] target,
-                         final @NonNegative int targetOffset,
-                         final @NonNegative int byteCount) {
+                         final int targetOffset,
+                         final int byteCount) {
         Objects.requireNonNull(target);
         System.arraycopy(data, offset, target, targetOffset, byteCount);
     }
@@ -221,7 +220,7 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     @Override
-    public int indexOf(final @NonNull ByteString other, final @NonNegative int startIndex) {
+    public int indexOf(final @NonNull ByteString other, final int startIndex) {
         return indexOf(Utils.internalArray(other), startIndex);
     }
 
@@ -231,7 +230,7 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     @Override
-    public int indexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public int indexOf(final byte @NonNull [] other, final int startIndex) {
         return indexOfStatic(data, other, startIndex);
     }
 
@@ -241,7 +240,7 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     @Override
-    public int lastIndexOf(final @NonNull ByteString other, final @NonNegative int startIndex) {
+    public int lastIndexOf(final @NonNull ByteString other, final int startIndex) {
         return lastIndexOf(Utils.internalArray(other), startIndex);
     }
 
@@ -251,7 +250,7 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     @Override
-    public int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public int lastIndexOf(final byte @NonNull [] other, final int startIndex) {
         return lastIndexOfStatic(data, other, startIndex);
     }
 

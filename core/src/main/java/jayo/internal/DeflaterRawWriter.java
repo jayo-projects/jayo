@@ -23,9 +23,8 @@
 package jayo.internal;
 
 import jayo.Buffer;
-import jayo.RawWriter;
 import jayo.JayoException;
-import jayo.external.NonNegative;
+import jayo.RawWriter;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -47,7 +46,7 @@ public final class DeflaterRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+    public void write(final @NonNull Buffer reader, final long byteCount) {
         Objects.requireNonNull(reader);
         checkOffsetAndCount(reader.bytesAvailable(), 0, byteCount);
         if (!(reader instanceof RealBuffer _reader)) {

@@ -24,7 +24,6 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.external.CancelToken;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -63,7 +62,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -116,7 +115,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
     }
 
     @Override
-    public long readOrInflateAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    public long readOrInflateAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);

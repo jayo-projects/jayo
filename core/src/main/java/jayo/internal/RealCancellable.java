@@ -6,7 +6,6 @@
 package jayo.internal;
 
 import jayo.CancelScope;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -14,13 +13,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class RealCancellable {
-    private final @NonNegative long timeoutNanos;
+    private final long timeoutNanos;
 
     public RealCancellable() {
         this(0L);
     }
 
-    public RealCancellable(final @NonNegative long timeoutNanos) {
+    public RealCancellable(final long timeoutNanos) {
         this.timeoutNanos = timeoutNanos;
     }
 

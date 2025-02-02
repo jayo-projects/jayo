@@ -24,7 +24,6 @@ package jayo.internal;
 import jayo.*;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -69,7 +68,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative long bytesAvailable() {
+    public long bytesAvailable() {
         return segmentQueue.size();
     }
 
@@ -94,14 +93,14 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer copyTo(final @NonNull OutputStream out, final @NonNegative long offset) {
+    public @NonNull Buffer copyTo(final @NonNull OutputStream out, final long offset) {
         return copyTo(out, offset, bytesAvailable() - offset);
     }
 
     @Override
     public @NonNull Buffer copyTo(final @NonNull OutputStream out,
-                                  final @NonNegative long offset,
-                                  final @NonNegative long byteCount) {
+                                  final long offset,
+                                  final long byteCount) {
         Objects.requireNonNull(out);
         checkOffsetAndCount(bytesAvailable(), offset, byteCount);
         if (byteCount == 0L) {
@@ -145,14 +144,14 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer copyTo(final @NonNull Buffer out, final @NonNegative long offset) {
+    public @NonNull Buffer copyTo(final @NonNull Buffer out, final long offset) {
         return copyTo(out, offset, bytesAvailable() - offset);
     }
 
     @Override
     public @NonNull Buffer copyTo(final @NonNull Buffer out,
-                                  final @NonNegative long offset,
-                                  final @NonNegative long byteCount) {
+                                  final long offset,
+                                  final long byteCount) {
         Objects.requireNonNull(out);
         checkOffsetAndCount(bytesAvailable(), offset, byteCount);
         if (!(out instanceof RealBuffer _out)) {
@@ -201,7 +200,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer readTo(final @NonNull OutputStream out, final @NonNegative long byteCount) {
+    public @NonNull Buffer readTo(final @NonNull OutputStream out, final long byteCount) {
         Objects.requireNonNull(out);
         checkOffsetAndCount(segmentQueue.size(), 0L, byteCount);
         if (byteCount == 0L) {
@@ -249,7 +248,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull InputStream input, final @NonNegative long byteCount) {
+    public @NonNull Buffer write(final @NonNull InputStream input, final long byteCount) {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
         }
@@ -258,7 +257,7 @@ public final class RealBuffer implements Buffer {
     }
 
     private void write(final @NonNull InputStream in,
-                       final @NonNegative long byteCount,
+                       final long byteCount,
                        final boolean forever) {
         Objects.requireNonNull(in);
         final var _byteCount = new Wrapper.Long(byteCount);
@@ -290,7 +289,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative long completeSegmentByteCount() {
+    public long completeSegmentByteCount() {
         // Omit the tail if it's still writable.
         final var tail = segmentQueue.nonRemovedTailOrNull();
         if (tail == null) {
@@ -309,7 +308,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public byte getByte(final @NonNegative long pos) {
+    public byte getByte(final long pos) {
         checkOffsetAndCount(segmentQueue.size(), pos, 1L);
         return seek(pos, (segment, offset) -> segment.data[(int) (segment.pos + pos - offset)]);
     }
@@ -321,7 +320,7 @@ public final class RealBuffer implements Buffer {
 
 
     @Override
-    public boolean request(final @NonNegative long byteCount) {
+    public boolean request(final long byteCount) {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
@@ -329,7 +328,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void require(final @NonNegative long byteCount) {
+    public void require(final long byteCount) {
         if (!request(byteCount)) {
             throw new JayoEOFException();
         }
@@ -603,7 +602,7 @@ public final class RealBuffer implements Buffer {
     private static final int SEGMENTING_THRESHOLD = 4096;
 
     @Override
-    public @NonNull ByteString readByteString(final @NonNegative long byteCount) {
+    public @NonNull ByteString readByteString(final long byteCount) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
@@ -629,7 +628,7 @@ public final class RealBuffer implements Buffer {
         }
     }
 
-    private @NonNull ByteStringBuilder prepareByteString(final @NonNegative long byteCount) {
+    private @NonNull ByteStringBuilder prepareByteString(final long byteCount) {
         final var byteStringBuilder = new ByteStringBuilder();
         var head = segmentQueue.head();
         var offset = 0;
@@ -685,7 +684,7 @@ public final class RealBuffer implements Buffer {
         return readUtf8(segmentQueue.size());
     }
 
-    public @NonNull Utf8 readUtf8(final @NonNegative long byteCount) {
+    public @NonNull Utf8 readUtf8(final long byteCount) {
         return readUtf8Private(byteCount, false);
     }
 
@@ -694,11 +693,11 @@ public final class RealBuffer implements Buffer {
         return readAscii(segmentQueue.size());
     }
 
-    public @NonNull Utf8 readAscii(final @NonNegative long byteCount) {
+    public @NonNull Utf8 readAscii(final long byteCount) {
         return readUtf8Private(byteCount, true);
     }
 
-    private @NonNull Utf8 readUtf8Private(final @NonNegative long byteCount, final boolean isAscii) {
+    private @NonNull Utf8 readUtf8Private(final long byteCount, final boolean isAscii) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
@@ -746,7 +745,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void readTo(final @NonNull RawWriter writer, final @NonNegative long byteCount) {
+    public void readTo(final @NonNull RawWriter writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
@@ -762,7 +761,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative long transferTo(final @NonNull RawWriter writer) {
+    public long transferTo(final @NonNull RawWriter writer) {
         Objects.requireNonNull(writer);
         final var byteCount = segmentQueue.size();
         if (byteCount > 0L) {
@@ -777,7 +776,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull String readString(final @NonNegative long byteCount) {
+    public @NonNull String readString(final long byteCount) {
         return readString(byteCount, StandardCharsets.UTF_8);
     }
 
@@ -787,7 +786,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull String readString(final @NonNegative long byteCount, final @NonNull Charset charset) {
+    public @NonNull String readString(final long byteCount, final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
@@ -840,7 +839,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull String readLineStrict(final @NonNegative long limit) {
+    public @NonNull String readLineStrict(final long limit) {
         if (limit < 0L) {
             throw new IllegalArgumentException("limit < 0: " + limit);
         }
@@ -863,7 +862,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative int readUtf8CodePoint() {
+    public int readUtf8CodePoint() {
         if (segmentQueue.size() == 0L) {
             throw new JayoEOFException();
         }
@@ -936,7 +935,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public byte @NonNull [] readByteArray(final @NonNegative long byteCount) {
+    public byte @NonNull [] readByteArray(final long byteCount) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
@@ -952,7 +951,7 @@ public final class RealBuffer implements Buffer {
         return readByteArray(head, (int) byteCount);
     }
 
-    private byte @NonNull [] readByteArray(final @NonNull Segment head, final @NonNegative int byteCount) {
+    private byte @NonNull [] readByteArray(final @NonNull Segment head, final int byteCount) {
         final var result = new byte[byteCount];
         readTo(head, result, 0, byteCount);
         return result;
@@ -965,8 +964,8 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public void readTo(final byte @NonNull [] writer,
-                       final @NonNegative int offset,
-                       final @NonNegative int byteCount) {
+                       final int offset,
+                       final int byteCount) {
         Objects.requireNonNull(writer);
         checkOffsetAndCount(writer.length, offset, byteCount);
 
@@ -977,8 +976,8 @@ public final class RealBuffer implements Buffer {
 
     private void readTo(final @NonNull Segment head,
                         final byte @NonNull [] writer,
-                        final @NonNegative int offset,
-                        final @NonNegative int byteCount) {
+                        final int offset,
+                        final int byteCount) {
         var _head = head;
         var _offset = offset;
         final var toWrite = (int) Math.min(byteCount, segmentQueue.size());
@@ -1007,8 +1006,8 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public int readAtMostTo(final byte @NonNull [] writer,
-                            final @NonNegative int offset,
-                            final @NonNegative int byteCount) {
+                            final int offset,
+                            final int byteCount) {
         Objects.requireNonNull(writer);
         checkOffsetAndCount(writer.length, offset, byteCount);
 
@@ -1026,9 +1025,9 @@ public final class RealBuffer implements Buffer {
 
     private @Nullable Segment readAtMostTo(final @NonNull Segment head,
                                            final byte @NonNull [] writer,
-                                           final @NonNegative int offset,
-                                           final @NonNegative int byteCount,
-                                           final @NonNegative int currentLimit) {
+                                           final int offset,
+                                           final int byteCount,
+                                           final int currentLimit) {
         final var toCopy = Math.min(byteCount, currentLimit - head.pos);
         System.arraycopy(head.data, head.pos, writer, offset, toCopy);
         head.pos += toCopy;
@@ -1080,7 +1079,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void skip(final @NonNegative long byteCount) {
+    public void skip(final long byteCount) {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
@@ -1094,7 +1093,7 @@ public final class RealBuffer implements Buffer {
         }
     }
 
-    void skipInternal(final @NonNegative long byteCount) {
+    void skipInternal(final long byteCount) {
         if (byteCount == 0L) {
             return;
         }
@@ -1145,8 +1144,8 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer write(final @NonNull ByteString byteString,
-                                 final @NonNegative int offset,
-                                 final @NonNegative int byteCount) {
+                                 final int offset,
+                                 final int byteCount) {
         Objects.requireNonNull(byteString);
         if (byteString instanceof RealByteString _byteString) {
             _byteString.write(this, offset, byteCount);
@@ -1166,8 +1165,8 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer write(final @NonNull CharSequence charSequence,
-                                 final @NonNegative int startIndex,
-                                 final @NonNegative int endIndex) {
+                                 final int startIndex,
+                                 final int endIndex) {
         Objects.requireNonNull(charSequence);
         if (endIndex < startIndex) {
             throw new IllegalArgumentException("endIndex < beginIndex: " + endIndex + " < " + startIndex);
@@ -1210,8 +1209,8 @@ public final class RealBuffer implements Buffer {
      * Transcode a ISO_8859_1-encoded byte array to UTF-8 bytes.
      */
     private void writeLatin1ToUtf8(final byte @NonNull [] stringBytes,
-                                   final @NonNegative int startIndex,
-                                   final @NonNegative int endIndex) {
+                                   final int startIndex,
+                                   final int endIndex) {
         final var i = new Wrapper.Int(startIndex);
         while (i.value < endIndex) {
             // We require at least 2 writable bytes in the tail to write one ISO_8859_1 byte of this byte array : the
@@ -1325,7 +1324,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer writeUtf8CodePoint(final @NonNegative int codePoint) {
+    public @NonNull Buffer writeUtf8CodePoint(final int codePoint) {
         if (codePoint < 0x80) {
             // Emit a 7-bit code point with 1 byte.
             writeByte((byte) codePoint);
@@ -1379,8 +1378,8 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer write(final @NonNull String string,
-                                 final @NonNegative int startIndex,
-                                 final @NonNegative int endIndex,
+                                 final int startIndex,
+                                 final int endIndex,
                                  final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         if (startIndex < 0) {
@@ -1415,8 +1414,8 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull Buffer write(final byte @NonNull [] source,
-                                 final @NonNegative int offset,
-                                 final @NonNegative int byteCount) {
+                                 final int offset,
+                                 final int byteCount) {
         checkOffsetAndCount(Objects.requireNonNull(source).length, offset, byteCount);
 
         final var limit = offset + byteCount;
@@ -1445,7 +1444,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative int transferFrom(final @NonNull ByteBuffer reader) {
+    public int transferFrom(final @NonNull ByteBuffer reader) {
         final var byteCount = Objects.requireNonNull(reader).remaining();
         final var remaining = new Wrapper.Int(byteCount);
         while (remaining.value > 0) {
@@ -1462,7 +1461,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNegative long transferFrom(final @NonNull RawReader reader) {
+    public long transferFrom(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
         var totalBytesRead = 0L;
         while (true) {
@@ -1476,7 +1475,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount) {
+    public @NonNull Buffer write(final @NonNull RawReader reader, final long byteCount) {
         Objects.requireNonNull(reader);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -1671,7 +1670,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+    public void write(final @NonNull Buffer reader, final long byteCount) {
         // Move bytes from the head of the reader buffer to the tail of this buffer in the most possible effective way !
         // This method is the most crucial part of the Jayo concept based on Buffer = a queue of segments.
         //
@@ -1920,7 +1919,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -1929,10 +1928,7 @@ public final class RealBuffer implements Buffer {
         if (size == 0L) {
             return -1L;
         }
-        var _byteCount = byteCount;
-        if (byteCount > size) {
-            _byteCount = size;
-        }
+        final var _byteCount = Math.min(byteCount, size);
         writer.write(this, _byteCount);
         return _byteCount;
     }
@@ -1943,23 +1939,18 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public long indexOf(final byte b, final @NonNegative long startIndex) {
+    public long indexOf(final byte b, final long startIndex) {
         return indexOf(b, startIndex, Long.MAX_VALUE);
     }
 
     @Override
-    public long indexOf(final byte b, final @NonNegative long startIndex, final @NonNegative long endIndex) {
+    public long indexOf(final byte b, final long startIndex, final long endIndex) {
         if (startIndex < 0 || startIndex > endIndex) {
             throw new IllegalArgumentException("size=" + segmentQueue.size() + " startIndex=" + startIndex
                     + " endIndex=" + endIndex);
         }
 
-        final long _endIndex;
-        if (endIndex > segmentQueue.size()) {
-            _endIndex = segmentQueue.size();
-        } else {
-            _endIndex = endIndex;
-        }
+        final long _endIndex = Math.min(endIndex, segmentQueue.size());
         if (startIndex >= _endIndex) {
             return -1L;
         }
@@ -2006,7 +1997,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public long indexOf(final @NonNull ByteString byteString, final @NonNegative long startIndex) {
+    public long indexOf(final @NonNull ByteString byteString, final long startIndex) {
         if (Objects.requireNonNull(byteString).isEmpty()) {
             return 0L;
         }
@@ -2057,7 +2048,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public long indexOfElement(final @NonNull ByteString targetBytes, final @NonNegative long startIndex) {
+    public long indexOfElement(final @NonNull ByteString targetBytes, final long startIndex) {
         if (startIndex < 0L) {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
         }
@@ -2127,15 +2118,15 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative long offset, final @NonNull ByteString byteString) {
+    public boolean rangeEquals(final long offset, final @NonNull ByteString byteString) {
         return rangeEquals(offset, byteString, 0, byteString.byteSize());
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative long offset,
+    public boolean rangeEquals(final long offset,
                                final @NonNull ByteString byteString,
-                               final @NonNegative int bytesOffset,
-                               final @NonNegative int byteCount) {
+                               final int bytesOffset,
+                               final int byteCount) {
         Objects.requireNonNull(byteString);
         if (offset < 0L ||
                 bytesOffset < 0 ||
@@ -2267,7 +2258,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull ByteString snapshot(final @NonNegative int byteCount) {
+    public @NonNull ByteString snapshot(final int byteCount) {
         if (byteCount == 0) {
             return ByteString.EMPTY;
         }
@@ -2282,7 +2273,7 @@ public final class RealBuffer implements Buffer {
         return new SegmentedByteString(segments, directory);
     }
 
-    private @NonNegative int checkAndCountSegments(final @NonNegative int byteCount) {
+    private int checkAndCountSegments(final int byteCount) {
         checkOffsetAndCount(segmentQueue.size(), 0L, byteCount);
 
         var offset = 0;
@@ -2470,12 +2461,12 @@ public final class RealBuffer implements Buffer {
             }
 
             @Override
-            public byte @NonNull [] readNBytes(final @NonNegative int len) {
+            public byte @NonNull [] readNBytes(final int len) {
                 return readByteArray(len);
             }
 
             @Override
-            public @NonNegative long skip(final @NonNegative long byteCount) {
+            public long skip(final long byteCount) {
                 if (byteCount < 0L) {
                     return 0L;
                 }
@@ -2549,7 +2540,7 @@ public final class RealBuffer implements Buffer {
         }
 
         @Override
-        public int seek(final @NonNegative long offset) {
+        public int seek(final long offset) {
             checkHasBuffer();
             if (!(buffer instanceof RealBuffer _buffer)) {
                 throw new IllegalStateException("buffer must be an instance of RealBuffer");
@@ -2647,7 +2638,7 @@ public final class RealBuffer implements Buffer {
         }
 
         @Override
-        public @NonNegative long resizeBuffer(final long newSize) {
+        public long resizeBuffer(final long newSize) {
             checkHasBuffer();
             if (!readWrite) {
                 throw new IllegalStateException("resizeBuffer() is only permitted for read/write buffers");
@@ -2719,7 +2710,7 @@ public final class RealBuffer implements Buffer {
         }
 
         @Override
-        public long expandBuffer(final @NonNegative int minByteCount) {
+        public long expandBuffer(final int minByteCount) {
             if (minByteCount <= 0L) {
                 throw new IllegalArgumentException("minByteCount <= 0: " + minByteCount);
             }
