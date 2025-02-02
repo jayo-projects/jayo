@@ -22,7 +22,7 @@
 package jayo.internal;
 
 import jayo.Cancellable;
-import jayo.external.AsyncTimeout;
+import jayo.tools.AsyncTimeout;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -134,12 +134,12 @@ public final class AsyncTimeoutTest {
             Cancellable.run(Duration.ofMillis(75), cancelScope2 ->
                     Cancellable.run(Duration.ofMillis(50), cancelScope3 ->
                             Cancellable.run(Duration.ofMillis(25), cancelScope4 -> {
-                        try {
-                            Thread.sleep(125);
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })));
+                                try {
+                                    Thread.sleep(125);
+                                } catch (InterruptedException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            })));
         });
         assertTrue(a.exit());
         assertTrue(b.exit());

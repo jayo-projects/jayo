@@ -40,10 +40,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.UnsafeUtils.*;
 import static jayo.internal.Utils.HEX_DIGIT_CHARS;
 import static jayo.internal.Utils.arrayRangeEquals;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public sealed class BaseByteString implements ByteString permits RealUtf8, SegmentedByteString {
     @Serial

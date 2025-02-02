@@ -34,9 +34,9 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.ReaderSegmentQueue.newReaderSegmentQueue;
 import static jayo.internal.ReaderSegmentQueue.newSyncReaderSegmentQueue;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class RealReader implements Reader {
     private static final long INTEGER_MAX_PLUS_1 = (long) Integer.MAX_VALUE + 1;

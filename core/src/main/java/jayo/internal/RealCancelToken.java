@@ -24,7 +24,7 @@ package jayo.internal;
 import jayo.CancelScope;
 import jayo.JayoInterruptedIOException;
 import jayo.JayoTimeoutException;
-import jayo.external.CancelToken;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;

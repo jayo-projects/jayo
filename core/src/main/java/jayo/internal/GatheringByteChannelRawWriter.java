@@ -9,7 +9,7 @@ import jayo.Buffer;
 import jayo.JayoClosedResourceException;
 import jayo.JayoException;
 import jayo.RawWriter;
-import jayo.external.CancelToken;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -20,8 +20,8 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.RealAsyncTimeout.TIMEOUT_WRITE_SIZE;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class GatheringByteChannelRawWriter implements RawWriter {
     private static final System.Logger LOGGER = System.getLogger("jayo.ScatteringByteChannelRawWriter");

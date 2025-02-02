@@ -36,10 +36,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.BaseByteString.*;
 import static jayo.internal.UnsafeUtils.noCopyStringFromLatin1Bytes;
 import static jayo.internal.Utils.HEX_DIGIT_CHARS;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final /*Valhalla 'primitive class' or at least 'value class'*/ class RealByteString implements ByteString {
     @Serial

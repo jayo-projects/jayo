@@ -21,8 +21,8 @@
 
 package jayo.internal.scheduling;
 
-import jayo.external.BasicFifoQueue;
 import jayo.scheduling.TaskRunner;
+import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 
 import java.util.PriorityQueue;

@@ -5,7 +5,7 @@
 
 package jayo.internal;
 
-import jayo.external.BasicFifoQueue;
+import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 

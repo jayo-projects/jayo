@@ -1,8 +1,8 @@
 package jayo.internal
 
-import jayo.external.BasicFifoQueue
-import org.junit.jupiter.api.Test
+import jayo.tools.BasicFifoQueue
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 
 class BasicFifoQueueTest {
     @Test
@@ -12,7 +12,7 @@ class BasicFifoQueueTest {
         assertThat(queue.offer(2)).isFalse
         assertThat(queue.offer(3)).isFalse
     }
-    
+
     @Test
     fun testIterator() {
         val queue = BasicFifoQueue.create<Int>()

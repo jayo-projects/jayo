@@ -46,12 +46,12 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Segment.TRANSFERRING;
 import static jayo.internal.Segment.WRITING;
 import static jayo.internal.UnsafeUtils.*;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 import static jayo.internal.Utils.*;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 
 public final class RealBuffer implements Buffer {

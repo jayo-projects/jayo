@@ -22,7 +22,7 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.external.AsyncTimeout;
+import jayo.tools.AsyncTimeout;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -34,7 +34,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
-import static jayo.external.JayoUtils.checkOffsetAndCount;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 /**
  * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to implement

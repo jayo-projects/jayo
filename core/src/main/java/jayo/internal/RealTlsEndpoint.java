@@ -34,8 +34,8 @@ import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class RealTlsEndpoint {
     private static final System.Logger LOGGER = System.getLogger("jayo.tls.TlsEndpoint");

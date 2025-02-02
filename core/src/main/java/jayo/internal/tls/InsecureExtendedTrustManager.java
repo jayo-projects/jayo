@@ -21,7 +21,7 @@
 
 package jayo.internal.tls;
 
-import jayo.external.JayoUtils;
+import jayo.tools.JayoUtils;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLEngine;

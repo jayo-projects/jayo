@@ -34,8 +34,8 @@ import java.io.Serial;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.Utils.arrayRangeEquals;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 /**
  * An immutable byte string composed of segments. This class exists to implement
