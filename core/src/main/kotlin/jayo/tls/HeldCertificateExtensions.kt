@@ -8,7 +8,6 @@
 package jayo.tls
 
 import jayo.JayoDslMarker
-import jayo.external.NonNegative
 import jayo.tls.HeldCertificate.CertificateKeyFormat
 import java.math.BigInteger
 import java.security.KeyPair
@@ -143,7 +142,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
      * sign intermediate certificates that can themselves sign certificates. Add one for each additional layer of
      * intermediates to permit.
      */
-    public fun certificateAuthority(@NonNegative maxIntermediateCas: Int) {
+    public fun certificateAuthority(maxIntermediateCas: Int) {
         builder.certificateAuthority(maxIntermediateCas)
     }
 

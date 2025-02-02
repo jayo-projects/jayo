@@ -5,9 +5,8 @@
 
 package jayo.internal;
 
-import jayo.RawReader;
 import jayo.JayoInterruptedIOException;
-import jayo.external.NonNegative;
+import jayo.RawReader;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -60,7 +59,6 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
     }
 
     @Override
-    @NonNegative
     long expectSize(final long expectedSize) {
         assert expectedSize > 0L;
         // fast-path : current size is enough
@@ -102,7 +100,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         private volatile @Nullable RuntimeException exception = null;
 
         // non-volatile because always used inside the lock
-        private @NonNegative long expectedSize = 0;
+        private long expectedSize = 0;
         private final ReentrantLock lock = new ReentrantLock();
         private final Condition expectingSize = lock.newCondition();
         // when reader is temporarily exhausted or the segment queue is full
@@ -115,7 +113,6 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             readerConsumerThread.start();
         }
 
-        @NonNegative
         long size() {
             throwIfNeeded();
             return super.size();
@@ -130,7 +127,6 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             }
         }
 
-        @NonNegative
         long expectSize(final long expectedSize) {
             assert expectedSize > 0L;
             // fast-path : current size is enough

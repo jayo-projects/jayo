@@ -22,12 +22,12 @@
 package jayo.internal.tls;
 
 import jayo.ByteString;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 /**
  * Like a {@link ByteString}, but whose bits are not necessarily a strict multiple of 8.
+ *
  * @param unusedBitsCount 0-7 unused bits in the last byte.
  */
-record BitString(@NonNull ByteString byteString, @NonNegative byte unusedBitsCount) {
+record BitString(@NonNull ByteString byteString, byte unusedBitsCount) {
 }

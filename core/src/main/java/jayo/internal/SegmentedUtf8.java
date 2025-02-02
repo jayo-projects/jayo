@@ -23,7 +23,6 @@ package jayo.internal;
 
 import jayo.JayoCharacterCodingException;
 import jayo.Utf8;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.io.Serial;
@@ -148,7 +147,7 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
                 return segments[segmentIndex].data[byteIndexInSegment];
             }
 
-            private void advance(final @NonNegative int increment) {
+            private void advance(final int increment) {
                 byteIndex += increment;
                 if (byteIndex < nextSegmentOffset) {
                     // we stay in current segment
@@ -186,12 +185,12 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
 
     @Override
     @NonNull
-    public Utf8 substring(final @NonNegative int startIndex) {
+    public Utf8 substring(final int startIndex) {
         return substring(startIndex, byteSize());
     }
 
     @Override
-    public @NonNull Utf8 substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
+    public @NonNull Utf8 substring(final int startIndex, final int endIndex) {
         checkSubstringParameters(startIndex, endIndex, byteSize());
         if (startIndex == 0 && endIndex == byteSize()) {
             return this;

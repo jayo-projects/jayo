@@ -21,7 +21,6 @@
 
 package jayo.tls;
 
-import jayo.external.NonNegative;
 import jayo.internal.tls.RealHeldCertificate;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -242,7 +241,7 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
          * additional layer of intermediates to permit.
          */
         @NonNull
-        Builder certificateAuthority(final @NonNegative int maxIntermediateCas);
+        Builder certificateAuthority(final int maxIntermediateCas);
 
         /**
          * Set the certificate key format. If unset the certificate will use
@@ -271,9 +270,9 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
         RSA_2048("RSA", 2048);
 
         private final @NonNull String keyAlgorithm;
-        private final @NonNegative int keySize;
+        private final int keySize;
 
-        CertificateKeyFormat(final @NonNull String keyAlgorithm, final @NonNegative int keySize) {
+        CertificateKeyFormat(final @NonNull String keyAlgorithm, final int keySize) {
             assert keyAlgorithm != null;
 
             this.keyAlgorithm = keyAlgorithm;

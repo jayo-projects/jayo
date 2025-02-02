@@ -25,7 +25,6 @@
 
 package jayo;
 
-import jayo.external.NonNegative;
 import jayo.internal.RealReader;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -88,7 +87,6 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * reader.
      * @throws JayoClosedResourceException if this reader is closed.
      */
-    @NonNegative
     long bytesAvailable();
 
     /**
@@ -110,7 +108,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    boolean request(final @NonNegative long byteCount);
+    boolean request(final long byteCount);
 
     /**
      * Reads and discards {@code byteCount} bytes from this reader.
@@ -121,7 +119,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    void skip(final @NonNegative long byteCount);
+    void skip(final long byteCount);
 
     /**
      * Attempts to fill the buffer with at least {@code byteCount} bytes of data from the underlying reader and throw
@@ -134,7 +132,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    void require(final @NonNegative long byteCount);
+    void require(final long byteCount);
 
     /**
      * Removes a byte from this reader and returns it.
@@ -336,7 +334,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    byte @NonNull [] readByteArray(final @NonNegative long byteCount);
+    byte @NonNull [] readByteArray(final long byteCount);
 
     /**
      * Removes all bytes from this reader and returns them as a byte string.
@@ -357,7 +355,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
-    ByteString readByteString(final @NonNegative long byteCount);
+    ByteString readByteString(final long byteCount);
 
     /**
      * Removes all UTF-8 bytes from this reader and returns them as a UTF-8 byte string.
@@ -378,7 +376,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
-    Utf8 readUtf8(final @NonNegative long byteCount);
+    Utf8 readUtf8(final long byteCount);
 
     /**
      * Removes all ASCII bytes from this reader and returns them as a UTF-8 byte string internally tagged as ASCII.
@@ -400,7 +398,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
-    Utf8 readAscii(final @NonNegative long byteCount);
+    Utf8 readAscii(final long byteCount);
 
     /**
      * Removes all bytes from this reader, decodes them as UTF-8, and returns the string. Returns the empty string if
@@ -452,7 +450,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
-    String readString(final @NonNegative long byteCount);
+    String readString(final long byteCount);
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break. A line break is
@@ -529,7 +527,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
-    String readLineStrict(final @NonNegative long limit);
+    String readLineStrict(final long limit);
 
     /**
      * Removes and returns a single UTF-8 code point, reading between 1 and 4 bytes as necessary.
@@ -546,7 +544,6 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws JayoEOFException            when the reader is exhausted before a complete code point can be read.
      * @throws JayoClosedResourceException if this reader is closed.
      */
-    @NonNegative
     int readUtf8CodePoint();
 
     /**
@@ -599,7 +596,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
-    String readString(final @NonNegative long byteCount, final @NonNull Charset charset);
+    String readString(final long byteCount, final @NonNull Charset charset);
 
     /**
      * Removes up to {@code writer.length} bytes from this reader and copies them into {@code writer}.
@@ -621,7 +618,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *                                   indices.
      * @throws IllegalStateException     if this reader is closed.
      */
-    int readAtMostTo(final byte @NonNull [] writer, final @NonNegative int offset, final @NonNegative int byteCount);
+    int readAtMostTo(final byte @NonNull [] writer, final int offset, final int byteCount);
 
     /**
      * Removes exactly {@code writer.length} bytes from this reader and copies them into {@code writer}.
@@ -643,7 +640,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws JayoEOFException          if {@code byteCount} bytes cannot be read.
      * @throws IllegalStateException     if this reader is closed.
      */
-    void readTo(final byte @NonNull [] writer, final @NonNegative int offset, final @NonNegative int byteCount);
+    void readTo(final byte @NonNull [] writer, final int offset, final int byteCount);
 
     /**
      * Removes exactly {@code byteCount} bytes from this and appends them to {@code writer}.
@@ -653,7 +650,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws JayoEOFException            if {@code byteCount} bytes cannot be read.
      * @throws JayoClosedResourceException if this reader or {@code writer} is closed.
      */
-    void readTo(final @NonNull RawWriter writer, final @NonNegative long byteCount);
+    void readTo(final @NonNull RawWriter writer, final long byteCount);
 
     /**
      * Removes all bytes from this reader and appends them to {@code writer}.
@@ -662,7 +659,6 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @return the total number of bytes written to {@code writer} which will be {@code 0L} if this reader is exhausted.
      * @throws IllegalStateException when this reader or {@code writer} is closed.
      */
-    @NonNegative
     long transferTo(final @NonNull RawWriter writer);
 
     /**
@@ -706,7 +702,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    long indexOf(final byte b, final @NonNegative long startIndex);
+    long indexOf(final byte b, final long startIndex);
 
     /**
      * Returns the index of {@code b} first occurrence in this reader in the range of {@code startIndex} to
@@ -732,7 +728,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException when {@code startIndex > endIndex} or either of indexes is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    long indexOf(final byte b, final @NonNegative long startIndex, final @NonNegative long endIndex);
+    long indexOf(final byte b, final long startIndex, final long endIndex);
 
     /**
      * Returns the index of the first match for {@code byteString} in this reader, or {@code -1} if it doesn't contain
@@ -760,7 +756,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    long indexOf(final @NonNull ByteString byteString, final @NonNegative long startIndex);
+    long indexOf(final @NonNull ByteString byteString, final long startIndex);
 
     /**
      * Returns the first index in this reader that contains any of the bytes in {@code targetBytes}, or -1 if the stream
@@ -808,7 +804,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @throws IllegalStateException    if this reader is closed.
      */
-    long indexOfElement(final @NonNull ByteString targetBytes, final @NonNegative long startIndex);
+    long indexOfElement(final @NonNull ByteString targetBytes, final long startIndex);
 
     /**
      * Returns true if the bytes starting at {@code offset} in this reader equal the bytes of {@code byteString}.
@@ -833,7 +829,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws IndexOutOfBoundsException if {@code offset} is out of range of this reader's indices.
      * @throws IllegalStateException     if this reader is closed.
      */
-    boolean rangeEquals(final @NonNegative long offset, final @NonNull ByteString byteString);
+    boolean rangeEquals(final long offset, final @NonNull ByteString byteString);
 
     /**
      * Returns true if {@code byteCount} bytes starting at {@code offset} in this reader equal {@code byteCount} bytes
@@ -864,10 +860,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *                                   {@code byteString} indices.
      * @throws IllegalStateException     if this reader is closed.
      */
-    boolean rangeEquals(final @NonNegative long offset,
+    boolean rangeEquals(final long offset,
                         final @NonNull ByteString byteString,
-                        final @NonNegative int byteStringOffset,
-                        final @NonNegative int byteCount);
+                        final int byteStringOffset,
+                        final int byteCount);
 
     /**
      * Returns a new {@link Reader} that can read data from this reader without consuming it.

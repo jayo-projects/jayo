@@ -23,7 +23,6 @@ package jayo.internal;
 
 import jayo.JayoCharacterCodingException;
 import jayo.Utf8;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.nio.charset.Charset;
@@ -46,8 +45,8 @@ public final class RealUtf8 extends BaseByteString implements Utf8 {
     }
 
     public RealUtf8(final byte @NonNull [] data,
-                    final @NonNegative int offset,
-                    final @NonNegative int byteCount,
+                    final int offset,
+                    final int byteCount,
                     final boolean isAscii) {
         super(data, offset, byteCount);
         this.isAscii = isAscii;
@@ -229,7 +228,7 @@ public final class RealUtf8 extends BaseByteString implements Utf8 {
 
     @Override
     @NonNull
-    public Utf8 substring(final @NonNegative int startIndex) {
+    public Utf8 substring(final int startIndex) {
         return substring(startIndex, byteSize());
     }
 

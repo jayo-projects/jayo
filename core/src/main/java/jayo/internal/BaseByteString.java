@@ -25,7 +25,6 @@ import jayo.ByteString;
 import jayo.JayoException;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -57,7 +56,7 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
 
     // these 2 fields are only used in UTF-8 byte strings.
     boolean isAscii = false; // Lazily computed, false can mean non-ascii or unknown (=not yet scanned).
-    transient @NonNegative int length = -1; // Lazily computed.
+    transient int length = -1; // Lazily computed.
 
     BaseByteString(final byte @NonNull [] data) {
         this.data = Objects.requireNonNull(data);
@@ -65,8 +64,8 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     BaseByteString(final byte @NonNull [] data,
-                   final @NonNegative int offset,
-                   final @NonNegative int byteCount) {
+                   final int offset,
+                   final int byteCount) {
         Objects.requireNonNull(data);
         checkOffsetAndCount(data.length, offset, byteCount);
         this.data = Arrays.copyOfRange(data, offset, offset + byteCount);
@@ -226,12 +225,12 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public @NonNull ByteString substring(final @NonNegative int startIndex) {
+    public @NonNull ByteString substring(final int startIndex) {
         return substring(startIndex, byteSize());
     }
 
     @Override
-    public @NonNull ByteString substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
+    public @NonNull ByteString substring(final int startIndex, final int endIndex) {
         checkSubstringParameters(startIndex, endIndex, byteSize());
         if (startIndex == 0 && endIndex == data.length) {
             return this;
@@ -239,9 +238,9 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
         return new RealByteString(Arrays.copyOfRange(data, startIndex, endIndex));
     }
 
-    static void checkSubstringParameters(final @NonNegative int startIndex,
-                                         final @NonNegative int endIndex,
-                                         final @NonNegative long byteSize) {
+    static void checkSubstringParameters(final int startIndex,
+                                         final int endIndex,
+                                         final long byteSize) {
         if (startIndex < 0) {
             throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
         }
@@ -254,12 +253,12 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public byte getByte(final @NonNegative int index) {
+    public byte getByte(final int index) {
         return data[index];
     }
 
     @Override
-    public @NonNegative int byteSize() {
+    public int byteSize() {
         return data.length;
     }
 
@@ -291,32 +290,32 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
      * Writes the contents of this byte string to {@code buffer}.
      */
     void write(final @NonNull RealBuffer buffer,
-               final @NonNegative int offset,
-               final @NonNegative int byteCount) {
+               final int offset,
+               final int byteCount) {
         Objects.requireNonNull(buffer).write(data, offset, byteCount);
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative int offset,
+    public boolean rangeEquals(final int offset,
                                final @NonNull ByteString other,
-                               final @NonNegative int otherOffset,
-                               final @NonNegative int byteCount) {
+                               final int otherOffset,
+                               final int byteCount) {
         return Objects.requireNonNull(other).rangeEquals(otherOffset, this.data, offset, byteCount);
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative int offset,
+    public boolean rangeEquals(final int offset,
                                final byte @NonNull [] other,
-                               final @NonNegative int otherOffset,
-                               final @NonNegative int byteCount) {
+                               final int otherOffset,
+                               final int byteCount) {
         return rangeEqualsStatic(data, offset, other, otherOffset, byteCount);
     }
 
     static boolean rangeEqualsStatic(final byte @NonNull [] data,
-                                     final @NonNegative int offset,
+                                     final int offset,
                                      final byte @NonNull [] other,
-                                     final @NonNegative int otherOffset,
-                                     final @NonNegative int byteCount) {
+                                     final int otherOffset,
+                                     final int byteCount) {
         Objects.requireNonNull(other);
         return (
                 offset >= 0 && offset <= data.length - byteCount &&
@@ -326,10 +325,10 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public void copyInto(final @NonNegative int offset,
+    public void copyInto(final int offset,
                          final byte @NonNull [] target,
-                         final @NonNegative int targetOffset,
-                         final @NonNegative int byteCount) {
+                         final int targetOffset,
+                         final int byteCount) {
         Objects.requireNonNull(target);
         System.arraycopy(data, offset, target, targetOffset, byteCount);
     }
@@ -360,7 +359,7 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public final int indexOf(final @NonNull ByteString other, final @NonNegative int startIndex) {
+    public final int indexOf(final @NonNull ByteString other, final int startIndex) {
         return indexOf(Utils.internalArray(other), startIndex);
     }
 
@@ -370,13 +369,13 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public int indexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public int indexOf(final byte @NonNull [] other, final int startIndex) {
         return indexOfStatic(data, other, startIndex);
     }
 
     static int indexOfStatic(final byte @NonNull [] data,
                              final byte @NonNull [] other,
-                             final @NonNegative int startIndex) {
+                             final int startIndex) {
         Objects.requireNonNull(other);
         final var limit = data.length - other.length;
         for (var i = Math.max(startIndex, 0); i <= limit; i++) {
@@ -393,7 +392,7 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public final int lastIndexOf(final @NonNull ByteString other, final @NonNegative int startIndex) {
+    public final int lastIndexOf(final @NonNull ByteString other, final int startIndex) {
         return lastIndexOf(Utils.internalArray(other), startIndex);
     }
 
@@ -403,13 +402,13 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     @Override
-    public int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public int lastIndexOf(final byte @NonNull [] other, final int startIndex) {
         return lastIndexOfStatic(data, other, startIndex);
     }
 
     static int lastIndexOfStatic(final byte @NonNull [] data,
                                  final byte @NonNull [] other,
-                                 final @NonNegative int startIndex) {
+                                 final int startIndex) {
         Objects.requireNonNull(other);
         final var limit = data.length - other.length;
         for (var i = Math.min(startIndex, limit); i >= 0; i--) {

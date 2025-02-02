@@ -25,7 +25,6 @@ import jayo.ByteString;
 import jayo.JayoException;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -108,7 +107,7 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public @NonNull ByteString substring(final @NonNegative int startIndex, final @NonNegative int endIndex) {
+    public @NonNull ByteString substring(final int startIndex, final int endIndex) {
         checkSubstringParameters(startIndex, endIndex, byteSize());
         if (startIndex == 0 && endIndex == byteSize()) {
             return this;
@@ -136,7 +135,7 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final byte getByte(final @NonNegative int index) {
+    public final byte getByte(final int index) {
         checkOffsetAndCount(directory[segments.length - 1], index, 1);
         final var segment = segment(index);
         final var segmentOffset = (segment == 0) ? 0 : directory[segment - 1];
@@ -145,7 +144,7 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final @NonNegative int byteSize() {
+    public final int byteSize() {
         return directory[segments.length - 1];
     }
 
@@ -174,8 +173,8 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
 
     @Override
     final void write(final @NonNull RealBuffer buffer,
-                     final @NonNegative int offset,
-                     final @NonNegative int byteCount) {
+                     final int offset,
+                     final int byteCount) {
         Objects.requireNonNull(buffer);
         forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
             s.pos = _offset;
@@ -189,10 +188,10 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final boolean rangeEquals(final @NonNegative int offset,
+    public final boolean rangeEquals(final int offset,
                                      final @NonNull ByteString other,
-                                     final @NonNegative int otherOffset,
-                                     final @NonNegative int byteCount) {
+                                     final int otherOffset,
+                                     final int byteCount) {
         Objects.requireNonNull(other);
         if (offset < 0 || offset > byteSize() - byteCount) {
             return false;
@@ -209,10 +208,10 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final boolean rangeEquals(final @NonNegative int offset,
+    public final boolean rangeEquals(final int offset,
                                      final byte @NonNull [] other,
-                                     final @NonNegative int otherOffset,
-                                     final @NonNegative int byteCount) {
+                                     final int otherOffset,
+                                     final int byteCount) {
         Objects.requireNonNull(other);
         if (offset < 0 || offset > byteSize() - byteCount ||
                 otherOffset < 0 || otherOffset > other.length - byteCount
@@ -231,10 +230,10 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final void copyInto(final @NonNegative int offset,
+    public final void copyInto(final int offset,
                                final byte @NonNull [] target,
-                               final @NonNegative int targetOffset,
-                               final @NonNegative int byteCount) {
+                               final int targetOffset,
+                               final int byteCount) {
         Objects.requireNonNull(target);
         checkOffsetAndCount(byteSize(), offset, byteCount);
         checkOffsetAndCount(target.length, targetOffset, byteCount);
@@ -248,13 +247,13 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final int indexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public final int indexOf(final byte @NonNull [] other, final int startIndex) {
         Objects.requireNonNull(other);
         return toByteString().indexOf(other, startIndex);
     }
 
     @Override
-    public final int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex) {
+    public final int lastIndexOf(final byte @NonNull [] other, final int startIndex) {
         Objects.requireNonNull(other);
         return toByteString().lastIndexOf(other, startIndex);
     }
@@ -311,8 +310,8 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
      * Processes the segments between `beginIndex` and `endIndex`, invoking `action` with the ByteArray
      * and range of the valid data.
      */
-    final boolean forEachSegment(final @NonNegative int beginIndex,
-                                 final @NonNegative int endIndex,
+    final boolean forEachSegment(final int beginIndex,
+                                 final int endIndex,
                                  final @NonNull TriPredicate<Segment, Integer, Integer> action) {
         Objects.requireNonNull(action);
         var segmentIndex = segment(beginIndex);
@@ -353,7 +352,7 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     /**
      * Returns the index of the segment that contains the byte at `pos`.
      */
-    final int segment(final @NonNegative int pos) {
+    final int segment(final int pos) {
         // Search for (pos + 1) instead of (pos) because the directory holds sizes, not indexes.
         final var i = binarySearch(pos + 1, segments.length);
         return (i >= 0) ? i : ~i; // If i is negative, bitflip to get the invert position.

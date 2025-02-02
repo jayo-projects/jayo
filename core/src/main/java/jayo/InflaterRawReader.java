@@ -22,7 +22,6 @@
 
 package jayo;
 
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 /**
@@ -36,15 +35,14 @@ public interface InflaterRawReader extends RawReader {
      * Use this instead of [read] when it is useful to consume the deflated stream even when doing so doesn't yield
      * inflated bytes.
      *
-     * @param writer      the destination to write the data from this reader.
+     * @param writer    the destination to write the data from this reader.
      * @param byteCount the number of bytes to read.
      * @return the number of inflated bytes written to {@code writer}. This may return 0L, though it will always consume 1
      * or more bytes from the underlying reader if it is not exhausted.
      * @throws IllegalArgumentException when {@code byteCount} is negative.
      * @throws IllegalStateException    when the reader is closed.
      */
-    @NonNegative
-    long readOrInflateAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount);
+    long readOrInflateAtMostTo(final @NonNull Buffer writer, final long byteCount);
 
     /**
      * Refills the inflater with compressed data if it needs input. (And only if it needs input).

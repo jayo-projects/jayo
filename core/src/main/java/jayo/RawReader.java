@@ -25,7 +25,6 @@
 
 package jayo;
 
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.io.Closeable;
@@ -78,7 +77,7 @@ public interface RawReader extends Closeable {
      * @throws JayoClosedResourceException if this reader is closed.
      * @throws JayoException               if an I/O error occurs.
      */
-    long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount);
+    long readAtMostTo(final @NonNull Buffer writer, final long byteCount);
 
     /**
      * Closes this reader and releases the resources held by this reader. Trying to read in a closed reader will throw a

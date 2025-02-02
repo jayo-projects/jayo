@@ -25,7 +25,6 @@
 
 package jayo;
 
-import jayo.external.NonNegative;
 import jayo.internal.RealWriter;
 import org.jspecify.annotations.NonNull;
 
@@ -94,8 +93,8 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      */
     @NonNull
     Writer write(final byte @NonNull [] source,
-                 final @NonNegative int offset,
-                 final @NonNegative int byteCount);
+                 final int offset,
+                 final int byteCount);
 
     /**
      * Writes all bytes from {@code byteString} to this writer.
@@ -120,8 +119,8 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      */
     @NonNull
     Writer write(final @NonNull ByteString byteString,
-                 final @NonNegative int offset,
-                 final @NonNegative int byteCount);
+                 final int offset,
+                 final int byteCount);
 
     /**
      * Encodes all the characters from {@code charSequence} using UTF-8 and writes them to this writer.
@@ -170,8 +169,8 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      */
     @NonNull
     Writer write(final @NonNull CharSequence charSequence,
-                 final @NonNegative int startIndex,
-                 final @NonNegative int endIndex);
+                 final int startIndex,
+                 final int endIndex);
 
     /**
      * Encodes {@code codePoint} in UTF-8 and writes it to this writer.
@@ -181,7 +180,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws JayoClosedResourceException if this writer is closed.
      */
     @NonNull
-    Writer writeUtf8CodePoint(final @NonNegative int codePoint);
+    Writer writeUtf8CodePoint(final int codePoint);
 
     /**
      * Encodes {@code string} using the provided {@code charset} and writes it to this writer.
@@ -232,8 +231,8 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      */
     @NonNull
     Writer write(final @NonNull String string,
-                 final @NonNegative int startIndex,
-                 final @NonNegative int endIndex,
+                 final int startIndex,
+                 final int endIndex,
                  final @NonNull Charset charset);
 
     /**
@@ -249,7 +248,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws IllegalStateException    if this writer or the reader is closed.
      */
     @NonNull
-    Writer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
+    Writer write(final @NonNull RawReader reader, final long byteCount);
 
     /**
      * Writes a byte to this writer.
@@ -402,7 +401,6 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @return the number of bytes read, which will be 0 if {@code source} has no remaining bytes.
      * @throws JayoClosedResourceException if this writer is closed.
      */
-    @NonNegative
     int transferFrom(final @NonNull ByteBuffer source);
 
     /**
@@ -412,7 +410,6 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @return the number of bytes read, which will be 0L if {@code reader} is exhausted.
      * @throws JayoClosedResourceException if this writer or the {@code reader} is closed.
      */
-    @NonNegative
     long transferFrom(final @NonNull RawReader reader);
 
     /**

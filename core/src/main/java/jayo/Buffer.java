@@ -27,7 +27,6 @@ package jayo;
 
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.external.NonNegative;
 import jayo.internal.RealBuffer;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -80,7 +79,6 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * or future write operations may increase the number of available bytes.
      */
     @Override
-    @NonNegative
     long bytesAvailable();
 
     /**
@@ -123,7 +121,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      *                                   ({@code [0..buffer.bytesAvailable())}).
      */
     @NonNull
-    Buffer copyTo(final @NonNull OutputStream out, final @NonNegative long offset);
+    Buffer copyTo(final @NonNull OutputStream out, final long offset);
 
     /**
      * Copy {@code byteCount} bytes from this buffer, starting at {@code offset}, to {@code out} stream. This method
@@ -138,7 +136,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @NonNull
     Buffer copyTo(final @NonNull OutputStream out,
-                  final @NonNegative long offset, final @NonNegative long byteCount);
+                  final long offset, final long byteCount);
 
     /**
      * Copy all bytes from this buffer to {@code out} buffer. This method does not consume data from this buffer.
@@ -160,7 +158,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      *                                   ({@code [0..buffer.bytesAvailable())}).
      */
     @NonNull
-    Buffer copyTo(final @NonNull Buffer out, final @NonNegative long offset);
+    Buffer copyTo(final @NonNull Buffer out, final long offset);
 
     /**
      * Copy {@code byteCount} bytes from this buffer, starting at {@code offset}, to {@code out} buffer. This method
@@ -175,7 +173,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @NonNull
     Buffer copyTo(final @NonNull Buffer out,
-                  final @NonNegative long offset, final @NonNegative long byteCount);
+                  final long offset, final long byteCount);
 
     /**
      * Consumes all bytes from this buffer and writes them to {@code out} stream.
@@ -195,7 +193,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IllegalArgumentException if {@code byteCount} is negative or exceeds this buffer size.
      */
     @NonNull
-    Buffer readTo(final @NonNull OutputStream out, final @NonNegative long byteCount);
+    Buffer readTo(final @NonNull OutputStream out, final long byteCount);
 
     /**
      * Read and exhaust bytes from {@code input} stream into this buffer. Stops reading data on {@code input}
@@ -218,13 +216,12 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
     @NonNull
-    Buffer write(final @NonNull InputStream input, final @NonNegative long byteCount);
+    Buffer write(final @NonNull InputStream input, final long byteCount);
 
     /**
      * @return the number of bytes in segments that are fully filled and are no longer writable.
      * This is the number of bytes that can be flushed immediately to an underlying writer without harming throughput.
      */
-    @NonNegative
     long completeSegmentByteCount();
 
     /**
@@ -233,9 +230,9 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * Use of this method may expose significant performance penalties, and it's not recommended to use it for
      * sequential access to a range of bytes within the buffer.
      * @throws IndexOutOfBoundsException if {@code position} is negative or greater or equal to
-     * {@link #bytesAvailable()}.
+     *                                   {@link #bytesAvailable()}.
      */
-    byte getByte(final @NonNegative long pos);
+    byte getByte(final long pos);
 
     /**
      * Discards all bytes in this buffer.
@@ -251,7 +248,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
     @Override
-    void skip(final @NonNegative long byteCount);
+    void skip(final long byteCount);
 
     @Override
     @NonNull
@@ -263,8 +260,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     @Override
     @NonNull
     Buffer write(final byte @NonNull [] source,
-                 final @NonNegative int offset,
-                 final @NonNegative int byteCount);
+                 final int offset,
+                 final int byteCount);
 
     @Override
     @NonNull
@@ -276,8 +273,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     @Override
     @NonNull
     Buffer write(final @NonNull ByteString byteString,
-                 final @NonNegative int offset,
-                 final @NonNegative int byteCount);
+                 final int offset,
+                 final int byteCount);
 
     @Override
     @NonNull
@@ -290,12 +287,12 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     @Override
     @NonNull
     Buffer write(final @NonNull CharSequence charSequence,
-                 final @NonNegative int startIndex,
-                 final @NonNegative int endIndex);
+                 final int startIndex,
+                 final int endIndex);
 
     @Override
     @NonNull
-    Buffer writeUtf8CodePoint(final @NonNegative int codePoint);
+    Buffer writeUtf8CodePoint(final int codePoint);
 
     @Override
     @NonNull
@@ -308,8 +305,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     @Override
     @NonNull
     Buffer write(final @NonNull String string,
-                 final @NonNegative int startIndex,
-                 final @NonNegative int endIndex,
+                 final int startIndex,
+                 final int endIndex,
                  final @NonNull Charset charset);
 
     /**
@@ -317,7 +314,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @Override
     @NonNull
-    Buffer write(final @NonNull RawReader reader, final @NonNegative long byteCount);
+    Buffer write(final @NonNull RawReader reader, final long byteCount);
 
     @Override
     @NonNull
@@ -402,7 +399,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @apiNote A {@link ByteString} is immutable
      */
     @NonNull
-    ByteString snapshot(final @NonNegative int byteCount);
+    ByteString snapshot(final int byteCount);
 
     /**
      * @return an unsafe cursor to only read this buffer's data. Always call {@link UnsafeCursor#close} when done with
@@ -635,10 +632,10 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
 
         public @Nullable Buffer buffer = null;
         public boolean readWrite = false;
-        public @NonNegative long offset = -1L;
+        public long offset = -1L;
         public byte[] data = null;
-        public @NonNegative int pos = -1;
-        public @NonNegative int limit = -1;
+        public int pos = -1;
+        public int limit = -1;
 
         /**
          * Seeks to the next range of bytes, advancing the offset by {@code limit - pos}.
@@ -653,7 +650,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
          *
          * @return the number of bytes readable in {@link #data} (at least 1), or -1 if there are no data to read.
          */
-        public abstract int seek(final @NonNegative long offset);
+        public abstract int seek(final long offset);
 
         /**
          * Change the size of the buffer so that it equals {@code newSize} by either adding new capacity at the end or
@@ -671,7 +668,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
          *
          * @return the previous size of the buffer.
          */
-        public abstract @NonNegative long resizeBuffer(final long newSize);
+        public abstract long resizeBuffer(final long newSize);
 
         /**
          * Grow the buffer by adding a <b>contiguous range</b> of capacity in a single segment. This adds at least

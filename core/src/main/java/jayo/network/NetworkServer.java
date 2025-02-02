@@ -7,7 +7,6 @@ package jayo.network;
 
 import jayo.Endpoint;
 import jayo.JayoClosedResourceException;
-import jayo.external.NonNegative;
 import jayo.internal.network.NetworkServerConfig;
 import jayo.internal.network.ServerSocketChannelNetworkServer;
 import jayo.internal.network.ServerSocketNetworkServer;
@@ -183,7 +182,7 @@ public sealed interface NetworkServer extends Closeable
          * configuration. Default is zero. If the value is zero, an implementation specific default is used.
          */
         @NonNull
-        T maxPendingConnections(final @NonNegative int maxPendingConnections);
+        T maxPendingConnections(final int maxPendingConnections);
     }
 
     /**

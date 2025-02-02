@@ -23,7 +23,6 @@ package jayo.internal.tls;
 
 import jayo.ByteString;
 import jayo.JayoUnknownHostException;
-import jayo.external.NonNegative;
 import jayo.internal.tls.Adapters.DerAdapterValue;
 import jayo.tls.HeldCertificate;
 import org.jspecify.annotations.NonNull;
@@ -127,7 +126,7 @@ public final class RealHeldCertificate implements HeldCertificate {
         }
     }
 
-    private static final @NonNegative long DEFAULT_DURATION_MILLIS = 1000L * 60 * 60 * 24; // 24 hours.
+    private static final long DEFAULT_DURATION_MILLIS = 1000L * 60 * 60 * 24; // 24 hours.
 
     private final @NonNull KeyPair keyPair;
     private final @NonNull X509Certificate certificate;
@@ -273,7 +272,7 @@ public final class RealHeldCertificate implements HeldCertificate {
         }
 
         @Override
-        public @NonNull Builder certificateAuthority(final @NonNegative int maxIntermediateCas) {
+        public @NonNull Builder certificateAuthority(final int maxIntermediateCas) {
             if (maxIntermediateCas < 0) {
                 throw new IllegalArgumentException("maxIntermediateCas < 0: " + maxIntermediateCas);
             }

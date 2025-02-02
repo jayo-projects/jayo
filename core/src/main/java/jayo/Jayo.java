@@ -23,7 +23,6 @@ package jayo;
 
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.external.NonNegative;
 import jayo.internal.*;
 import org.jspecify.annotations.NonNull;
 
@@ -383,7 +382,7 @@ public final class Jayo {
 
     private static final class DiscardingWriter implements RawWriter {
         @Override
-        public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+        public void write(final @NonNull Buffer reader, final long byteCount) {
             Objects.requireNonNull(reader);
             try {
                 reader.skip(byteCount);

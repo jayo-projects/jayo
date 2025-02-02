@@ -5,7 +5,6 @@
 
 package jayo.internal.network;
 
-import jayo.external.NonNegative;
 import jayo.network.NetworkEndpoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -21,8 +20,8 @@ import java.util.Objects;
 @SuppressWarnings("RawUseOfParameterized")
 public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Config<T>>
         implements NetworkEndpoint.Config<T> {
-    private @NonNegative long readTimeoutNanos = 0L;
-    private @NonNegative long writeTimeoutNanos = 0L;
+    private long readTimeoutNanos = 0L;
+    private long writeTimeoutNanos = 0L;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
 
     @Override
@@ -55,13 +54,13 @@ public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Con
 
     abstract @NonNull NetworkEndpoint connectInternal(
             final @NonNull SocketAddress peerAddress,
-            final @NonNegative long defaultReadTimeoutNanos,
-            final @NonNegative long defaultWriteTimeoutNanos,
+            final long defaultReadTimeoutNanos,
+            final long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions);
 
     public static final class Nio extends NetworkEndpointConfig<NetworkEndpoint.NioConfig>
             implements NetworkEndpoint.NioConfig {
-        private @NonNegative long connectTimeoutNanos = 0L;
+        private long connectTimeoutNanos = 0L;
         private @Nullable ProtocolFamily family = null;
 
         @Override
@@ -86,8 +85,8 @@ public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Con
         @Override
         @NonNull
         NetworkEndpoint connectInternal(final @NonNull SocketAddress peerAddress,
-                                        final @NonNegative long defaultReadTimeoutNanos,
-                                        final @NonNegative long defaultWriteTimeoutNanos,
+                                        final long defaultReadTimeoutNanos,
+                                        final long defaultWriteTimeoutNanos,
                                         final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions) {
             assert peerAddress != null;
             return SocketChannelNetworkEndpoint.connect(
@@ -111,8 +110,8 @@ public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Con
         @Override
         @NonNull
         NetworkEndpoint connectInternal(final @NonNull SocketAddress peerAddress,
-                                        final @NonNegative long defaultReadTimeoutNanos,
-                                        final @NonNegative long defaultWriteTimeoutNanos,
+                                        final long defaultReadTimeoutNanos,
+                                        final long defaultWriteTimeoutNanos,
                                         final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions) {
             assert peerAddress != null;
             return SocketNetworkEndpoint.connect(

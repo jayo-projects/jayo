@@ -22,7 +22,6 @@
 package jayo.internal.tls;
 
 import jayo.ByteString;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 /**
@@ -30,10 +29,10 @@ import org.jspecify.annotations.NonNull;
  * to resolve a concrete type.
  */
 record AnyValue(
-        @NonNegative int tagClass,
-        @NonNegative long tag,
+        int tagClass,
+        long tag,
         boolean constructed,
         long length,
         @NonNull ByteString bytes
-        ) {
+) {
 }

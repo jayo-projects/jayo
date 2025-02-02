@@ -5,7 +5,6 @@
 
 package jayo.internal.network;
 
-import jayo.external.NonNegative;
 import jayo.network.NetworkServer;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -21,11 +20,11 @@ import java.util.Objects;
 @SuppressWarnings("RawUseOfParameterized")
 public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<T>>
         implements NetworkServer.Config<T> {
-    private @NonNegative long readTimeoutNanos = 0L;
-    private @NonNegative long writeTimeoutNanos = 0L;
+    private long readTimeoutNanos = 0L;
+    private long writeTimeoutNanos = 0L;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions = new HashMap<>();
-    private @NonNegative int maxPendingConnections = 0;
+    private int maxPendingConnections = 0;
 
     @Override
     public final @NonNull T readTimeout(final @NonNull Duration readTimeout) {
@@ -56,7 +55,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
     }
 
     @Override
-    public final @NonNull T maxPendingConnections(final @NonNegative int maxPendingConnections) {
+    public final @NonNull T maxPendingConnections(final int maxPendingConnections) {
         if (maxPendingConnections < 0) {
             throw new IllegalArgumentException("maxPendingConnections < 0: " + maxPendingConnections);
         }
@@ -78,11 +77,11 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
 
     abstract @NonNull NetworkServer bindInternal(
             final @NonNull SocketAddress localAddress,
-            final @NonNegative long defaultReadTimeoutNanos,
-            final @NonNegative long defaultWriteTimeoutNanos,
+            final long defaultReadTimeoutNanos,
+            final long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
-            final @NonNegative int maxPendingConnections);
+            final int maxPendingConnections);
 
     public static final class Nio extends NetworkServerConfig<NetworkServer.NioConfig>
             implements NetworkServer.NioConfig {
@@ -104,11 +103,11 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
         @NonNull
         NetworkServer bindInternal(
                 final @NonNull SocketAddress localAddress,
-                final @NonNegative long defaultReadTimeoutNanos,
-                final @NonNegative long defaultWriteTimeoutNanos,
+                final long defaultReadTimeoutNanos,
+                final long defaultWriteTimeoutNanos,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
-                final @NonNegative int maxPendingConnections) {
+                final int maxPendingConnections) {
             assert localAddress != null;
 
             return new ServerSocketChannelNetworkServer(
@@ -134,11 +133,11 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
         @NonNull
         NetworkServer bindInternal(
                 final @NonNull SocketAddress localAddress,
-                final @NonNegative long defaultReadTimeoutNanos,
-                final @NonNegative long defaultWriteTimeoutNanos,
+                final long defaultReadTimeoutNanos,
+                final long defaultWriteTimeoutNanos,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
-                final @NonNegative int maxPendingConnections) {
+                final int maxPendingConnections) {
             assert localAddress != null;
 
             return new ServerSocketNetworkServer(

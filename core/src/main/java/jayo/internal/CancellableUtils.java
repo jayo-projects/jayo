@@ -5,7 +5,6 @@
 
 package jayo.internal;
 
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -93,7 +92,7 @@ public final class CancellableUtils {
         return new RealCancelToken(timeoutNanos, deadlineNanoTime, cancelled);
     }
 
-    private static @NonNegative long minDeadline(final @NonNegative long aNanos, final @NonNegative long bNanos) {
+    private static long minDeadline(final long aNanos, final long bNanos) {
         if (aNanos == 0L) {
             return bNanos;
         }

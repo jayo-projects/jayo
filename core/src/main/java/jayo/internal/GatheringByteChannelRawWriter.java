@@ -7,10 +7,9 @@ package jayo.internal;
 
 import jayo.Buffer;
 import jayo.JayoClosedResourceException;
-import jayo.RawWriter;
 import jayo.JayoException;
+import jayo.RawWriter;
 import jayo.external.CancelToken;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -34,7 +33,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+    public void write(final @NonNull Buffer reader, final long byteCount) {
         Objects.requireNonNull(reader);
         checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
         if (!(reader instanceof RealBuffer _reader)) {
@@ -79,7 +78,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
     }
 
     private void write(final @NonNull SegmentQueue segmentQueue,
-                       final @NonNegative int byteCount,
+                       final int byteCount,
                        final @Nullable RealCancelToken cancelToken) {
         segmentQueue.withHeadsAsByteBuffers(byteCount, sources -> {
             var remaining = byteCount;

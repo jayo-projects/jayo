@@ -27,7 +27,6 @@ package jayo;
 
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.external.NonNegative;
 import jayo.internal.BaseByteString;
 import jayo.internal.RealByteString;
 import jayo.internal.SegmentedByteString;
@@ -85,8 +84,8 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      *                                   {@code data} indices.
      */
     static @NonNull ByteString of(final byte @NonNull [] data,
-                                  final @NonNegative int offset,
-                                  final @NonNegative int byteCount) {
+                                  final int offset,
+                                  final int byteCount) {
         return new RealByteString(data, offset, byteCount);
     }
 
@@ -153,7 +152,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
-    static @NonNull ByteString read(final @NonNull InputStream in, final @NonNegative int byteCount) {
+    static @NonNull ByteString read(final @NonNull InputStream in, final int byteCount) {
         if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
@@ -247,7 +246,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IndexOutOfBoundsException if {@code startIndex} is out of range of byte string indices.
      */
     @NonNull
-    ByteString substring(final @NonNegative int startIndex);
+    ByteString substring(final int startIndex);
 
     /**
      * Returns a byte string that is a subsequence of the bytes of this byte string. The substring begins with the byte
@@ -262,19 +261,18 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IllegalArgumentException  if {@code startIndex > endIndex}.
      */
     @NonNull
-    ByteString substring(final @NonNegative int startIndex, final @NonNegative int endIndex);
+    ByteString substring(final int startIndex, final int endIndex);
 
     /**
      * @param index the index of the byte to return.
      * @return the byte at {@code index}.
      * @throws IndexOutOfBoundsException if {@code index} is out of range of byte string indices.
      */
-    byte getByte(final @NonNegative int index);
+    byte getByte(final int index);
 
     /**
      * @return the number of bytes in this ByteString.
      */
-    @NonNegative
     int byteSize();
 
     /**
@@ -303,20 +301,20 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * {@code other} byte string in {@code [otherOffset..otherOffset+byteCount)}. Returns false if either range is out
      * of bounds.
      */
-    boolean rangeEquals(final @NonNegative int offset,
+    boolean rangeEquals(final int offset,
                         final @NonNull ByteString other,
-                        final @NonNegative int otherOffset,
-                        final @NonNegative int byteCount);
+                        final int otherOffset,
+                        final int byteCount);
 
     /**
      * @return true if the bytes of this byte string in {@code [offset..offset+byteCount)} equal the bytes of
      * {@code other} byte array in {@code [otherOffset..otherOffset+byteCount)}. Returns false if either range is out
      * of bounds.
      */
-    boolean rangeEquals(final @NonNegative int offset,
+    boolean rangeEquals(final int offset,
                         final byte @NonNull [] other,
-                        final @NonNegative int otherOffset,
-                        final @NonNegative int byteCount);
+                        final int otherOffset,
+                        final int byteCount);
 
     /**
      * Copies the bytes of this byte string in {@code [offset..offset+byteCount)} to {@code target} byte array in
@@ -324,10 +322,10 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      *
      * @throws IndexOutOfBoundsException if either range is out of bounds.
      */
-    void copyInto(final @NonNegative int offset,
+    void copyInto(final int offset,
                   final byte @NonNull [] target,
-                  final @NonNegative int targetOffset,
-                  final @NonNegative int byteCount);
+                  final int targetOffset,
+                  final int byteCount);
 
     /**
      * @param prefix the prefix to check for.
@@ -373,7 +371,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @implNote Behavior of this method is compatible with {@link String#indexOf(String, int)}.
      */
-    int indexOf(final @NonNull ByteString other, final @NonNegative int startIndex);
+    int indexOf(final @NonNull ByteString other, final int startIndex);
 
     /**
      * @param other the sequence of bytes to find within this byte string.
@@ -391,7 +389,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @implNote Behavior of this method is compatible with {@link String#indexOf(String, int)}.
      */
-    int indexOf(final byte @NonNull [] other, final @NonNegative int startIndex);
+    int indexOf(final byte @NonNull [] other, final int startIndex);
 
     /**
      * @param other the sequence of bytes to find within this byte string.
@@ -409,7 +407,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
      */
-    int lastIndexOf(final @NonNull ByteString other, final @NonNegative int startIndex);
+    int lastIndexOf(final @NonNull ByteString other, final int startIndex);
 
     /**
      * @param other the sequence of bytes to find within this byte string.
@@ -427,7 +425,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
      */
-    int lastIndexOf(final byte @NonNull [] other, final @NonNegative int startIndex);
+    int lastIndexOf(final byte @NonNull [] other, final int startIndex);
 
     /**
      * @return a string representation of this byte string. A string representation consists of {@code size} and a

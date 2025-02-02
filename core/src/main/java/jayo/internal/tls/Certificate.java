@@ -23,7 +23,6 @@ package jayo.internal.tls;
 
 import jayo.Buffer;
 import jayo.ByteString;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -134,7 +133,7 @@ record Certificate(
      * @param extensions
      */
     record TbsCertificate(
-            @NonNegative long version,
+            long version,
             @NonNull BigInteger serialNumber,
             @NonNull AlgorithmIdentifier signature,
             @NonNull List<List<AttributeTypeAndValue>> issuer,
@@ -194,7 +193,7 @@ record Certificate(
      * @param version v1(0), v2(1).
      */
     record PrivateKeyInfo(
-            @NonNegative long version,
+            long version,
             @NonNull AlgorithmIdentifier algorithmIdentifier,
             @NonNull ByteString privateKey
     ) {

@@ -5,7 +5,6 @@
 
 package jayo.internal;
 
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -372,18 +371,16 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         }
     }
 
-    @NonNegative
     long expectSize(final long expectedSize) {
         assert expectedSize > 0L;
         return size();
     }
 
-    @NonNegative
     long size() {
         return size.longValue();
     }
 
-    final void incrementSize(final @NonNegative long increment) {
+    final void incrementSize(final long increment) {
         assert increment >= 0;
         if (increment == 0L) {
             return;
@@ -391,7 +388,7 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         size.add(increment);
     }
 
-    final void decrementSize(final @NonNegative long decrement) {
+    final void decrementSize(final long decrement) {
         assert decrement >= 0;
         if (decrement == 0L) {
             return;

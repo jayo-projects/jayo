@@ -22,9 +22,6 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.JayoEOFException;
-import jayo.JayoException;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -57,7 +54,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -83,7 +80,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull ByteString readByteString(final @NonNegative long byteCount) {
+    public @NonNull ByteString readByteString(final long byteCount) {
         require(byteCount);
         return segmentQueue.buffer.readByteString(byteCount);
     }
@@ -98,7 +95,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull Utf8 readUtf8(final @NonNegative long byteCount) {
+    public @NonNull Utf8 readUtf8(final long byteCount) {
         require(byteCount);
         return segmentQueue.buffer.readUtf8(byteCount);
     }
@@ -113,7 +110,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull Utf8 readAscii(final @NonNegative long byteCount) {
+    public @NonNull Utf8 readAscii(final long byteCount) {
         require(byteCount);
         return segmentQueue.buffer.readAscii(byteCount);
     }
@@ -126,8 +123,8 @@ public final class RealReader implements Reader {
         }
         // expected size is the byte size of the longest option
         final var expectedSize = options.stream()
-                        .mapToLong(ByteString::byteSize)
-                                .max().orElseThrow(IllegalStateException::new);
+                .mapToLong(ByteString::byteSize)
+                .max().orElseThrow(IllegalStateException::new);
         segmentQueue.expectSize(expectedSize);
         return segmentQueue.buffer.select(options);
     }
@@ -146,7 +143,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public byte @NonNull [] readByteArray(final @NonNegative long byteCount) {
+    public byte @NonNull [] readByteArray(final long byteCount) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
@@ -156,7 +153,7 @@ public final class RealReader implements Reader {
         return readByteArrayPrivate(byteCount);
     }
 
-    private byte @NonNull [] readByteArrayPrivate(final @NonNegative long byteCount) {
+    private byte @NonNull [] readByteArrayPrivate(final long byteCount) {
         require(byteCount);
         return segmentQueue.buffer.readByteArray(byteCount);
     }
@@ -167,7 +164,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public void readTo(final byte @NonNull [] writer, final @NonNegative int offset, final @NonNegative int byteCount) {
+    public void readTo(final byte @NonNull [] writer, final int offset, final int byteCount) {
         checkOffsetAndCount(Objects.requireNonNull(writer).length, offset, byteCount);
         // can fail if not enough bytes, then segmentQueue.buffer.readTo will read as many bytes as possible and throw EOF
         request(byteCount);
@@ -181,8 +178,8 @@ public final class RealReader implements Reader {
 
     @Override
     public int readAtMostTo(final byte @NonNull [] writer,
-                            final @NonNegative int offset,
-                            final @NonNegative int byteCount) {
+                            final int offset,
+                            final int byteCount) {
         Objects.requireNonNull(writer);
         checkOffsetAndCount(writer.length, offset, byteCount);
         if (segmentQueue.closed) {
@@ -192,8 +189,8 @@ public final class RealReader implements Reader {
     }
 
     private int readAtMostToPrivate(final byte @NonNull [] writer,
-                                    final @NonNegative int offset,
-                                    final @NonNegative int byteCount) {
+                                    final int offset,
+                                    final int byteCount) {
         if (segmentQueue.expectSize(1L) == 0L) {
             return -1;
         }
@@ -217,7 +214,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public void readTo(final @NonNull RawWriter writer, final @NonNegative long byteCount) {
+    public void readTo(final @NonNull RawWriter writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -247,7 +244,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNegative long transferTo(final @NonNull RawWriter writer) {
+    public long transferTo(final @NonNull RawWriter writer) {
         Objects.requireNonNull(writer);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -280,7 +277,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull String readString(final @NonNegative long byteCount) {
+    public @NonNull String readString(final long byteCount) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
@@ -299,7 +296,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull String readString(final @NonNegative long byteCount, final @NonNull Charset charset) {
+    public @NonNull String readString(final long byteCount, final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
@@ -330,7 +327,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull String readLineStrict(final @NonNegative long limit) {
+    public @NonNull String readLineStrict(final long limit) {
         if (limit < 0) {
             throw new IllegalArgumentException("limit < 0: " + limit);
         }
@@ -355,7 +352,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNegative int readUtf8CodePoint() {
+    public int readUtf8CodePoint() {
         require(1L);
 
         final var b0 = (int) segmentQueue.buffer.getByte(0);
@@ -387,7 +384,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public boolean request(final @NonNegative long byteCount) {
+    public boolean request(final long byteCount) {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
@@ -401,7 +398,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public void require(final @NonNegative long byteCount) {
+    public void require(final long byteCount) {
         if (!request(byteCount)) {
             throw new JayoEOFException("could not read " + byteCount + " bytes from reader, had " + segmentQueue.size());
         }
@@ -444,7 +441,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public void skip(final @NonNegative long byteCount) {
+    public void skip(final long byteCount) {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
@@ -457,7 +454,7 @@ public final class RealReader implements Reader {
         }
     }
 
-    private @NonNegative long skipPrivate(final @NonNegative long byteCount) {
+    private long skipPrivate(final long byteCount) {
         var remaining = byteCount;
         while (remaining > 0) {
             // trying to read Segment.SIZE, so we have at least one complete segment in the buffer
@@ -478,12 +475,12 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public long indexOf(final byte b, final @NonNegative long startIndex) {
+    public long indexOf(final byte b, final long startIndex) {
         return indexOf(b, startIndex, Long.MAX_VALUE);
     }
 
     @Override
-    public long indexOf(final byte b, final @NonNegative long startIndex, final @NonNegative long endIndex) {
+    public long indexOf(final byte b, final long startIndex, final long endIndex) {
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
         }
@@ -527,7 +524,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public long indexOf(final @NonNull ByteString byteString, final @NonNegative long startIndex) {
+    public long indexOf(final @NonNull ByteString byteString, final long startIndex) {
         Objects.requireNonNull(byteString);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -567,7 +564,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public long indexOfElement(final @NonNull ByteString targetBytes, final @NonNegative long startIndex) {
+    public long indexOfElement(final @NonNull ByteString targetBytes, final long startIndex) {
         Objects.requireNonNull(targetBytes);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -603,15 +600,15 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative long offset, final @NonNull ByteString byteString) {
+    public boolean rangeEquals(final long offset, final @NonNull ByteString byteString) {
         return rangeEquals(offset, byteString, 0, byteString.byteSize());
     }
 
     @Override
-    public boolean rangeEquals(final @NonNegative long offset,
+    public boolean rangeEquals(final long offset,
                                final @NonNull ByteString byteString,
-                               final @NonNegative int bytesOffset,
-                               final @NonNegative int byteCount) {
+                               final int bytesOffset,
+                               final int byteCount) {
         Objects.requireNonNull(byteString);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -696,7 +693,7 @@ public final class RealReader implements Reader {
             }
 
             @Override
-            public byte @NonNull [] readNBytes(final @NonNegative int len) throws IOException {
+            public byte @NonNull [] readNBytes(final int len) throws IOException {
                 if (len < 0) {
                     throw new IllegalArgumentException("invalid length: " + len);
                 }
@@ -711,7 +708,7 @@ public final class RealReader implements Reader {
             }
 
             @Override
-            public @NonNegative long skip(final @NonNegative long byteCount) throws IOException {
+            public long skip(final long byteCount) throws IOException {
                 if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");
                 }
@@ -747,7 +744,7 @@ public final class RealReader implements Reader {
             }
 
             @Override
-            public @NonNegative long transferTo(final @NonNull OutputStream out) throws IOException {
+            public long transferTo(final @NonNull OutputStream out) throws IOException {
                 Objects.requireNonNull(out);
                 if (segmentQueue.closed) {
                     throw new IOException("Underlying reader is closed.");

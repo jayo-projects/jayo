@@ -8,7 +8,6 @@ package jayo.internal.network;
 import jayo.JayoException;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.external.NonNegative;
 import jayo.internal.CancellableUtils;
 import jayo.internal.GatheringByteChannelRawWriter;
 import jayo.internal.ReadableByteChannelRawReader;
@@ -39,9 +38,9 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
     static @NonNull NetworkEndpoint connect(
             final @NonNull SocketAddress peerAddress,
-            final @NonNegative long connectTimeoutNanos,
-            final @NonNegative long defaultReadTimeoutNanos,
-            final @NonNegative long defaultWriteTimeoutNanos,
+            final long connectTimeoutNanos,
+            final long defaultReadTimeoutNanos,
+            final long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @Nullable ProtocolFamily family) {
         assert peerAddress != null;
@@ -92,8 +91,8 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
 
     @NonNull
     private static RealAsyncTimeout buildAsyncTimeout(final @NonNull SocketChannel socketChannel,
-                                                      final @NonNegative long defaultReadTimeoutNanos,
-                                                      final @NonNegative long defaultWriteTimeoutNanos) {
+                                                      final long defaultReadTimeoutNanos,
+                                                      final long defaultWriteTimeoutNanos) {
         assert socketChannel != null;
         return new RealAsyncTimeout(defaultReadTimeoutNanos, defaultWriteTimeoutNanos, () -> {
             try {
@@ -127,8 +126,8 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel,
-                                 final @NonNegative long defaultReadTimeoutNanos,
-                                 final @NonNegative long defaultWriteTimeoutNanos) {
+                                 final long defaultReadTimeoutNanos,
+                                 final long defaultWriteTimeoutNanos) {
         this(socketChannel, buildAsyncTimeout(socketChannel, defaultReadTimeoutNanos, defaultWriteTimeoutNanos));
     }
 

@@ -6,7 +6,6 @@
 package jayo.internal.network;
 
 import jayo.JayoException;
-import jayo.external.NonNegative;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkServer;
 import org.jspecify.annotations.NonNull;
@@ -30,17 +29,17 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.ServerSocketChannelNetworkServer");
 
     private final @NonNull ServerSocketChannel serverSocketChannel;
-    private final @NonNegative long defaultReadTimeoutNanos;
-    private final @NonNegative long defaultWriteTimeoutNanos;
+    private final long defaultReadTimeoutNanos;
+    private final long defaultWriteTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
     ServerSocketChannelNetworkServer(
             final @NonNull SocketAddress localAddress,
-            final @NonNegative long defaultReadTimeoutNanos,
-            final @NonNegative long defaultWriteTimeoutNanos,
+            final long defaultReadTimeoutNanos,
+            final long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
-            final @NonNegative int maxPendingConnections,
+            final int maxPendingConnections,
             final @Nullable ProtocolFamily family) {
         assert localAddress != null;
         assert defaultReadTimeoutNanos >= 0;

@@ -23,7 +23,6 @@ package jayo.internal.tls;
 
 import jayo.Buffer;
 import jayo.ByteString;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -89,8 +88,8 @@ interface DerAdapter<T> {
      * }
      * </pre>
      */
-    default @NonNull BasicDerAdapter<T> withExplicitBox(final @NonNegative int tagClass,
-                                                        final @NonNegative long tag,
+    default @NonNull BasicDerAdapter<T> withExplicitBox(final int tagClass,
+                                                        final long tag,
                                                         final @Nullable Boolean forceConstructed) {
         final var codec = new BasicDerAdapter.Codec<T>() {
             @Override
@@ -110,7 +109,7 @@ interface DerAdapter<T> {
         return new BasicDerAdapter<>("EXPLICIT", tagClass, tag, codec);
     }
 
-    default @NonNull BasicDerAdapter<T> withExplicitBox(final @NonNegative long tag) {
+    default @NonNull BasicDerAdapter<T> withExplicitBox(final long tag) {
         return withExplicitBox(DerHeader.TAG_CLASS_CONTEXT_SPECIFIC, tag, null);
     }
 
@@ -118,8 +117,8 @@ interface DerAdapter<T> {
      * Returns an adapter that returns a list of values of this type.
      */
     default BasicDerAdapter<List<T>> asSequenceOf(final @NonNull String name,
-                                                  final @NonNegative int tagClass,
-                                                  final @NonNegative long tag) {
+                                                  final int tagClass,
+                                                  final long tag) {
         final var codec = new BasicDerAdapter.Codec<List<T>>() {
             @Override
             public List<T> decode(final @NonNull DerReader reader) {

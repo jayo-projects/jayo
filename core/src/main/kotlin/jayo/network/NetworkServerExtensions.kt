@@ -8,7 +8,6 @@
 package jayo.network
 
 import jayo.JayoDslMarker
-import jayo.external.NonNegative
 import java.net.ProtocolFamily
 import java.net.SocketOption
 import kotlin.contracts.InvocationKind
@@ -109,7 +108,7 @@ public sealed class NetworkServerConfigDsl(private val config: NetworkServer.Con
     public var maxPendingConnections: Int
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
-        set(@NonNegative value) {
+        set(value) {
             config.maxPendingConnections(value)
         }
 }

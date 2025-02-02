@@ -25,7 +25,6 @@ import jayo.CancelScope;
 import jayo.JayoInterruptedIOException;
 import jayo.JayoTimeoutException;
 import jayo.external.CancelToken;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -35,22 +34,21 @@ import java.util.concurrent.locks.Condition;
  * CancelToken is thread safe
  */
 public final class RealCancelToken implements CancelScope, CancelToken {
-    @NonNegative
     long timeoutNanos;
-    final @NonNegative long deadlineNanoTime;
+    final long deadlineNanoTime;
     volatile boolean cancelled;
     volatile boolean shielded = false;
     volatile boolean finished = false;
 
-    RealCancelToken(final @NonNegative long deadlineNanos) {
+    RealCancelToken(final long deadlineNanos) {
         this(0L,
                 // deadline is set immediately
                 (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L,
                 false);
     }
 
-    RealCancelToken(final @NonNegative long timeoutNanos,
-                    final @NonNegative long deadlineNanoTime,
+    RealCancelToken(final long timeoutNanos,
+                    final long deadlineNanoTime,
                     final boolean cancelled) {
         this.timeoutNanos = timeoutNanos;
         this.deadlineNanoTime = deadlineNanoTime;

@@ -22,9 +22,6 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.JayoEOFException;
-import jayo.JayoException;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -47,7 +44,7 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+    public void write(final @NonNull Buffer reader, final long byteCount) {
         Objects.requireNonNull(reader);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -70,8 +67,8 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer write(final @NonNull ByteString byteString,
-                                 final @NonNegative int offset,
-                                 final @NonNegative int byteCount) {
+                                 final int offset,
+                                 final int byteCount) {
         Objects.requireNonNull(byteString);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -94,8 +91,8 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer write(final @NonNull CharSequence charSequence,
-                                 final @NonNegative int startIndex,
-                                 final @NonNegative int endIndex) {
+                                 final int startIndex,
+                                 final int endIndex) {
         Objects.requireNonNull(charSequence);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -106,7 +103,7 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public @NonNull Writer writeUtf8CodePoint(final @NonNegative int codePoint) {
+    public @NonNull Writer writeUtf8CodePoint(final int codePoint) {
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
         }
@@ -129,8 +126,8 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer write(final @NonNull String string,
-                                 final @NonNegative int startIndex,
-                                 final @NonNegative int endIndex,
+                                 final int startIndex,
+                                 final int endIndex,
                                  final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
@@ -155,8 +152,8 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer write(final byte @NonNull [] source,
-                                 final @NonNegative int offset,
-                                 final @NonNegative int byteCount) {
+                                 final int offset,
+                                 final int byteCount) {
         Objects.requireNonNull(source);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -165,15 +162,15 @@ public final class RealWriter implements Writer {
     }
 
     private @NonNull Writer writePrivate(final byte @NonNull [] source,
-                                         final @NonNegative int offset,
-                                         final @NonNegative int byteCount) {
+                                         final int offset,
+                                         final int byteCount) {
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(source, offset, byteCount);
         return emitCompleteSegments();
     }
 
     @Override
-    public @NonNegative int transferFrom(final @NonNull ByteBuffer source) {
+    public int transferFrom(final @NonNull ByteBuffer source) {
         Objects.requireNonNull(source);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
@@ -181,7 +178,7 @@ public final class RealWriter implements Writer {
         return transferFromPrivate(source);
     }
 
-    private @NonNegative int transferFromPrivate(final @NonNull ByteBuffer reader) {
+    private int transferFromPrivate(final @NonNull ByteBuffer reader) {
         segmentQueue.pauseIfFull();
         final var totalBytesRead = segmentQueue.buffer.transferFrom(reader);
         emitCompleteSegments();
@@ -189,7 +186,6 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    @NonNegative
     public long transferFrom(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
         var totalBytesRead = 0L;
@@ -209,7 +205,7 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public @NonNull Writer write(final @NonNull RawReader reader, final @NonNegative long byteCount) {
+    public @NonNull Writer write(final @NonNull RawReader reader, final long byteCount) {
         Objects.requireNonNull(reader);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);

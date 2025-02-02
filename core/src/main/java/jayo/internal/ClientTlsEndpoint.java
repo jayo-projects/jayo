@@ -14,7 +14,6 @@ import jayo.Buffer;
 import jayo.Endpoint;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.external.NonNegative;
 import jayo.tls.Handshake;
 import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
@@ -164,7 +163,7 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
 
     private record ClientTlsEndpointRawReader(@NonNull RealTlsEndpoint impl) implements RawReader {
         @Override
-        public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+        public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
             return impl.readAtMostTo(writer, byteCount);
         }
 
@@ -176,7 +175,7 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
 
     private record ClientTlsEndpointRawWriter(@NonNull RealTlsEndpoint impl) implements RawWriter {
         @Override
-        public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+        public void write(final @NonNull Buffer reader, final long byteCount) {
             impl.write(reader, byteCount);
         }
 
