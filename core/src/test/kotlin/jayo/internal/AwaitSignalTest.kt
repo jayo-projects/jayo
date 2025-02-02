@@ -21,11 +21,11 @@
 
 package jayo.internal
 
-import jayo.cancelScope
 import jayo.JayoInterruptedIOException
 import jayo.JayoTimeoutException
-import jayo.external.CancelToken
+import jayo.cancelScope
 import jayo.internal.TestUtil.assumeNotWindows
+import jayo.tools.CancelToken
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test

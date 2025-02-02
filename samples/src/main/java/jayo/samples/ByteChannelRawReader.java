@@ -25,7 +25,7 @@ import jayo.Buffer;
 import jayo.JayoClosedResourceException;
 import jayo.JayoException;
 import jayo.RawReader;
-import jayo.external.CancelToken;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;

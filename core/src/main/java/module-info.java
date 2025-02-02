@@ -13,8 +13,8 @@ module jayo {
 
     exports jayo;
     exports jayo.crypto;
-    exports jayo.external;
     exports jayo.network;
     exports jayo.scheduling;
     exports jayo.tls;
+    exports jayo.tools;
 }

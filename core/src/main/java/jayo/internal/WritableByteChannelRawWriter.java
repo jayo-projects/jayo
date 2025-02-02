@@ -8,7 +8,7 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.JayoException;
 import jayo.RawWriter;
-import jayo.external.CancelToken;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -17,7 +17,7 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.external.JayoUtils.checkOffsetAndCount;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class WritableByteChannelRawWriter implements RawWriter {
     private static final System.Logger LOGGER = System.getLogger("jayo.WritableByteChannelRawWriter");

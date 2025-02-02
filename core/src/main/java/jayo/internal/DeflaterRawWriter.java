@@ -31,8 +31,8 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.zip.Deflater;
 
-import static jayo.external.JayoUtils.checkOffsetAndCount;
 import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
+import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class DeflaterRawWriter implements RawWriter {
     private final @NonNull WriterSegmentQueue segmentQueue;

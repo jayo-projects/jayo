@@ -22,9 +22,9 @@
 package jayo.internal.scheduling;
 
 import jayo.Jayo;
-import jayo.external.BasicFifoQueue;
 import jayo.scheduling.ScheduledTaskQueue;
 import jayo.scheduling.TaskQueue;
+import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -35,8 +35,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.LongSupplier;
 
-import static jayo.external.JayoUtils.removePrefix;
 import static jayo.internal.scheduling.TaskLogger.formatDuration;
+import static jayo.tools.JayoUtils.removePrefix;
 
 public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQueue {
     /**

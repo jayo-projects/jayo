@@ -23,7 +23,7 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.external.CancelToken;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
