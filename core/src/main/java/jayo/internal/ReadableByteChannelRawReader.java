@@ -9,7 +9,6 @@ import jayo.Buffer;
 import jayo.JayoException;
 import jayo.RawReader;
 import jayo.external.CancelToken;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -34,7 +33,7 @@ public final class ReadableByteChannelRawReader implements RawReader {
      * @return the number of bytes actually read.
      */
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0 : " + byteCount);

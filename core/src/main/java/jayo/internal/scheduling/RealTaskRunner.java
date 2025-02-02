@@ -22,7 +22,6 @@
 package jayo.internal.scheduling;
 
 import jayo.external.BasicFifoQueue;
-import jayo.external.NonNegative;
 import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 
@@ -467,7 +466,7 @@ public final class RealTaskRunner implements TaskRunner {
         void coordinatorNotify(final @NonNull RealTaskRunner taskRunner);
 
         boolean coordinatorWait(final @NonNull RealTaskRunner taskRunner,
-                                final @NonNegative long nanos) throws InterruptedException;
+                                final long nanos) throws InterruptedException;
 
         void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable);
 

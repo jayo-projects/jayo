@@ -21,7 +21,6 @@
 
 package jayo.scheduling;
 
-import jayo.external.NonNegative;
 import jayo.internal.scheduling.RealTaskRunner;
 import org.jspecify.annotations.NonNull;
 
@@ -57,7 +56,6 @@ public sealed interface TaskRunner permits RealTaskRunner {
     Backend getBackend();
 
     interface Backend {
-        @NonNegative
         long nanoTime();
 
         <T> @NonNull BlockingQueue<T> decorate(final @NonNull BlockingQueue<T> queue);

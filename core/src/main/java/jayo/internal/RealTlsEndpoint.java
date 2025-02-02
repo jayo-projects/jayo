@@ -11,7 +11,6 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.external.NonNegative;
 import jayo.tls.Handshake;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeCallbackException;
@@ -131,7 +130,7 @@ public final class RealTlsEndpoint {
 
     // read
 
-    long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+    long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
@@ -286,7 +285,7 @@ public final class RealTlsEndpoint {
     /**
      * @return either the packetSize if inside a TLS session or the full size of the encryptedReader
      */
-    private @NonNegative int readFromReader() throws TlsEOFException {
+    private int readFromReader() throws TlsEOFException {
         try {
             return callReadFromReader();
         } catch (JayoException e) {
@@ -298,7 +297,7 @@ public final class RealTlsEndpoint {
     /**
      * @implNote We use {@link Buffer#getByte(long)} read in encryptedReader's buffer to not consume any data.
      */
-    private @NonNegative int callReadFromReader() throws TlsEOFException {
+    private int callReadFromReader() throws TlsEOFException {
         try {
             final var encryptedReaderBuffer = encryptedReader.segmentQueue.buffer;
             if (isTls == null) {
@@ -344,7 +343,7 @@ public final class RealTlsEndpoint {
 
     // write
 
-    void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+    void write(final @NonNull Buffer reader, final long byteCount) {
         Objects.requireNonNull(reader);
         checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
 
@@ -368,7 +367,7 @@ public final class RealTlsEndpoint {
         }
     }
 
-    private void wrapAndWrite(final @NonNull RealBuffer source, final @NonNegative long byteCount) {
+    private void wrapAndWrite(final @NonNull RealBuffer source, final long byteCount) {
         var remaining = byteCount;
         final var closed = new Wrapper.Boolean();
         while (true) {

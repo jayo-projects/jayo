@@ -5,7 +5,6 @@
 
 package jayo;
 
-import jayo.external.NonNegative;
 import jayo.internal.RealUtf8;
 import jayo.internal.SegmentedUtf8;
 import org.jspecify.annotations.NonNull;
@@ -64,6 +63,7 @@ import java.util.stream.IntStream;
  * <td colspan="2">{@link Utf8#size(CharSequence)}</td>
  * </tr>
  * </table>
+ *
  * @see ByteString
  */
 public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 {
@@ -100,8 +100,8 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      *                                   {@code data} indices.
      */
     static @NonNull Utf8 of(final byte @NonNull [] data,
-                            final @NonNegative int offset,
-                            final @NonNegative int byteCount) {
+                            final int offset,
+                            final int byteCount) {
         return new RealUtf8(data, offset, byteCount, false);
     }
 
@@ -114,8 +114,8 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      *                                   {@code data} indices.
      */
     static @NonNull Utf8 ofAscii(final byte @NonNull [] data,
-                            final @NonNegative int offset,
-                            final @NonNegative int byteCount) {
+                                 final int offset,
+                                 final int byteCount) {
         return new RealUtf8(data, offset, byteCount, true);
     }
 
@@ -154,7 +154,7 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
-    static @NonNull Utf8 read(final @NonNull InputStream in, final @NonNegative int byteCount) {
+    static @NonNull Utf8 read(final @NonNull InputStream in, final int byteCount) {
         Objects.requireNonNull(in);
         if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -173,7 +173,7 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
-    static @NonNull Utf8 readAscii(final @NonNull InputStream in, final @NonNegative int byteCount) {
+    static @NonNull Utf8 readAscii(final @NonNull InputStream in, final int byteCount) {
         Objects.requireNonNull(in);
         if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -232,7 +232,6 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      * @implNote Result of this method is the same as {@link String#length()} you would get by calling
      * {@code decodeToString().length()}.
      */
-    @NonNegative
     int length();
 
     /**
@@ -267,7 +266,7 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      */
     @Override
     @NonNull
-    Utf8 substring(final @NonNegative int startIndex);
+    Utf8 substring(final int startIndex);
 
     /**
      * Returns a UTF-8 byte string that is a subsequence of the bytes of this UTF-8 byte string. The substring begins
@@ -283,7 +282,7 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      */
     @Override
     @NonNull
-    Utf8 substring(final @NonNegative int startIndex, final @NonNegative int endIndex);
+    Utf8 substring(final int startIndex, final int endIndex);
 
     /**
      * @return either a new String by decoding all the bytes from this byte string using UTF-8, or the cached one if
@@ -335,7 +334,7 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @implNote Behavior of this method is compatible with {@link String#indexOf(String, int)}.
      */
-    default int indexOf(final @NonNull String other, final @NonNegative int startIndex) {
+    default int indexOf(final @NonNull String other, final int startIndex) {
         Objects.requireNonNull(other);
         return indexOf(other.getBytes(StandardCharsets.UTF_8), startIndex);
     }
@@ -359,7 +358,7 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
      * @throws IllegalArgumentException if {@code startIndex} is negative.
      * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
      */
-    default int lastIndexOf(final @NonNull String other, final @NonNegative int startIndex) {
+    default int lastIndexOf(final @NonNull String other, final int startIndex) {
         Objects.requireNonNull(other);
         return lastIndexOf(other.getBytes(StandardCharsets.UTF_8), startIndex);
     }

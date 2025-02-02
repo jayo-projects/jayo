@@ -9,7 +9,6 @@ import jayo.Buffer;
 import jayo.JayoException;
 import jayo.RawWriter;
 import jayo.external.CancelToken;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -30,7 +29,7 @@ public final class WritableByteChannelRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+    public void write(final @NonNull Buffer reader, final long byteCount) {
         Objects.requireNonNull(reader);
         checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
         if (!(reader instanceof RealBuffer _reader)) {

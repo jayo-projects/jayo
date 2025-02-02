@@ -11,7 +11,6 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.external.NonNegative;
 import jayo.tls.Handshake;
 import jayo.tls.JayoTlsHandshakeCallbackException;
 import jayo.tls.JayoTlsHandshakeException;
@@ -161,7 +160,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
 
     private record ServerTlsEndpointRawReader(@NonNull RealTlsEndpoint impl) implements RawReader {
         @Override
-        public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+        public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
             return impl.readAtMostTo(writer, byteCount);
         }
 
@@ -173,7 +172,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
 
     private record ServerTlsEndpointRawWriter(@NonNull RealTlsEndpoint impl) implements RawWriter {
         @Override
-        public void write(final @NonNull Buffer reader, final @NonNegative long byteCount) {
+        public void write(final @NonNull Buffer reader, final long byteCount) {
             impl.write(reader, byteCount);
         }
 

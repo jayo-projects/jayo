@@ -25,7 +25,6 @@
 
 package jayo;
 
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 
 import java.io.Closeable;
@@ -71,7 +70,7 @@ public interface RawWriter extends Closeable, Flushable {
      * @throws JayoClosedResourceException when this writer is closed.
      * @throws JayoException               if an I/O error occurs.
      */
-    void write(final @NonNull Buffer reader, final @NonNegative long byteCount);
+    void write(final @NonNull Buffer reader, final long byteCount);
 
     /**
      * Pushes all buffered bytes to their final destination.

@@ -25,7 +25,6 @@ import jayo.JayoClosedResourceException;
 import jayo.JayoException;
 import jayo.RawReader;
 import jayo.RawWriter;
-import jayo.external.NonNegative;
 import jayo.internal.InputStreamRawReader;
 import jayo.internal.OutputStreamRawWriter;
 import jayo.internal.RealAsyncTimeout;
@@ -54,8 +53,8 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
     static @NonNull NetworkEndpoint connect(
             final @NonNull SocketAddress peerAddress,
-            final @NonNegative long defaultReadTimeoutNanos,
-            final @NonNegative long defaultWriteTimeoutNanos,
+            final long defaultReadTimeoutNanos,
+            final long defaultWriteTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions
     ) {
         assert peerAddress != null;
@@ -109,8 +108,8 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     }
 
     SocketNetworkEndpoint(final @NonNull Socket socket,
-                          final @NonNegative long defaultReadTimeoutNanos,
-                          final @NonNegative long defaultWriteTimeoutNanos) {
+                          final long defaultReadTimeoutNanos,
+                          final long defaultWriteTimeoutNanos) {
         assert socket != null;
         assert defaultReadTimeoutNanos >= 0L;
         assert defaultWriteTimeoutNanos >= 0L;

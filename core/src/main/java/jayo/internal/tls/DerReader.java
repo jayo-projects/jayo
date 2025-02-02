@@ -22,7 +22,6 @@
 package jayo.internal.tls;
 
 import jayo.*;
-import jayo.external.NonNegative;
 import jayo.internal.Utils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -70,7 +69,7 @@ final class DerReader {
         this.reader = Jayo.buffer(countingReader);
     }
 
-    private @NonNegative long byteCount() {
+    private long byteCount() {
         return countingReader.bytesRead - Utils.getBufferFromReader(reader).bytesAvailable();
     }
 
@@ -393,7 +392,7 @@ final class DerReader {
      */
     private final static class CountingRawReader implements RawReader {
         private final @NonNull RawReader delegate;
-        private @NonNegative long bytesRead = 0L;
+        private long bytesRead = 0L;
 
         private CountingRawReader(final @NonNull RawReader delegate) {
             assert delegate != null;
@@ -402,7 +401,7 @@ final class DerReader {
         }
 
         @Override
-        public long readAtMostTo(final @NonNull Buffer writer, final @NonNegative long byteCount) {
+        public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
             final var result = delegate.readAtMostTo(writer, byteCount);
             if (result == -1L) {
                 return -1L;

@@ -8,7 +8,6 @@ package jayo.internal;
 import jayo.JayoClosedResourceException;
 import jayo.JayoInterruptedIOException;
 import jayo.RawWriter;
-import jayo.external.NonNegative;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -352,7 +351,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             }
         }
 
-        private record EmitEvent(@NonNull Segment segment, boolean including, @NonNegative int limit, boolean flush) {
+        private record EmitEvent(@NonNull Segment segment, boolean including, int limit, boolean flush) {
         }
     }
 }
