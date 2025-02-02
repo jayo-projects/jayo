@@ -24,10 +24,7 @@ package jayo.internal;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
@@ -66,7 +63,7 @@ final class Segment {
      * The next byte of application data byte to read in this segment. This field will be exclusively modified and read
      * by the reader.
      */
-    int pos = 0;
+    int pos;
 
     /**
      * The first byte of available data ready to be written to. This field will be exclusively modified by the writer,
@@ -75,8 +72,7 @@ final class Segment {
      * <b>In the segment pool:</b> if the segment is free and linked, the field contains total byte count of this and
      * next segments.
      */
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile int limit = 0;
+    int limit;
 
     /**
      * A lateinit on-heap {@link ByteBuffer} associated with the underlying byte array that is created on-demand for
@@ -93,8 +89,8 @@ final class Segment {
     /**
      * Tracks number shared copies.
      */
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile @Nullable CopyTracker copyTracker;
+    @Nullable
+    CopyTracker copyTracker;
 
     /**
      * True if this segment owns the byte array and can append to it, extending `limit`.
@@ -104,8 +100,8 @@ final class Segment {
     /**
      * A reference to the next segment in the queue.
      */
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile @Nullable Segment next = null;
+    @Nullable
+    Segment next = null;
 
     // status
     static final byte AVAILABLE = 1;
@@ -113,139 +109,96 @@ final class Segment {
     static final byte TRANSFERRING = 3;
     static final byte REMOVING = 4; // final state, cannot go back
 
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile byte status;
-
-    // VarHandle mechanics
-    private static final VarHandle LIMIT;
-    static final VarHandle COPY_TRACKER;
-    static final VarHandle NEXT;
-    static final VarHandle STATUS;
-
-    static {
-        try {
-            final var l = MethodHandles.lookup();
-            LIMIT = l.findVarHandle(Segment.class, "limit", int.class);
-            COPY_TRACKER = l.findVarHandle(Segment.class, "copyTracker", CopyTracker.class);
-            NEXT = l.findVarHandle(Segment.class, "next", Segment.class);
-            STATUS = l.findVarHandle(Segment.class, "status", byte.class);
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
+    byte status;
 
     Segment() {
-        this.data = new byte[SIZE];
-        this.owner = true;
-        this.copyTracker = null;
-        this.status = WRITING;
+        this(new byte[SIZE], 0, 0, null, true);
     }
 
     Segment(final byte @NonNull [] data,
             final int pos,
             final int limit,
-            final @Nullable ByteBuffer writeByteBuffer,
-            final @Nullable ByteBuffer readByteBuffer,
             final @Nullable CopyTracker copyTracker,
             final boolean owner) {
-        this(data, pos, limit, writeByteBuffer, readByteBuffer, copyTracker, owner, WRITING);
+        this(data, pos, limit, copyTracker, owner, WRITING);
     }
 
-    Segment(final byte @NonNull [] data,
-            final int pos,
-            final int limit,
-            final @Nullable ByteBuffer writeByteBuffer,
-            final @Nullable ByteBuffer readByteBuffer,
-            final @Nullable CopyTracker copyTracker,
-            final boolean owner,
-            final byte status) {
+    private Segment(final byte @NonNull [] data,
+                    final int pos,
+                    final int limit,
+                    final @Nullable CopyTracker copyTracker,
+                    final boolean owner,
+                    final byte status) {
         assert data != null;
         this.data = data;
         this.pos = pos;
         this.limit = limit;
-        this.writeByteBuffer = writeByteBuffer;
-        this.readByteBuffer = readByteBuffer;
         this.copyTracker = copyTracker;
         this.owner = owner;
         this.status = status;
     }
 
-    @Nullable
-    Segment nextVolatile() {
-        return (@Nullable Segment) NEXT.getVolatile(this);
-    }
-
-    int limit() {
-        return (int) LIMIT.get(this);
-    }
-
-    int limitVolatile() {
-        return (int) LIMIT.getVolatile(this);
-    }
-
-    // Use only this non-volatile set from SegmentPool or Buffer.UnsafeCursor !
-    void limit(final int limit) {
-        LIMIT.set(this, limit);
-    }
-
-    void limitVolatile(final int limit) {
-        LIMIT.setVolatile(this, limit); // test less strict than volatile
-    }
-
-    void incrementLimitVolatile(final int increment) {
-        LIMIT.getAndAdd(this, increment); // test less strict than volatile
-    }
-
     boolean tryWrite() {
-        return STATUS.compareAndSet(this, AVAILABLE, WRITING);
+        if (status == AVAILABLE) {
+            status = WRITING;
+            return true;
+        }
+        return false;
     }
 
     void finishWrite() {
-        if (!STATUS.compareAndSet(this, WRITING, AVAILABLE)) {
-            throw new IllegalStateException("Could not finish write operation");
+        final var currentStatus = this.status;
+        if (currentStatus == WRITING) {
+            status = AVAILABLE;
+        } else {
+            throw new IllegalStateException("Could not finish write operation, status = " + currentStatus);
         }
     }
 
     boolean tryRemove() {
-        final var previousState = (byte) STATUS.compareAndExchange(this, AVAILABLE, REMOVING);
-        return switch (previousState) {
-            case AVAILABLE, REMOVING -> true;
+        return switch (status) {
+            case AVAILABLE -> {
+                status = REMOVING;
+                yield true;
+            }
+            case REMOVING -> true;
             default -> false;
         };
     }
 
-    boolean validateRemove() {
-        assert (byte) STATUS.get(this) == REMOVING;
+    boolean tryAndValidateRemove() {
+        if (status == AVAILABLE) {
+            status = REMOVING;
+        } else if (status != REMOVING) {
+            return false;
+        }
 
-        if (pos == limitVolatile()) {
+        if (pos == limit) {
             return true;
         }
 
-        finishRemove();
+        status = AVAILABLE;
         return false;
     }
 
-    void finishRemove() {
-        if (!STATUS.compareAndSet(this, REMOVING, AVAILABLE)) {
-            throw new IllegalStateException("Could not finish remove operation");
-        }
-    }
-
     public boolean startTransfer() {
-        final var previousState = (byte) STATUS.compareAndExchange(this, AVAILABLE, TRANSFERRING);
-        return switch (previousState) {
-            case AVAILABLE -> false;
+        return switch (status) {
+            case AVAILABLE -> {
+                status = TRANSFERRING;
+                yield false;
+            }
             case WRITING -> true;
-            default -> throw new IllegalStateException("Unexpected state " + previousState + ". The head queue node " +
+            default -> throw new IllegalStateException("Unexpected state " + status + ". The head queue node " +
                     "should be in 'AVAILABLE' or 'WRITING' state before transferring.");
         };
     }
 
     void finishTransfer() {
-        final var previousState = (byte) STATUS.compareAndExchange(this, TRANSFERRING, AVAILABLE);
-        if (previousState != TRANSFERRING && previousState != AVAILABLE && previousState != WRITING) {
-            throw new IllegalStateException("Unexpected state " + previousState + ". The head queue node should be in" +
-                    " 'AVAILABLE', 'TRANSFERRING' or 'WRITING' state before ending the transfer.");
+        switch (status) {
+            case TRANSFERRING -> status = AVAILABLE;
+            case AVAILABLE, WRITING -> { /*nop*/ }
+            default -> throw new IllegalStateException("Unexpected state " + status + ". The head queue node" +
+                    " should be in 'AVAILABLE', 'TRANSFERRING' or 'WRITING' state before ending the transfer.");
         }
     }
 
@@ -253,8 +206,7 @@ final class Segment {
      * True if other buffer segments or byte strings use the same byte array.
      */
     boolean isShared() {
-        final var ct = (CopyTracker) COPY_TRACKER.getVolatile(this);
-        return ct != null && ct.isShared();
+        return copyTracker != null && copyTracker.isShared();
     }
 
     /**
@@ -263,23 +215,13 @@ final class Segment {
      */
     @NonNull
     Segment sharedCopy() {
-        var ct = (CopyTracker) COPY_TRACKER.getVolatile(this);
-        if (ct == null) {
-            ct = new CopyTracker();
-            final var oldCt = (CopyTracker) COPY_TRACKER.compareAndExchange(this, null, ct);
-            if (oldCt != null) {
-                ct = oldCt;
-            }
+        CopyTracker t = copyTracker;
+        if (t == null) {
+            t = new CopyTracker();
+            copyTracker = t;
         }
-        ct.addCopy();
-        return new Segment(
-                data,
-                pos,
-                limitVolatile(),
-                (writeByteBuffer != null) ? writeByteBuffer.duplicate() : null,
-                (readByteBuffer != null) ? readByteBuffer.duplicate() : null,
-                ct, false
-        );
+        t.addCopy();
+        return new Segment(data, pos, limit, t, false);
     }
 
     /**
@@ -287,7 +229,7 @@ final class Segment {
      */
     @NonNull
     Segment unsharedCopy() {
-        return new Segment(data.clone(), pos, limitVolatile(), null, null, null, true, AVAILABLE);
+        return new Segment(data.clone(), pos, limit, null, true, AVAILABLE);
     }
 
     /**
@@ -312,14 +254,10 @@ final class Segment {
             prefix = SegmentPool.take();
             System.arraycopy(data, pos, prefix.data, 0, byteCount);
         }
-        STATUS.set(prefix, TRANSFERRING);
-
-        prefix.limitVolatile(prefix.pos + byteCount);
+        prefix.status = TRANSFERRING;
+        prefix.limit = prefix.pos + byteCount;
         pos += byteCount;
-
-        if (!NEXT.compareAndSet(prefix, null, this)) {
-            throw new IllegalStateException("Could set next segment of prefix");
-        }
+        prefix.next = this;
 
         // stop transferring the current segment = the suffix
         finishTransfer();
@@ -331,27 +269,24 @@ final class Segment {
      * Moves {@code byteCount} bytes from this segment to {@code targetSegment}.
      */
     void writeTo(final @NonNull Segment targetSegment, final int byteCount) {
-        Objects.requireNonNull(targetSegment);
+        assert targetSegment != null;
         assert targetSegment.owner;
-        var writerCurrentLimit = targetSegment.limit();
-        if (writerCurrentLimit + byteCount > SIZE) {
+
+        if (targetSegment.limit + byteCount > SIZE) {
             // We can't fit byteCount bytes at the writer's current position. Shift writer first.
             assert !targetSegment.isShared();
-            final var writerCurrentPos = targetSegment.pos;
-            if (writerCurrentLimit + byteCount - writerCurrentPos > SIZE) {
+            if (targetSegment.limit + byteCount - targetSegment.pos > SIZE) {
                 throw new IllegalArgumentException("not enough space in writer segment to write " + byteCount + " bytes");
             }
-            final var writerSize = writerCurrentLimit - writerCurrentPos;
-            System.arraycopy(targetSegment.data, writerCurrentPos, targetSegment.data, 0, writerSize);
-            targetSegment.limitVolatile(writerSize);
+            final var writerSize = targetSegment.limit - targetSegment.pos;
+            System.arraycopy(targetSegment.data, targetSegment.pos, targetSegment.data, 0, writerSize);
+            targetSegment.limit = writerSize;
             targetSegment.pos = 0;
         }
 
-        writerCurrentLimit = targetSegment.limit();
-        final var currentPos = pos;
-        System.arraycopy(data, currentPos, targetSegment.data, writerCurrentLimit, byteCount);
-        targetSegment.limitVolatile(writerCurrentLimit + byteCount);
-        pos = currentPos + byteCount;
+        System.arraycopy(data, pos, targetSegment.data, targetSegment.limit, byteCount);
+        targetSegment.limit += byteCount;
+        pos += byteCount;
     }
 
     @NonNull
@@ -374,10 +309,9 @@ final class Segment {
 
         if (writeByteBuffer == null) {
             writeByteBuffer = ByteBuffer.wrap(data);
-            writeByteBuffer.limit(Segment.SIZE);
         }
 
-        final var currentLimit = limit();
+        final var currentLimit = limit;
         // just set position and limit, then return this BytBuffer
         return writeByteBuffer
                 .limit(currentLimit + byteCount)

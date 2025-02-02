@@ -254,7 +254,7 @@ public final class RealTlsEndpoint {
                                                        final @NonNull RealBuffer destination) {
         final var decryptedReaderQueue = destination.segmentQueue;
         return decryptedReaderQueue.withWritableTail(minimumCapacity, tail -> {
-            final var dst = tail.asWriteByteBuffer(Segment.SIZE - tail.limit());
+            final var dst = tail.asWriteByteBuffer(Segment.SIZE - tail.limit);
             try {
                 final var result = engine.unwrap(source, dst);
                 if (LOGGER.isLoggable(TRACE)) {
@@ -268,7 +268,7 @@ public final class RealTlsEndpoint {
                 // just return the data.
                 final var written = result.bytesProduced();
                 if (written > 0) {
-                    tail.incrementLimitVolatile(written);
+                    tail.limit += written;
                 } else if (result.getStatus() == Status.BUFFER_OVERFLOW) {
                     assert result.bytesConsumed() == 0;
                     // must retry with bigger destination tail ByteBuffer
@@ -400,7 +400,7 @@ public final class RealTlsEndpoint {
     private @NonNull SSLEngineResult wrap(final @NonNull ByteBuffer @NonNull [] sources) {
         // Force tail to be large enough to handle any valid record in the current SSL session, to avoid BUFFER_OVERFLOW
         return encryptedWriterSegmentQueue.withWritableTail(MAX_ENCRYPTED_PACKET_BYTE_SIZE, tail -> {
-            final var destination = tail.asWriteByteBuffer(Segment.SIZE - tail.limit());
+            final var destination = tail.asWriteByteBuffer(Segment.SIZE - tail.limit);
             try {
                 final var result = engine.wrap(sources, destination);
                 if (LOGGER.isLoggable(TRACE)) {
@@ -412,7 +412,7 @@ public final class RealTlsEndpoint {
                     case OK, CLOSED -> {
                         final var written = result.bytesProduced();
                         if (written > 0) {
-                            tail.incrementLimitVolatile(written);
+                            tail.limit += written;
                         }
                         yield result;
                     }

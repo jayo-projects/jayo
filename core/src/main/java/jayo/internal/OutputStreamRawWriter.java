@@ -67,19 +67,14 @@ public final class OutputStreamRawWriter implements RawWriter {
         }
 
         var remaining = byteCount;
-        var head = _reader.segmentQueue.head();
+        var head = _reader.segmentQueue.head;
         assert head != null;
+        var headLimit = head.limit;
         while (remaining > 0L) {
-            var headLimit = head.limitVolatile();
             if (head.pos == headLimit) {
-                final var oldHead = head;
-                if (!head.tryRemove()) {
-                    throw new IllegalStateException("Non tail segment must be removable");
-                }
-                head = _reader.segmentQueue.removeHead(head);
+                head = _reader.segmentQueue.removeHead(head, true);
                 assert head != null;
-                headLimit = head.limitVolatile();
-                SegmentPool.recycle(oldHead);
+                headLimit = head.limit;
             }
 
             CancelToken.throwIfReached(cancelToken);
@@ -94,9 +89,8 @@ public final class OutputStreamRawWriter implements RawWriter {
             _reader.segmentQueue.decrementSize(toWrite);
             remaining -= toWrite;
         }
-        if (head.pos == head.limitVolatile() && head.tryRemove() && head.validateRemove()) {
-            _reader.segmentQueue.removeHead(head);
-            SegmentPool.recycle(head);
+        if (head.pos == head.limit) {
+            _reader.segmentQueue.removeHead(head, false);
         }
 
         if (LOGGER.isLoggable(TRACE)) {
