@@ -210,11 +210,11 @@ public final class GzipRawReader implements RawReader {
         var _offset = offset;
         var _byteCount = byteCount;
         // Skip segments that we aren't checksumming.
-        var segment = segmentQueue.head();
+        var segment = segmentQueue.head;
         assert segment != null;
-        while (_offset >= segment.limit() - segment.pos) {
-            _offset -= (segment.limit() - segment.pos);
-            segment = segment.nextVolatile();
+        while (_offset >= segment.limit - segment.pos) {
+            _offset -= (segment.limit - segment.pos);
+            segment = segment.next;
             assert segment != null;
         }
 
@@ -222,11 +222,11 @@ public final class GzipRawReader implements RawReader {
         while (_byteCount > 0) {
             assert segment != null;
             final var pos = (int) (segment.pos + _offset);
-            final var toUpdate = (int) Math.min(segment.limit() - pos, _byteCount);
+            final var toUpdate = (int) Math.min(segment.limit - pos, _byteCount);
             crc.update(segment.data, pos, toUpdate);
             _byteCount -= toUpdate;
             _offset = 0;
-            segment = segment.nextVolatile();
+            segment = segment.next;
         }
     }
 

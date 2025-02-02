@@ -67,10 +67,10 @@ public final class OutputStreamRawWriter implements RawWriter {
         }
 
         var remaining = byteCount;
-        var head = _reader.segmentQueue.head();
+        var head = _reader.segmentQueue.head;
         assert head != null;
         while (remaining > 0L) {
-            var headLimit = head.limitVolatile();
+            var headLimit = head.limit;
             if (head.pos == headLimit) {
                 final var oldHead = head;
                 if (!head.tryRemove()) {
@@ -78,7 +78,7 @@ public final class OutputStreamRawWriter implements RawWriter {
                 }
                 head = _reader.segmentQueue.removeHead(head);
                 assert head != null;
-                headLimit = head.limitVolatile();
+                headLimit = head.limit;
                 SegmentPool.recycle(oldHead);
             }
 
@@ -94,7 +94,7 @@ public final class OutputStreamRawWriter implements RawWriter {
             _reader.segmentQueue.decrementSize(toWrite);
             remaining -= toWrite;
         }
-        if (head.pos == head.limitVolatile() && head.tryRemove() && head.validateRemove()) {
+        if (head.pos == head.limit && head.tryAndValidateRemove()) {
             _reader.segmentQueue.removeHead(head);
             SegmentPool.recycle(head);
         }

@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
-import static jayo.internal.Segment.WRITING;
 
 /**
  * This class pools segments in a lock-free singly-linked queue of {@linkplain Segment segments}. Though this code is
@@ -99,7 +98,7 @@ public final class SegmentPool {
     /**
      * A sentinel segment to indicate that the cache is currently being modified.
      */
-    private static final Segment DOOR = new Segment(new byte[0], 0, 0, null, null, null, false);
+    private static final Segment DOOR = new Segment(new byte[0], 0, 0, null, false);
 
     /**
      * Hash buckets each contain a singly-linked queue of segments. The index/key is a hash function of thread ID
@@ -155,7 +154,7 @@ public final class SegmentPool {
      */
     static int getByteCount() {
         final var first = HASH_BUCKETS[l1BucketId(Thread.currentThread())].get();
-        return (first != null) ? first.limit() : 0;
+        return (first != null) ? first.limit : 0;
     }
 
     static @NonNull Segment take() {
@@ -178,15 +177,14 @@ public final class SegmentPool {
             }
 
             // We acquired the lock and the pool was not empty. Pop the first element and return it.
-            firstRef.set((Segment) Segment.NEXT.get(first));
+            firstRef.set(first.next);
 
-            // cleanup segment to cache, must be done here because these are non-volatile fields. We ensure the thread
-            // that take this segment has these values
-            Segment.NEXT.set(first, null);
+            // cleanup segment to cache.
+            first.next = null;
             first.pos = 0;
             first.owner = true;
-            first.limitVolatile(0);
-            Segment.STATUS.setVolatile(first, WRITING);
+            first.limit = 0;
+            first.status = Segment.WRITING;
 
             return first;
         }
@@ -222,15 +220,14 @@ public final class SegmentPool {
             }
 
             // We acquired the lock and the pool was not empty. Pop the first element and return it.
-            firstRef.set((Segment) Segment.NEXT.get(first));
+            firstRef.set(first.next);
 
-            // cleanup segment to cache, must be done here because these are non-volatile fields. We ensure the thread
-            // that take this segment has these values
-            Segment.NEXT.set(first, null);
+            // cleanup segment to cache.
+            first.next = null;
             first.pos = 0;
             first.owner = true;
-            first.limitVolatile(0);
-            Segment.STATUS.setVolatile(first, WRITING);
+            first.limit = 0;
+            first.status = Segment.WRITING;
 
             return first;
         }
@@ -239,11 +236,11 @@ public final class SegmentPool {
     static void recycle(final @NonNull Segment segment) {
         assert segment != null;
 
-        final var segmentCopyTracker = (Segment.CopyTracker) Segment.COPY_TRACKER.getVolatile(segment);
+        final var segmentCopyTracker = segment.copyTracker;
 
         // This segment cannot be recycled.
         if (segmentCopyTracker != null && segmentCopyTracker.removeCopy()) {
-            Segment.NEXT.set(segment, null);
+            segment.next = null;
             return;
         }
 
@@ -255,14 +252,14 @@ public final class SegmentPool {
                 continue; // A take() is currently in progress.
             }
 
-            final var firstLimit = (first != null) ? first.limit() : 0;
+            final var firstLimit = (first != null) ? first.limit : 0;
             if (firstLimit >= MAX_SIZE) {
                 recycleL2(segment);
                 return;
             }
 
-            Segment.NEXT.set(segment, first);
-            segment.limit(firstLimit + Segment.SIZE);
+            segment.next = first;
+            segment.limit = firstLimit + Segment.SIZE;
 
             if (firstRef.compareAndSet(first, segment)) {
                 return;
@@ -282,7 +279,7 @@ public final class SegmentPool {
                 continue; // A take() is currently in progress.
             }
 
-            final var firstLimit = (first != null) ? first.limit() : 0;
+            final var firstLimit = (first != null) ? first.limit : 0;
             if (firstLimit + Segment.SIZE > SECOND_LEVEL_POOL_BUCKET_SIZE) {
                 // The current bucket is full, try to find another one and return the segment there.
                 if (attempts < HASH_BUCKET_COUNT_L2) {
@@ -291,12 +288,12 @@ public final class SegmentPool {
                     continue;
                 }
                 // L2 pool is full.
-                Segment.NEXT.set(segment, null);
+                segment.next = null;
                 return;
             }
 
-            Segment.NEXT.set(segment, first);
-            segment.limit(firstLimit + Segment.SIZE);
+            segment.next = first;
+            segment.limit = firstLimit + Segment.SIZE;
 
             if (firstRef.compareAndSet(first, segment)) {
                 return;

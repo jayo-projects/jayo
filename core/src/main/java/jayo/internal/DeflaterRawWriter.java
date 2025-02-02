@@ -54,10 +54,10 @@ public final class DeflaterRawWriter implements RawWriter {
         }
 
         var remaining = byteCount;
-        var head = _reader.segmentQueue.head();
+        var head = _reader.segmentQueue.head;
         assert head != null;
         while (remaining > 0L) {
-            var headLimit = head.limitVolatile();
+            var headLimit = head.limit;
             if (head.pos == headLimit) {
                 if (!head.tryRemove()) {
                     throw new IllegalStateException("Non tail segment must be removable");
@@ -65,7 +65,7 @@ public final class DeflaterRawWriter implements RawWriter {
                 final var oldHead = head;
                 head = _reader.segmentQueue.removeHead(head);
                 assert head != null;
-                headLimit = head.limitVolatile();
+                headLimit = head.limit;
                 SegmentPool.recycle(oldHead);
             }
 
@@ -81,7 +81,7 @@ public final class DeflaterRawWriter implements RawWriter {
             _reader.segmentQueue.decrementSize(toDeflate);
             remaining -= toDeflate;
         }
-        if (head.pos == head.limitVolatile() && head.tryRemove() && head.validateRemove()) {
+        if (head.pos == head.limit && head.tryAndValidateRemove()) {
             _reader.segmentQueue.removeHead(head);
             SegmentPool.recycle(head);
         }
@@ -152,14 +152,14 @@ public final class DeflaterRawWriter implements RawWriter {
             continueLoop = segmentQueue.withWritableTail(1, tail -> {
                 final int deflated;
                 try {
-                    deflated = deflater.deflate(tail.data, tail.limit(), Segment.SIZE - tail.limit(),
+                    deflated = deflater.deflate(tail.data, tail.limit, Segment.SIZE - tail.limit,
                             syncFlush ? Deflater.SYNC_FLUSH : Deflater.NO_FLUSH);
                 } catch (NullPointerException npe) {
                     throw new JayoException("Deflater already closed", new IOException(npe));
                 }
 
                 if (deflated > 0) {
-                    tail.incrementLimitVolatile(deflated);
+                    tail.limit += deflated;
                     this.segmentQueue.emitCompleteSegments();
                     return true;
                 } else {
