@@ -27,13 +27,13 @@ import jayo.Utf8
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)
-    var segment: Segment? = buffer.segmentQueue.head() ?: return emptyList()
+    var segment: Segment? = buffer.segmentQueue.head ?: return emptyList()
 
-    val sizes = mutableListOf(segment!!.limit() - segment.pos)
-    segment = segment.nextVolatile()
+    val sizes = mutableListOf(segment!!.limit - segment.pos)
+    segment = segment.next
     while (segment != null) {
-        sizes.add(segment.limit() - segment.pos)
-        segment = segment.nextVolatile()
+        sizes.add(segment.limit - segment.pos)
+        segment = segment.next
     }
     return sizes
 }
@@ -57,8 +57,8 @@ fun makeSegments(reader: ByteString): ByteString {
     for (i in 0 until reader.byteSize()) {
         buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
             tail.data[tail.pos] = reader.getByte(i)
-            val limit = tail.limit()
-            tail.limit(limit + 1)
+            val limit = tail.limit
+            tail.limit = limit + 1
         }
     }
     return buffer.snapshot()
@@ -69,8 +69,8 @@ fun makeUtf8Segments(reader: Utf8): Utf8 {
     for (i in 0 until reader.byteSize()) {
         buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
             tail.data[tail.pos] = reader.getByte(i)
-            val limit = tail.limit()
-            tail.limit(limit + 1)
+            val limit = tail.limit
+            tail.limit = limit + 1
             true
         }
     }
@@ -82,8 +82,8 @@ fun makeAsciiSegments(reader: Utf8): Utf8 {
     for (i in 0 until reader.byteSize()) {
         buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
             tail.data[tail.pos] = reader.getByte(i)
-            val limit = tail.limit()
-            tail.limit(limit + 1)
+            val limit = tail.limit
+            tail.limit = limit + 1
             true
         }
     }

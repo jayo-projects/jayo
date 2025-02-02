@@ -72,15 +72,15 @@ public final class InputStreamRawReader implements RawReader {
         }
 
         final var bytesRead = _writer.segmentQueue.withWritableTail(1, tail -> {
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
             final int read;
             try {
-                read = in.read(tail.data, tail.limit(), toRead);
+                read = in.read(tail.data, tail.limit, toRead);
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }
             if (read > 0) {
-                tail.incrementLimitVolatile(read);
+                tail.limit += read;
             }
             return read;
         });

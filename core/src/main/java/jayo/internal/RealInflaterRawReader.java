@@ -80,14 +80,14 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         final var bytesInflated = new Wrapper.Int();
         // Prepare the destination that we'll write into.
         _writer.segmentQueue.withWritableTail(1, tail -> {
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
 
             while (true) {
                 // Prepare the reader that we'll read from.
                 refill();
                 try {
                     // Decompress the inflater's compressed data into the writer.
-                    bytesInflated.value = inflater.inflate(tail.data, tail.limit(), toRead);
+                    bytesInflated.value = inflater.inflate(tail.data, tail.limit, toRead);
                 } catch (DataFormatException e) {
                     throw new JayoException(new IOException(e));
                 }
@@ -96,7 +96,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
 
                 // Track produced bytes in the destination.
                 if (bytesInflated.value > 0) {
-                    tail.incrementLimitVolatile(bytesInflated.value);
+                    tail.limit += bytesInflated.value;
                     return true;
                 }
 
@@ -137,13 +137,13 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         final var bytesInflated = new Wrapper.Int();
         // Prepare the destination that we'll write into.
         _writer.segmentQueue.withWritableTail(1, tail -> {
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit());
+            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
 
             // Prepare the reader that we'll read from.
             refill();
             try {
                 // Decompress the inflater's compressed data into the writer.
-                bytesInflated.value = inflater.inflate(tail.data, tail.limit(), toRead);
+                bytesInflated.value = inflater.inflate(tail.data, tail.limit, toRead);
             } catch (DataFormatException e) {
                 throw new JayoException(new IOException(e));
             }
@@ -152,7 +152,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
 
             // Track produced bytes in the destination.
             if (bytesInflated.value > 0) {
-                tail.incrementLimitVolatile(bytesInflated.value);
+                tail.limit += bytesInflated.value;
             } else {
                 bytesInflated.value = 0;
             }
@@ -174,9 +174,9 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         }
 
         // Assign buffer bytes to the inflater.
-        currentHead = segmentQueue.head();
+        currentHead = segmentQueue.head;
         assert currentHead != null;
-        bytesHeldByInflater = currentHead.limitVolatile() - currentHead.pos;
+        bytesHeldByInflater = currentHead.limit - currentHead.pos;
         inflater.setInput(currentHead.data, currentHead.pos, bytesHeldByInflater);
 
         return false;
@@ -210,10 +210,8 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         currentHead.pos += toRelease;
         segmentQueue.decrementSize(toRelease);
 
-        if (currentHead.pos == currentHead.limitVolatile() && currentHead.tryRemove()
-                && currentHead.validateRemove()) {
-            segmentQueue.removeHead(currentHead);
-            SegmentPool.recycle(currentHead);
+        if (currentHead.pos == currentHead.limit) {
+            segmentQueue.removeHead(currentHead, false);
             currentHead = null;
         }
         bytesHeldByInflater -= toRelease;

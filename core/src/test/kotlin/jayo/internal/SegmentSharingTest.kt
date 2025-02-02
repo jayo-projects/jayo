@@ -82,7 +82,7 @@ class SegmentSharingTest {
         assertEquals(xs + ys + zs, snapshot.decodeToString())
 
         // Confirm that clearing the buffer doesn't release its segments.
-        val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
+        val bufferHead = (buffer as RealBuffer).segmentQueue.head!!
         takeAllPoolSegments() // Make room for new segments.
         buffer.clear()
         assertTrue(bufferHead !in takeAllPoolSegments())
@@ -98,12 +98,12 @@ class SegmentSharingTest {
         val clone = buffer.clone()
 
         // While locking the pool, confirm that clearing the buffer doesn't release its segments.
-        val bufferHead = (buffer as RealBuffer).segmentQueue.head()!!
+        val bufferHead = (buffer as RealBuffer).segmentQueue.head!!
         takeAllPoolSegments() // Make room for new segments.
         buffer.clear()
         assertTrue(bufferHead !in takeAllPoolSegments())
 
-        val cloneHead = (clone as RealBuffer).segmentQueue.head()!!
+        val cloneHead = (clone as RealBuffer).segmentQueue.head!!
         takeAllPoolSegments() // Make room for new segments.
         clone.clear()
         assertTrue(cloneHead !in takeAllPoolSegments())

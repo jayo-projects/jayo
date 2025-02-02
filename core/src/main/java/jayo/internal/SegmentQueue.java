@@ -8,12 +8,12 @@ package jayo.internal;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
@@ -25,55 +25,54 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
 
     private static final System.Logger LOGGER = System.getLogger("jayo.SegmentQueue");
 
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile @Nullable Segment head = null;
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile @Nullable Segment tail = null;
+    @Nullable
+    Segment head = null;
+    @Nullable
+    Segment tail = null;
+    final @NonNull Lock lock = new ReentrantLock();
+
     private final @NonNull LongAdder size = new LongAdder();
 
-    // VarHandle mechanics
-    static final VarHandle HEAD;
-    static final VarHandle TAIL;
+    final @Nullable Segment removeHead(final @NonNull Segment currentHead, final boolean strict) {
+        assert currentHead != null;
 
-    static {
+        final Segment newHead;
+        lock.lock();
         try {
-            final var l = MethodHandles.lookup();
-            HEAD = l.findVarHandle(SegmentQueue.class, "head", Segment.class);
-            TAIL = l.findVarHandle(SegmentQueue.class, "tail", Segment.class);
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
+            if (strict) {
+                if (!currentHead.tryRemove()) {
+                    throw new IllegalStateException("Non tail segment must be removable");
+                }
+            } else if (!currentHead.tryAndValidateRemove()) {
+                return null;
+            }
+            newHead = removeHeadMaybeSplit(currentHead, null);
+        } finally {
+            lock.unlock();
         }
-    }
 
-    final @Nullable Segment head() {
-        return (Segment) HEAD.getVolatile(this);
-    }
-
-    final @Nullable Segment tail() {
-        return (Segment) TAIL.getVolatile(this);
-    }
-
-    final @Nullable Segment removeHead(final @NonNull Segment currentHead) {
-        return removeHead(currentHead, null);
+        SegmentPool.recycle(currentHead);
+        return newHead;
     }
 
     // this method must only be called from Buffer.write call
-    final @Nullable Segment removeHead(final @NonNull Segment currentHead, final @Nullable Boolean wasSplit) {
+    final @Nullable Segment removeHeadMaybeSplit(final @NonNull Segment currentHead, final @Nullable Boolean wasSplit) {
         assert currentHead != null;
-        assert (byte) Segment.STATUS.get(currentHead) == Segment.REMOVING
-                || (byte) Segment.STATUS.get(currentHead) == Segment.TRANSFERRING;
+        assert currentHead.status == Segment.REMOVING || currentHead.status == Segment.TRANSFERRING;
 
-        final var newHead = currentHead.nextVolatile();
+        final var newHead = currentHead.next;
         if (newHead != null) {
             if (wasSplit != null) {
-                Segment.NEXT.compareAndSet(currentHead, newHead, null);
+                currentHead.next = null;
             }
         } else {
             // if removed head was also the tail, remove tail as well
-            TAIL.compareAndSet(this, currentHead, null);
+            assert tail == currentHead;
+            tail = null;
         }
         if (!Boolean.TRUE.equals(wasSplit)) {
-            HEAD.compareAndSet(this, currentHead, newHead);
+            assert head == currentHead;
+            head = newHead;
         }
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, """
@@ -91,7 +90,7 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         assert readAction != null;
         assert toRead > 0;
 
-        var head = head();
+        var head = this.head;
         var segment = head;
 
         // 1) build the ByteBuffer list to read from
@@ -99,13 +98,13 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         var remaining = toRead;
         while (true) {
             assert segment != null;
-            final var toReadInSegment = Math.min(remaining, segment.limitVolatile() - segment.pos);
+            final var toReadInSegment = Math.min(remaining, segment.limit - segment.pos);
             byteBuffers.add(segment.asReadByteBuffer(toReadInSegment));
             remaining -= toReadInSegment;
             if (remaining == 0) {
                 break;
             }
-            segment = segment.nextVolatile();
+            segment = segment.next;
         }
         final var sources = byteBuffers.toArray(new ByteBuffer[0]);
 
@@ -120,25 +119,18 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         var finished = false;
         while (!finished) {
             assert head != null;
-            final var currentLimit = head.limitVolatile();
+            final var currentLimit = head.limit;
             final var readFromHead = Math.min(remaining, currentLimit - head.pos);
             head.pos += readFromHead;
             decrementSize(readFromHead);
             remaining -= readFromHead;
             finished = remaining == 0;
             if (head.pos == currentLimit) {
-                final var oldHead = head;
                 if (finished) {
-                    if (head.tryRemove() && head.validateRemove()) {
-                        removeHead(head);
-                    }
+                    removeHead(head, false);
                 } else {
-                    if (!head.tryRemove()) {
-                        throw new IllegalStateException("Non tail segment should be removable");
-                    }
-                    head = removeHead(head);
+                    head = removeHead(head, true);
                 }
-                SegmentPool.recycle(oldHead);
             }
         }
 
@@ -150,11 +142,11 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         assert readAction != null;
         assert toRead > 0;
 
-        final var head = head();
+        final var head = this.head;
         assert head != null;
 
         // 1) adapt the head segment to red from, compact it if needed
-        final var availableInHead = head.limitVolatile() - head.pos;
+        final var availableInHead = head.limit - head.pos;
         if (availableInHead < toRead) {
             // must compact several segments in the head alone.
             if (LOGGER.isLoggable(TRACE)) {
@@ -164,45 +156,45 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
 
             // 1.1) shift bytes in head
             System.arraycopy(head.data, head.pos, head.data, 0, availableInHead);
-            head.limit(head.limit() - head.pos);
+            head.limit = head.limit - head.pos;
             head.pos = 0;
 
             // 1.2) copy bytes from next segments into head
             var remaining = toRead - availableInHead;
-            var segment = head.nextVolatile();
+            var segment = head.next;
             var finished = false;
             while (!finished) {
                 assert segment != null;
-                final var toCopy = Math.min(remaining, segment.limitVolatile() - segment.pos);
-                System.arraycopy(segment.data, segment.pos, head.data, head.limit(), toCopy);
+                final var toCopy = Math.min(remaining, segment.limit - segment.pos);
+                System.arraycopy(segment.data, segment.pos, head.data, head.limit, toCopy);
                 segment.pos += toCopy;
-                head.limit(head.limit() + toCopy);
+                head.limit += toCopy;
                 remaining -= toCopy;
                 finished = remaining == 0;
-                if (segment.pos == segment.limitVolatile()) {
+                if (segment.pos == segment.limit) {
                     final var oldSegment = segment;
-                    segment = segment.nextVolatile();
-                    if (finished) {
-                        if (oldSegment.tryRemove() && oldSegment.validateRemove()) {
-                            if (!Segment.NEXT.compareAndSet(head, oldSegment, segment)) {
-                                throw new IllegalStateException(
-                                        "Could not swap head, previous next should be the current next");
-                            }
-                            if (segment == null) {
-                                // this segment was the tail, now head is the tail
-                                if (!TAIL.compareAndSet(this, oldSegment, head)) {
-                                    throw new IllegalStateException("Could not replace old tail with enlarged head");
+                    lock.lock();
+                    try {
+                        segment = segment.next;
+                        if (finished) {
+                            if (oldSegment.tryAndValidateRemove()) {
+                                assert head.next == oldSegment;
+                                head.next = segment;
+                                if (segment == null) {
+                                    // this segment was the tail, now head is the tail
+                                    assert tail == oldSegment;
+                                    tail = head;
                                 }
                             }
+                        } else {
+                            if (!oldSegment.tryRemove()) {
+                                throw new IllegalStateException("Non tail segment should be removable");
+                            }
+                            assert head.next == oldSegment;
+                            head.next = segment;
                         }
-                    } else {
-                        if (!oldSegment.tryRemove()) {
-                            throw new IllegalStateException("Non tail segment should be removable");
-                        }
-                        if (!Segment.NEXT.compareAndSet(head, oldSegment, segment)) {
-                            throw new IllegalStateException(
-                                    "Could not swap head, previous next should be the current next");
-                        }
+                    } finally {
+                        lock.unlock();
                     }
                     SegmentPool.recycle(oldSegment);
                 }
@@ -223,11 +215,8 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         // 3) apply changes to head segment
         head.pos += read;
         decrementSize(read);
-        if (head.pos == head.limitVolatile()) {
-            if (head.tryRemove() && head.validateRemove()) {
-                removeHead(head);
-            }
-            SegmentPool.recycle(head);
+        if (head.pos == head.limit) {
+            removeHead(head, false);
         }
     }
 
@@ -237,27 +226,44 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         assert minimumCapacity > 0;
         assert minimumCapacity <= Segment.SIZE;
 
-        final var currentTail = tail();
-        if (currentTail == null || !currentTail.tryWrite()) {
-            return withNewWritableSegment(writeAction, null);
-        }
-
-        assert (byte) Segment.STATUS.get(currentTail) == Segment.WRITING;
-        final var previousLimit = currentTail.limit();
-        // current tail has enough room
-        if (currentTail.owner && previousLimit + minimumCapacity <= Segment.SIZE) {
-            var written = 0;
-            try {
-                final var result = writeAction.apply(currentTail);
-                written = currentTail.limit() - previousLimit;
-                return result;
-            } finally {
-                incrementSize(written);
-                currentTail.finishWrite();
+        var needsNewSegment = true;
+        final Segment writableTail;
+        var previousLimit = 0L;
+        lock.lock();
+        try {
+            if (tail == null || !tail.tryWrite()) {
+                writableTail = null;
+            } else {
+                writableTail = tail;
             }
+
+            if (writableTail != null) {
+                previousLimit = writableTail.limit;
+
+                // current tail has enough room
+                if (writableTail.owner && previousLimit + minimumCapacity <= Segment.SIZE) {
+                    needsNewSegment = false;
+                }
+            }
+        } finally {
+            lock.unlock();
         }
 
-        return withNewWritableSegment(writeAction, currentTail);
+        if (needsNewSegment) {
+            return withNewWritableSegment(writeAction, writableTail);
+        }
+
+        final var result = writeAction.apply(writableTail);
+
+        lock.lock();
+        try {
+            var written = tail.limit - previousLimit;
+            incrementSize(written);
+            tail.finishWrite();
+            return result;
+        } finally {
+            lock.unlock();
+        }
     }
 
     private <T> T withNewWritableSegment(final @NonNull Function<@NonNull Segment, T> writeAction,
@@ -265,36 +271,42 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         // acquire a new empty segment to fill up.
         final var newTail = SegmentPool.take();
         final var result = writeAction.apply(newTail);
-        final var written = newTail.limit();
-        if (written > 0) {
-            try {
+
+        var mustRecycle = false;
+        lock.lock();
+        try {
+            final var written = newTail.limit;
+            if (written > 0) {
                 if (currentTail != null) {
-                    if (!Segment.NEXT.compareAndSet(currentTail, null, newTail)) {
-                        throw new IllegalStateException("Could not add new Segment after current tail, " +
-                                "next node should be null");
-                    }
+                    assert currentTail.next == null;
+                    currentTail.next = newTail;
                     currentTail.finishWrite();
                 } else {
-                    HEAD.setVolatile(this, newTail);
+                    head = newTail;
                 }
-                TAIL.setVolatile(this, newTail);
-            } finally {
+                tail = newTail;
                 incrementSize(written);
                 newTail.finishWrite();
+            } else {
+                if (currentTail != null) {
+                    currentTail.finishWrite();
+                }
+                // We allocated a tail segment, but didn't end up needing it. Recycle!
+                mustRecycle = true;
             }
-        } else {
-            if (currentTail != null) {
-                currentTail.finishWrite();
-            }
-            // We allocated a tail segment, but didn't end up needing it. Recycle!
+        } finally {
+            lock.unlock();
+        }
+
+        if (mustRecycle) {
             SegmentPool.recycle(newTail);
         }
+
         return result;
     }
 
     final @Nullable Segment nonRemovedTailOrNull() {
-        final var currentTail = tail();
-        if (currentTail == null) {
+        if (tail == null) {
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE,
                         "SegmentQueue#{0}: nonRemovedTailOrNull() no current tail, return null{1}",
@@ -303,14 +315,14 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
             return null;
         }
 
-        if (currentTail.tryWrite()) {
+        if (tail.tryWrite()) {
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, """
                                 SegmentQueue#{0}: nonRemovedTailOrNull() switch to write status and return current non removed tail :
                                 {1}{2}""",
-                        hashCode(), currentTail, System.lineSeparator());
+                        hashCode(), tail, System.lineSeparator());
             }
-            return currentTail;
+            return tail;
         }
 
         // tail was removed, return null
@@ -319,7 +331,7 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
                             SegmentQueue#{0}: nonRemovedTailOrNull() current tail was removed :
                             {1}
                             , return null{2}""",
-                    hashCode(), currentTail, System.lineSeparator());
+                    hashCode(), tail, System.lineSeparator());
         }
         return null;
     }
@@ -338,29 +350,24 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
         }
         try {
             if (currentTail == null) {
-                if (!HEAD.compareAndSet(this, null, newTail)) {
-                    throw new IllegalStateException("Could not replace null head with new tail");
-                }
-                if (!TAIL.compareAndSet(this, null, newTail)) {
-                    throw new IllegalStateException("Could not replace null tail with new tail");
-                }
+                assert head == null;
+                assert tail == null;
+                head = newTail;
+                tail = newTail;
                 return newTail;
             }
 
-
-            final var previousTail = TAIL.getAndSet(this, newTail);
+            final var previousTail = tail;
+            tail = newTail;
             if (previousTail == currentTail) {
-                if (!Segment.NEXT.compareAndSet(currentTail, null, newTail)) {
-                    throw new IllegalStateException("Could not add new Segment after current tail, " +
-                            "next node should be null");
-                }
+                assert currentTail.next == null;
+                currentTail.next = newTail;
                 if (finishWriteInSegments) {
                     currentTail.finishWrite();
                 }
             } else {
-                if (!HEAD.compareAndSet(this, null, newTail)) {
-                    throw new IllegalStateException("Could not replace null head with new tail");
-                }
+                assert head == null;
+                head = newTail;
             }
 
             return newTail;
@@ -401,10 +408,10 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
      */
     final void forEach(final @NonNull Consumer<Segment> action) {
         Objects.requireNonNull(action);
-        var s = head();
+        var s = head;
         while (s != null) {
             action.accept(s);
-            s = s.nextVolatile();
+            s = s.next;
         }
     }
 

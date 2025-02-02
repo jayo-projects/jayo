@@ -36,22 +36,17 @@ public final class HashingUtils {
         }
         try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
             var remaining = segmentQueue.expectSize(Long.MAX_VALUE);
-            var head = segmentQueue.head();
+            var head = segmentQueue.head;
             while (remaining > 0L) {
                 assert head != null;
-                final var currentLimit = head.limitVolatile();
+                final var currentLimit = head.limit;
                 final var toRead = (int) Math.min(remaining, currentLimit - head.pos);
                 messageDigest.update(head.data, head.pos, toRead);
                 head.pos += toRead;
                 segmentQueue.decrementSize(toRead);
                 remaining -= toRead;
                 if (head.pos == currentLimit) {
-                    if (!head.tryRemove()) {
-                        throw new IllegalStateException("Segment must be removable");
-                    }
-                    final var oldHead = head;
-                    head = segmentQueue.removeHead(head);
-                    SegmentPool.recycle(oldHead);
+                    head = segmentQueue.removeHead(head, true);
                 }
             }
         }
@@ -80,22 +75,17 @@ public final class HashingUtils {
         }
         try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
             var remaining = segmentQueue.expectSize(Long.MAX_VALUE);
-            var head = segmentQueue.head();
+            var head = segmentQueue.head;
             while (remaining > 0L) {
                 assert head != null;
-                final var currentLimit = head.limitVolatile();
+                final var currentLimit = head.limit;
                 final var toRead = (int) Math.min(remaining, currentLimit - head.pos);
                 javaMac.update(head.data, head.pos, toRead);
                 head.pos += toRead;
                 segmentQueue.decrementSize(toRead);
                 remaining -= toRead;
                 if (head.pos == currentLimit) {
-                    if (!head.tryRemove()) {
-                        throw new IllegalStateException("Segment must be removable");
-                    }
-                    final var oldHead = head;
-                    head = segmentQueue.removeHead(head);
-                    SegmentPool.recycle(oldHead);
+                    head = segmentQueue.removeHead(head, true);
                 }
             }
         }

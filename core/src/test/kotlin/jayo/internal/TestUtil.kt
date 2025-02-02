@@ -155,7 +155,7 @@ object TestUtil {
         }
 
         original.segmentQueue.forEach { segment ->
-            val bufferTailNode = result.segmentQueue.tail()
+            val bufferTailNode = result.segmentQueue.tail
             result.segmentQueue.addWritableTail(bufferTailNode, segment.unsharedCopy(), false)
         }
         result.segmentQueue.incrementSize(original.bytesAvailable())
