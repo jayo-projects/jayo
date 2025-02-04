@@ -3,6 +3,7 @@ package jayo.benchmarks
 import jayo.Reader
 import jayo.buffered
 import jayo.reader
+import jayo.scheduling.TaskRunner
 import okio.BufferedSource
 import okio.buffer
 import okio.source
@@ -30,6 +31,8 @@ open class SlowReaderBenchmark {
         private const val CHUNKS = 256
         private const val CHUNKS_BYTE_SIZE = 1024
         private val ARRAY = ByteArray(CHUNKS_BYTE_SIZE) { 0x61 }
+
+        val TASK_RUNNER: TaskRunner = TaskRunner.create("SlowReaderBenchmark-")
     }
 
     @Setup
@@ -49,7 +52,7 @@ open class SlowReaderBenchmark {
 
         when (type) {
             "jayo" -> {
-                jayoReader = delayedInputStream.reader().buffered(true)
+                jayoReader = delayedInputStream.reader().buffered(TASK_RUNNER)
             }
 
             "okio" -> {

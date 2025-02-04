@@ -24,6 +24,7 @@ package jayo;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.internal.*;
+import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
@@ -87,7 +88,8 @@ public final class Jayo {
      * Use this wherever you synchronously read from a raw reader to get an ergonomic and efficient access to data.
      */
     public static @NonNull Reader buffer(final @NonNull RawReader reader) {
-        return new RealReader(reader, false);
+        Objects.requireNonNull(reader);
+        return new RealReader(reader, null);
     }
 
     /**
@@ -99,8 +101,10 @@ public final class Jayo {
      * <p>
      * Use this wherever you asynchronously read from a raw reader to get an ergonomic and efficient access to data.
      */
-    public static @NonNull Reader bufferAsync(final @NonNull RawReader reader) {
-        return new RealReader(reader, true);
+    public static @NonNull Reader bufferAsync(final @NonNull RawReader reader, final @NonNull TaskRunner taskRunner) {
+        Objects.requireNonNull(reader);
+        Objects.requireNonNull(taskRunner);
+        return new RealReader(reader, taskRunner);
     }
 
     /**

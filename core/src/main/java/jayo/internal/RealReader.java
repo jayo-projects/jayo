@@ -22,6 +22,7 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -48,9 +49,9 @@ public final class RealReader implements Reader {
         segmentQueue = newSyncReaderSegmentQueue(reader);
     }
 
-    public RealReader(final @NonNull RawReader reader, final boolean preferAsync) {
-        Objects.requireNonNull(reader);
-        segmentQueue = newReaderSegmentQueue(reader, preferAsync);
+    public RealReader(final @NonNull RawReader reader, final @Nullable TaskRunner taskRunner) {
+        assert reader != null;
+        segmentQueue = newReaderSegmentQueue(reader, taskRunner);
     }
 
     @Override
