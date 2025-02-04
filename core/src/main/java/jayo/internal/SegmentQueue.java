@@ -5,6 +5,7 @@
 
 package jayo.internal;
 
+import jayo.tools.BasicLock;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -13,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
@@ -29,7 +29,7 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
     Segment head = null;
     @Nullable
     Segment tail = null;
-    final @NonNull Lock lock = new ReentrantLock();
+    final @NonNull Lock lock = BasicLock.create();
 
     private final @NonNull LongAdder size = new LongAdder();
 
