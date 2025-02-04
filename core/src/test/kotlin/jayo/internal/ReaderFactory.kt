@@ -26,6 +26,7 @@
 package jayo.internal
 
 import jayo.*
+import jayo.scheduling.TaskRunner
 
 interface ReaderFactory {
     class Pipe(
@@ -36,6 +37,8 @@ interface ReaderFactory {
     fun pipe(): Pipe
 
     companion object {
+        val TASK_RUNNER: TaskRunner = TaskRunner.create("ReaderFactory-")
+
         val BUFFER: ReaderFactory = object : ReaderFactory {
             override fun pipe(): Pipe {
                 val buffer = RealBuffer()
@@ -63,7 +66,7 @@ interface ReaderFactory {
                 val buffer = RealBuffer()
                 return Pipe(
                     buffer,
-                    (buffer as RawReader).buffered(true)
+                    (buffer as RawReader).buffered(TASK_RUNNER)
                 )
             }
         }
@@ -94,7 +97,7 @@ interface ReaderFactory {
             ReaderFactory {
             override fun pipe(): Pipe {
                 val buffer = RealBuffer()
-                val origin = (buffer as RawReader).buffered(true)
+                val origin = (buffer as RawReader).buffered(TASK_RUNNER)
                 return Pipe(
                     buffer,
                     origin.peek()

@@ -26,18 +26,19 @@ package jayo
 import jayo.crypto.Digest
 import jayo.crypto.Hmac
 import jayo.internal.RealReader
+import jayo.scheduling.TaskRunner
 import java.util.zip.Inflater
 
 /**
  * @return a new reader that buffers reads from the raw `reader`. The returned reader will perform bulk reads into its
  * underlying buffer.
  *
- * If you choose the [async] option, actual read operations from the raw `reader` are seamlessly processed
+ * If you provide a [taskRunner], actual read operations from the raw `reader` are seamlessly processed
  * **asynchronously** by a virtual thread.
  *
  * Use this wherever you read a reader to get an ergonomic and efficient access to data.
  */
-public fun RawReader.buffered(async: Boolean = false): Reader = RealReader(this, async)
+public fun RawReader.buffered(taskRunner: TaskRunner? = null): Reader = RealReader(this, taskRunner)
 
 /**
  * Consumes all this reader and return its hash.

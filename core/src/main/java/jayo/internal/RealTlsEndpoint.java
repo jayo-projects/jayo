@@ -114,7 +114,7 @@ public final class RealTlsEndpoint {
 
         this.encryptedReader = (encryptedReader != null)
                 ? encryptedReader
-                : new RealReader(encryptedEndpoint.getReader(), false);
+                : new RealReader(encryptedEndpoint.getReader(), null);
         this.encryptedWriterSegmentQueue = newWriterSegmentQueue(encryptedEndpoint.getWriter(), false);
         this.engine = engine;
         this.sessionInitCallback = sessionInitCallback;
