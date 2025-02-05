@@ -62,7 +62,7 @@ public final class Jayo {
      * Use this wherever you synchronously write to a raw writer to get an ergonomic and efficient access to data.
      */
     public static @NonNull Writer buffer(final @NonNull RawWriter writer) {
-        return new RealWriter(writer, false);
+        return new RealWriter(writer, null);
     }
 
     /**
@@ -70,13 +70,13 @@ public final class Jayo {
      * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
      * segment(s), if any.
      * <p>
-     * Write operations to the raw {@code writer} are seamlessly processed <b>asynchronously</b> by a virtual
-     * thread.
+     * Write operations to the raw {@code writer} are seamlessly processed <b>asynchronously</b> in a distinct runnable
+     * task using the provided {@code taskRunner}.
      * <p>
      * Use this wherever you asynchronously write to a raw writer to get an ergonomic and efficient access to data.
      */
-    public static @NonNull Writer bufferAsync(final @NonNull RawWriter writer) {
-        return new RealWriter(writer, true);
+    public static @NonNull Writer bufferAsync(final @NonNull RawWriter writer, final @NonNull TaskRunner taskRunner) {
+        return new RealWriter(writer, taskRunner);
     }
 
     /**
@@ -96,8 +96,8 @@ public final class Jayo {
      * @return a new reader that buffers reads from the raw {@code reader}. The returned reader will perform bulk reads
      * into its underlying buffer.
      * <p>
-     * Read operations from the raw {@code reader} are seamlessly processed <b>asynchronously</b> by a virtual
-     * thread.
+     * Read operations from the raw {@code reader} are seamlessly processed <b>asynchronously</b> in a distinct runnable
+     * task using the provided {@code taskRunner}.
      * <p>
      * Use this wherever you asynchronously read from a raw reader to get an ergonomic and efficient access to data.
      */

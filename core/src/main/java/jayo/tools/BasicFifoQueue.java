@@ -19,8 +19,8 @@ import java.util.stream.Stream;
 
 /**
  * A basic FIFO queue that only supports {@link #offer(Object)}, {@link #peek()}, {@link #poll()},
- * {@link #contains(Object)}, {@link #remove(Object)}, {@link #isEmpty()} and {@link #iterator()}. All other methods
- * throw {@code UnsupportedOperationException}.
+ * {@link #contains(Object)}, {@link #remove(Object)}, {@link #isEmpty()}, {@link #iterator()} and {@link #clear()}.
+ * All other methods throw {@code UnsupportedOperationException}.
  * <p>
  * <b>Be careful</b>, the returned boolean of our {@link #offer(Object)} method does not respect the
  * {@link Queue#offer(Object)} rationale, it has been adapted to our need. Read its javadoc for details.
@@ -39,15 +39,6 @@ public sealed interface BasicFifoQueue<T> extends Queue<T> permits SinglyLinkedB
      */
     @Override
     boolean offer(final @NonNull T item);
-
-    @Override
-    T peek();
-
-    @Override
-    T poll();
-
-    @Override
-    boolean isEmpty();
 
     @Override
     boolean contains(final @NonNull Object o);
@@ -109,11 +100,6 @@ public sealed interface BasicFifoQueue<T> extends Queue<T> permits SinglyLinkedB
 
     @Override
     default boolean retainAll(final @NonNull Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    default void clear() {
         throw new UnsupportedOperationException();
     }
 

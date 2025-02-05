@@ -41,7 +41,7 @@ public final class DeflaterRawWriter implements RawWriter {
 
     public DeflaterRawWriter(final @NonNull RawWriter writer, final @NonNull Deflater deflater) {
         Objects.requireNonNull(writer);
-        this.segmentQueue = newWriterSegmentQueue(writer, false);
+        this.segmentQueue = newWriterSegmentQueue(writer, null);
         this.deflater = Objects.requireNonNull(deflater);
     }
 

@@ -15,15 +15,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 
 public final class SinglyLinkedBasicFifoQueue<T> implements BasicFifoQueue<T> {
-    private static class Node<T> {
-        private final @NonNull T value;
-        private @Nullable Node<T> next = null;
-
-        private Node(final @NonNull T value) {
-            this.value = value;
-        }
-    }
-
     private @Nullable Node<T> head = null;
     private @Nullable Node<T> tail = null;
 
@@ -111,6 +102,14 @@ public final class SinglyLinkedBasicFifoQueue<T> implements BasicFifoQueue<T> {
     }
 
     @Override
+    public void clear() {
+        // Clearing all the links between nodes is unnecessary, there should not be a lot of items left when we call the
+        // clear method in our internal use cases
+        head = null;
+        tail = null;
+    }
+
+    @Override
     public @NonNull Iterator<T> iterator() {
         return head != null ? new SinglyLinkedIterator() : Collections.emptyIterator();
     }
@@ -158,6 +157,15 @@ public final class SinglyLinkedBasicFifoQueue<T> implements BasicFifoQueue<T> {
             previous.next = current.next;
             current = previous;
             canRemove = false;
+        }
+    }
+
+    private static final class Node<T> {
+        private final @NonNull T value;
+        private @Nullable Node<T> next = null;
+
+        private Node(final @NonNull T value) {
+            this.value = value;
         }
     }
 }

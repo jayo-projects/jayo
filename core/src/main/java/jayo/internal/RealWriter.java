@@ -22,7 +22,9 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,13 +36,13 @@ import java.util.Objects;
 
 import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
 
-@SuppressWarnings("resources")
+@SuppressWarnings("resource")
 public final class RealWriter implements Writer {
     final @NonNull WriterSegmentQueue segmentQueue;
 
-    public RealWriter(final @NonNull RawWriter writer, final boolean preferAsync) {
+    public RealWriter(final @NonNull RawWriter writer, final @Nullable TaskRunner taskRunner) {
         Objects.requireNonNull(writer);
-        segmentQueue = newWriterSegmentQueue(writer, preferAsync);
+        segmentQueue = newWriterSegmentQueue(writer, taskRunner);
     }
 
     @Override
