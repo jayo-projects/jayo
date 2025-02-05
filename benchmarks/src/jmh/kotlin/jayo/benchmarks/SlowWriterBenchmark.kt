@@ -2,6 +2,7 @@ package jayo.benchmarks
 
 import jayo.Writer
 import jayo.buffered
+import jayo.scheduling.TaskRunner
 import jayo.writer
 import okio.BufferedSink
 import okio.buffer
@@ -36,6 +37,8 @@ open class SlowWriterBenchmark {
         private const val OKIO_CHUNKS_BYTE_SIZE = 16 * 1024
         const val OKIO_EXPECTED_SIZE = OKIO_CHUNKS * OKIO_CHUNKS_BYTE_SIZE
         private val OKIO_ARRAY = ByteArray(OKIO_EXPECTED_SIZE) { 0x61 }
+
+        val TASK_RUNNER: TaskRunner = TaskRunner.create("SlowWriterBenchmark-")
     }
 
     @Setup
@@ -78,7 +81,7 @@ open class SlowWriterBenchmark {
 
         when (type) {
             "jayo" -> {
-                jayoWriter = delayedOutputStreamJayo.writer().buffered(true)
+                jayoWriter = delayedOutputStreamJayo.writer().buffered(TASK_RUNNER)
             }
 
             "okio" -> {

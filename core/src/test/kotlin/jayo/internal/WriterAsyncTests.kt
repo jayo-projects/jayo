@@ -7,6 +7,7 @@ package jayo.internal
 
 import jayo.Jayo
 import jayo.buffered
+import jayo.scheduling.TaskRunner
 import jayo.writer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.RepeatedTest
@@ -16,6 +17,15 @@ import kotlin.test.fail
 
 // these tests are a good race-condition test, do them several times !
 class WriterAsyncTests {
+    companion object {
+        private const val CHUNKS = 32
+        const val CHUNKS_BYTE_SIZE = 64 * 1024
+        const val EXPECTED_SIZE = CHUNKS * CHUNKS_BYTE_SIZE
+        val ARRAY = ByteArray(EXPECTED_SIZE) { 0x61 }
+
+        val TASK_RUNNER: TaskRunner = TaskRunner.create("WriterAsyncTests-")
+    }
+
     @RepeatedTest(10)
     fun writerFastProducerSlowEmitter() {
         val outputStream = outputStream(true)
@@ -31,7 +41,7 @@ class WriterAsyncTests {
     fun asyncWriterFastProducerSlowEmitter() {
         val outputStream = outputStream(true)
 
-        Jayo.bufferAsync(outputStream.writer()).use { writer ->
+        Jayo.bufferAsync(outputStream.writer(), TASK_RUNNER).use { writer ->
             writer.write('a'.repeat(EXPECTED_SIZE))
         }
         assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
@@ -62,7 +72,7 @@ class WriterAsyncTests {
         val outputStream = outputStream(false)
 
         var written = 0
-        outputStream.writer().buffered(true).use { writer ->
+        outputStream.writer().buffered(TASK_RUNNER).use { writer ->
             val toWrite = CHUNKS_BYTE_SIZE
             val bytes = ByteArray(toWrite)
             while (written < EXPECTED_SIZE) {
@@ -100,7 +110,7 @@ class WriterAsyncTests {
         val outputStream = outputStream(true)
 
         var written = 0
-        outputStream.writer().buffered(true).use { writer ->
+        outputStream.writer().buffered(TASK_RUNNER).use { writer ->
             val toWrite = CHUNKS_BYTE_SIZE
             val bytes = ByteArray(toWrite)
             while (written < EXPECTED_SIZE) {
@@ -112,13 +122,6 @@ class WriterAsyncTests {
         }
         assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
         assertThat(outputStream.bytes).isEqualTo(ARRAY)
-    }
-
-    companion object {
-        private const val CHUNKS = 32
-        const val CHUNKS_BYTE_SIZE = 64 * 1024
-        const val EXPECTED_SIZE = CHUNKS * CHUNKS_BYTE_SIZE
-        val ARRAY = ByteArray(EXPECTED_SIZE) { 0x61 }
     }
 
     private fun outputStream(delayed: Boolean) = object : OutputStream() {

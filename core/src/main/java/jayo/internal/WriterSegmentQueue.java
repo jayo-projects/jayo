@@ -8,32 +8,30 @@ package jayo.internal;
 import jayo.JayoClosedResourceException;
 import jayo.JayoInterruptedIOException;
 import jayo.RawWriter;
+import jayo.scheduling.TaskRunner;
+import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 
 sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.Async {
 
     static @NonNull WriterSegmentQueue newWriterSegmentQueue(final @NonNull RawWriter writer,
-                                                             final boolean preferAsync) {
-        Objects.requireNonNull(writer);
+                                                             final @Nullable TaskRunner taskRunner) {
+        assert writer != null;
 
         // If writer is a RealWriter, we return its existing segment queue as is (async or sync).
         if (writer instanceof RealWriter realWriter) {
             return realWriter.segmentQueue;
         }
 
-        return preferAsync ? new WriterSegmentQueue.Async(writer) : new WriterSegmentQueue(writer);
+        return taskRunner != null ? new WriterSegmentQueue.Async(writer, taskRunner) : new WriterSegmentQueue(writer);
     }
 
     final @NonNull RawWriter writer;
@@ -111,35 +109,126 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
 
     final static class Async extends WriterSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.WriterSegmentQueue");
-        private final static ThreadFactory SINK_EMITTER_THREAD_FACTORY =
-                JavaVersionUtils.threadFactory("JayoWriterEmitter#");
 
         /**
          * A specific STOP event that will be sent to {@link #emitEvents} queue
          * to trigger the end of the async emitter thread
          */
-        private final static EmitEvent STOP_EMITTER_THREAD = new EmitEvent(
+        private final static EmitEvent FLUSH_EVENT = new EmitEvent(
                 new Segment(new byte[0], 0, 0, null, false),
-                false, -42, false);
+                false, -42);
+
+        private final @NonNull TaskRunner taskRunner;
 
         private volatile @Nullable RuntimeException exception = null;
 
-        private final @NonNull Thread writerEmitterThread;
+        private final @NonNull BasicFifoQueue<EmitEvent> emitEvents = BasicFifoQueue.create();
+        private @Nullable EmitEvent lastEmittedEvent = null;
 
-        private volatile boolean writerEmitterTerminated = false;
-        private final @NonNull BlockingQueue<EmitEvent> emitEvents = new LinkedBlockingQueue<>();
-        private @Nullable Segment lastEmittedCompleteSegment = null;
-        private boolean lastEmittedIncluding = false;
+        // status
+        static final byte NOT_STARTED = 1;
+        static final byte START_NEEDED = 2;
+        static final byte STARTED = 3;
 
-        private volatile boolean isSegmentQueueFull = false;
+        byte status;
+
+        private boolean isSegmentQueueFull = false;
         private final Lock lock = new ReentrantLock();
-        private final Condition segmentQueueNotFull = lock.newCondition();
-        private final Condition pausedForFlush = lock.newCondition();
+        private final Condition condition = lock.newCondition();
 
-        Async(final @NonNull RawWriter writer) {
+        private final @NonNull Runnable writerEmitter;
+
+        Async(final @NonNull RawWriter writer, final @NonNull TaskRunner taskRunner) {
             super(writer);
-            writerEmitterThread = SINK_EMITTER_THREAD_FACTORY.newThread(new WriterEmitter());
-            writerEmitterThread.start();
+
+            status = NOT_STARTED;
+            this.taskRunner = taskRunner;
+
+            writerEmitter = () -> {
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: start",
+                            hashCode());
+                }
+                try {
+                    while (true) {
+                        var toWrite = 0L;
+                        lock.lock();
+                        try {
+                            status = STARTED; // not a problem to do this several times.
+
+                            final var currentSize = size();
+                            final var wasFull = isSegmentQueueFull;
+                            if (wasFull && currentSize <= MAX_BYTE_SIZE) {
+                                isSegmentQueueFull = false;
+                            }
+
+                            if (wasFull && !isSegmentQueueFull) {
+                                condition.signal();
+                            }
+
+                            final var emitEvent = emitEvents.poll();
+                            if (LOGGER.isLoggable(TRACE)) {
+                                LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: consuming event{1}{2}{3}",
+                                        hashCode(), System.lineSeparator(), emitEvent, System.lineSeparator());
+                            }
+                            if (emitEvent == null) {
+                                break;
+                            }
+                            if (emitEvent == FLUSH_EVENT) {
+                                writer.flush();
+                                break;
+                            }
+
+                            var segment = head;
+                            assert segment != null;
+                            if ((emitEvent.including || segment.next != null)) {
+                                while (true) {
+                                    final var nextSegment = segment.next;
+                                    if (!emitEvent.including && nextSegment != null && emitEvent.segment == nextSegment) {
+                                        toWrite += segment.limit - segment.pos;
+                                        break;
+                                    }
+                                    if (emitEvent.including && emitEvent.segment == segment) {
+                                        toWrite += emitEvent.limit - segment.pos;
+                                        break;
+                                    }
+                                    segment = nextSegment;
+                                    assert segment != null;
+                                    toWrite += segment.limit - segment.pos;
+                                }
+                            }
+                            // guarding against a concurrent read that may have reduced head(s) size(s)
+                            toWrite = Math.min(toWrite, currentSize);
+                        } finally {
+                            lock.unlock();
+                        }
+
+                        if (toWrite > 0) {
+                            writer.write(buffer, toWrite);
+                        }
+                    }
+                } catch (Throwable t) {
+                    if (t instanceof RuntimeException runtimeException) {
+                        exception = runtimeException;
+                    } else {
+                        exception = new RuntimeException(t);
+                    }
+                } finally {
+                    // end of reader consumer thread : we mark it as terminated,
+                    // and we signal (= resume) the main thread
+                    lock.lock();
+                    try {
+                        status = NOT_STARTED;
+                        condition.signal();
+                    } finally {
+                        lock.unlock();
+                    }
+                }
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: end",
+                            hashCode());
+                }
+            };
         }
 
         @Override
@@ -151,9 +240,9 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                 try {
                     // try again after acquiring the lock
                     currentSize = size();
-                    if (currentSize > MAX_BYTE_SIZE && !writerEmitterTerminated) {
+                    if (currentSize > MAX_BYTE_SIZE) {
                         isSegmentQueueFull = true;
-                        segmentQueueNotFull.await();
+                        condition.await();
                         throwIfNeeded();
                     }
                 } catch (InterruptedException e) {
@@ -168,48 +257,54 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
 
         @Override
         void emitCompleteSegments() {
-            var currentTail = tail;
-            if (currentTail == null) {
-                // can happen when we write nothing, like writer.write("")
-                return;
-            }
+            lock.lock();
+            try {
+                var currentTail = tail;
+                if (currentTail == null) {
+                    // can happen when we write nothing, like writer.write("")
+                    return;
+                }
 
-            final var includingTail = !currentTail.owner || currentTail.limit == Segment.SIZE;
-            emitEventIfRequired(currentTail, includingTail);
+                final var includingTail = !currentTail.owner || currentTail.limit == Segment.SIZE;
+                if (includingTail || currentTail != head) { // we have something to emit
+                    emitEventIfRequired(currentTail, includingTail);
+                }
+            } finally {
+                lock.unlock();
+            }
         }
 
         private void emitEventIfRequired(final @NonNull Segment segment, final boolean includingTail) {
-            if (lastEmittedCompleteSegment == null || lastEmittedCompleteSegment != segment
-                    || (includingTail && !lastEmittedIncluding)) {
-                emitEvents.add(new EmitEvent(segment, includingTail, segment.limit, false));
-                lastEmittedCompleteSegment = segment;
-                lastEmittedIncluding = includingTail;
+            final var toEmit = new EmitEvent(segment, includingTail, segment.limit);
+            if (!toEmit.equals(lastEmittedEvent)) {
+                emitEvent(toEmit);
             }
         }
 
         @Override
         void emit(final boolean flush) {
             throwIfNeeded();
-            final var currentTail = tail;
-            if (currentTail == null) {
-                // can happen when we write nothing, like writer.write("")
-                return;
-            }
-            final var emitEvent = new EmitEvent(currentTail, true, currentTail.limit, flush);
-            if (!flush) {
-                emitEvents.add(emitEvent);
-                return;
-            }
 
-            // must acquire the lock because thread will pause until flush really executes
             lock.lock();
             try {
-                if (!writerEmitterTerminated) {
-                    emitEvents.add(emitEvent);
-                    pausedForFlush.await();
+                final var currentTail = tail;
+                if (currentTail == null) {
+                    // can happen when we write nothing, like writer.write("")
+                    return;
+                }
+
+                emitEventIfRequired(currentTail, true);
+
+                if (flush) {
+                    // emit the flush event
+                    emitEvent(FLUSH_EVENT);
+
+                    condition.await();
+                    if (LOGGER.isLoggable(TRACE)) {
+                        LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: flush done{1}{2}{3}",
+                                hashCode(), System.lineSeparator(), this, System.lineSeparator());
+                    }
                     throwIfNeeded();
-                } else {
-                    emitEvents.add(emitEvent);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Retain interrupted status.
@@ -217,6 +312,23 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                 throw new JayoInterruptedIOException("current thread is interrupted");
             } finally {
                 lock.unlock();
+            }
+        }
+
+        private void emitEvent(final @NonNull EmitEvent emitEvent) {
+            assert emitEvent != null;
+
+            emitEvents.offer(emitEvent);
+            lastEmittedEvent = emitEvent;
+
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: emitting event{1}{2}{3}",
+                        hashCode(), System.lineSeparator(), emitEvent, System.lineSeparator());
+            }
+            // resume reader consumer thread if needed, then await on expected size
+            if (status == NOT_STARTED) {
+                status = START_NEEDED;
+                taskRunner.execute(false, writerEmitter);
             }
         }
 
@@ -230,14 +342,16 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             if (closed) {
                 return;
             }
-            if (!writerEmitterTerminated) {
-                // send a stop event
-                emitEvents.add(STOP_EMITTER_THREAD);
-                try {
-                    writerEmitterThread.join();
-                } catch (InterruptedException e) {
-                    // ignore
+            lock.lock();
+            try {
+                if (status != NOT_STARTED) {
+                    emitEvents.clear();
+                    condition.await();
                 }
+            } catch (InterruptedException e) {
+                // ignore
+            } finally {
+                lock.unlock();
             }
 
             super.close();
@@ -257,100 +371,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             }
         }
 
-        private final class WriterEmitter implements Runnable {
-            @Override
-            public void run() {
-                if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: start", hashCode());
-                }
-                try {
-                    mainLoop:
-                    while (!Thread.interrupted()) {
-                        try {
-                            final var emitEvent = emitEvents.take();
-                            if (emitEvent == STOP_EMITTER_THREAD) {
-                                break;
-                            }
-                            var segment = head;
-                            if (segment != null && (emitEvent.including || segment.next != null)) {
-                                var toWrite = 0L;
-                                while (true) {
-                                    final var nextSegment = segment.next;
-                                    if (!emitEvent.including && nextSegment != null && emitEvent.segment == nextSegment) {
-                                        toWrite += segment.limit - segment.pos;
-                                        break;
-                                    }
-                                    if (emitEvent.including && emitEvent.segment == segment) {
-                                        toWrite += emitEvent.limit - segment.pos;
-                                        break;
-                                    }
-                                    segment = nextSegment;
-                                    if (segment == null) {
-                                        continue mainLoop;
-                                    }
-                                    toWrite += segment.limit - segment.pos;
-                                }
-                                if (toWrite > 0) {
-                                    // guarding against a concurrent read that may have reduced head(s) size(s)
-                                    toWrite = Math.min(toWrite, size());
-                                    writer.write(buffer, toWrite);
-                                }
-                            }
-
-                            final var awaitingNonFull = isSegmentQueueFull;
-                            final var stillFull = size() > MAX_BYTE_SIZE;
-                            if (awaitingNonFull) {
-                                if (stillFull) {
-                                    continue;
-                                }
-                                isSegmentQueueFull = false;
-                            }
-
-                            if (emitEvent.flush) {
-                                writer.flush();
-                            }
-
-                            if (awaitingNonFull || emitEvent.flush) {
-                                lock.lockInterruptibly();
-                                try {
-                                    if (emitEvent.flush) {
-                                        pausedForFlush.signal();
-                                    } else {
-                                        segmentQueueNotFull.signal();
-                                    }
-                                } finally {
-                                    lock.unlock();
-                                }
-                            }
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt(); // Will stop looping just after
-                        }
-                    }
-                } catch (Throwable t) {
-                    if (t instanceof RuntimeException runtimeException) {
-                        exception = runtimeException;
-                    } else {
-                        exception = new RuntimeException(t);
-                    }
-                } finally {
-                    // end of reader consumer thread : we mark it as terminated,
-                    // and we signal (= resume) the main thread
-                    writerEmitterTerminated = true;
-                    lock.lock();
-                    try {
-                        segmentQueueNotFull.signal();
-                        pausedForFlush.signal();
-                    } finally {
-                        lock.unlock();
-                    }
-                }
-                if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: end", hashCode());
-                }
-            }
-        }
-
-        private record EmitEvent(@NonNull Segment segment, boolean including, int limit, boolean flush) {
+        private record EmitEvent(@NonNull Segment segment, boolean including, int limit) {
         }
     }
 }
