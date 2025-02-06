@@ -1,17 +1,17 @@
 [versions]
 # plugins
 # https://github.com/JetBrains/kotlin/releases
-kotlin = "2.1.0"
+kotlin = "2.1.10"
 # https://github.com/Kotlin/dokka/releases
 dokka = "2.0.0"
 # https://github.com/Kotlin/kotlinx-kover/releases
 kover = "0.9.1"
 # https://github.com/melix/mrjar-gradle-plugin/releases
 mrjar = "0.1.1"
-# https://github.com/melix/jmh-gradle-plugin/releases (for benchmarks)
-jmhPlugin = "0.7.2"
+# https://github.com/melix/jmh-gradle-plugin/tags (for benchmarks)
+jmhPlugin = "0.7.3"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
-shadow = "8.3.5"
+shadow = "8.3.6"
 # https://github.com/researchgate/gradle-release/releases
 release = "3.1.0"
 
@@ -29,7 +29,7 @@ conscrypt = "2.5.2"
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
 junit = "5.11.4"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
-assertj = "3.27.2"
+assertj = "3.27.3"
 # https://mvnrepository.com/artifact/org.hamcrest/hamcrest
 hamcrest = "3.0"
 # https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
