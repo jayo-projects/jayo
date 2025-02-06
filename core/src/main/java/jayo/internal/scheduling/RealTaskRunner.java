@@ -457,9 +457,6 @@ public final class RealTaskRunner implements TaskRunner {
                 }
             }
         }
-        if (!futureTasks.isEmpty()) {
-            System.out.println("Cancelling futureTasks failed");
-        }
     }
 
     interface Backend extends TaskRunner.Backend {

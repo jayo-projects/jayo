@@ -30,8 +30,9 @@ public final class RealBasicLock implements BasicLock {
 
     @Override
     public void lock() {
-        final var lockingThread = (Thread) LOCKING_THREAD.getAndSetRelease(this, Thread.currentThread());
-        if (lockingThread != null) {
+        final var currentThread = Thread.currentThread();
+        final var lockingThread = (Thread) LOCKING_THREAD.getAndSetRelease(this, currentThread);
+        if (lockingThread != null && lockingThread != currentThread) {
             LockSupport.park();
         }
     }

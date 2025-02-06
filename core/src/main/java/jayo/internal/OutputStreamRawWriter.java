@@ -67,7 +67,7 @@ public final class OutputStreamRawWriter implements RawWriter {
         }
 
         var remaining = byteCount;
-        var head = _reader.segmentQueue.head;
+        var head = _reader.segmentQueue.head();
         assert head != null;
         var headLimit = head.limit;
         while (remaining > 0L) {

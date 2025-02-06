@@ -13,10 +13,10 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 /**
- * A basic lock that only supports {@link #lock()} and {@link #unlock()}. It is not reentrant and only support 2
- * concurrent threads.
+ * A basic lock that only supports {@link #lock()} and {@link #unlock()}. It is reentrant and only support 2 concurrent
+ * threads.
  */
-public interface BasicLock extends Lock {
+public sealed interface BasicLock extends Lock permits RealBasicLock {
     static BasicLock create() {
         return new RealBasicLock();
     }
@@ -32,13 +32,12 @@ public interface BasicLock extends Lock {
     }
 
     @Override
-    default boolean tryLock(long time, @NonNull TimeUnit unit) {
+    default boolean tryLock(final long time, final @NonNull TimeUnit unit) {
         throw new UnsupportedOperationException();
     }
 
-    @NonNull
     @Override
-    default Condition newCondition() {
+    default @NonNull Condition newCondition() {
         throw new UnsupportedOperationException();
     }
 }

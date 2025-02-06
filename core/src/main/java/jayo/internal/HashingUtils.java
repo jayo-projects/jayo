@@ -36,7 +36,7 @@ public final class HashingUtils {
         }
         try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
             var remaining = segmentQueue.expectSize(Long.MAX_VALUE);
-            var head = segmentQueue.head;
+            var head = segmentQueue.head();
             while (remaining > 0L) {
                 assert head != null;
                 final var currentLimit = head.limit;
@@ -75,7 +75,7 @@ public final class HashingUtils {
         }
         try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
             var remaining = segmentQueue.expectSize(Long.MAX_VALUE);
-            var head = segmentQueue.head;
+            var head = segmentQueue.head();
             while (remaining > 0L) {
                 assert head != null;
                 final var currentLimit = head.limit;

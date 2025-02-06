@@ -174,7 +174,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
         }
 
         // Assign buffer bytes to the inflater.
-        currentHead = segmentQueue.head;
+        currentHead = segmentQueue.head();
         assert currentHead != null;
         bytesHeldByInflater = currentHead.limit - currentHead.pos;
         inflater.setInput(currentHead.data, currentHead.pos, bytesHeldByInflater);

@@ -54,7 +54,7 @@ public final class DeflaterRawWriter implements RawWriter {
         }
 
         var remaining = byteCount;
-        var head = _reader.segmentQueue.head;
+        var head = _reader.segmentQueue.head();
         assert head != null;
         while (remaining > 0L) {
             var headLimit = head.limit;

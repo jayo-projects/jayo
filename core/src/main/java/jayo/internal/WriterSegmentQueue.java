@@ -13,7 +13,6 @@ import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Objects;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -39,7 +38,8 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
     boolean closed = false;
 
     WriterSegmentQueue(final @NonNull RawWriter writer) {
-        this.writer = Objects.requireNonNull(writer);
+        assert writer != null;
+        this.writer = writer;
         this.buffer = new RealBuffer(this);
     }
 
@@ -133,8 +133,8 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         byte status;
 
         private boolean isSegmentQueueFull = false;
-        private final Lock lock = new ReentrantLock();
-        private final Condition condition = lock.newCondition();
+        private final @NonNull Lock asyncWriterlock = new ReentrantLock();
+        private final @NonNull Condition condition = asyncWriterlock.newCondition();
 
         private final @NonNull Runnable writerEmitter;
 
@@ -150,15 +150,15 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                             hashCode());
                 }
                 try {
+                    mainLoop:
                     while (true) {
-                        var toWrite = 0L;
-                        lock.lock();
+                        final EmitEvent emitEvent;
+                        asyncWriterlock.lock();
                         try {
                             status = STARTED; // not a problem to do this several times.
 
-                            final var currentSize = size();
                             final var wasFull = isSegmentQueueFull;
-                            if (wasFull && currentSize <= MAX_BYTE_SIZE) {
+                            if (wasFull && size() <= MAX_BYTE_SIZE) {
                                 isSegmentQueueFull = false;
                             }
 
@@ -166,39 +166,50 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                                 condition.signal();
                             }
 
-                            final var emitEvent = emitEvents.poll();
-                            if (LOGGER.isLoggable(TRACE)) {
-                                LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: consuming event{1}{2}{3}",
-                                        hashCode(), System.lineSeparator(), emitEvent, System.lineSeparator());
-                            }
-                            if (emitEvent == null) {
-                                break;
-                            }
-                            if (emitEvent == FLUSH_EVENT) {
-                                writer.flush();
-                                break;
-                            }
+                            emitEvent = emitEvents.poll();
+                        } finally {
+                            asyncWriterlock.unlock();
+                        }
 
-                            var segment = head;
-                            assert segment != null;
-                            if ((emitEvent.including || segment.next != null)) {
-                                while (true) {
-                                    final var nextSegment = segment.next;
-                                    if (!emitEvent.including && nextSegment != null && emitEvent.segment == nextSegment) {
+                        if (LOGGER.isLoggable(TRACE)) {
+                            LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: consuming event{1}{2}{3}",
+                                    hashCode(), System.lineSeparator(), emitEvent, System.lineSeparator());
+                        }
+                        if (emitEvent == null) {
+                            break;
+                        }
+                        if (emitEvent == FLUSH_EVENT) {
+                            writer.flush();
+                            break;
+                        }
+
+                        var toWrite = 0L;
+                        lock.lock();
+                        try {
+                            var segment = head();
+                            if (segment != null) {
+                                var nextSegment = segment.next;
+                                if (emitEvent.including || nextSegment != null) {
+                                    while (true) {
+                                        if (!emitEvent.including && nextSegment != null && emitEvent.segment == nextSegment) {
+                                            toWrite += segment.limit - segment.pos;
+                                            break;
+                                        }
+                                        if (emitEvent.including && emitEvent.segment == segment) {
+                                            toWrite += emitEvent.limit - segment.pos;
+                                            break;
+                                        }
+                                        segment = nextSegment;
+                                        if (segment == null) {
+                                            continue mainLoop;
+                                        }
                                         toWrite += segment.limit - segment.pos;
-                                        break;
+                                        nextSegment = segment.next;
                                     }
-                                    if (emitEvent.including && emitEvent.segment == segment) {
-                                        toWrite += emitEvent.limit - segment.pos;
-                                        break;
-                                    }
-                                    segment = nextSegment;
-                                    assert segment != null;
-                                    toWrite += segment.limit - segment.pos;
                                 }
                             }
                             // guarding against a concurrent read that may have reduced head(s) size(s)
-                            toWrite = Math.min(toWrite, currentSize);
+                            toWrite = Math.min(toWrite, size());
                         } finally {
                             lock.unlock();
                         }
@@ -216,12 +227,12 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                 } finally {
                     // end of reader consumer thread : we mark it as terminated,
                     // and we signal (= resume) the main thread
-                    lock.lock();
+                    asyncWriterlock.lock();
                     try {
                         status = NOT_STARTED;
                         condition.signal();
                     } finally {
-                        lock.unlock();
+                        asyncWriterlock.unlock();
                     }
                 }
                 if (LOGGER.isLoggable(TRACE)) {
@@ -234,14 +245,15 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         @Override
         void pauseIfFull() {
             throwIfNeeded();
-            var currentSize = size();
-            if (currentSize > MAX_BYTE_SIZE) {
-                lock.lock();
+            if (size() > MAX_BYTE_SIZE) {
+                asyncWriterlock.lock();
                 try {
                     // try again after acquiring the lock
-                    currentSize = size();
-                    if (currentSize > MAX_BYTE_SIZE) {
+                    if (size() > MAX_BYTE_SIZE) {
                         isSegmentQueueFull = true;
+
+                        startEmitterIfNeeded();
+
                         condition.await();
                         throwIfNeeded();
                     }
@@ -250,14 +262,14 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                     close();
                     throw new JayoInterruptedIOException("current thread is interrupted");
                 } finally {
-                    lock.unlock();
+                    asyncWriterlock.unlock();
                 }
             }
         }
 
         @Override
         void emitCompleteSegments() {
-            lock.lock();
+            asyncWriterlock.lock();
             try {
                 var currentTail = tail;
                 if (currentTail == null) {
@@ -266,11 +278,11 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                 }
 
                 final var includingTail = !currentTail.owner || currentTail.limit == Segment.SIZE;
-                if (includingTail || currentTail != head) { // we have something to emit
+                if (includingTail || currentTail != head()) { // we have something to emit
                     emitEventIfRequired(currentTail, includingTail);
                 }
             } finally {
-                lock.unlock();
+                asyncWriterlock.unlock();
             }
         }
 
@@ -285,7 +297,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         void emit(final boolean flush) {
             throwIfNeeded();
 
-            lock.lock();
+            asyncWriterlock.lock();
             try {
                 final var currentTail = tail;
                 if (currentTail == null) {
@@ -311,7 +323,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                 close();
                 throw new JayoInterruptedIOException("current thread is interrupted");
             } finally {
-                lock.unlock();
+                asyncWriterlock.unlock();
             }
         }
 
@@ -325,7 +337,11 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                 LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: emitting event{1}{2}{3}",
                         hashCode(), System.lineSeparator(), emitEvent, System.lineSeparator());
             }
-            // resume reader consumer thread if needed, then await on expected size
+
+            startEmitterIfNeeded();
+        }
+
+        private void startEmitterIfNeeded() {
             if (status == NOT_STARTED) {
                 status = START_NEEDED;
                 taskRunner.execute(false, writerEmitter);
@@ -342,7 +358,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             if (closed) {
                 return;
             }
-            lock.lock();
+            asyncWriterlock.lock();
             try {
                 if (status != NOT_STARTED) {
                     emitEvents.clear();
@@ -351,7 +367,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             } catch (InterruptedException e) {
                 // ignore
             } finally {
-                lock.unlock();
+                asyncWriterlock.unlock();
             }
 
             super.close();

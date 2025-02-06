@@ -97,8 +97,8 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
 
         // non-volatile because always used inside the lock
         private long expectedSize = 0;
-        private final Lock lock = new ReentrantLock();
-        private final Condition expectingSize = lock.newCondition();
+        private final @NonNull Lock asyncReaderLock = new ReentrantLock();
+        private final @NonNull Condition expectingSize = asyncReaderLock.newCondition();
 
         private volatile @Nullable RuntimeException exception = null;
         private boolean readerConsumerRunning = false;
@@ -120,7 +120,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     while (true) {
                         final long currentSize;
                         if (currentExpectedSize == 0L) {
-                            lock.lock();
+                            asyncReaderLock.lock();
                             try {
                                 readerConsumerRunning = true; // not a problem to do this several times.
                                 currentExpectedSize = expectedSize;
@@ -131,20 +131,20 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                                     expectingSize.signal();
                                 }
                             } finally {
-                                lock.unlock();
+                                asyncReaderLock.unlock();
                             }
                         } else {
                             currentSize = size();
                             // if size is already reached -> success, else must continue to call the reader in the
                             // calling thread to ensure no race occurs
                             if (currentSize >= currentExpectedSize) {
-                                lock.lock();
+                                asyncReaderLock.lock();
                                 try {
                                     currentExpectedSize = 0L;
                                     expectedSize = 0L;
                                     expectingSize.signal();
                                 } finally {
-                                    lock.unlock();
+                                    asyncReaderLock.unlock();
                                 }
                             }
                         }
@@ -183,12 +183,12 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     }
                 } finally {
                     // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
-                    lock.lock();
+                    asyncReaderLock.lock();
                     try {
                         readerConsumerRunning = false;
                         expectingSize.signal();
                     } finally {
-                        lock.unlock();
+                        asyncReaderLock.unlock();
                     }
                 }
                 if (LOGGER.isLoggable(TRACE)) {
@@ -223,7 +223,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             }
 
             // else read from reader until expected size is reached or reader is exhausted
-            lock.lock();
+            asyncReaderLock.lock();
             try {
                 // try again after acquiring the lock
                 currentSize = size();
@@ -258,7 +258,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                 close();
                 throw new JayoInterruptedIOException("current thread is interrupted");
             } finally {
-                lock.unlock();
+                asyncReaderLock.unlock();
             }
         }
 
@@ -273,7 +273,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             }
             closed = true;
 
-            lock.lock();
+            asyncReaderLock.lock();
             try {
                 if (readerConsumerRunning) {
                     // force reader consumer task to end as soon as possible and wait
@@ -283,10 +283,16 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             } catch (InterruptedException e) {
                 // ignore
             } finally {
-                lock.unlock();
+                asyncReaderLock.unlock();
             }
             reader.close();
-            buffer.clear();
+
+            lock.lock();
+            try {
+                buffer.clear();
+            } finally {
+                lock.unlock();
+            }
 
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: Finished close{1}",
