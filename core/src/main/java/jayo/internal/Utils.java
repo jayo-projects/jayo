@@ -41,13 +41,15 @@ public final class Utils {
     static final char[] HEX_DIGIT_CHARS =
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
+    static final @NonNull SegmentRef NULL_SEGMENT_REF = new SegmentRef.Immediate(null);
+
     /**
      * Returns the index of a final value in options that is a prefix of this buffer. Returns -1 if no final value is
      * found. This method does two simultaneous iterations: it iterates the trie, and it iterates this buffer. It
      * returns when it reaches a result in the trie, when it mismatches in the trie, and when the buffer is exhausted.
      */
     static int selectPrefix(final RealBuffer buffer, final RealOptions options) {
-        var segment = buffer.segmentQueue.head;
+        var segment = buffer.segmentQueue.head();
         if (segment == null) {
             return -1;
         }

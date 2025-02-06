@@ -24,6 +24,8 @@ package jayo.internal;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
@@ -97,12 +99,6 @@ final class Segment {
      */
     boolean owner;
 
-    /**
-     * A reference to the next segment in the queue.
-     */
-    @Nullable
-    Segment next = null;
-
     // status
     static final byte AVAILABLE = 1;
     static final byte WRITING = 2;
@@ -110,6 +106,23 @@ final class Segment {
     static final byte REMOVING = 4; // final state, cannot go back
 
     byte status;
+
+    /**
+     * A reference to the next segment in the queue.
+     */
+    @SuppressWarnings("FieldMayBeFinal")
+    volatile @Nullable Segment next = null;
+
+    static final VarHandle NEXT;
+
+    static {
+        try {
+            final var l = MethodHandles.lookup();
+            NEXT = l.findVarHandle(Segment.class, "next", Segment.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     Segment() {
         this(new byte[SIZE], 0, 0, null, true);
@@ -257,7 +270,8 @@ final class Segment {
         prefix.status = TRANSFERRING;
         prefix.limit = prefix.pos + byteCount;
         pos += byteCount;
-        prefix.next = this;
+        assert prefix.next == null;
+        NEXT.setRelease(prefix, this);
 
         // stop transferring the current segment = the suffix
         finishTransfer();

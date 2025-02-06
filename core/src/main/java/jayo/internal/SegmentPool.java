@@ -180,7 +180,7 @@ public final class SegmentPool {
             firstRef.set(first.next);
 
             // cleanup segment to cache.
-            first.next = null;
+            Segment.NEXT.setRelease(first, null);
             first.pos = 0;
             first.owner = true;
             first.limit = 0;
@@ -223,7 +223,7 @@ public final class SegmentPool {
             firstRef.set(first.next);
 
             // cleanup segment to cache.
-            first.next = null;
+            Segment.NEXT.setRelease(first, null);
             first.pos = 0;
             first.owner = true;
             first.limit = 0;
@@ -240,7 +240,7 @@ public final class SegmentPool {
 
         // This segment cannot be recycled.
         if (segmentCopyTracker != null && segmentCopyTracker.removeCopy()) {
-            segment.next = null;
+            Segment.NEXT.setRelease(segment, null);
             return;
         }
 
@@ -258,7 +258,7 @@ public final class SegmentPool {
                 return;
             }
 
-            segment.next = first;
+            Segment.NEXT.setRelease(segment, first);
             segment.limit = firstLimit + Segment.SIZE;
 
             if (firstRef.compareAndSet(first, segment)) {
@@ -288,11 +288,11 @@ public final class SegmentPool {
                     continue;
                 }
                 // L2 pool is full.
-                segment.next = null;
+                Segment.NEXT.setRelease(segment, null);
                 return;
             }
 
-            segment.next = first;
+            Segment.NEXT.setRelease(segment, first);
             segment.limit = firstLimit + Segment.SIZE;
 
             if (firstRef.compareAndSet(first, segment)) {

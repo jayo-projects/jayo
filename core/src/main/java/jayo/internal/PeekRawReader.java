@@ -52,7 +52,7 @@ final class PeekRawReader implements RawReader {
         this.upstream = Objects.requireNonNull(upstream);
         buffer = (RealBuffer) getBufferFromReader(upstream);
         buffer.segmentQueue.expectSize(1L);
-        final var bufferHead = buffer.segmentQueue.head;
+        final var bufferHead = buffer.segmentQueue.head();
         if (bufferHead != null) {
             this.expectedSegment = bufferHead;
             this.expectedPos = bufferHead.pos;
@@ -72,7 +72,7 @@ final class PeekRawReader implements RawReader {
             throw new IllegalStateException("this peek reader is closed");
         }
 
-        final var bufferHead = buffer.segmentQueue.head;
+        final var bufferHead = buffer.segmentQueue.head();
         // Reader becomes invalid if there is an expected Segment and it and the expected position does not match the
         // current head and head position of the upstream buffer
         if (expectedSegment != null &&
