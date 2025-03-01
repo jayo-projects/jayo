@@ -12,6 +12,8 @@
 
 package jayo
 
+import java.util.zip.Inflater
+
 /**
  * Removes two bytes from this reader and returns a short composed of them according to the little-endian order.
  *
@@ -101,3 +103,13 @@ public fun Reader.readUIntLe(): UInt = readIntLe().toUInt()
  * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readULongLe(): ULong = readLongLe().toULong()
+
+/**
+ * @return an [InflaterRawReader] that DEFLATE-decompresses this [RawReader] while reading.
+ */
+public fun Reader.inflate(inflater: Inflater = Inflater()): InflaterRawReader = Jayo.inflate(this, inflater)
+
+/**
+ * Returns a [RawReader] that gzip-decompresses this [Reader] while reading.
+ */
+public fun Reader.gzip(): RawReader = Jayo.gzip(this)

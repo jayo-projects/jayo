@@ -8,7 +8,7 @@
 package jayo.network
 
 import jayo.JayoDslMarker
-import java.net.ProtocolFamily
+import jayo.scheduling.TaskRunner
 import java.net.SocketOption
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -29,17 +29,17 @@ public class NioNetworkServerConfigDsl internal constructor(
     private val config: NetworkServer.NioConfig
 ) : NetworkServerConfigDsl(config) {
     /**
-     * Sets the [protocol family][ProtocolFamily] to use when opening the underlying NIO sockets. The default protocol
-     * family is platform (and possibly configuration) dependent and therefore unspecified.
+     * Sets the [network protocol][NetworkProtocol] to use when opening the underlying NIO sockets. The default protocol
+     * is platform (and possibly configuration) dependent and therefore unspecified.
      *
      * See [java.net.preferIPv4Stack](https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6)
      * system property
      */
-    public var protocolFamily: ProtocolFamily
+    public var protocol: NetworkProtocol
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            config.protocolFamily(value)
+            config.protocol(value)
         }
 }
 
@@ -79,8 +79,20 @@ public sealed class NetworkServerConfigDsl(private val config: NetworkServer.Con
         }
 
     /**
+     * Read and write operations on the [accepted network endpoints][NetworkServer.accept] by the [NetworkServer] built
+     * by this configuration are seamlessly processed **asynchronously** in distinct runnable tasks using the provided
+     * [TaskRunner].
+     */
+    public var bufferAsync: TaskRunner
+        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
+        get() = error("unsupported")
+        set(value) {
+            config.bufferAsync(value)
+        }
+
+    /**
      * Sets the value of a socket option to set on the [accepted network endpoints][NetworkServer.accept] by the
-     * [NetworkServer] built by this builder.
+     * [NetworkServer] built by this configuration.
      *
      * @param name  The socket option
      * @param value The value of the socket option. A value of `null` may be a valid value for some socket options.

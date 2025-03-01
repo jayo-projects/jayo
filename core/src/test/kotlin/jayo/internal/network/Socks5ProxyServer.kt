@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-present, pull-vert and Jayo contributors.
+ * Copyright (c) 2025-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
  *
  * Forked from Okio (https://github.com/square/okio), original copyright is below
@@ -19,101 +19,109 @@
  * limitations under the License.
  */
 
-package jayo.samples
+package jayo.internal.network
 
 import jayo.*
+import jayo.internal.network.SocksNetworkEndpoint.*
 import jayo.network.NetworkEndpoint
 import jayo.network.NetworkServer
+import java.io.Closeable
 import java.net.InetAddress
 import java.net.InetSocketAddress
-import java.net.Proxy
-import java.net.URI
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-
-private const val VERSION_5: Byte = 5
-private const val METHOD_NO_AUTHENTICATION_REQUIRED: Byte = 0
-private const val ADDRESS_TYPE_IPV4: Byte = 1
-private const val ADDRESS_TYPE_DOMAIN_NAME: Byte = 3
-private const val COMMAND_CONNECT: Byte = 1
-private const val REPLY_SUCCEEDED: Byte = 0
+import java.net.PasswordAuthentication
+import java.util.concurrent.Executor
 
 /**
- * A partial implementation of SOCKS Protocol Version 5.
+ * A partial implementation of SOCKS Protocol Version 5, based on an Okio sample.
  * See [RFC 1928](https://www.ietf.org/rfc/rfc1928.txt).
  */
-class KotlinSocksProxyServer {
-    private val executor = Executors.newCachedThreadPool()
-    private lateinit var networkServer: NetworkServer
-    private val openNetworkEndpoints: MutableSet<NetworkEndpoint> = Collections.newSetFromMap(ConcurrentHashMap())
+class Socks5ProxyServer(
+    config: NetworkServer.Config<*>,
+    private val executor: Executor,
+    private val credentials: PasswordAuthentication?
+) : Closeable {
+    private val networkServer: NetworkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */), config)
 
-    fun start() {
-        networkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */))
-        executor.execute { acceptClients() }
+    init {
+        executor.execute { acceptClient() }
     }
 
-    fun shutdown() {
+    internal val address: InetSocketAddress =
+        InetSocketAddress.createUnresolved("localhost", networkServer.localAddress.port)
+
+    override fun close() {
         networkServer.close()
-        executor.shutdown()
     }
 
-    fun proxy(): Proxy = Proxy(
-        Proxy.Type.SOCKS,
-        InetSocketAddress.createUnresolved("localhost", networkServer.localAddress.port),
-    )
-
-    private fun acceptClients() {
-        try {
-            while (true) {
-                val from = networkServer.accept()
-                openNetworkEndpoints.add(from)
-                executor.execute { handleClient(from) }
-            }
-        } catch (e: JayoException) {
-            println("shutting down: $e")
-        } finally {
-            for (networkEndpoint in openNetworkEndpoints) {
-                networkEndpoint.close()
-            }
-        }
-    }
-
-    private fun handleClient(client: NetworkEndpoint) {
+    internal fun acceptClient() {
+        val client = networkServer.accept()
         val fromReader = client.reader
         val fromWriter = client.writer
+
         try {
             // Read the hello.
             val socksVersion = fromReader.readByte()
-            if (socksVersion != VERSION_5) {
+            if (socksVersion != SOCKS_V5) {
                 throw JayoProtocolException("Socks version must be 5, is $socksVersion")
             }
             val methodCount = fromReader.readByte()
+            val expectedAuthMethod = if (credentials != null) {
+                METHOD_USER_PASSWORD
+            } else {
+                METHOD_NO_AUTHENTICATION_REQUIRED
+            }
             var foundSupportedMethod = false
             repeat(methodCount.toInt()) {
                 val method = fromReader.readByte()
-                foundSupportedMethod = foundSupportedMethod or (method == METHOD_NO_AUTHENTICATION_REQUIRED)
+                foundSupportedMethod = foundSupportedMethod or (method == expectedAuthMethod)
             }
             if (!foundSupportedMethod) {
                 throw JayoProtocolException("Method 'No authentication required' is not supported")
             }
 
             // Respond to hello.
-            fromWriter.writeByte(VERSION_5)
-                .writeByte(METHOD_NO_AUTHENTICATION_REQUIRED)
-                .emit()
+            if (credentials != null) {
+                fromWriter.writeByte(SOCKS_V5)
+                    .writeByte(METHOD_USER_PASSWORD)
+                    .emit()
+                val reserved = fromReader.readByte()
+                if (reserved != 1.toByte()) {
+                    throw JayoProtocolException("Failed to read client credentials")
+                }
+                val usernameByteSize = fromReader.readByte().toLong()
+                val username = fromReader.readString(usernameByteSize, Charsets.ISO_8859_1)
+                val passwordByteSize = fromReader.readByte().toLong()
+                val password = if (passwordByteSize == 0L) {
+                    null
+                } else {
+                    fromReader.readString(passwordByteSize, Charsets.ISO_8859_1)
+                }
+                val authStatus = if (username == credentials.userName && password == String(credentials.password)) {
+                    0.toByte()
+                } else {
+                    1.toByte()
+                }
+                fromWriter.writeByte(SOCKS_V5)
+                    .writeByte(authStatus)
+                    .emit()
+            } else {
+                fromWriter.writeByte(SOCKS_V5)
+                    .writeByte(METHOD_NO_AUTHENTICATION_REQUIRED)
+                    .emit()
+            }
 
             // Read a command.
             val version = fromReader.readByte()
             val command = fromReader.readByte()
             val reserved = fromReader.readByte()
-            if (version != VERSION_5 || command != COMMAND_CONNECT || reserved != 0.toByte()) {
+            if (version != SOCKS_V5 || command != COMMAND_CONNECT || reserved != 0.toByte()) {
                 throw JayoProtocolException("Failed to read a command")
             }
 
             // Read an address.
             val inetAddress = when (val addressType = fromReader.readByte()) {
                 ADDRESS_TYPE_IPV4 -> InetAddress.getByAddress(fromReader.readByteArray(4L))
+                ADDRESS_TYPE_IPV6 -> InetAddress.getByAddress(fromReader.readByteArray(16L))
                 ADDRESS_TYPE_DOMAIN_NAME -> {
                     val domainNameLength = fromReader.readByte()
                     InetAddress.getByName(fromReader.readString(domainNameLength.toLong()))
@@ -125,18 +133,14 @@ class KotlinSocksProxyServer {
 
             // Connect to the caller's specified host.
             val toNetworkEndpoint = NetworkEndpoint.connectTcp(InetSocketAddress(inetAddress, port))
-            openNetworkEndpoints.add(toNetworkEndpoint)
             val toNetworkEndpointAddress = toNetworkEndpoint.localAddress
             val localAddress = toNetworkEndpointAddress.address.address
-            if (localAddress.size != 4) {
-                throw JayoProtocolException("Caller's specified host local address must be IPv4")
-            }
 
             // Write the reply.
-            fromWriter.writeByte(VERSION_5)
-                .writeByte(REPLY_SUCCEEDED)
+            fromWriter.writeByte(SOCKS_V5)
+                .writeByte(REQUEST_OK)
                 .writeByte(0)
-                .writeByte(ADDRESS_TYPE_IPV4)
+                .writeByte(if (localAddress.size == 4) ADDRESS_TYPE_IPV4 else ADDRESS_TYPE_IPV6)
                 .write(localAddress)
                 .writeShort(toNetworkEndpointAddress.port.toShort())
                 .emit()
@@ -148,7 +152,6 @@ class KotlinSocksProxyServer {
             executor.execute { transfer(toNetworkEndpoint, toReader, fromWriter) }
         } catch (e: JayoException) {
             client.close()
-            openNetworkEndpoints.remove(client)
             println("connect failed for $client: $e")
         }
     }
@@ -170,22 +173,6 @@ class KotlinSocksProxyServer {
             writer.close()
             reader.close()
             readerNetworkEndpoint.close()
-            openNetworkEndpoints.remove(readerNetworkEndpoint)
         }
     }
-}
-
-fun main() {
-    val proxyServer = KotlinSocksProxyServer()
-    proxyServer.start()
-
-    val url =
-        URI("https://raw.githubusercontent.com/jayo-projects/jayo/main/samples/src/main/resources/jayo.txt").toURL()
-    val connection = url.openConnection(proxyServer.proxy())
-    connection.getInputStream().reader().buffered().use { reader ->
-        generateSequence { reader.readLine() }
-            .forEach(::println)
-    }
-
-    proxyServer.shutdown()
 }

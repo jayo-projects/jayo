@@ -8,66 +8,65 @@
  * Licensed under the MIT License
  */
 
-package jayo.tls.helpers;
+package jayo.internal.network;
 
-import jayo.Buffer;
-import jayo.RawReader;
-import jayo.RawWriter;
-import jayo.Endpoint;
+import jayo.*;
 import org.jspecify.annotations.NonNull;
 
 public class ChunkingEndpoint implements Endpoint {
-    private final Endpoint wrapped;
-    private final int chunkSize;
+    private final SocketChannelNetworkEndpoint wrapped;
 
-    public ChunkingEndpoint(Endpoint wrapped, int chunkSize) {
-        this.wrapped = wrapped;
-        this.chunkSize = chunkSize;
-    }
+    public ChunkingEndpoint(Endpoint _wrapped, int chunkSize) {
+        this.wrapped = ((SocketChannelNetworkEndpoint) _wrapped);
 
-    @Override
-    public @NonNull RawReader getReader() {
-        final var reader = wrapped.getReader();
-
-        return new RawReader() {
+        final var rawReader = wrapped.buildRawReader();
+        final var newRawReader = new RawReader() {
             @Override
-            public long readAtMostTo(@NonNull Buffer writer, long byteCount) {
+            public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
                 final var readSize = Math.min(chunkSize, byteCount);
-                return reader.readAtMostTo(writer, readSize);
+                return rawReader.readAtMostTo(writer, readSize);
             }
 
             @Override
             public void close() {
-                reader.close();
+                rawReader.close();
             }
         };
-    }
+        wrapped.setReader(newRawReader);
 
-    @Override
-    public @NonNull RawWriter getWriter() {
-        final var writer = wrapped.getWriter();
-
-        return new RawWriter() {
+        final var rawWriter = wrapped.buildRawWriter();
+        final var newRawWriter = new RawWriter() {
             @Override
-            public void write(@NonNull Buffer reader, long byteCount) {
+            public void write(final @NonNull Buffer reader, final long byteCount) {
                 var remaining = byteCount;
                 while (remaining > 0L) {
                     final var writeSize = Math.min(chunkSize, remaining);
-                    writer.write(reader, writeSize);
+                    rawWriter.write(reader, writeSize);
                     remaining -= writeSize;
                 }
             }
 
             @Override
             public void flush() {
-                writer.flush();
+                rawWriter.flush();
             }
 
             @Override
             public void close() {
-                writer.close();
+                rawWriter.close();
             }
         };
+        wrapped.setWriter(newRawWriter);
+    }
+
+    @Override
+    public @NonNull Reader getReader() {
+        return wrapped.getReader();
+    }
+
+    @Override
+    public @NonNull Writer getWriter() {
+        return wrapped.getWriter();
     }
 
     @Override

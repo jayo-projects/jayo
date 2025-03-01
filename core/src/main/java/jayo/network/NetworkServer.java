@@ -10,11 +10,12 @@ import jayo.JayoClosedResourceException;
 import jayo.internal.network.NetworkServerConfig;
 import jayo.internal.network.ServerSocketChannelNetworkServer;
 import jayo.internal.network.ServerSocketNetworkServer;
+import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.Closeable;
-import java.net.ProtocolFamily;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.time.Duration;
@@ -39,11 +40,11 @@ public sealed interface NetworkServer extends Closeable
      * This method uses default configuration, with no read/write timeouts, no {@linkplain SocketOption socket options}
      * for the server and its accepted sockets, and no max pending connections set on the underlying server socket.
      * <p>
-     * If you need specific options, please use {@link #bind(SocketAddress, Config)}  instead.
+     * If you need specific options, please use {@link #bindTcp(SocketAddress, Config)}  instead.
      * @throws jayo.JayoException If an I/O error occurs.
      */
     static @NonNull NetworkServer bindTcp(final @NonNull SocketAddress localAddress) {
-        return bind(localAddress, configForNIO());
+        return bindTcp(localAddress, configForNIO());
     }
 
     /**
@@ -54,7 +55,7 @@ public sealed interface NetworkServer extends Closeable
      * connections set on the underlying server socket.
      * @throws jayo.JayoException If an I/O error occurs.
      */
-    static @NonNull NetworkServer bind(final @NonNull SocketAddress localAddress, final @NonNull Config<?> config) {
+    static @NonNull NetworkServer bindTcp(final @NonNull SocketAddress localAddress, final @NonNull Config<?> config) {
         return ((NetworkServerConfig<?>) config).bind(localAddress);
     }
 
@@ -113,7 +114,7 @@ public sealed interface NetworkServer extends Closeable
      * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
-    SocketAddress getLocalAddress();
+    InetSocketAddress getLocalAddress();
 
     /**
      * @param <T>  The type of the socket option value
@@ -154,9 +155,17 @@ public sealed interface NetworkServer extends Closeable
         T writeTimeout(final @NonNull Duration writeTimeout);
 
         /**
+         * Read and write operations on the {@linkplain NetworkServer#accept() accepted network endpoints} by the
+         * {@link NetworkServer} built using this configuration are seamlessly processed <b>asynchronously</b> in
+         * distinct runnable tasks using the provided {@code taskRunner}.
+         */
+        @NonNull
+        T bufferAsync(final @NonNull TaskRunner taskRunner);
+
+        /**
          * Sets the value of a socket option to set on the
-         * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer}
-         * built using this configuration.
+         * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer} built using this
+         * configuration.
          *
          * @param <U>   The type of the socket option value
          * @param name  The socket option
@@ -190,14 +199,14 @@ public sealed interface NetworkServer extends Closeable
      */
     sealed interface NioConfig extends Config<NioConfig> permits NetworkServerConfig.Nio {
         /**
-         * Sets the {@link ProtocolFamily protocol family} to use when opening the underlying NIO server sockets. The
-         * default protocol family is platform (and possibly configuration) dependent and therefore unspecified.
+         * Sets the {@link NetworkProtocol network protocol} to use when opening the underlying NIO server sockets. The
+         * default protocol is platform (and possibly configuration) dependent and therefore unspecified.
          *
          * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6">
          * java.net.preferIPv4Stack</a> system property
          */
         @NonNull
-        NioConfig protocolFamily(final @NonNull ProtocolFamily family);
+        NioConfig protocol(final @NonNull NetworkProtocol protocol);
     }
 
     /**

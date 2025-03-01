@@ -27,7 +27,7 @@ class JayoSocketTest {
         assertThatThrownBy {
             Jayo.reader(socket).readAtMostTo(Buffer(), -1)
         }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("byteCount < 0 : -1")
+            .hasMessage("byteCount < 0: -1")
     }
 
     @Test

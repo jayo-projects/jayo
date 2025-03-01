@@ -23,22 +23,18 @@ import java.io.Closeable;
  */
 public interface Endpoint extends Closeable {
     /**
-     * @return a raw reader that reads incoming data from the I/O connection.
+     * @return a reader that reads incoming data from the I/O connection.
      * @throws JayoException if an I/O error occurs when creating the raw reader.
-     * @implSpec the {@linkplain RawReader#close() close} method of this reader must call the {@link #close()} method
-     * of this endpoint.
      */
     @NonNull
-    RawReader getReader();
+    Reader getReader();
 
     /**
-     * @return a raw writer that writes data into the I/O connection.
+     * @return a writer that writes data into the I/O connection.
      * @throws JayoException if an I/O error occurs when creating the raw writer.
-     * @implSpec the {@linkplain RawWriter#close() close} method of this writer must call the {@link #close()} method
-     * of this endpoint.
      */
     @NonNull
-    RawWriter getWriter();
+    Writer getWriter();
 
     /**
      * Closes this endpoint.

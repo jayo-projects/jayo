@@ -25,13 +25,13 @@ package jayo.internal;
 import jayo.Buffer;
 import jayo.JayoException;
 import jayo.RawWriter;
+import jayo.Writer;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.util.Objects;
 import java.util.zip.Deflater;
 
-import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class DeflaterRawWriter implements RawWriter {
@@ -39,9 +39,14 @@ public final class DeflaterRawWriter implements RawWriter {
     private final @NonNull Deflater deflater;
     private boolean closed = false;
 
-    public DeflaterRawWriter(final @NonNull RawWriter writer, final @NonNull Deflater deflater) {
-        Objects.requireNonNull(writer);
-        this.segmentQueue = newWriterSegmentQueue(writer, null);
+    public DeflaterRawWriter(final @NonNull Writer writer, final @NonNull Deflater deflater) {
+        assert writer != null;
+        assert deflater != null;
+        if (!(writer instanceof RealWriter _writer)) {
+            throw new IllegalArgumentException("writer must be an instance of RealWriter");
+        }
+
+        this.segmentQueue = _writer.segmentQueue;
         this.deflater = Objects.requireNonNull(deflater);
     }
 

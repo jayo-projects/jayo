@@ -185,20 +185,20 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         }
     }
 
-    void cancel(final boolean isTimeout) {
-        LOCK.lock();
-        try {
-            if (state == STATE_IN_QUEUE) {
-                removeFromQueue(this);
-                state = STATE_CANCELED;
-            }
-            if (isTimeout) {
-                state = STATE_TIMED_OUT;
-            }
-        } finally {
-            LOCK.unlock();
-        }
-    }
+//    void cancel(final boolean isTimeout) {
+//        LOCK.lock();
+//        try {
+//            if (state == STATE_IN_QUEUE) {
+//                removeFromQueue(this);
+//                state = STATE_CANCELED;
+//            }
+//            if (isTimeout) {
+//                state = STATE_TIMED_OUT;
+//            }
+//        } finally {
+//            LOCK.unlock();
+//        }
+//    }
 
     /**
      * Returns the amount of time left until the time-out. This will be negative if the timeout has
@@ -317,13 +317,33 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
                 Objects.requireNonNull(writer);
                 if (byteCount < 0L) {
-                    throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
+                    throw new IllegalArgumentException("byteCount < 0: " + byteCount);
                 }
 
                 // get cancel token immediately, if present it will be used in all I/O calls of this read operation
                 var cancelToken = CancellableUtils.getCancelToken();
-                return withTimeoutOrDefault(cancelToken, defaultReadTimeoutNanos,
-                        () -> reader.readAtMostTo(writer, byteCount));
+                if (cancelToken != null) {
+                    cancelToken.timeoutNanos = defaultReadTimeoutNanos;
+                    try {
+                        return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));
+                    } finally {
+                        cancelToken.timeoutNanos = 0L;
+                    }
+                }
+
+                // no need for cancellation case
+                if (defaultReadTimeoutNanos == 0L) {
+                    return reader.readAtMostTo(writer, byteCount);
+                }
+
+                // use defaultReadTimeoutNanos to create a temporary cancel token, just for this read operation
+                cancelToken = new RealCancelToken(defaultReadTimeoutNanos, 0L, false);
+                CancellableUtils.addCancelToken(cancelToken);
+                try {
+                    return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));
+                } finally {
+                    CancellableUtils.finishCancelToken(cancelToken);
+                }
             }
 
             @Override
@@ -345,36 +365,6 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 return "AsyncTimeout.reader(" + reader + ")";
             }
         };
-    }
-
-    public <T> T withTimeoutOrDefault(final @Nullable RealCancelToken cancelToken,
-                                      final long defaultTimeoutNanos,
-                                      final @NonNull Supplier<T> block) {
-        assert defaultTimeoutNanos >= 0L;
-        assert block != null;
-
-        if (cancelToken != null) {
-            cancelToken.timeoutNanos = defaultTimeoutNanos;
-            try {
-                return withTimeout(cancelToken, block);
-            } finally {
-                cancelToken.timeoutNanos = 0L;
-            }
-        }
-
-        // no need for cancellation case
-        if (defaultTimeoutNanos == 0L) {
-            return block.get();
-        }
-
-        // use defaultTimeoutNanos to create a temporary cancel token, just for this operation
-        final var tempCancelToken = new RealCancelToken(defaultTimeoutNanos, 0L, false);
-        CancellableUtils.addCancelToken(tempCancelToken);
-        try {
-            return withTimeout(tempCancelToken, block);
-        } finally {
-            CancellableUtils.finishCancelToken(tempCancelToken);
-        }
     }
 
     @Override

@@ -34,7 +34,6 @@ import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class RealTlsEndpoint {
@@ -105,17 +104,20 @@ public final class RealTlsEndpoint {
     RealTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull SSLEngine engine,
-            final @Nullable RealReader encryptedReader,
             final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
             boolean waitForCloseConfirmation) {
         assert encryptedEndpoint != null;
         assert engine != null;
         assert sessionInitCallback != null;
 
-        this.encryptedReader = (encryptedReader != null)
-                ? encryptedReader
-                : new RealReader(encryptedEndpoint.getReader(), null);
-        this.encryptedWriterSegmentQueue = newWriterSegmentQueue(encryptedEndpoint.getWriter(), null);
+        if (!(encryptedEndpoint.getReader() instanceof RealReader reader)) {
+            throw new IllegalArgumentException("encryptedEndpoint.reader must be an instance of RealReader");
+        }
+        this.encryptedReader = reader;
+        if (!(encryptedEndpoint.getWriter() instanceof RealWriter writer)) {
+            throw new IllegalArgumentException("encryptedEndpoint.writer must be an instance of RealWriter");
+        }
+        this.encryptedWriterSegmentQueue = writer.segmentQueue;
         this.engine = engine;
         this.sessionInitCallback = sessionInitCallback;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
@@ -133,7 +135,7 @@ public final class RealTlsEndpoint {
     long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
+            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (!(writer instanceof RealBuffer _writer)) {
             throw new IllegalArgumentException("writer must be an instance of RealBuffer");

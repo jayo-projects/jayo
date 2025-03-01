@@ -12,8 +12,8 @@ package jayo.tls;
 
 import jayo.Endpoint;
 import jayo.JayoException;
-import jayo.RawReader;
-import jayo.RawWriter;
+import jayo.Reader;
+import jayo.Writer;
 import jayo.internal.ClientTlsEndpoint;
 import jayo.internal.RealTlsEndpoint;
 import jayo.internal.ServerTlsEndpoint;
@@ -130,18 +130,18 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     }
 
     /**
-     * @return a raw reader that reads decrypted plaintext data from this TLS endpoint.
+     * @return a reader that reads decrypted plaintext data from this TLS endpoint.
      */
     @Override
     @NonNull
-    RawReader getReader();
+    Reader getReader();
 
     /**
-     * @return a raw writer to write plaintext data to be encrypted by this TLS endpoint.
+     * @return a writer to write plaintext data to be encrypted by this TLS endpoint.
      */
     @Override
     @NonNull
-    RawWriter getWriter();
+    Writer getWriter();
 
     /**
      * @return the result of the initial handshake on this TLS connection.

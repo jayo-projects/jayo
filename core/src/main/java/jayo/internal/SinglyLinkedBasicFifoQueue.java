@@ -35,7 +35,7 @@ public final class SinglyLinkedBasicFifoQueue<T> implements BasicFifoQueue<T> {
 
     @Override
     public T peek() {
-        return head != null ? head.value : null;
+        return (head != null) ? head.value : null;
     }
 
     @Override
@@ -111,7 +111,7 @@ public final class SinglyLinkedBasicFifoQueue<T> implements BasicFifoQueue<T> {
 
     @Override
     public @NonNull Iterator<T> iterator() {
-        return head != null ? new SinglyLinkedIterator() : Collections.emptyIterator();
+        return (head != null) ? new SinglyLinkedIterator() : Collections.emptyIterator();
     }
 
     private final class SinglyLinkedIterator implements Iterator<T> {

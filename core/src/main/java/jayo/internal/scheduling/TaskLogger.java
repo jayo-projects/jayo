@@ -113,7 +113,7 @@ final class TaskLogger {
         assert task != null;
         assert message != null;
 
-        final var queueInfo = queue != null ? queue.name + " " : "";
+        final var queueInfo = (queue != null) ? queue.name + " " : "";
         logger.log(TRACE, queueInfo + String.format("%-22s", message) + ": " + task.name);
     }
 }

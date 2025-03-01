@@ -10,13 +10,15 @@ import jayo.JayoClosedResourceException;
 import jayo.internal.network.NetworkEndpointConfig;
 import jayo.internal.network.SocketChannelNetworkEndpoint;
 import jayo.internal.network.SocketNetworkEndpoint;
+import jayo.internal.network.SocksNetworkEndpoint;
+import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.net.ProtocolFamily;
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.time.Duration;
+import java.util.Objects;
 
 /**
  * A network endpoint, either the client-side or server-side end of a socket based connection between two peers.
@@ -33,33 +35,55 @@ import java.time.Duration;
  * <p>
  * Please read {@link Endpoint} javadoc for the endpoint rationale.
  */
-public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNetworkEndpoint, SocketNetworkEndpoint {
+public sealed interface NetworkEndpoint extends Endpoint
+        permits SocketChannelNetworkEndpoint, SocketNetworkEndpoint, SocksNetworkEndpoint {
     /**
      * @return a new client-side TCP {@link NetworkEndpoint} backed by an underlying
      * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} connected to the server using the provided
-     * {@code peerAddress} socket address. The connection blocks until established or an error occurs.
+     * {@code peerAddress} socket address.
      * <p>
      * This method uses default configuration, with no connect/read/write timeouts and no
      * {@linkplain SocketOption socket options} set on the underlying network socket.
      * <p>
-     * If you need specific options, please use {@link #connect(SocketAddress, Config)} instead.
+     * If you need specific options, please use {@link #connectTcp(InetSocketAddress, Config)} or
+     * {@link #connectTcp(InetSocketAddress, SocksProxy, Config)} instead.
      * @throws jayo.JayoException If an I/O error occurs.
      */
-    static @NonNull NetworkEndpoint connectTcp(final @NonNull SocketAddress peerAddress) {
-        return connect(peerAddress, configForNIO());
+    static @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress) {
+        return connectTcp(peerAddress, configForNIO());
     }
 
     /**
      * @return a new client-side TCP {@link NetworkEndpoint} connected to the server using the provided
-     * {@code peerAddress} socket address. The connection blocks until established or an error occurs.
+     * {@code peerAddress} socket address.
      * <p>
      * This method uses the provided {@code config} configuration, which can be used to configure connect/read/write
      * timeouts and the {@linkplain SocketOption socket options} to set on the underlying network socket.
      * @throws jayo.JayoException If an I/O error occurs.
      */
-    static @NonNull NetworkEndpoint connect(final @NonNull SocketAddress peerAddress,
-                                            final @NonNull Config<?> config) {
-        return ((NetworkEndpointConfig<?>) config).connect(peerAddress);
+    static @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress,
+                                               final @NonNull Config<?> config) {
+        Objects.requireNonNull(peerAddress);
+        Objects.requireNonNull(config);
+        return ((NetworkEndpointConfig<?>) config).connect(peerAddress, null);
+    }
+
+    /**
+     * @return a new client-side TCP {@link NetworkEndpoint} connected to the server using the provided
+     * {@code peerAddress} socket address using the provided {@code proxy} as intermediary between this and the peer
+     * server.
+     * <p>
+     * This method uses the provided {@code config} configuration, which can be used to configure connect/read/write
+     * timeouts and the {@linkplain SocketOption socket options} to set on the underlying network socket.
+     * @throws jayo.JayoException If an I/O error occurs.
+     */
+    static @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress,
+                                               final @NonNull SocksProxy proxy,
+                                               final @NonNull Config<?> config) {
+        Objects.requireNonNull(peerAddress);
+        Objects.requireNonNull(proxy);
+        Objects.requireNonNull(config);
+        return ((NetworkEndpointConfig<?>) config).connect(peerAddress, proxy);
     }
 
     /**
@@ -77,26 +101,33 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
     }
 
     /**
-     * @return the local address that this network endpoint's underlying socket is bound to.
+     * @return the local socket address that this network endpoint's underlying socket is bound to.
      * @throws JayoClosedResourceException If this network endpoint is closed.
      * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
-    SocketAddress getLocalAddress();
+    InetSocketAddress getLocalAddress();
 
     /**
-     * @return the peer address to which this network endpoint's underlying socket is connected.
+     * @return the peer socket address to which this network endpoint's underlying socket is connected.
      * @throws JayoClosedResourceException If this network endpoint is closed.
      * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
-    SocketAddress getPeerAddress();
+    InetSocketAddress getPeerAddress();
 
     /**
-     * @param <T>  The type of the socket option value
-     * @param name The socket option
+     * @return the {@link SocksProxy} that is used as intermediary between this and the peer, if any.
+     */
+    default @Nullable SocksProxy getProxy() {
+        return null;
+    }
+
+    /**
+     * @param <T>  The type of the socket option value.
+     * @param name The socket option.
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
-     * @throws UnsupportedOperationException If the socket option is not supported by this channel
+     * @throws UnsupportedOperationException If the socket option is not supported by this channel.
      * @throws JayoClosedResourceException   If this network endpoint is closed.
      * @throws jayo.JayoException            If an I/O error occurs.
      * @see java.net.StandardSocketOptions
@@ -108,6 +139,13 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
      */
     sealed interface Config<T extends Config<T>>
             permits IoConfig, NioConfig, NetworkEndpointConfig {
+        /**
+         * Sets the timeout for establishing the connection to the peer, including the proxy initialization if one is
+         * used. Default is zero. A timeout of zero is interpreted as an infinite timeout.
+         */
+        @NonNull
+        T connectTimeout(final @NonNull Duration connectTimeout);
+
         /**
          * Sets the default read timeout that will apply on each low-level read operation of the underlying socket of
          * the network endpoints that uses this configuration. Default is zero. A timeout of zero is interpreted as an
@@ -125,10 +163,17 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
         T writeTimeout(final @NonNull Duration writeTimeout);
 
         /**
+         * Read and write operations on the underlying socket of the network endpoints that uses this configuration are
+         * seamlessly processed <b>asynchronously</b> in distinct runnable tasks using the provided {@code taskRunner}.
+         */
+        @NonNull
+        T bufferAsync(final @NonNull TaskRunner taskRunner);
+
+        /**
          * Sets the value of a socket option to set on the network endpoints that uses this configuration.
          *
-         * @param <U>   The type of the socket option value
-         * @param name  The socket option
+         * @param <U>   The type of the socket option value.
+         * @param name  The socket option.
          * @param value The value of the socket option. A value of {@code null} may be a valid value for some socket
          *              options.
          * @see java.net.StandardSocketOptions
@@ -141,21 +186,14 @@ public sealed interface NetworkEndpoint extends Endpoint permits SocketChannelNe
      */
     sealed interface NioConfig extends Config<NioConfig> permits NetworkEndpointConfig.Nio {
         /**
-         * Sets the connect timeout used in the {@link NetworkEndpoint#connect(SocketAddress, Config)} method.
-         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
-         */
-        @NonNull
-        NioConfig connectTimeout(final @NonNull Duration connectTimeout);
-
-        /**
-         * Sets the {@link ProtocolFamily protocol family} to use when opening the underlying NIO sockets. The default
-         * protocol family is platform (and possibly configuration) dependent and therefore unspecified.
+         * Sets the {@link NetworkProtocol network protocol} to use when opening the underlying NIO sockets. The default
+         * protocol is platform (and possibly configuration) dependent and therefore unspecified.
          *
          * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6">
          * java.net.preferIPv4Stack</a> system property
          */
         @NonNull
-        NioConfig protocolFamily(final @NonNull ProtocolFamily family);
+        NioConfig protocol(final @NonNull NetworkProtocol protocol);
     }
 
     /**

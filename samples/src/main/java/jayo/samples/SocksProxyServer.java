@@ -61,9 +61,7 @@ public final class SocksProxyServer {
 
     public Proxy proxy() {
         return new Proxy(Proxy.Type.SOCKS,
-                InetSocketAddress.createUnresolved(
-                        "localhost",
-                        ((InetSocketAddress) networkServer.getLocalAddress()).getPort()));
+                InetSocketAddress.createUnresolved("localhost", networkServer.getLocalAddress().getPort()));
     }
 
     private void acceptSockets() {
@@ -83,8 +81,8 @@ public final class SocksProxyServer {
     }
 
     private void handleClient(final NetworkEndpoint client) {
-        final Reader fromReader = Jayo.buffer(client.getReader());
-        final Writer fromWriter = Jayo.buffer(client.getWriter());
+        final Reader fromReader = client.getReader();
+        final Writer fromWriter = client.getWriter();
         try {
             // Read the hello.
             final int socksVersion = fromReader.readByte();
@@ -126,7 +124,7 @@ public final class SocksProxyServer {
             // Connect to the caller's specified host.
             final NetworkEndpoint toNetworkEndpoint = NetworkEndpoint.connectTcp(new InetSocketAddress(inetAddress, port));
             openNetworkEndpoints.add(toNetworkEndpoint);
-            InetSocketAddress toNetworkEndpointAddress = (InetSocketAddress) toNetworkEndpoint.getLocalAddress();
+            InetSocketAddress toNetworkEndpointAddress = toNetworkEndpoint.getLocalAddress();
             byte[] localAddress = toNetworkEndpointAddress.getAddress().getAddress();
             if (localAddress.length != 4) {
                 throw new JayoProtocolException("Caller's specified host local address must be IPv4");
@@ -164,6 +162,7 @@ public final class SocksProxyServer {
                 writer.write(buffer, byteCount);
                 writer.flush();
             }
+        } catch (JayoClosedResourceException ignored) {
         } finally {
             closeQuietly(writer);
             closeQuietly(reader);

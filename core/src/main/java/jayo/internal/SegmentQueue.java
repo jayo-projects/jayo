@@ -34,9 +34,7 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
 
     @Nullable
     Segment tail = null;
-    @SuppressWarnings("FieldMayBeFinal")
-    @NonNull
-    SegmentRef headRef = NULL_SEGMENT_REF;
+    volatile @NonNull SegmentRef headRef = NULL_SEGMENT_REF;
 
     // VarHandle mechanics
     static final VarHandle HEAD_REF;
