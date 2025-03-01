@@ -14,6 +14,10 @@ import java.util.Objects;
  * Wraps a {@link UnknownHostException} with an unchecked exception.
  */
 public final class JayoUnknownHostException extends JayoException {
+    public JayoUnknownHostException(final @NonNull String message) {
+        super(Objects.requireNonNull(message), new UnknownHostException(message));
+    }
+
     public JayoUnknownHostException(final @NonNull UnknownHostException cause) {
         super(Objects.requireNonNull(cause));
     }

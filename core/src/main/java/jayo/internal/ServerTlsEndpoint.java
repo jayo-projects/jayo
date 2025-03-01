@@ -19,8 +19,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import javax.net.ssl.*;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -35,27 +33,10 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     private static final System.Logger LOGGER = System.getLogger("jayo.tls.ServerTlsEndpoint");
 
     private final @NonNull Endpoint encryptedEndpoint;
-    private final @NonNull RealReader encryptedReader;
     private final @NonNull RealTlsEndpoint impl;
 
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile RawReader reader = null;
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile RawWriter writer = null;
-
-    // VarHandle mechanics
-    private static final VarHandle READER;
-    private static final VarHandle WRITER;
-
-    static {
-        try {
-            final var l = MethodHandles.lookup();
-            READER = l.findVarHandle(ServerTlsEndpoint.class, "reader", RawReader.class);
-            WRITER = l.findVarHandle(ServerTlsEndpoint.class, "writer", RawWriter.class);
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
+    private Reader reader = null;
+    private Writer writer = null;
 
     private ServerTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
@@ -70,8 +51,6 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
 
         this.encryptedEndpoint = encryptedEndpoint;
         try {
-            encryptedReader = new RealReader(encryptedEndpoint.getReader());
-
             final var sslContext = sslContextStrategy.getSslContext(this::getServerNameIndication);
             // call client code
             final SSLEngine engine;
@@ -89,7 +68,6 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
             impl = new RealTlsEndpoint(
                     encryptedEndpoint,
                     engine,
-                    encryptedReader,
                     sessionInitCallback,
                     waitForCloseConfirmation);
         } catch (JayoException e) {
@@ -99,25 +77,17 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     }
 
     @Override
-    public @NonNull RawReader getReader() {
-        var reader = this.reader;
+    public @NonNull Reader getReader() {
         if (reader == null) {
-            reader = new ServerTlsEndpointRawReader(impl);
-            if (!READER.compareAndSet(this, null, reader)) {
-                reader = this.reader;
-            }
+            reader = Jayo.buffer(new ServerTlsEndpointRawReader(impl));
         }
         return reader;
     }
 
     @Override
-    public @NonNull RawWriter getWriter() {
-        var writer = this.writer;
+    public @NonNull Writer getWriter() {
         if (writer == null) {
-            writer = new ServerTlsEndpointRawWriter(impl);
-            if (!WRITER.compareAndSet(this, null, writer)) {
-                writer = this.writer;
-            }
+            writer = Jayo.buffer(new ServerTlsEndpointRawWriter(impl));
         }
         return writer;
     }
@@ -153,7 +123,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
     }
 
     private @Nullable SNIServerName getServerNameIndication() {
-        final var serverNames = TlsExplorer.exploreTlsRecord(encryptedReader.peek());
+        final var serverNames = TlsExplorer.exploreTlsRecord(encryptedEndpoint.getReader().peek());
         final var hostName = serverNames.get(StandardConstants.SNI_HOST_NAME);
         return (hostName instanceof SNIHostName) ? hostName : null;
     }

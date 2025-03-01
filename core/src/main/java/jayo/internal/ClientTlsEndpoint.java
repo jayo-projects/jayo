@@ -10,10 +10,7 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
-import jayo.Endpoint;
-import jayo.RawReader;
-import jayo.RawWriter;
+import jayo.*;
 import jayo.tls.Handshake;
 import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
@@ -21,8 +18,6 @@ import org.jspecify.annotations.NonNull;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.function.Consumer;
 
 /**
@@ -32,24 +27,8 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
     private final @NonNull Endpoint encryptedEndpoint;
     private final @NonNull RealTlsEndpoint impl;
 
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile RawReader reader = null;
-    @SuppressWarnings("FieldMayBeFinal")
-    private volatile RawWriter writer = null;
-
-    // VarHandle mechanics
-    private static final VarHandle READER;
-    private static final VarHandle WRITER;
-
-    static {
-        try {
-            final var l = MethodHandles.lookup();
-            READER = l.findVarHandle(ClientTlsEndpoint.class, "reader", RawReader.class);
-            WRITER = l.findVarHandle(ClientTlsEndpoint.class, "writer", RawWriter.class);
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
+    private Reader reader = null;
+    private Writer writer = null;
 
     private ClientTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
@@ -65,31 +44,22 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
         impl = new RealTlsEndpoint(
                 encryptedEndpoint,
                 engine,
-                null,
                 sessionInitCallback,
                 waitForCloseConfirmation);
     }
 
     @Override
-    public @NonNull RawReader getReader() {
-        var reader = this.reader;
+    public @NonNull Reader getReader() {
         if (reader == null) {
-            reader = new ClientTlsEndpointRawReader(impl);
-            if (!READER.compareAndSet(this, null, reader)) {
-                reader = this.reader;
-            }
+            reader = Jayo.buffer(new ClientTlsEndpointRawReader(impl));
         }
         return reader;
     }
 
     @Override
-    public @NonNull RawWriter getWriter() {
-        var writer = this.writer;
+    public @NonNull Writer getWriter() {
         if (writer == null) {
-            writer = new ClientTlsEndpointRawWriter(impl);
-            if (!WRITER.compareAndSet(this, null, writer)) {
-                writer = this.writer;
-            }
+            writer = Jayo.buffer(new ClientTlsEndpointRawWriter(impl));
         }
         return writer;
     }

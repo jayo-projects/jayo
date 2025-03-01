@@ -11,6 +11,7 @@
 package jayo.tls.helpers;
 
 import jayo.Endpoint;
+import jayo.internal.network.ChunkingEndpoint;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkServer;
 import jayo.tls.TlsEndpoint;
@@ -20,7 +21,6 @@ import javax.crypto.Cipher;
 import javax.net.ssl.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -133,7 +133,7 @@ public class SocketPairFactory {
     }
 
     private TlsEndpoint createTlsClientEndpoint(Optional<String> cipher,
-                                                SocketAddress address,
+                                                InetSocketAddress address,
                                                 SNIHostName clientSniHostName) {
         SSLEngine engine = sslContext.createSSLEngine();
         engine.setUseClientMode(true);
@@ -158,7 +158,7 @@ public class SocketPairFactory {
     }
 
     public OldIoSocketPair oldIo(Optional<String> cipher) throws InterruptedException {
-        NetworkServer networkServer = NetworkServer.bind(new InetSocketAddress(0 /* find free port */),
+        NetworkServer networkServer = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */),
                 NetworkServer.configForIO());
         AtomicReference<NetworkEndpoint> serverEndpoint = new AtomicReference<>();
         AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
@@ -178,7 +178,7 @@ public class SocketPairFactory {
 
     public IoOldSocketPair ioOld(Optional<String> cipher) throws InterruptedException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
-        InetSocketAddress address = (InetSocketAddress) server.getLocalAddress();
+        InetSocketAddress address = server.getLocalAddress();
         AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
         var thread = new Thread(() -> {
             tlsServer.set(createTlsServerEndpoint(cipher, server.accept()));
@@ -206,7 +206,7 @@ public class SocketPairFactory {
             Optional<ChunkSizeConfig> chunkSizeConfig,
             boolean waitForCloseConfirmation) {
         try (NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */))) {
-            int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
+            int chosenPort = server.getLocalAddress().getPort();
             InetSocketAddress address = new InetSocketAddress(localhost, chosenPort);
             List<SocketPair> pairs = new ArrayList<>();
             for (int i = 0; i < qtty; i++) {
@@ -294,7 +294,7 @@ public class SocketPairFactory {
 
     public IoOldSocketPair nioOld(Optional<String> cipher) throws InterruptedException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
-        InetSocketAddress address = (InetSocketAddress) server.getLocalAddress();
+        InetSocketAddress address = server.getLocalAddress();
         int chosenPort = address.getPort();
         AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
         var thread = new Thread(() -> {

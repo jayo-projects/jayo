@@ -66,7 +66,7 @@ final class PeekRawReader implements RawReader {
     public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
+            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (closed) {
             throw new IllegalStateException("this peek reader is closed");

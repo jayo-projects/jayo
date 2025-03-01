@@ -6,9 +6,9 @@
 package jayo.internal.network
 
 import jayo.network.NetworkEndpoint
+import jayo.network.NetworkProtocol
 import jayo.network.NetworkServer
 import jayo.network.kotlin
-import java.net.StandardProtocolFamily
 import java.net.StandardSocketOptions
 import kotlin.time.Duration.Companion.seconds
 
@@ -16,7 +16,7 @@ enum class NetworkFactory {
     TCP_NIO {
         override fun networkServerConfig() =
             NetworkServer.configForNIO().kotlin {
-                protocolFamily = StandardProtocolFamily.INET6
+                protocol = NetworkProtocol.IPv6
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
                 maxPendingConnections = 2
@@ -26,7 +26,7 @@ enum class NetworkFactory {
 
         override fun networkEndpointConfig() =
             NetworkEndpoint.configForNIO().kotlin {
-                protocolFamily = StandardProtocolFamily.INET6
+                protocol = NetworkProtocol.IPv6
                 connectTimeout = 10.seconds
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
@@ -47,6 +47,7 @@ enum class NetworkFactory {
 
         override fun networkEndpointConfig() =
             NetworkEndpoint.configForIO().kotlin {
+                connectTimeout = 10.seconds
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
                 option(StandardSocketOptions.SO_REUSEADDR, true)

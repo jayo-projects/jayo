@@ -38,7 +38,6 @@ sealed abstract class SegmentRef {
 
         @Override
         @NonNull Segment value() {
-            System.out.println("deferred segment ref");
             if (isSet) {
                 return segment;
             }

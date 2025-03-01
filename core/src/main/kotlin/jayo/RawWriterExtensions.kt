@@ -25,7 +25,6 @@ package jayo
 
 import jayo.internal.RealWriter
 import jayo.scheduling.TaskRunner
-import java.util.zip.Deflater
 
 /**
  * @return a new writer that buffers writes to the raw `writer`. The returned writer will batch writes to `writer`.
@@ -36,8 +35,3 @@ import java.util.zip.Deflater
  * Use this wherever you write to a writer to get an ergonomic and efficient access to data.
  */
 public fun RawWriter.buffered(taskRunner: TaskRunner? = null): Writer = RealWriter(this, taskRunner)
-
-/**
- * Returns a [RawWriter] that DEFLATE-compresses data to this [RawWriter] while writing.
- */
-public fun RawWriter.deflate(deflater: Deflater = Deflater()): RawWriter = Jayo.deflate(this, deflater)

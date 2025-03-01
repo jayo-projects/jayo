@@ -30,7 +30,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             return realWriter.segmentQueue;
         }
 
-        return taskRunner != null ? new WriterSegmentQueue.Async(writer, taskRunner) : new WriterSegmentQueue(writer);
+        return (taskRunner != null) ? new WriterSegmentQueue.Async(writer, taskRunner) : new WriterSegmentQueue(writer);
     }
 
     final @NonNull RawWriter writer;

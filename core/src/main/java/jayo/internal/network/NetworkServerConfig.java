@@ -5,13 +5,16 @@
 
 package jayo.internal.network;
 
+import jayo.network.NetworkProtocol;
 import jayo.network.NetworkServer;
+import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.net.ProtocolFamily;
 import java.net.SocketAddress;
 import java.net.SocketOption;
+import java.net.StandardProtocolFamily;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +25,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
         implements NetworkServer.Config<T> {
     private long readTimeoutNanos = 0L;
     private long writeTimeoutNanos = 0L;
+    private @Nullable TaskRunner taskRunner = null;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions = new HashMap<>();
     private int maxPendingConnections = 0;
@@ -37,6 +41,13 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
     public final @NonNull T writeTimeout(final @NonNull Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout);
         this.writeTimeoutNanos = writeTimeout.toNanos();
+        return getThis();
+    }
+
+    @Override
+    public final @NonNull T bufferAsync(final @NonNull TaskRunner taskRunner) {
+        Objects.requireNonNull(taskRunner);
+        this.taskRunner = taskRunner;
         return getThis();
     }
 
@@ -68,6 +79,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
         return bindInternal(localAddress,
                 readTimeoutNanos,
                 writeTimeoutNanos,
+                taskRunner,
                 socketOptions,
                 serverSocketOptions,
                 maxPendingConnections);
@@ -79,6 +91,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
             final @NonNull SocketAddress localAddress,
             final long defaultReadTimeoutNanos,
             final long defaultWriteTimeoutNanos,
+            final @Nullable TaskRunner taskRunner,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
             final int maxPendingConnections);
@@ -88,8 +101,12 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
         private @Nullable ProtocolFamily family = null;
 
         @Override
-        public @NonNull Nio protocolFamily(final @NonNull ProtocolFamily family) {
-            this.family = Objects.requireNonNull(family);
+        public @NonNull Nio protocol(final @NonNull NetworkProtocol protocol) {
+            Objects.requireNonNull(protocol);
+            this.family = switch (protocol) {
+                case IPv4 -> StandardProtocolFamily.INET;
+                case IPv6 -> StandardProtocolFamily.INET6;
+            };
             return this;
         }
 
@@ -105,6 +122,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
                 final @NonNull SocketAddress localAddress,
                 final long defaultReadTimeoutNanos,
                 final long defaultWriteTimeoutNanos,
+                final @Nullable TaskRunner taskRunner,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                 final int maxPendingConnections) {
@@ -114,6 +132,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
                     localAddress,
                     defaultReadTimeoutNanos,
                     defaultWriteTimeoutNanos,
+                    taskRunner,
                     socketOptions,
                     serverSocketOptions,
                     maxPendingConnections,
@@ -135,6 +154,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
                 final @NonNull SocketAddress localAddress,
                 final long defaultReadTimeoutNanos,
                 final long defaultWriteTimeoutNanos,
+                final @Nullable TaskRunner taskRunner,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                 final int maxPendingConnections) {
@@ -144,6 +164,7 @@ public abstract sealed class NetworkServerConfig<T extends NetworkServer.Config<
                     localAddress,
                     defaultReadTimeoutNanos,
                     defaultWriteTimeoutNanos,
+                    taskRunner,
                     socketOptions,
                     serverSocketOptions,
                     maxPendingConnections);

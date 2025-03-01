@@ -22,7 +22,9 @@
 package jayo.internal
 
 import jayo.Buffer
+import jayo.RawWriter
 import jayo.Writer
+import jayo.buffered
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -44,7 +46,12 @@ abstract class AbstractDeflaterWriterTest internal constructor(private val facto
 
     @BeforeEach
     fun before() {
-        writer = factory.create(data)
+        val writerOrBuffer = factory.create(data)
+        writer = if (writerOrBuffer is Buffer) {
+            (writerOrBuffer as RawWriter).buffered()
+        } else {
+            writerOrBuffer
+        }
     }
 
     @AfterEach

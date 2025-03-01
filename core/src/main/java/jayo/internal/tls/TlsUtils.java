@@ -115,7 +115,8 @@ final class TlsUtils {
     private static @NonNull KeyStore newEmptyKeyStore(final @Nullable String keyStoreType) {
         final KeyStore keyStore;
         try {
-            keyStore = KeyStore.getInstance(keyStoreType != null ? keyStoreType : KeyStore.getDefaultType());
+            keyStore = KeyStore.getInstance(
+                    (keyStoreType != null) ? keyStoreType : KeyStore.getDefaultType());
         } catch (KeyStoreException e) {
             throw new IllegalArgumentException(e);
         }

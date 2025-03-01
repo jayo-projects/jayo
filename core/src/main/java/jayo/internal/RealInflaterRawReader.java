@@ -32,10 +32,8 @@ import java.util.Objects;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-import static jayo.internal.ReaderSegmentQueue.newSyncReaderSegmentQueue;
-
 public final class RealInflaterRawReader implements InflaterRawReader {
-    private final @NonNull ReaderSegmentQueue segmentQueue;
+    private final @NonNull SegmentQueue segmentQueue;
     private final @NonNull Inflater inflater;
     /**
      * When we call Inflater.setInput(), the inflater keeps our byte array until it needs input again.
@@ -45,15 +43,15 @@ public final class RealInflaterRawReader implements InflaterRawReader {
     private @Nullable Segment currentHead = null;
     private boolean closed = false;
 
-    public RealInflaterRawReader(final @NonNull RawReader reader, final @NonNull Inflater inflater) {
-        this(newSyncReaderSegmentQueue(Objects.requireNonNull(reader)), inflater);
+    public RealInflaterRawReader(final @NonNull Reader reader, final @NonNull Inflater inflater) {
+        this(Utils.getSegmentQueueFromReader(reader), inflater);
     }
 
     /**
      * This internal constructor shares a buffer with its trusted caller. In general, we can't share a {@code Reader}
      * because the inflater holds input bytes until they are inflated.
      */
-    RealInflaterRawReader(final @NonNull ReaderSegmentQueue segmentQueue, final @NonNull Inflater inflater) {
+    RealInflaterRawReader(final @NonNull SegmentQueue segmentQueue, final @NonNull Inflater inflater) {
         assert segmentQueue != null;
         assert inflater != null;
 
@@ -194,7 +192,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
 
     @Override
     public String toString() {
-        return "InflaterRawReader(" + segmentQueue.reader + ")";
+        return "InflaterRawReader(" + segmentQueue + ")";
     }
 
     /**

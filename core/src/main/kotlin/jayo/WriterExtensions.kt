@@ -12,6 +12,8 @@
 
 package jayo
 
+import java.util.zip.Deflater
+
 /**
  * Writes two bytes containing a short, in the little-endian order, to this writer.
  * ```
@@ -157,3 +159,8 @@ public fun Writer.writeUIntLe(i: UInt) {
 public fun Writer.writeULongLe(l: ULong) {
     writeLongLe(l.toLong())
 }
+
+/**
+ * Returns a [RawWriter] that DEFLATE-compresses data to this [RawWriter] while writing.
+ */
+public fun Writer.deflate(deflater: Deflater = Deflater()): RawWriter = Jayo.deflate(this, deflater)

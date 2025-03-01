@@ -245,7 +245,7 @@ public final class RealBuffer implements Buffer {
     @Override
     public @NonNull Buffer write(final @NonNull InputStream input, final long byteCount) {
         if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
+            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         write(input, byteCount, false);
         return this;

@@ -18,4 +18,8 @@ public final class JayoSocketException extends JayoException {
     public JayoSocketException(final @NonNull SocketException cause) {
         super(Objects.requireNonNull(cause));
     }
+
+    public JayoSocketException(final @NonNull String message) {
+        super(Objects.requireNonNull(message), new SocketException(message));
+    }
 }

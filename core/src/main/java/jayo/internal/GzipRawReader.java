@@ -43,7 +43,8 @@ public final class GzipRawReader implements RawReader {
      * Our reader should yield a GZIP header (which we consume directly), followed by deflated bytes (which we consume
      * via an InflaterReader), followed by a GZIP trailer (which we also consume directly).
      */
-    private final @NonNull RealReader reader;
+    private final @NonNull Reader reader;
+    private final @NonNull SegmentQueue segmentQueue;
 
     /**
      * The inflater used to decompress the deflated body.
@@ -60,10 +61,11 @@ public final class GzipRawReader implements RawReader {
      */
     private final @NonNull CRC32 crc = new CRC32();
 
-    public GzipRawReader(final @NonNull RawReader reader) {
-        Objects.requireNonNull(reader);
-        this.reader = new RealReader(reader);
-        inflaterReader = new RealInflaterRawReader(this.reader.segmentQueue, inflater);
+    public GzipRawReader(final @NonNull Reader reader) {
+        assert reader != null;
+        this.reader = reader;
+        this.segmentQueue = Utils.getSegmentQueueFromReader(reader);
+        inflaterReader = new RealInflaterRawReader(segmentQueue, inflater);
     }
 
     @Override
@@ -126,10 +128,10 @@ public final class GzipRawReader implements RawReader {
         // |ID1|ID2|CM |FLG|     MTIME     |XFL|OS | (more-->)
         // +---+---+---+---+---+---+---+---+---+---+
         reader.require(10);
-        final var flags = (int) reader.segmentQueue.buffer.getByte(3);
+        final var flags = (int) Utils.getBufferFromReader(reader).getByte(3);
         final var fhcrc = getBit(flags, FHCRC);
         if (fhcrc) {
-            updateCrc(reader.segmentQueue, 0, 10);
+            updateCrc(segmentQueue, 0, 10);
         }
 
         final var id1id2 = (int) reader.readShort();
@@ -143,12 +145,12 @@ public final class GzipRawReader implements RawReader {
         if (getBit(flags, FEXTRA)) {
             reader.require(2);
             if (fhcrc) {
-                updateCrc(reader.segmentQueue, 0, 2);
+                updateCrc(segmentQueue, 0, 2);
             }
-            final var xlen = (long) (((int) Short.reverseBytes(reader.segmentQueue.buffer.readShort())) & 0xffff);
+            final var xlen = (long) (((int) Short.reverseBytes(reader.readShort())) & 0xffff);
             reader.require(xlen);
             if (fhcrc) {
-                updateCrc(reader.segmentQueue, 0, xlen);
+                updateCrc(segmentQueue, 0, xlen);
             }
             reader.skip(xlen);
         }
@@ -163,7 +165,7 @@ public final class GzipRawReader implements RawReader {
                 throw new JayoEOFException();
             }
             if (fhcrc) {
-                updateCrc(reader.segmentQueue, 0, index + 1);
+                updateCrc(segmentQueue, 0, index + 1);
             }
             reader.skip(index + 1);
         }
@@ -178,7 +180,7 @@ public final class GzipRawReader implements RawReader {
                 throw new JayoEOFException();
             }
             if (fhcrc) {
-                updateCrc(reader.segmentQueue, 0, index + 1);
+                updateCrc(segmentQueue, 0, index + 1);
             }
             reader.skip(index + 1);
         }

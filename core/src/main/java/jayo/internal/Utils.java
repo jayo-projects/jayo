@@ -145,12 +145,38 @@ public final class Utils {
         return prefixIndex; // Return any matches we encountered while searching for a deeper match.
     }
 
-    public static Buffer getBufferFromReader(final Reader reader) {
+    public static @NonNull Buffer getBufferFromReader(final @NonNull Reader reader) {
+        assert reader != null;
+
         if (reader instanceof RealReader _reader) {
             return _reader.segmentQueue.buffer;
         }
 
         return (Buffer) reader;
+    }
+
+    static @NonNull SegmentQueue getSegmentQueueFromReader(final @NonNull Reader reader) {
+        assert reader != null;
+
+        if (reader instanceof RealReader _reader) {
+            return _reader.segmentQueue;
+        }
+
+        return ((RealBuffer) reader).segmentQueue;
+    }
+
+    static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {
+        assert byteString != null;
+
+        if (byteString instanceof RealByteString _key) {
+            return _key.data;
+        }
+
+        if (byteString instanceof BaseByteString _key) {
+            return _key.internalArray();
+        }
+
+        throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
     }
 
     static String toHexString(final byte b) {
@@ -244,20 +270,5 @@ public final class Utils {
         return String.format(
                 "status=%s,handshakeStatus=%s,bytesProduced=%d,bytesConsumed=%d",
                 result.getStatus(), result.getHandshakeStatus(), result.bytesProduced(), result.bytesConsumed());
-    }
-
-
-    static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {
-        assert byteString != null;
-
-        if (byteString instanceof RealByteString _key) {
-            return _key.data;
-        }
-
-        if (byteString instanceof BaseByteString _key) {
-            return _key.internalArray();
-        }
-
-        throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
     }
 }
