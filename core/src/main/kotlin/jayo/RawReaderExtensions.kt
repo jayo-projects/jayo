@@ -23,6 +23,7 @@
 
 package jayo
 
+import jayo.bytestring.ByteString
 import jayo.crypto.Digest
 import jayo.crypto.Hmac
 import jayo.internal.RealReader

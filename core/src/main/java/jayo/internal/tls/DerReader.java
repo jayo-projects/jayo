@@ -22,6 +22,7 @@
 package jayo.internal.tls;
 
 import jayo.*;
+import jayo.bytestring.ByteString;
 import jayo.internal.Utils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

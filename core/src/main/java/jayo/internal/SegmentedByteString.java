@@ -21,7 +21,7 @@
 
 package jayo.internal;
 
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import jayo.JayoException;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;

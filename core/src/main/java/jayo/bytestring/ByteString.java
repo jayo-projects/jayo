@@ -23,8 +23,10 @@
  * limitations under the License.
  */
 
-package jayo;
+package jayo.bytestring;
 
+import jayo.JayoEOFException;
+import jayo.JayoException;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.internal.BaseByteString;

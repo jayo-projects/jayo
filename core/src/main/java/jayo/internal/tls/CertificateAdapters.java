@@ -21,7 +21,7 @@
 
 package jayo.internal.tls;
 
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import jayo.JayoProtocolException;
 import org.jspecify.annotations.NonNull;
 
@@ -36,7 +36,6 @@ import static jayo.internal.tls.Certificate.*;
 /**
  * ASN.1 adapters adapted from the specifications in <a href="https://tools.ietf.org/html/rfc5280">RFC 5280</a>.
  */
-@SuppressWarnings("SequencedCollectionMethodCanBeUsed")
 final class CertificateAdapters {
     // un-instantiable
     private CertificateAdapters() {

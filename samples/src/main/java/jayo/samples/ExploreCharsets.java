@@ -21,7 +21,7 @@
 
 package jayo.samples;
 
-import jayo.Utf8;
+import jayo.bytestring.Utf8;
 
 public final class ExploreCharsets {
     public void run() {

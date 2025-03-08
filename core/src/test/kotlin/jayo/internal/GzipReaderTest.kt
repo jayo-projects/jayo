@@ -22,9 +22,11 @@
 package jayo.internal
 
 import jayo.*
-import jayo.ByteString.of
-import jayo.decodeHex
+import jayo.bytestring.ByteString.of
+import jayo.bytestring.decodeHex
 import jayo.JayoException
+import jayo.bytestring.ByteString
+import jayo.bytestring.encodeToUtf8
 import org.junit.jupiter.api.assertThrows
 import java.util.zip.CRC32
 import kotlin.test.Test

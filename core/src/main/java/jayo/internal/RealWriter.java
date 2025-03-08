@@ -22,6 +22,7 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.bytestring.ByteString;
 import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

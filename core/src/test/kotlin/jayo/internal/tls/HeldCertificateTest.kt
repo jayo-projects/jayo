@@ -21,7 +21,7 @@
 
 package jayo.internal.tls
 
-import jayo.decodeBase64
+import jayo.bytestring.decodeBase64
 import jayo.tls.HeldCertificate
 import jayo.tls.HeldCertificate.CertificateKeyFormat.ECDSA_256
 import jayo.tls.HeldCertificate.CertificateKeyFormat.RSA_2048

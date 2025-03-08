@@ -22,7 +22,7 @@
 package jayo.internal;
 
 import jayo.JayoCharacterCodingException;
-import jayo.Utf8;
+import jayo.bytestring.Utf8;
 import org.jspecify.annotations.NonNull;
 
 import java.io.Serial;

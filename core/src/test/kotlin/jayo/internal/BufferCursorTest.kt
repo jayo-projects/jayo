@@ -22,7 +22,7 @@
 package jayo.internal
 
 import jayo.Buffer
-import jayo.ByteString
+import jayo.bytestring.ByteString
 import jayo.internal.TestUtil.deepCopy
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test

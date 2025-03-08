@@ -23,7 +23,7 @@ package jayo.internal
 
 import jayo.Buffer
 import jayo.Options
-import jayo.encodeToUtf8
+import jayo.bytestring.encodeToUtf8
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

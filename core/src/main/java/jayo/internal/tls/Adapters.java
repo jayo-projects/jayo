@@ -21,7 +21,7 @@
 
 package jayo.internal.tls;
 
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import jayo.JayoProtocolException;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

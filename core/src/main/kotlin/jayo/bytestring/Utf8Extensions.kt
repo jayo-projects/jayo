@@ -21,7 +21,7 @@
 
 @file:JvmName("-Utf8") // A leading '-' hides this class from Java.
 
-package jayo
+package jayo.bytestring
 
 import java.io.InputStream
 import java.nio.ByteBuffer
@@ -47,7 +47,7 @@ public fun ByteBuffer.toUtf8(isAscii: Boolean = false): Utf8 =
 /**
  * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
  * @param isAscii if the bytes you are reading in the input stream are ASCII encoded.
- * @throws JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ * @throws jayo.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
 public fun InputStream.readUtf8(byteCount: Int, isAscii: Boolean = false): Utf8 =
     if (isAscii) Utf8.readAscii(this, byteCount) else Utf8.read(this, byteCount)

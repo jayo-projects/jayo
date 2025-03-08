@@ -25,6 +25,8 @@
 
 package jayo;
 
+import jayo.bytestring.ByteString;
+import jayo.bytestring.Utf8;
 import jayo.internal.RealReader;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

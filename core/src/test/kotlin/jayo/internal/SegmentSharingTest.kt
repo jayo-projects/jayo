@@ -21,8 +21,8 @@
 
 package jayo.internal
 
-import jayo.ByteString
-import jayo.encodeToByteString
+import jayo.bytestring.ByteString
+import jayo.bytestring.encodeToByteString
 import jayo.internal.JavaTestUtil.takeAllPoolSegments
 import jayo.internal.TestUtil.assertEquivalent
 import org.assertj.core.api.Assertions.assertThatThrownBy

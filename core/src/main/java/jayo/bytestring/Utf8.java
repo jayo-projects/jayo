@@ -3,8 +3,9 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo;
+package jayo.bytestring;
 
+import jayo.*;
 import jayo.internal.RealUtf8;
 import jayo.internal.SegmentedUtf8;
 import org.jspecify.annotations.NonNull;

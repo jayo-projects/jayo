@@ -21,9 +21,9 @@
 
 package jayo.internal
 
-import jayo.Utf8
-import jayo.encodeToUtf8
-import jayo.toUtf8
+import jayo.bytestring.Utf8
+import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.toUtf8
 
 interface Utf8Factory {
     fun encodeUtf8(s: String): Utf8

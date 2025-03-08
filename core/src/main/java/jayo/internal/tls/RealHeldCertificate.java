@@ -21,7 +21,7 @@
 
 package jayo.internal.tls;
 
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import jayo.JayoUnknownHostException;
 import jayo.internal.tls.Adapters.DerAdapterValue;
 import jayo.tls.HeldCertificate;
@@ -45,7 +45,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static jayo.ByteString.decodeBase64;
+import static jayo.bytestring.ByteString.decodeBase64;
 import static jayo.internal.tls.Certificate.*;
 import static jayo.internal.tls.CertificateAdapters.GENERAL_NAME_DNS_NAME;
 import static jayo.internal.tls.CertificateAdapters.GENERAL_NAME_IP_ADDRESS;

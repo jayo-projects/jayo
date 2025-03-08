@@ -22,6 +22,8 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.bytestring.ByteString;
+import jayo.bytestring.Utf8;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.tools.BasicLock;

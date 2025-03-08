@@ -22,8 +22,8 @@
 package jayo.samples
 
 import jayo.Buffer
-import jayo.ByteString
-import jayo.decodeBase64
+import jayo.bytestring.ByteString
+import jayo.bytestring.decodeBase64
 import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream

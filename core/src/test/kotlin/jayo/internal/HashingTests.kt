@@ -6,6 +6,8 @@
 package jayo.internal
 
 import jayo.*
+import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.toByteString
 import jayo.crypto.JdkDigest
 import jayo.crypto.JdkHmac
 import org.assertj.core.api.Assertions.assertThat

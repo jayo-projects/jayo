@@ -22,7 +22,7 @@
 
 package jayo.internal;
 
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 

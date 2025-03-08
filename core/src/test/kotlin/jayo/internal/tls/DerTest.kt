@@ -22,6 +22,9 @@
 package jayo.internal.tls
 
 import jayo.*
+import jayo.bytestring.decodeHex
+import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.toByteString
 import jayo.internal.tls.Adapters.DerAdapterValue
 import jayo.internal.tls.Certificate.*
 import jayo.internal.tls.ObjectIdentifiers.*

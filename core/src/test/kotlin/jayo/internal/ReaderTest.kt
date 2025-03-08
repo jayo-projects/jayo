@@ -27,6 +27,8 @@ package jayo.internal
 
 import jayo.*
 import jayo.JayoEOFException
+import jayo.bytestring.ByteString
+import jayo.bytestring.encodeToUtf8
 import jayo.internal.TestUtil.assertByteArrayEquals
 import jayo.internal.Utils.getBufferFromReader
 import org.assertj.core.api.Assertions.assertThat
