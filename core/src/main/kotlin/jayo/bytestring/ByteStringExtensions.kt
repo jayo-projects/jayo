@@ -21,7 +21,7 @@
 
 @file:JvmName("-ByteString") // A leading '-' hides this class from Java.
 
-package jayo
+package jayo.bytestring
 
 import java.io.InputStream
 import java.nio.ByteBuffer
@@ -42,7 +42,7 @@ public fun ByteBuffer.toByteString(): ByteString = ByteString.of(this)
 /**
  * Reads `count` bytes from this [InputStream] and returns the result as a [ByteString].
  *
- * @throws JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ * @throws jayo.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
 public fun InputStream.readByteString(byteCount: Int): ByteString = ByteString.read(this, byteCount)
 

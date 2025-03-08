@@ -21,8 +21,8 @@
 
 package jayo.samples
 
-import jayo.encodeToUtf8
-import jayo.utf8Size
+import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.utf8Size
 
 fun dumpStringData(s: String) {
     println("                       " + s)

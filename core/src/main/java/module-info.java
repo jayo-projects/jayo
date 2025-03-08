@@ -12,6 +12,7 @@ module jayo {
     requires static org.jspecify;
 
     exports jayo;
+    exports jayo.bytestring;
     exports jayo.crypto;
     exports jayo.network;
     exports jayo.scheduling;

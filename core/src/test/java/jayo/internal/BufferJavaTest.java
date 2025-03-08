@@ -24,7 +24,7 @@ package jayo.internal;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import jayo.Buffer;
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import jayo.JayoEOFException;
 
 import java.io.ByteArrayInputStream;

@@ -23,6 +23,9 @@ package jayo.internal
 
 import jayo.*
 import jayo.JayoEOFException
+import jayo.bytestring.ByteString
+import jayo.bytestring.decodeBase64
+import jayo.bytestring.encodeToUtf8
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.fail

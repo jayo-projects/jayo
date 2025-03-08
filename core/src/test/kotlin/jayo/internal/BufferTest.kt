@@ -28,6 +28,8 @@ import jayo.*
 import jayo.crypto.JdkDigest
 import jayo.crypto.JdkHmac
 import jayo.JayoEOFException
+import jayo.bytestring.ByteString
+import jayo.bytestring.encodeToUtf8
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream

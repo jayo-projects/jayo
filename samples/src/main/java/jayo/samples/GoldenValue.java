@@ -22,7 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

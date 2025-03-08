@@ -22,8 +22,8 @@
 package jayo.internal
 
 import jayo.Buffer
-import jayo.ByteString
-import jayo.Utf8
+import jayo.bytestring.ByteString
+import jayo.bytestring.Utf8
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)

@@ -6,6 +6,7 @@
 package jayo.internal
 
 import jayo.*
+import jayo.bytestring.encodeToUtf8
 import jayo.scheduling.TaskRunner
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.RepeatedTest

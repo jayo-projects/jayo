@@ -21,12 +21,12 @@
 
 package jayo.internal
 
-import jayo.Utf8
-import jayo.encodeToUtf8
+import jayo.bytestring.Utf8
+import jayo.bytestring.encodeToUtf8
 import jayo.JayoCharacterCodingException
 import jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT
-import jayo.readUtf8
-import jayo.toUtf8
+import jayo.bytestring.readUtf8
+import jayo.bytestring.toUtf8
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatIterator
 import org.junit.jupiter.api.Assertions.assertEquals

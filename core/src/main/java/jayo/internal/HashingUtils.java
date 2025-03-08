@@ -5,7 +5,7 @@
 
 package jayo.internal;
 
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import jayo.RawReader;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;

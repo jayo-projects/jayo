@@ -22,8 +22,8 @@
 package jayo.internal
 
 import jayo.Buffer
-import jayo.ByteString
-import jayo.encodeToUtf8
+import jayo.bytestring.ByteString
+import jayo.bytestring.encodeToUtf8
 import org.junit.jupiter.api.Assertions.*
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream

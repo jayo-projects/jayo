@@ -21,6 +21,7 @@
 
 package jayo;
 
+import jayo.bytestring.ByteString;
 import org.jspecify.annotations.NonNull;
 import jayo.internal.RealOptions;
 

@@ -21,10 +21,10 @@
 
 package jayo.internal
 
-import jayo.ByteString
-import jayo.decodeHex
-import jayo.encodeToByteString
-import jayo.encodeToUtf8
+import jayo.bytestring.ByteString
+import jayo.bytestring.decodeHex
+import jayo.bytestring.encodeToByteString
+import jayo.bytestring.encodeToUtf8
 
 interface ByteStringFactory {
     fun decodeHex(hex: String): ByteString

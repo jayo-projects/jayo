@@ -21,8 +21,8 @@
 
 package jayo.internal;
 
-import jayo.ByteString;
-import jayo.Utf8;
+import jayo.bytestring.ByteString;
+import jayo.bytestring.Utf8;
 import kotlin.text.Charsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

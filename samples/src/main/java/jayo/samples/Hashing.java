@@ -22,7 +22,7 @@
 package jayo.samples;
 
 import jayo.Buffer;
-import jayo.ByteString;
+import jayo.bytestring.ByteString;
 import jayo.Jayo;
 import static jayo.crypto.JdkDigest.*;
 import static jayo.crypto.JdkHmac.*;

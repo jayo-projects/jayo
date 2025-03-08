@@ -22,6 +22,8 @@
 package jayo.samples
 
 import jayo.*
+import jayo.bytestring.ByteString
+import jayo.bytestring.decodeHex
 import jayo.crypto.JdkDigest.*
 import jayo.crypto.JdkHmac.*
 import java.io.IOException

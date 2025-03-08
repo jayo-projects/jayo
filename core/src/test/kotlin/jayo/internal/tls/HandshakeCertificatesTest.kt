@@ -23,7 +23,7 @@ package jayo.internal.tls
 
 import jayo.internal.JavaVersionUtils.threadFactory
 import jayo.tls.*
-import jayo.toByteString
+import jayo.bytestring.toByteString
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach

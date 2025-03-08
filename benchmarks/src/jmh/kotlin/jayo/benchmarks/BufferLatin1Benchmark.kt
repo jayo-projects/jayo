@@ -1,7 +1,7 @@
 package jayo.benchmarks
 
 import jayo.Buffer
-import jayo.ByteString
+import jayo.bytestring.ByteString
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
 

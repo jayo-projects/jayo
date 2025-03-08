@@ -23,11 +23,11 @@ package jayo.internal
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import jayo.ByteString.of
-import jayo.decodeHex
+import jayo.bytestring.ByteString.of
+import jayo.bytestring.decodeHex
 import jayo.JayoEOFException
 import jayo.internal.TestUtil.REPLACEMENT_CODE_POINT
-import jayo.utf8Size
+import jayo.bytestring.utf8Size
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
