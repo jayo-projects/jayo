@@ -124,7 +124,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
                  final int byteCount);
 
     /**
-     * Encodes all the characters from {@code charSequence} using UTF-8 and writes them to this writer.
+     * Encodes all the characters from {@code string} using UTF-8 and writes them to this writer.
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
@@ -136,16 +136,16 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * }
      * </pre>
      *
-     * @param charSequence the char sequence to be encoded.
+     * @param string the string to be encoded.
      * @return {@code this}
      * @throws JayoClosedResourceException if this writer is closed.
      */
     @NonNull
-    Writer write(final @NonNull CharSequence charSequence);
+    Writer write(final @NonNull String string);
 
     /**
-     * Encodes the characters at {@code startIndex} up to {@code endIndex} from {@code charSequence} using UTF-8 and
-     * writes them to this writer.
+     * Encodes the characters at {@code startIndex} up to {@code endIndex} from {@code string} using UTF-8 and writes
+     * them to this writer.
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
@@ -159,7 +159,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * }
      * </pre>
      *
-     * @param charSequence the char sequence to be encoded.
+     * @param string the string to be encoded.
      * @param startIndex   the index (inclusive) of the first character to encode.
      * @param endIndex     the index (exclusive) of a character past to a last character to encode.
      * @return {@code this}
@@ -169,22 +169,12 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws IllegalStateException     if this writer is closed.
      */
     @NonNull
-    Writer write(final @NonNull CharSequence charSequence,
+    Writer write(final @NonNull String string,
                  final int startIndex,
                  final int endIndex);
 
     /**
-     * Encodes {@code codePoint} in UTF-8 and writes it to this writer.
-     *
-     * @param codePoint the codePoint to be written.
-     * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
-     */
-    @NonNull
-    Writer writeUtf8CodePoint(final int codePoint);
-
-    /**
-     * Encodes {@code string} using the provided {@code charset} and writes it to this writer.
+     * Encodes all the characters from {@code string} using the provided {@code charset} and writes it to this writer.
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
@@ -235,6 +225,16 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
                  final int startIndex,
                  final int endIndex,
                  final @NonNull Charset charset);
+
+    /**
+     * Encodes {@code codePoint} in UTF-8 and writes it to this writer.
+     *
+     * @param codePoint the codePoint to be written.
+     * @return {@code this}
+     * @throws JayoClosedResourceException if this writer is closed.
+     */
+    @NonNull
+    Writer writeUtf8CodePoint(final int codePoint);
 
     /**
      * Removes {@code byteCount} bytes from {@code reader} and appends them to this writer.

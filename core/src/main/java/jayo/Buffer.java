@@ -279,7 +279,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
 
     @Override
     @NonNull
-    Buffer write(final @NonNull CharSequence charSequence);
+    Buffer write(final @NonNull String string);
 
     /**
      * @throws IndexOutOfBoundsException {@inheritDoc}
@@ -287,7 +287,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @Override
     @NonNull
-    Buffer write(final @NonNull CharSequence charSequence,
+    Buffer write(final @NonNull String string,
                  final int startIndex,
                  final int endIndex);
 

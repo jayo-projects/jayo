@@ -1149,23 +1149,23 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull CharSequence charSequence) {
-        return write(charSequence, 0, charSequence.length());
+    public @NonNull Buffer write(final @NonNull String string) {
+        return write(string, 0, string.length());
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull CharSequence charSequence,
+    public @NonNull Buffer write(final @NonNull String string,
                                  final int startIndex,
                                  final int endIndex) {
-        Objects.requireNonNull(charSequence);
+        Objects.requireNonNull(string);
         if (endIndex < startIndex) {
             throw new IllegalArgumentException("endIndex < beginIndex: " + endIndex + " < " + startIndex);
         }
         if (startIndex < 0) {
             throw new IndexOutOfBoundsException("beginIndex < 0: " + startIndex);
         }
-        if (endIndex > charSequence.length()) {
-            throw new IndexOutOfBoundsException("endIndex > string.length: " + endIndex + " > " + charSequence.length());
+        if (endIndex > string.length()) {
+            throw new IndexOutOfBoundsException("endIndex > string.length: " + endIndex + " > " + string.length());
         }
 
         if (startIndex == endIndex) {
@@ -1179,11 +1179,11 @@ public final class RealBuffer implements Buffer {
         }
 
         // fast-path for ISO_8859_1 encoding
-        if (UNSAFE_AVAILABLE && charSequence instanceof String string && isLatin1(string)) {
+        if (UNSAFE_AVAILABLE && isLatin1(string)) {
             final var stringBytes = getBytes(string);
             writeLatin1ToUtf8(stringBytes, startIndex, endIndex);
         } else {
-            writeUtf16ToUtf8(charSequence, startIndex, endIndex);
+            writeUtf16ToUtf8(string, startIndex, endIndex);
         }
 
         if (LOGGER.isLoggable(TRACE)) {
@@ -1314,6 +1314,42 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
+    public @NonNull Buffer write(final @NonNull String string, final @NonNull Charset charset) {
+        return this.write(string, 0, string.length(), charset);
+    }
+
+    @Override
+    public @NonNull Buffer write(final @NonNull String string,
+                                 final int startIndex,
+                                 final int endIndex,
+                                 final @NonNull Charset charset) {
+        Objects.requireNonNull(string);
+        if (startIndex < 0) {
+            throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
+        }
+        if (endIndex < startIndex) {
+            throw new IllegalArgumentException("endIndex < beginIndex: " + endIndex + " < " + startIndex);
+        }
+        if (endIndex > string.length()) {
+            throw new IllegalArgumentException("endIndex > string.length: " + endIndex + " > " + string.length());
+        }
+        // fast-path#1 for UTF-8 encoding
+        if (charset.equals(StandardCharsets.UTF_8)) {
+            return write(string, startIndex, endIndex);
+        }
+
+        // fast-path#2 for ISO_8859_1 encoding
+        if (charset.equals(StandardCharsets.ISO_8859_1) && UNSAFE_AVAILABLE && isLatin1(string)) {
+            final var stringBytes = getBytes(string);
+            return write(stringBytes, startIndex, endIndex - startIndex);
+        }
+
+        final var substring = string.substring(startIndex, endIndex);
+        final var data = substring.getBytes(charset);
+        return write(data, 0, data.length);
+    }
+
+    @Override
     public @NonNull Buffer writeUtf8CodePoint(final int codePoint) {
         if (codePoint < 0x80) {
             // Emit a 7-bit code point with 1 byte.
@@ -1359,42 +1395,6 @@ public final class RealBuffer implements Buffer {
         }
 
         return this;
-    }
-
-    @Override
-    public @NonNull Buffer write(final @NonNull String string, final @NonNull Charset charset) {
-        return this.write(string, 0, string.length(), charset);
-    }
-
-    @Override
-    public @NonNull Buffer write(final @NonNull String string,
-                                 final int startIndex,
-                                 final int endIndex,
-                                 final @NonNull Charset charset) {
-        Objects.requireNonNull(string);
-        if (startIndex < 0) {
-            throw new IllegalArgumentException("beginIndex < 0: " + startIndex);
-        }
-        if (endIndex < startIndex) {
-            throw new IllegalArgumentException("endIndex < beginIndex: " + endIndex + " < " + startIndex);
-        }
-        if (endIndex > string.length()) {
-            throw new IllegalArgumentException("endIndex > string.length: " + endIndex + " > " + string.length());
-        }
-        // fast-path#1 for UTF-8 encoding
-        if (charset.equals(StandardCharsets.UTF_8)) {
-            return write(string, startIndex, endIndex);
-        }
-
-        // fast-path#2 for ISO_8859_1 encoding
-        if (charset.equals(StandardCharsets.ISO_8859_1) && UNSAFE_AVAILABLE && isLatin1(string)) {
-            final var stringBytes = getBytes(string);
-            return write(stringBytes, startIndex, endIndex - startIndex);
-        }
-
-        final var substring = string.substring(startIndex, endIndex);
-        final var data = substring.getBytes(charset);
-        return write(data, 0, data.length);
     }
 
     @Override
