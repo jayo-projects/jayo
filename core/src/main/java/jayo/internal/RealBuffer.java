@@ -1139,6 +1139,8 @@ public final class RealBuffer implements Buffer {
         Objects.requireNonNull(byteString);
         if (byteString instanceof RealByteString _byteString) {
             _byteString.write(this, offset, byteCount);
+        } else if (byteString instanceof RealAscii _byteString) {
+            _byteString.write(this, offset, byteCount);
         } else if (byteString instanceof BaseByteString _byteString) {
             _byteString.write(this, offset, byteCount);
         } else {

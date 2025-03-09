@@ -165,6 +165,8 @@ public sealed class BaseByteString implements ByteString permits RealUtf8, Segme
     }
 
     static byte @Nullable [] toAsciiLowercaseBytes(final byte @NonNull [] data) {
+        assert data != null;
+
         // Search for an uppercase character. If we don't find one, return this.
         var i = 0;
         while (i < data.length) {

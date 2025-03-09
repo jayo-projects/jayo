@@ -59,7 +59,7 @@ public final class RealUtf8 extends BaseByteString implements Utf8 {
      * @param string a String that will be encoded in UTF-8
      */
     public RealUtf8(final @NonNull String string) {
-        super(Objects.requireNonNull(string).getBytes(StandardCharsets.UTF_8));
+        super(string.getBytes(StandardCharsets.UTF_8));
         utf8 = string;
         length = string.length();
     }
@@ -214,7 +214,8 @@ public final class RealUtf8 extends BaseByteString implements Utf8 {
             }
 
             @Override
-            public void forEachRemaining(IntConsumer block) {
+            public void forEachRemaining(final @NonNull IntConsumer block) {
+                Objects.requireNonNull(block);
                 while (byteIndex < data.length) {
                     block.accept(nextInt());
                 }

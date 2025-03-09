@@ -59,7 +59,8 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * , thus guaranteeing that subsequent modification of source data or data returned from {@link #toByteArray()} won't
  * mutate the byte string itself.
  *
- * @see Utf8 a UTF-8 specific implementation of {@code ByteString}.
+ * @see Utf8
+ * @see Ascii
  */
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
         permits BaseByteString, RealByteString, SegmentedByteString, Utf8 {
