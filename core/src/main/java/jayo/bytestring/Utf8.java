@@ -66,8 +66,9 @@ import java.util.stream.IntStream;
  * </table>
  *
  * @see ByteString
+ * @see Ascii
  */
-public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 {
+public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, SegmentedUtf8 {
     /**
      * The empty UTF-8 byte string
      */
@@ -84,40 +85,16 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
     }
 
     /**
-     * @param data a sequence of bytes to be wrapped.
-     * @return a new UTF-8 byte string containing a copy of all the ASCII bytes of {@code data}.
-     */
-    static @NonNull Utf8 ofAscii(final byte @NonNull ... data) {
-        Objects.requireNonNull(data);
-        return new RealUtf8(data.clone(), true);
-    }
-
-    /**
      * @param offset    the start offset (inclusive) in the {@code data} byte array.
      * @param byteCount the number of bytes to copy.
      * @return a new UTF-8 byte string containing a copy of {@code byteCount} UTF-8 bytes of {@code data} starting at
      * {@code offset}.
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
-     *                                   {@code data} indices.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code data} indices.
      */
     static @NonNull Utf8 of(final byte @NonNull [] data,
                             final int offset,
                             final int byteCount) {
-        return new RealUtf8(data, offset, byteCount, false);
-    }
-
-    /**
-     * @param offset    the start offset (inclusive) in the {@code data} byte array.
-     * @param byteCount the number of bytes to copy.
-     * @return a new UTF-8 byte string containing a copy of {@code byteCount} ASCII bytes of {@code data} starting at
-     * {@code offset}.
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
-     *                                   {@code data} indices.
-     */
-    static @NonNull Utf8 ofAscii(final byte @NonNull [] data,
-                                 final int offset,
-                                 final int byteCount) {
-        return new RealUtf8(data, offset, byteCount, true);
+        return new RealUtf8(data, offset, byteCount);
     }
 
     /**
@@ -132,20 +109,10 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
     }
 
     /**
-     * @param data a byte buffer from which we will copy the remaining bytes.
-     * @return a new UTF-8 byte string containing a copy of the remaining ASCII bytes of {@code data}.
-     */
-    static @NonNull Utf8 ofAscii(final @NonNull ByteBuffer data) {
-        Objects.requireNonNull(data);
-        final var copy = new byte[data.remaining()];
-        data.get(copy);
-        return new RealUtf8(copy, true);
-    }
-
-    /**
      * Encodes {@code string} using UTF-8 and wraps these bytes into a UTF-8 byte string.
      */
     static @NonNull Utf8 encode(final @NonNull String string) {
+        Objects.requireNonNull(string);
         return new RealUtf8(string);
     }
 
@@ -163,25 +130,6 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
 
         try {
             return new RealUtf8(in.readNBytes(byteCount), false);
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    /**
-     * Reads {@code byteCount} ASCII bytes from {@code in} and wraps them into a UTF-8 byte string.
-     *
-     * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
-     * @throws IllegalArgumentException if {@code byteCount} is negative.
-     */
-    static @NonNull Utf8 readAscii(final @NonNull InputStream in, final int byteCount) {
-        Objects.requireNonNull(in);
-        if (byteCount < 0) {
-            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
-        }
-
-        try {
-            return new RealUtf8(in.readNBytes(byteCount), true);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }

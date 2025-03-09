@@ -19,12 +19,19 @@
  * limitations under the License.
  */
 
-package jayo.internal
+package jayo.internal.bytestring
 
 import jayo.bytestring.ByteString
 import jayo.bytestring.decodeHex
+import jayo.bytestring.encodeToAscii
 import jayo.bytestring.encodeToByteString
 import jayo.bytestring.encodeToUtf8
+import jayo.internal.RealBuffer
+import jayo.internal.makeAsciiSegments
+import jayo.internal.makeSegments
+import jayo.internal.makeUtf8Segments
+import jayo.internal.readAsciiSegmented
+import jayo.internal.readUtf8Segmented
 
 interface ByteStringFactory {
     fun decodeHex(hex: String): ByteString
@@ -63,7 +70,7 @@ interface ByteStringFactory {
         @JvmStatic
         val SEGMENTED_UTF8: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = RealBuffer().apply { write(hex.decodeHex()) }.readByteString()
-            override fun encodeUtf8(s: String) = RealBuffer().apply { write(s) }.readUtf8()
+            override fun encodeUtf8(s: String) = RealBuffer().apply { write(s) }.readUtf8Segmented()
             override val isUtf8: Boolean get() = true
         }
 
@@ -75,16 +82,23 @@ interface ByteStringFactory {
         }
 
         @JvmStatic
+        val ASCII: ByteStringFactory = object : ByteStringFactory {
+            override fun decodeHex(hex: String) = hex.decodeHex()
+            override fun encodeUtf8(s: String) = s.encodeToAscii()
+            override val isUtf8: Boolean get() = true
+        }
+
+        @JvmStatic
         val SEGMENTED_ASCII: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = RealBuffer().apply { write(hex.decodeHex()) }.readByteString()
-            override fun encodeUtf8(s: String) = RealBuffer().apply { write(s) }.readAscii()
+            override fun encodeUtf8(s: String) = RealBuffer().apply { write(s) }.readAsciiSegmented()
             override val isUtf8: Boolean get() = true
         }
 
         @JvmStatic
         val ASCII_ONE_BYTE_PER_SEGMENT: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = makeSegments(hex.decodeHex())
-            override fun encodeUtf8(s: String) = makeAsciiSegments(s.encodeToUtf8())
+            override fun encodeUtf8(s: String) = makeAsciiSegments(s.encodeToAscii())
             override val isUtf8: Boolean get() = true
         }
     }

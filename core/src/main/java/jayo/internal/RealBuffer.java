@@ -22,6 +22,7 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.bytestring.Ascii;
 import jayo.bytestring.ByteString;
 import jayo.bytestring.Utf8;
 import jayo.crypto.Digest;
@@ -614,9 +615,9 @@ public final class RealBuffer implements Buffer {
                 directory[i + size] = byteStringBuilder.positions.get(i);
             }
             return new SegmentedByteString(segments, directory);
-        } else {
-            return new RealByteString(readByteArray(byteCount));
         }
+
+        return new RealByteString(readByteArray(byteCount));
     }
 
     private @NonNull ByteStringBuilder prepareByteString(final long byteCount) {
@@ -685,30 +686,23 @@ public final class RealBuffer implements Buffer {
     }
 
     public @NonNull Utf8 readUtf8(final long byteCount) {
-        return readUtf8Private(byteCount, false);
-    }
-
-    @Override
-    public @NonNull Utf8 readAscii() {
-        return readAscii(segmentQueue.size());
-    }
-
-    public @NonNull Utf8 readAscii(final long byteCount) {
-        return readUtf8Private(byteCount, true);
-    }
-
-    private @NonNull Utf8 readUtf8Private(final long byteCount, final boolean isAscii) {
         if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("invalid byteCount: " + byteCount);
         }
         if (segmentQueue.size() < byteCount) {
             throw new JayoEOFException();
         }
+
+        return readUtf8(byteCount, false);
+    }
+
+    @NonNull
+    Utf8 readUtf8(final long byteCount, final boolean forceSegmented) {
         if (byteCount == 0L) {
             return Utf8.EMPTY;
         }
 
-        if (byteCount >= SEGMENTING_THRESHOLD) {
+        if (forceSegmented || byteCount >= SEGMENTING_THRESHOLD) {
             if (LOGGER.isLoggable(TRACE)) {
                 LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8({1}), will return a " +
                                 "segmented Utf8{2}",
@@ -722,10 +716,52 @@ public final class RealBuffer implements Buffer {
                 directory[i] = byteStringBuilder.offsets.get(i);
                 directory[i + size] = byteStringBuilder.positions.get(i);
             }
-            return new SegmentedUtf8(segments, directory, isAscii);
-        } else {
-            return new RealUtf8(readByteArray(byteCount), isAscii);
+            return new SegmentedUtf8(segments, directory, false);
         }
+
+        return new RealUtf8(readByteArray(byteCount), false);
+    }
+
+    @Override
+    public @NonNull Ascii readAscii() {
+        return readAscii(segmentQueue.size());
+    }
+
+    public @NonNull Ascii readAscii(final long byteCount) {
+        if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("invalid byteCount: " + byteCount);
+        }
+        if (segmentQueue.size() < byteCount) {
+            throw new JayoEOFException();
+        }
+
+        return readAscii(byteCount, false);
+    }
+
+    @NonNull
+    Ascii readAscii(final long byteCount, final boolean forceSegmented) {
+        if (byteCount == 0L) {
+            return Ascii.EMPTY;
+        }
+
+        if (forceSegmented || byteCount >= SEGMENTING_THRESHOLD) {
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "Buffer(SegmentQueue#{0}) : Start readUtf8({1}), will return a " +
+                                "segmented Utf8{2}",
+                        segmentQueue.hashCode(), byteCount, System.lineSeparator());
+            }
+            final var byteStringBuilder = prepareByteString(byteCount);
+            final var segments = byteStringBuilder.segments.toArray(new Segment[0]);
+            final var size = byteStringBuilder.offsets.size();
+            final var directory = new int[size * 2];
+            for (var i = 0; i < size; i++) {
+                directory[i] = byteStringBuilder.offsets.get(i);
+                directory[i + size] = byteStringBuilder.positions.get(i);
+            }
+            return new SegmentedAscii(segments, directory);
+        }
+
+        return new RealAscii(readByteArray(byteCount));
     }
 
     @Override
@@ -1138,6 +1174,8 @@ public final class RealBuffer implements Buffer {
                                  final int byteCount) {
         Objects.requireNonNull(byteString);
         if (byteString instanceof RealByteString _byteString) {
+            _byteString.write(this, offset, byteCount);
+        } else if (byteString instanceof RealAscii _byteString) {
             _byteString.write(this, offset, byteCount);
         } else if (byteString instanceof BaseByteString _byteString) {
             _byteString.write(this, offset, byteCount);
@@ -2271,7 +2309,9 @@ public final class RealBuffer implements Buffer {
         return segmentCount;
     }
 
-    private void fillSegmentsAndDirectory(Segment[] segments, int[] directory, int byteCount) {
+    private void fillSegmentsAndDirectory(final Segment @NonNull [] segments,
+                                          final int @NonNull [] directory,
+                                          final int byteCount) {
         var offset = 0;
         var segmentCount = 0;
         var segment = segmentQueue.head();

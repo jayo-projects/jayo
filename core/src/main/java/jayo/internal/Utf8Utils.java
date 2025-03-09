@@ -33,6 +33,8 @@ final class Utf8Utils {
 
     static final char UTF8_REPLACEMENT_CHARACTER = '\ufffd';
     static final int UTF8_REPLACEMENT_CODE_POINT = UTF8_REPLACEMENT_CHARACTER;
+    static final char ASCII_REPLACEMENT_CHARACTER = '?';
+    static final int ASCII_REPLACEMENT_CODE_POINT = ASCII_REPLACEMENT_CHARACTER;
 
     static String readUtf8Line(final @NonNull Buffer buffer, final long newline) {
         Objects.requireNonNull(buffer);

@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-package jayo.internal
+package jayo.internal.bytestring
 
 import jayo.bytestring.ByteString
 import jayo.bytestring.encodeToUtf8
@@ -50,6 +50,7 @@ class ByteStringTest {
                 Arguments.of(ByteStringFactory.UTF8, "Utf8"),
                 Arguments.of(ByteStringFactory.SEGMENTED_UTF8, "SegmentedUtf8"),
                 Arguments.of(ByteStringFactory.UTF8_ONE_BYTE_PER_SEGMENT, "SegmentedUtf8 (one-byte-at-a-time)"),
+                Arguments.of(ByteStringFactory.ASCII, "Ascii"),
                 Arguments.of(ByteStringFactory.SEGMENTED_ASCII, "SegmentedAscii"),
                 Arguments.of(ByteStringFactory.ASCII_ONE_BYTE_PER_SEGMENT, "SegmentedAscii (one-byte-at-a-time)"),
             )
@@ -85,12 +86,22 @@ class ByteStringTest {
         assertEquals(actual, expected)
     }
 
-    @Test
-    fun substring() {
-        val byteString = "abcdef".encodeToUtf8()
-        assertEquals(byteString.substring(0, 3), "abc".encodeToUtf8())
-        assertEquals(byteString.substring(3), "def".encodeToUtf8())
-        assertEquals(byteString.substring(1, 5), "bcde".encodeToUtf8())
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun isEmpty(factory: ByteStringFactory) {
+        var byteString = factory.encodeUtf8("")
+        assertThat(byteString.isEmpty).isTrue
+        byteString = factory.encodeUtf8("a")
+        assertThat(byteString.isEmpty).isFalse
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun substring(factory: ByteStringFactory) {
+        val byteString = factory.encodeUtf8("abcdef")
+        assertEquals(byteString.substring(0, 3), factory.encodeUtf8("abc"))
+        assertEquals(byteString.substring(3), factory.encodeUtf8("def"))
+        assertEquals(byteString.substring(1, 5), factory.encodeUtf8("bcde"))
     }
 
     @ParameterizedTest
@@ -162,6 +173,15 @@ class ByteStringTest {
             "9b9f9fc58cb6ae835a74d4d9ab51e1583027130315b5aaf497dd51b6dacbae7f9e141a2ecdcbfce337f031f2ce83a58fdfc" +
                     "ee27a373ff408f792326a69a900cc"
         )
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun segmentedByteString(factory: ByteStringFactory) {
+        val byteString = factory.encodeUtf8("abcdefgh")
+        val byteArray = "WwwwXxxxYyyyZzzz".encodeToByteArray()
+        byteString.copyInto(0, byteArray, 0, 5)
+        assertEquals("abcdexxxYyyyZzzz", byteArray.decodeToString())
     }
 
     @ParameterizedTest

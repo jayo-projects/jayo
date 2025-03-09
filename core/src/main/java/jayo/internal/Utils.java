@@ -168,12 +168,16 @@ public final class Utils {
     static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {
         assert byteString != null;
 
-        if (byteString instanceof RealByteString _key) {
-            return _key.data;
+        if (byteString instanceof RealByteString realByteString) {
+            return realByteString.data;
         }
 
-        if (byteString instanceof BaseByteString _key) {
-            return _key.internalArray();
+        if (byteString instanceof RealAscii realAscii) {
+            return realAscii.data;
+        }
+
+        if (byteString instanceof BaseByteString baseByteString) {
+            return baseByteString.internalArray();
         }
 
         throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
