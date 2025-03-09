@@ -32,7 +32,7 @@ import java.util.stream.IntStream;
  * <tr>
  * <td>Encode a string</td>
  * <td>{@link Utf8#encode(String)}</td>
- * <td>{@link Writer#write(CharSequence)}, {@link Writer#write(CharSequence, int, int)}</td>
+ * <td>{@link Writer#write(String)}, {@link Writer#write(String, int, int)}</td>
  * </tr>
  * <tr>
  * <td>Encode a code point</td>
@@ -189,7 +189,7 @@ public sealed interface Utf8 extends ByteString permits RealUtf8, SegmentedUtf8 
 
     /**
      * @return the number of bytes needed to encode the slice of {@code charSequence} as UTF-8 when using
-     * {@link Writer#write(CharSequence)}.
+     * {@link Writer#write(String)}.
      */
     static long size(final @NonNull CharSequence charSequence) {
         Objects.requireNonNull(charSequence);

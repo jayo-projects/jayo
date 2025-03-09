@@ -82,36 +82,26 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public @NonNull Writer write(final @NonNull CharSequence charSequence) {
-        Objects.requireNonNull(charSequence);
+    public @NonNull Writer write(final @NonNull String string) {
+        Objects.requireNonNull(string);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(charSequence);
+        segmentQueue.buffer.write(string);
         return emitCompleteSegments();
     }
 
     @Override
-    public @NonNull Writer write(final @NonNull CharSequence charSequence,
+    public @NonNull Writer write(final @NonNull String string,
                                  final int startIndex,
                                  final int endIndex) {
-        Objects.requireNonNull(charSequence);
+        Objects.requireNonNull(string);
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
         }
         segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(charSequence, startIndex, endIndex);
-        return emitCompleteSegments();
-    }
-
-    @Override
-    public @NonNull Writer writeUtf8CodePoint(final int codePoint) {
-        if (segmentQueue.closed) {
-            throw new JayoClosedResourceException();
-        }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeUtf8CodePoint(codePoint);
+        segmentQueue.buffer.write(string, startIndex, endIndex);
         return emitCompleteSegments();
     }
 
@@ -139,6 +129,16 @@ public final class RealWriter implements Writer {
         }
         segmentQueue.pauseIfFull();
         segmentQueue.buffer.write(string, startIndex, endIndex, charset);
+        return emitCompleteSegments();
+    }
+
+    @Override
+    public @NonNull Writer writeUtf8CodePoint(final int codePoint) {
+        if (segmentQueue.closed) {
+            throw new JayoClosedResourceException();
+        }
+        segmentQueue.pauseIfFull();
+        segmentQueue.buffer.writeUtf8CodePoint(codePoint);
         return emitCompleteSegments();
     }
 
