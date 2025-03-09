@@ -42,7 +42,7 @@ public fun ByteBuffer.toAscii(): Ascii = Ascii.of(this)
 
 /**
  * Reads `count` bytes from this [InputStream] and returns the result as a [Ascii].
- * @throws JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ * @throws jayo.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
 public fun InputStream.readAscii(byteCount: Int): Ascii = Ascii.read(this, byteCount)
 

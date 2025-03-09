@@ -42,7 +42,7 @@ public fun ByteBuffer.toUtf8(): Utf8 = Utf8.of(this)
 
 /**
  * Reads `count` bytes from this [InputStream] and returns the result as a [Utf8].
- * @throws JayoEOFException if `in` has fewer than `byteCount` bytes to read.
+ * @throws jayo.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
 public fun InputStream.readUtf8(byteCount: Int): Utf8 = Utf8.read(this, byteCount)
 
