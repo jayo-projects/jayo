@@ -19,10 +19,11 @@
  * limitations under the License.
  */
 
-package jayo.internal;
+package jayo.internal.bytestring;
 
 import jayo.bytestring.ByteString;
 import jayo.bytestring.Utf8;
+import jayo.internal.TestUtil;
 import kotlin.text.Charsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,6 +55,7 @@ public final class ByteStringJavaTest {
                 Arguments.of(ByteStringFactory.getSEGMENTED_UTF8(), "SegmentedUtf8"),
                 Arguments.of(ByteStringFactory.getUTF8_ONE_BYTE_PER_SEGMENT(),
                         "SegmentedUtf8 (one-byte-at-a-time)"),
+                Arguments.of(ByteStringFactory.getASCII(), "Ascii"),
                 Arguments.of(ByteStringFactory.getSEGMENTED_ASCII(), "SegmentedAscii"),
                 Arguments.of(ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT(),
                         "SegmentedAscii (one-byte-at-a-time)")
@@ -270,7 +272,8 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void utf8(ByteStringFactory factory) {
-        if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
+        if (factory != ByteStringFactory.getASCII() &&
+                factory != ByteStringFactory.getSEGMENTED_ASCII() &&
                 factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
             ByteString byteString = factory.encodeUtf8(bronzeHorseman);
             assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(Charsets.UTF_8));
@@ -346,7 +349,8 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void encodeDecodeStringUtf8(ByteStringFactory factory) {
-        if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
+        if (factory != ByteStringFactory.getASCII() &&
+                factory != ByteStringFactory.getSEGMENTED_ASCII() &&
                 factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
             Charset utf8 = StandardCharsets.UTF_8;
             ByteString byteString = factory.encodeUtf8(bronzeHorseman);
@@ -561,24 +565,27 @@ public final class ByteStringJavaTest {
         assertEquals("000102", ByteString.of((byte) 0x0, (byte) 0x1, (byte) 0x2).hex());
     }
 
-    @Test
-    public void decodeHex() {
-        assertEquals(ByteString.of((byte) 0x0, (byte) 0x1, (byte) 0x2), ByteString.decodeHex("000102"));
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void decodeHex(ByteStringFactory factory) {
+        assertEquals(ByteString.of((byte) 0x0, (byte) 0x1, (byte) 0x2), factory.decodeHex("000102"));
     }
 
-    @Test
-    public void decodeHexOddNumberOfChars() {
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void decodeHexOddNumberOfChars(ByteStringFactory factory) {
         try {
-            ByteString.decodeHex("aaa");
+            factory.decodeHex("aaa");
             fail();
         } catch (IllegalArgumentException expected) {
         }
     }
 
-    @Test
-    public void decodeHexInvalidChar() {
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void decodeHexInvalidChar(ByteStringFactory factory) {
         try {
-            ByteString.decodeHex("a\u0000");
+            factory.decodeHex("a\u0000");
             fail();
         } catch (IllegalArgumentException expected) {
         }
@@ -620,7 +627,7 @@ public final class ByteStringJavaTest {
         if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
                 factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
             ByteString byteString = factory.encodeUtf8(bronzeHorseman);
-            assertEquivalent(byteString, TestUtil.reserialize(byteString));
+            TestUtil.assertEquivalent(byteString, TestUtil.reserialize(byteString));
         }
     }
 
@@ -689,9 +696,11 @@ public final class ByteStringJavaTest {
         assertEquals(originalByteStrings, sortedByteStrings);
     }
 
-    @Test
-    public void asByteBuffer() {
-        assertEquals(0x42, ByteString.of((byte) 0x41, (byte) 0x42, (byte) 0x43).asByteBuffer().get(1));
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void asByteBuffer(ByteStringFactory factory) {
+        final var actual = factory.encodeUtf8("abc");
+        assertEquals((byte) 'b', actual.asByteBuffer().get(1));
     }
 
     @ParameterizedTest

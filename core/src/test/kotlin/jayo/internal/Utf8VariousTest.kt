@@ -26,7 +26,7 @@ import org.junit.jupiter.api.assertThrows
 import jayo.bytestring.ByteString.of
 import jayo.bytestring.decodeHex
 import jayo.JayoEOFException
-import jayo.internal.TestUtil.REPLACEMENT_CODE_POINT
+import jayo.internal.TestUtil.UTF8_REPLACEMENT_CODE_POINT
 import jayo.bytestring.utf8Size
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -132,7 +132,7 @@ class Utf8VariousTest {
     fun readLeadingContinuationByteReturnsReplacementCharacter() {
         val buffer = RealBuffer()
         buffer.writeByte(0xbf.toByte())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
         assertTrue(buffer.exhausted())
     }
 
@@ -149,11 +149,11 @@ class Utf8VariousTest {
         // 5-byte and 6-byte code points are not supported.
         val buffer = RealBuffer()
         buffer.write("f888808080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
         assertTrue(buffer.exhausted())
     }
 
@@ -162,7 +162,7 @@ class Utf8VariousTest {
         // Use a non-continuation byte where a continuation byte is expected.
         val buffer = RealBuffer()
         buffer.write("df20".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
         assertEquals(0x20, buffer.readUtf8CodePoint().toLong()) // Non-continuation character not consumed.
         assertTrue(buffer.exhausted())
     }
@@ -172,7 +172,7 @@ class Utf8VariousTest {
         // A 4-byte encoding with data above the U+10ffff Unicode maximum.
         val buffer = RealBuffer()
         buffer.write("f4908080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
         assertTrue(buffer.exhausted())
     }
 
@@ -180,10 +180,10 @@ class Utf8VariousTest {
     fun readSurrogateCodePoint() {
         val buffer = RealBuffer()
         buffer.write("eda080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
         assertTrue(buffer.exhausted())
         buffer.write("edbfbf".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
         assertTrue(buffer.exhausted())
     }
 
@@ -192,7 +192,7 @@ class Utf8VariousTest {
         // Use 2 bytes to encode data that only needs 1 byte.
         val buffer = RealBuffer()
         buffer.write("c080".decodeHex())
-        assertEquals(REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
+        assertEquals(UTF8_REPLACEMENT_CODE_POINT.toLong(), buffer.readUtf8CodePoint().toLong())
         assertTrue(buffer.exhausted())
     }
 

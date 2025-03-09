@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-present, pull-vert and Jayo contributors.
+ * Copyright (c) 2025-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
  * 
  * Forked from Okio (https://github.com/square/okio), original copyright is below
@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("-Utf8") // A leading '-' hides this class from Java.
+@file:JvmName("-Ascii") // A leading '-' hides this class from Java.
 
 package jayo.bytestring
 
@@ -27,30 +27,24 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 
 /**
- * @return a new [Utf8] containing a copy of `byteCount` bytes of this byte array starting at `offset`. Do not
+ * @return a new [Ascii] containing a copy of `byteCount` bytes of this byte array starting at `offset`. Do not
  * provide values for `byteCount` and `offset` if you want a full copy of this byte array.
  */
-public fun ByteArray.toUtf8(
+public fun ByteArray.toAscii(
     offset: Int = 0,
     byteCount: Int = size,
-): Utf8 = Utf8.of(this, offset, byteCount)
+): Ascii = Ascii.of(this, offset, byteCount)
 
 /**
- * @return a [Utf8] containing a copy of the content of this [ByteBuffer].
+ * @return a [Ascii] containing a copy of the content of this [ByteBuffer].
  */
-public fun ByteBuffer.toUtf8(): Utf8 = Utf8.of(this)
+public fun ByteBuffer.toAscii(): Ascii = Ascii.of(this)
 
 /**
- * Reads `count` bytes from this [InputStream] and returns the result as a [Utf8].
+ * Reads `count` bytes from this [InputStream] and returns the result as a [Ascii].
  * @throws jayo.JayoEOFException if `in` has fewer than `byteCount` bytes to read.
  */
-public fun InputStream.readUtf8(byteCount: Int): Utf8 = Utf8.read(this, byteCount)
+public fun InputStream.readAscii(byteCount: Int): Ascii = Ascii.read(this, byteCount)
 
-/** @return a new [Utf8] containing the UTF-8-encoded bytes of this [String]. */
-public fun String.encodeToUtf8(): Utf8 = Utf8.encode(this)
-
-/**
- * @return the number of bytes that would be used to encode the slice of `string` as UTF-8 when using
- * `writer.write("myCharSequence)`.
- */
-public fun CharSequence.utf8Size(): Long = Utf8.size(this)
+/** @return a new [Ascii] containing the ASCII-encoded bytes of this [String]. */
+public fun String.encodeToAscii(): Ascii = Ascii.encode(this)

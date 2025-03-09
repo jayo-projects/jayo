@@ -39,19 +39,19 @@ import static jayo.internal.RealUtf8.decodeToCharset;
 import static jayo.internal.RealUtf8.decodeToUtf8;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 
-public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
+public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 permits SegmentedAscii {
     SegmentedUtf8(final @NonNull Segment[] segments, final int @NonNull [] directory, final boolean isAscii) {
         super(segments, directory);
         this.isAscii = isAscii;
     }
 
     @Override
-    public @NonNull String decodeToString() {
+    public final @NonNull String decodeToString() {
         return decodeToUtf8(this, isAscii);
     }
 
     @Override
-    public @NonNull String decodeToString(final @NonNull Charset charset) {
+    public final @NonNull String decodeToString(final @NonNull Charset charset) {
         return decodeToCharset(this, isAscii, charset);
     }
 
@@ -236,7 +236,7 @@ public final class SegmentedUtf8 extends SegmentedByteString implements Utf8 {
      * Returns a copy as a non-segmented byte string.
      */
     @Override
-    RealUtf8 toByteString() {
+    Utf8 toByteString() {
         return new RealUtf8(toByteArray(), isAscii);
     }
 

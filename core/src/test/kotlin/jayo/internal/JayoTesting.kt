@@ -22,6 +22,7 @@
 package jayo.internal
 
 import jayo.Buffer
+import jayo.bytestring.Ascii
 import jayo.bytestring.ByteString
 import jayo.bytestring.Utf8
 
@@ -64,6 +65,8 @@ fun makeSegments(reader: ByteString): ByteString {
     return buffer.snapshot()
 }
 
+fun RealBuffer.readUtf8Segmented() = readUtf8(bytesAvailable(), true)
+
 fun makeUtf8Segments(reader: Utf8): Utf8 {
     val buffer = RealBuffer()
     for (i in 0 until reader.byteSize()) {
@@ -74,10 +77,12 @@ fun makeUtf8Segments(reader: Utf8): Utf8 {
             true
         }
     }
-    return buffer.readUtf8()
+    return buffer.readUtf8Segmented()
 }
 
-fun makeAsciiSegments(reader: Utf8): Utf8 {
+fun RealBuffer.readAsciiSegmented() = readAscii(bytesAvailable(), true)
+
+fun makeAsciiSegments(reader: Ascii): Ascii {
     val buffer = RealBuffer()
     for (i in 0 until reader.byteSize()) {
         buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
@@ -87,7 +92,7 @@ fun makeAsciiSegments(reader: Utf8): Utf8 {
             true
         }
     }
-    return buffer.readAscii()
+    return buffer.readAsciiSegmented()
 }
 
 fun Char.repeat(count: Int): String {
