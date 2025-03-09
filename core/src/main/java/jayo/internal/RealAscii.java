@@ -40,7 +40,7 @@ import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import static jayo.internal.BaseByteString.*;
-import static jayo.internal.UnsafeUtils.noCopyStringFromLatin1Bytes;
+import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final /*Valhalla 'primitive class' or at least 'value class'*/ class RealAscii implements Ascii {
@@ -69,9 +69,6 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public @NonNull String decodeToString() {
-        if (ALLOW_COMPACT_STRING) {
-            return noCopyStringFromLatin1Bytes(data);
-        }
         return new String(data, StandardCharsets.US_ASCII);
     }
 
@@ -126,9 +123,12 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
             }
 
             public int nextInt() {
-                final var b0 = data[byteIndex++];
-                // 0xxxxxxx : 7 bits (ASCII).
-                return b0 & 0x7f;
+                final var b = data[byteIndex++];
+                if ((b & 0x80) == 0) {
+                    // 0xxxxxxx : 7 bits (ASCII).
+                    return b & 0x7f;
+                }
+                return UTF8_REPLACEMENT_CODE_POINT;
             }
 
             @Override
@@ -183,7 +183,15 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public char charAt(final int index) {
-        return (char) data[index];
+        final var b = data[index];
+        final int codePoint;
+        if ((b & 0x80) == 0) {
+            // valid ASCII
+            codePoint = b & 0x7f;
+        } else {
+            codePoint = UTF8_REPLACEMENT_CODE_POINT;
+        }
+        return (char) codePoint;
     }
 
     @Override

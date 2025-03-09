@@ -23,6 +23,7 @@ package jayo.internal
 
 import jayo.bytestring.ByteString
 import jayo.bytestring.decodeHex
+import jayo.bytestring.encodeToAscii
 import jayo.bytestring.encodeToByteString
 import jayo.bytestring.encodeToUtf8
 
@@ -84,7 +85,7 @@ interface ByteStringFactory {
         @JvmStatic
         val ASCII_ONE_BYTE_PER_SEGMENT: ByteStringFactory = object : ByteStringFactory {
             override fun decodeHex(hex: String) = makeSegments(hex.decodeHex())
-            override fun encodeUtf8(s: String) = makeAsciiSegments(s.encodeToUtf8())
+            override fun encodeUtf8(s: String) = makeAsciiSegments(s.encodeToAscii())
             override val isUtf8: Boolean get() = true
         }
     }

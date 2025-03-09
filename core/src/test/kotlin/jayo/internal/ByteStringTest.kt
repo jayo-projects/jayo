@@ -166,6 +166,15 @@ class ByteStringTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
+    fun segmentedByteString(factory: ByteStringFactory) {
+        val byteString = factory.encodeUtf8("abcdefgh")
+        val byteArray = "WwwwXxxxYyyyZzzz".encodeToByteArray()
+        byteString.copyInto(0, byteArray, 0, 5)
+        assertEquals("abcdexxxYyyyZzzz", byteArray.decodeToString())
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
     fun copyInto(factory: ByteStringFactory) {
         val byteString = factory.encodeUtf8("abcdefgh")
         val byteArray = "WwwwXxxxYyyyZzzz".encodeToByteArray()

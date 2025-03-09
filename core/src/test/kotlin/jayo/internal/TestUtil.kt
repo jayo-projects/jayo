@@ -34,7 +34,7 @@ object TestUtil {
     // Necessary to make an internal member visible to Java.
     @JvmField
     val SEGMENT_POOL_MAX_SIZE = SegmentPool.MAX_SIZE
-    const val REPLACEMENT_CODE_POINT: Int = Utf8Utils.UTF8_REPLACEMENT_CODE_POINT
+    internal const val REPLACEMENT_CODE_POINT: Int = Utf8Utils.UTF8_REPLACEMENT_CODE_POINT
     internal const val SEGMENT_SIZE = Segment.SIZE
 
     @JvmStatic

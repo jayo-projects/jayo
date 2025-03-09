@@ -19,14 +19,15 @@
  * limitations under the License.
  */
 
-package jayo.internal
+package jayo.internal.bytestring
 
+import jayo.JayoCharacterCodingException
 import jayo.bytestring.Utf8
 import jayo.bytestring.encodeToUtf8
-import jayo.JayoCharacterCodingException
-import jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT
 import jayo.bytestring.readUtf8
-import jayo.bytestring.toUtf8
+import jayo.bytestring.toAscii
+import jayo.internal.TestUtil.REPLACEMENT_CODE_POINT
+import jayo.internal.makeUtf8Segments
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatIterator
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -53,13 +54,6 @@ class Utf8Test {
                 ),
                 Arguments.of(Utf8Factory.SEGMENTED_UTF8, "SegmentedUtf8"),
                 Arguments.of(Utf8Factory.UTF8_ONE_BYTE_PER_SEGMENT, "SegmentedUtf8 (one-byte-at-a-time)"),
-                Arguments.of(Utf8Factory.ASCII_FROM_BYTES, "Ascii (from bytes)"),
-                Arguments.of(
-                    Utf8Factory.ASCII_FROM_BYTES_NO_COMPACT_STRING,
-                    "Ascii (from bytes without compact string)"
-                ),
-                Arguments.of(Utf8Factory.SEGMENTED_ASCII, "SegmentedAscii"),
-                Arguments.of(Utf8Factory.ASCII_ONE_BYTE_PER_SEGMENT, "SegmentedAscii (one-byte-at-a-time)"),
             )
         }
 
@@ -73,21 +67,21 @@ class Utf8Test {
 
     @Test
     fun arrayToUtf8() {
-        val actual = byteArrayOf(1, 2, 3, 4).toUtf8()
+        val actual = byteArrayOf(1, 2, 3, 4).toAscii()
         val expected = Utf8.of(1, 2, 3, 4)
         assertEquals(actual, expected)
     }
 
     @Test
     fun arraySubsetToUtf8() {
-        val actual = byteArrayOf(1, 2, 3, 4).toUtf8(1, 2)
+        val actual = byteArrayOf(1, 2, 3, 4).toAscii(1, 2)
         val expected = Utf8.of(2, 3)
         assertEquals(actual, expected)
     }
 
     @Test
     fun byteBufferToUtf8() {
-        val actual = ByteBuffer.wrap(byteArrayOf(1, 2, 3, 4)).toUtf8()
+        val actual = ByteBuffer.wrap(byteArrayOf(1, 2, 3, 4)).toAscii()
         val expected = Utf8.of(1, 2, 3, 4)
         assertEquals(actual, expected)
     }
@@ -98,36 +92,6 @@ class Utf8Test {
         assertThrows<IllegalArgumentException> { stream.readUtf8(-42) }
         val actual = stream.readUtf8(4)
         val expected = Utf8.of(1, 2, 3, 4)
-        assertEquals(actual, expected)
-    }
-
-    @Test
-    fun arrayToAscii() {
-        val actual = byteArrayOf(1, 2, 3, 4).toUtf8(isAscii = true)
-        val expected = Utf8.of(1, 2, 3, 4)
-        assertEquals(actual, expected)
-    }
-
-    @Test
-    fun arraySubsetToAscii() {
-        val actual = byteArrayOf(1, 2, 3, 4).toUtf8(1, 2, true)
-        val expected = Utf8.of(2, 3)
-        assertEquals(actual, expected)
-    }
-
-    @Test
-    fun byteBufferToAscii() {
-        val actual = ByteBuffer.wrap(byteArrayOf(1, 2, 3, 4)).toUtf8(true)
-        val expected = Utf8.of(1, 2, 3, 4)
-        assertEquals(actual, expected)
-    }
-
-    @Test
-    fun streamReadAscii() {
-        val stream = ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8))
-        assertThrows<IllegalArgumentException> { stream.readUtf8(-42, true) }
-        val actual = stream.readUtf8(4, true)
-        val expected = Utf8.ofAscii(1, 2, 3, 4)
         assertEquals(actual, expected)
     }
 
@@ -165,69 +129,67 @@ class Utf8Test {
         var utf8 = factory.encodeUtf8(ASCII)
         assertEquals(ASCII.length, utf8.length())
         assertEquals(ASCII, utf8.decodeToString())
-        if (!factory.isAscii) {
-            utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
-            assertEquals(UTF8_NO_SURROGATE.length, utf8.length())
-            assertEquals(UTF8_NO_SURROGATE, utf8.decodeToString())
-            utf8 = factory.encodeUtf8(UTF8_SURROGATES)
-            assertEquals(UTF8_SURROGATES.length, utf8.length())
-            assertEquals(UTF8_SURROGATES, utf8.decodeToString())
-            utf8 = factory.encodeUtf8(LAST_3_BYTES_CHARACTER)
-            assertEquals(LAST_3_BYTES_CHARACTER.length, utf8.length())
-            assertEquals(LAST_3_BYTES_CHARACTER, utf8.decodeToString())
-            utf8 = factory.encodeUtf8(FIRST_4_BYTES_CHARACTER)
-            assertEquals(FIRST_4_BYTES_CHARACTER.length, utf8.length())
-            assertEquals(FIRST_4_BYTES_CHARACTER, utf8.decodeToString())
-            utf8 = factory.encodeUtf8(LAST_4_BYTES_CHARACTER)
-            assertEquals(LAST_4_BYTES_CHARACTER.length, utf8.length())
-            assertEquals(LAST_4_BYTES_CHARACTER, utf8.decodeToString())
-        }
+        utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
+        assertEquals(UTF8_NO_SURROGATE.length, utf8.length())
+        assertEquals(UTF8_NO_SURROGATE, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(UTF8_SURROGATES)
+        assertEquals(UTF8_SURROGATES.length, utf8.length())
+        assertEquals(UTF8_SURROGATES, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(LAST_3_BYTES_CHARACTER)
+        assertEquals(LAST_3_BYTES_CHARACTER.length, utf8.length())
+        assertEquals(LAST_3_BYTES_CHARACTER, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(FIRST_4_BYTES_CHARACTER)
+        assertEquals(FIRST_4_BYTES_CHARACTER.length, utf8.length())
+        assertEquals(FIRST_4_BYTES_CHARACTER, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(LAST_4_BYTES_CHARACTER)
+        assertEquals(LAST_4_BYTES_CHARACTER.length, utf8.length())
+        assertEquals(LAST_4_BYTES_CHARACTER, utf8.decodeToString())
     }
 
     @Test
     fun codePointsUtf8Replacement() {
         var utf8 = Utf8.of(0xc0.toByte())
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = makeUtf8Segments(utf8)
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = Utf8.of(0xe2.toByte())
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = makeUtf8Segments(utf8)
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = Utf8.of(0xf4.toByte())
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = makeUtf8Segments(utf8)
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = Utf8.of(0xff.toByte())
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = makeUtf8Segments(utf8)
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = Utf8.of(0xc0.toByte(), 0x01.toByte())
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = makeUtf8Segments(utf8)
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = Utf8.of(0xc0.toByte(), 0x80.toByte())
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = makeUtf8Segments(utf8)
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = Utf8.of(0xf4.toByte(), 0xb0.toByte(), 0x80.toByte(), 0x80.toByte())
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
         utf8 = makeUtf8Segments(utf8)
         assertThat(utf8.codePoints())
-            .containsExactly(UTF8_REPLACEMENT_CODE_POINT)
+            .containsExactly(REPLACEMENT_CODE_POINT)
     }
 
     @ParameterizedTest
@@ -236,27 +198,25 @@ class Utf8Test {
         var utf8 = factory.encodeUtf8(ASCII)
         assertThat(utf8.codePoints())
             .containsExactly('a'.code, 'b'.code, 'c'.code, 'd'.code, 'e'.code, 'f'.code)
-        if (!factory.isAscii) {
-            utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
-            assertThat(utf8.codePoints())
-                .containsExactly(
-                    'C'.code, 'ａ'.code, 'f'.code, 'é'.code, ' '.code,
-                    *"🍩".codePoints().toArray().toTypedArray(), '!'.code
-                )
-            utf8 = factory.encodeUtf8(UTF8_SURROGATES)
-            assertThat(utf8.codePoints())
-                .containsExactly(
-                    'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
-                    *"🍩".codePoints().toArray().toTypedArray(), '!'.code
-                )
-            // force generation of utf8 string
-            utf8.decodeToString()
-            assertThat(utf8.codePoints())
-                .containsExactly(
-                    'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
-                    *"🍩".codePoints().toArray().toTypedArray(), '!'.code
-                )
-        }
+        utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
+        assertThat(utf8.codePoints())
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'é'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
+        utf8 = factory.encodeUtf8(UTF8_SURROGATES)
+        assertThat(utf8.codePoints())
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
+        // force generation of utf8 string
+        utf8.decodeToString()
+        assertThat(utf8.codePoints())
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
     }
 
     @ParameterizedTest
@@ -268,19 +228,17 @@ class Utf8Test {
         utf8 = factory.encodeUtf8(ASCII)
         assertThatIterator(utf8.codePoints().iterator()).toIterable()
             .containsExactly('a'.code, 'b'.code, 'c'.code, 'd'.code, 'e'.code, 'f'.code)
-        if (!factory.isAscii) {
-            utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
-            assertThatIterator(utf8.codePoints().iterator()).toIterable()
-                .containsExactly(
-                    'C'.code, 'ａ'.code, 'f'.code, 'é'.code, ' '.code,
-                    *"🍩".codePoints().toArray().toTypedArray(), '!'.code
-                )
-            utf8 = factory.encodeUtf8(UTF8_SURROGATES)
-            assertThatIterator(utf8.codePoints().iterator()).toIterable()
-                .containsExactly(
-                    'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
-                    *"🍩".codePoints().toArray().toTypedArray(), '!'.code
-                )
-        }
+        utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
+        assertThatIterator(utf8.codePoints().iterator()).toIterable()
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'é'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
+        utf8 = factory.encodeUtf8(UTF8_SURROGATES)
+        assertThatIterator(utf8.codePoints().iterator()).toIterable()
+            .containsExactly(
+                'C'.code, 'ａ'.code, 'f'.code, 'e'.code, '́'.code, ' '.code,
+                *"🍩".codePoints().toArray().toTypedArray(), '!'.code
+            )
     }
 }

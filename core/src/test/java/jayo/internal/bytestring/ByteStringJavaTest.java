@@ -19,10 +19,12 @@
  * limitations under the License.
  */
 
-package jayo.internal;
+package jayo.internal.bytestring;
 
 import jayo.bytestring.ByteString;
 import jayo.bytestring.Utf8;
+import jayo.internal.ByteStringFactory;
+import jayo.internal.TestUtil;
 import kotlin.text.Charsets;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -620,7 +622,7 @@ public final class ByteStringJavaTest {
         if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
                 factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
             ByteString byteString = factory.encodeUtf8(bronzeHorseman);
-            assertEquivalent(byteString, TestUtil.reserialize(byteString));
+            TestUtil.assertEquivalent(byteString, TestUtil.reserialize(byteString));
         }
     }
 

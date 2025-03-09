@@ -46,13 +46,8 @@ public final class RealUtf8 extends BaseByteString implements Utf8 {
 
     public RealUtf8(final byte @NonNull [] data,
                     final int offset,
-                    final int byteCount,
-                    final boolean isAscii) {
+                    final int byteCount) {
         super(data, offset, byteCount);
-        this.isAscii = isAscii;
-        if (isAscii) {
-            length = byteCount;
-        }
     }
 
     /**

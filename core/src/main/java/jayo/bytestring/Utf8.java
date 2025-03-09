@@ -94,7 +94,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
     static @NonNull Utf8 of(final byte @NonNull [] data,
                             final int offset,
                             final int byteCount) {
-        return new RealUtf8(data, offset, byteCount, false);
+        return new RealUtf8(data, offset, byteCount);
     }
 
     /**

@@ -8,6 +8,7 @@ package jayo.bytestring;
 import jayo.JayoEOFException;
 import jayo.JayoException;
 import jayo.internal.RealAscii;
+import jayo.internal.SegmentedAscii;
 import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
@@ -16,18 +17,18 @@ import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
-public sealed interface Ascii extends Utf8, CharSequence permits RealAscii {
+public sealed interface Ascii extends Utf8, CharSequence permits RealAscii, SegmentedAscii {
     /**
      * The empty ASCII byte string
      */
     @NonNull
-    Utf8 EMPTY = new RealAscii(new byte[0]);
+    Ascii EMPTY = new RealAscii(new byte[0]);
 
     /**
      * @param data a sequence of bytes to be wrapped.
      * @return a new ASCII byte string containing a copy of all the ASCII bytes of {@code data}.
      */
-    static @NonNull Utf8 of(final byte @NonNull ... data) {
+    static @NonNull Ascii of(final byte @NonNull ... data) {
         Objects.requireNonNull(data);
         return new RealAscii(data.clone());
     }
@@ -39,9 +40,9 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii {
      * {@code offset}.
      * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code data} indices.
      */
-    static @NonNull Utf8 of(final byte @NonNull [] data,
-                            final int offset,
-                            final int byteCount) {
+    static @NonNull Ascii of(final byte @NonNull [] data,
+                             final int offset,
+                             final int byteCount) {
         Objects.requireNonNull(data);
         return new RealAscii(data, offset, byteCount);
     }
@@ -50,7 +51,7 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii {
      * @param data a byte buffer from which we will copy the remaining bytes.
      * @return a new ASCII byte string containing a copy of the remaining ASCII bytes of {@code data}.
      */
-    static @NonNull Utf8 of(final @NonNull ByteBuffer data) {
+    static @NonNull Ascii of(final @NonNull ByteBuffer data) {
         Objects.requireNonNull(data);
         final var copy = new byte[data.remaining()];
         data.get(copy);
@@ -60,7 +61,7 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii {
     /**
      * Encodes {@code string} using ASCII and wraps these bytes into an ASCII byte string.
      */
-    static @NonNull Utf8 encode(final @NonNull String string) {
+    static @NonNull Ascii encode(final @NonNull String string) {
         Objects.requireNonNull(string);
         return new RealAscii(string);
     }
@@ -71,7 +72,7 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii {
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
-    static @NonNull Utf8 read(final @NonNull InputStream in, final int byteCount) {
+    static @NonNull Ascii read(final @NonNull InputStream in, final int byteCount) {
         Objects.requireNonNull(in);
         if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -85,8 +86,55 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii {
     }
 
     @Override
-    @NonNull IntStream codePoints();
+    @NonNull
+    IntStream codePoints();
 
     @Override
     boolean isEmpty();
+
+    /**
+     * @return an ASCII byte string equal to this ASCII byte string, but with the bytes 'A' through 'Z' replaced with
+     * the corresponding byte in 'a' through 'z'. Returns this ASCII byte string if it contains no bytes in 'A' through
+     * 'Z'.
+     */
+    @Override
+    @NonNull
+    Ascii toAsciiLowercase();
+
+    /**
+     * @return an ASCII byte string equal to this ASCII byte string, but with the bytes 'a' through 'z' replaced with
+     * the corresponding byte in 'A' through 'Z'. Returns this ASCII byte string if it contains no bytes in 'a' through
+     * 'z'.
+     */
+    @Override
+    @NonNull
+    Ascii toAsciiUppercase();
+
+    /**
+     * Returns an ASCII byte string that is a subsequence of the bytes of this ASCII byte string. The substring begins
+     * with the byte at {@code startIndex} and extends to the end of this byte string.
+     *
+     * @param startIndex the start index (inclusive) of a subsequence to copy.
+     * @return the specified substring. If {@code startIndex} is 0, this byte string is returned.
+     * @throws IndexOutOfBoundsException if {@code startIndex} is out of range of byte string indices.
+     */
+    @Override
+    @NonNull
+    Ascii substring(final int startIndex);
+
+    /**
+     * Returns an ASCII byte string that is a subsequence of the bytes of this ASCII byte string. The substring begins
+     * with the byte at {@code startIndex} and ends at {@code endIndex}.
+     *
+     * @param startIndex the start index (inclusive) of a subsequence to copy.
+     * @param endIndex   the end index (exclusive) of a subsequence to copy.
+     * @return the specified substring. If {@code startIndex} is 0 and {@code endIndex} is the size of this byte string,
+     * this byte string is returned.
+     * @throws IndexOutOfBoundsException if {@code startIndex} or {@code endIndex} is out of range of byte string
+     *                                   indices.
+     * @throws IllegalArgumentException  if {@code startIndex > endIndex}.
+     */
+    @Override
+    @NonNull
+    Ascii substring(final int startIndex, final int endIndex);
 }
