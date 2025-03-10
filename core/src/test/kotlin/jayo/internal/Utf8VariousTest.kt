@@ -27,7 +27,7 @@ import jayo.bytestring.ByteString.of
 import jayo.bytestring.decodeHex
 import jayo.JayoEOFException
 import jayo.internal.TestUtil.UTF8_REPLACEMENT_CODE_POINT
-import jayo.bytestring.utf8Size
+import jayo.utf8ByteSize
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -217,9 +217,9 @@ class Utf8VariousTest {
 
     @Test
     fun length() {
-        assertEquals(0, "".utf8Size())
-        assertEquals(3, "abc".utf8Size())
-        assertEquals(16, "təˈranəˌsôr".utf8Size())
+        assertEquals(0, "".utf8ByteSize())
+        assertEquals(3, "abc".utf8ByteSize())
+        assertEquals(16, "təˈranəˌsôr".utf8ByteSize())
     }
 
     private fun assertEncoded(hex: String, vararg codePoints: Int) {
@@ -266,6 +266,6 @@ class Utf8VariousTest {
         assertEquals(expectedUtf8, bufferUtf8.readByteString())
 
         // Confirm we are consistent when measuring lengths.
-        assertEquals(expectedUtf8.byteSize().toLong(), string.utf8Size())
+        assertEquals(expectedUtf8.byteSize().toLong(), string.utf8ByteSize())
     }
 }

@@ -23,6 +23,7 @@
 
 package jayo
 
+import jayo.tools.Utf8Utils
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -101,3 +102,9 @@ public fun File.reader(): RawReader = Jayo.reader(this)
 
 /** @return a writer that discards all data written to it. */
 public fun discardingWriter(): RawWriter = Jayo.discardingWriter()
+
+/**
+ * @return the number of bytes that would be used to encode the slice of `string` as UTF-8 when using
+ * `writer.write("myCharSequence)`.
+ */
+public fun CharSequence.utf8ByteSize(): Long = Utf8Utils.utf8ByteSize(this)
