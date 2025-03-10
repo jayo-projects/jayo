@@ -48,9 +48,3 @@ public fun InputStream.readUtf8(byteCount: Int): Utf8 = Utf8.read(this, byteCoun
 
 /** @return a new [Utf8] containing the UTF-8-encoded bytes of this [String]. */
 public fun String.encodeToUtf8(): Utf8 = Utf8.encode(this)
-
-/**
- * @return the number of bytes that would be used to encode the slice of `string` as UTF-8 when using
- * `writer.write("myCharSequence)`.
- */
-public fun CharSequence.utf8Size(): Long = Utf8.size(this)

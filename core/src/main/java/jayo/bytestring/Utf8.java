@@ -5,7 +5,8 @@
 
 package jayo.bytestring;
 
-import jayo.*;
+import jayo.JayoEOFException;
+import jayo.JayoException;
 import jayo.internal.RealUtf8;
 import jayo.internal.SegmentedUtf8;
 import org.jspecify.annotations.NonNull;
@@ -20,50 +21,6 @@ import java.util.stream.IntStream;
 /**
  * A specific {@link ByteString} that contains UTF-8 encoded bytes, and provides additional features like
  * {@link #length()}, {@link #codePoints()}.
- * <p>
- * Jayo assumes most applications use UTF-8 exclusively, and offers optimized implementations of common operations on
- * UTF-8 strings.
- * <table border="1">
- * <tr>
- * <th></th>
- * <th>{@link ByteString}, {@link Utf8}</th>
- * <th>{@link Buffer}, {@link Writer}, {@link Reader}</th>
- * </tr>
- * <tr>
- * <td>Encode a string</td>
- * <td>{@link Utf8#encode(String)}</td>
- * <td>{@link Writer#write(String)}, {@link Writer#write(String, int, int)}</td>
- * </tr>
- * <tr>
- * <td>Encode a code point</td>
- * <td></td>
- * <td>{@link Writer#writeUtf8CodePoint(int)}</td>
- * </tr>
- * <tr>
- * <td>Decode a string</td>
- * <td>{@link ByteString#decodeToString()}</td>
- * <td>{@link Reader#readString()}, {@link Reader#readString(long)}</td>
- * </tr>
- * <tr>
- * <td>Decode a code point</td>
- * <td></td>
- * <td>{@link Reader#readUtf8CodePoint()}</td>
- * </tr>
- * <tr>
- * <td>Decode until the next {@code \r\n} or {@code \n}</td>
- * <td></td>
- * <td>{@link Reader#readLineStrict()}, {@link Reader#readLineStrict(long)}</td>
- * </tr>
- * <tr>
- * <td>Decode until the next {@code \r\n}, {@code \n}, or {@code EOF}</td>
- * <td></td>
- * <td>{@link Reader#readLine()}</td>
- * </tr>
- * <tr>
- * <td>Measure the number of bytes required to encode a char sequence using the UTF-8 encoding</td>
- * <td colspan="2">{@link Utf8#size(CharSequence)}</td>
- * </tr>
- * </table>
  *
  * @see ByteString
  * @see Ascii
@@ -133,46 +90,6 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
-    }
-
-    /**
-     * @return the number of bytes needed to encode the slice of {@code charSequence} as UTF-8 when using
-     * {@link Writer#write(String)}.
-     */
-    static long size(final @NonNull CharSequence charSequence) {
-        Objects.requireNonNull(charSequence);
-        var result = 0L;
-        var i = 0;
-        while (i < charSequence.length()) {
-            final var c = (int) charSequence.charAt(i);
-
-            if (c < 0x80) {
-                // A 7-bit character with 1 byte.
-                result++;
-                i++;
-            } else if (c < 0x800) {
-                // An 11-bit character with 2 bytes.
-                result += 2;
-                i++;
-            } else if (c < 0xd800 || c > 0xdfff) {
-                // A 16-bit character with 3 bytes.
-                result += 3;
-                i++;
-            } else {
-                final var low = (i + 1 < charSequence.length()) ? (int) charSequence.charAt(i + 1) : 0;
-                if (c > 0xdbff || low < 0xdc00 || low > 0xdfff) {
-                    // A malformed surrogate, which yields '?'.
-                    result++;
-                    i++;
-                } else {
-                    // A 21-bit character with 4 bytes.
-                    result += 4;
-                    i += 2;
-                }
-            }
-        }
-
-        return result;
     }
 
     /**
