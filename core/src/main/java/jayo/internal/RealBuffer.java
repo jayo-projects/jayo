@@ -1005,7 +1005,9 @@ public final class RealBuffer implements Buffer {
         checkOffsetAndCount(writer.length, offset, byteCount);
 
         final var head = segmentQueue.head();
-        assert head != null;
+        if (head == null) {
+            throw new JayoEOFException("could not write any byte to byte array, written 0/" + byteCount);
+        }
         readTo(head, writer, offset, byteCount);
     }
 
