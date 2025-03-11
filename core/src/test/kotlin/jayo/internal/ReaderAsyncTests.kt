@@ -59,7 +59,7 @@ class ReaderAsyncTests {
         }
     }
 
-    @RepeatedTest(10)
+    @RepeatedTest(30)
     fun asyncReaderFastProducerSlowConsumer() {
         val inputStream: InputStream = inputStream(false)
 

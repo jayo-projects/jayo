@@ -126,11 +126,11 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         private @Nullable EmitEvent lastEmittedEvent = null;
 
         // status
-        static final byte NOT_STARTED = 1;
-        static final byte START_NEEDED = 2;
-        static final byte STARTED = 3;
+        private static final byte NOT_STARTED = 1;
+        private static final byte START_NEEDED = 2;
+        private static final byte STARTED = 3;
 
-        byte status;
+        private volatile byte status;
 
         private boolean isSegmentQueueFull = false;
         private final @NonNull Lock asyncWriterlock = new ReentrantLock();

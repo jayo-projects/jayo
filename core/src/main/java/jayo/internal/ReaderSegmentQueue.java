@@ -101,7 +101,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         private final @NonNull Condition expectingSize = asyncReaderLock.newCondition();
 
         private volatile @Nullable RuntimeException exception = null;
-        private boolean readerConsumerRunning = false;
+        private volatile boolean readerConsumerRunning = false;
 
         private final @NonNull Runnable readerConsumer;
 
@@ -176,6 +176,10 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                         }
                     }
                 } catch (Throwable t) {
+                    if (LOGGER.isLoggable(TRACE)) {
+                        LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: Exception thrown: {1}{2}",
+                                hashCode(), System.lineSeparator(), t);
+                    }
                     if (t instanceof RuntimeException runtimeException) {
                         exception = runtimeException;
                     } else {
@@ -186,14 +190,14 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     asyncReaderLock.lock();
                     try {
                         readerConsumerRunning = false;
+                        if (LOGGER.isLoggable(TRACE)) {
+                            LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: ReaderConsumer Runnable task: end",
+                                    hashCode());
+                        }
                         expectingSize.signal();
                     } finally {
                         asyncReaderLock.unlock();
                     }
-                }
-                if (LOGGER.isLoggable(TRACE)) {
-                    LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: ReaderConsumer Runnable task: end",
-                            hashCode());
                 }
             };
         }
