@@ -205,14 +205,9 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         private boolean tryBreak(final boolean force) {
             asyncReaderLock.lock();
             try {
-                var mustBreak = false;
+                // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
                 if (force || status == STARTED) {
                     status = NOT_STARTED;
-                    mustBreak = true;
-                }
-
-                // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
-                if (mustBreak) {
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: ReaderConsumer Runnable task: end",
                                 hashCode());
@@ -289,8 +284,9 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         }
 
         private void startEmitterIfNeeded() {
-            if (status == NOT_STARTED) {
-                status = START_NEEDED;
+            final var mustStart = status == NOT_STARTED;
+            status = START_NEEDED;
+            if (mustStart) {
                 taskRunner.execute(false, readerConsumer);
             }
         }
