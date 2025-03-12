@@ -189,7 +189,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                                     hashCode(), System.lineSeparator(), emitEvent, System.lineSeparator());
                         }
                         if (emitEvent == null) {
-                            if (tryBreak()) {
+                            if (tryBreak(false)) {
                                 break;
                             } else {
                                 continue;
@@ -197,7 +197,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                         }
                         if (emitEvent == FLUSH_EVENT) {
                             writer.flush();
-                            if (!tryBreak()) {
+                            if (!tryBreak(false)) {
                                 throw new IllegalStateException(
                                         "A flush event should lead to exit WriterEmitter Runnable task");
                             }
@@ -247,18 +247,24 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                     } else {
                         exception = new RuntimeException(t);
                     }
-                    if (!tryBreak()) {
-                        throw new IllegalStateException("An exception should lead to exit WriterEmitter Runnable task");
-                    }
+                    tryBreak(true);
                 }
             };
         }
 
-        private boolean tryBreak() {
+        private boolean tryBreak(final boolean force) {
             asyncWriterlock.lock();
             try {
+                final boolean mustBreak;
+                if (force) {
+                    STATUS.setRelease(this, NOT_STARTED);
+                    mustBreak = true;
+                } else {
+                    mustBreak = STATUS.compareAndSet(this, STARTED, NOT_STARTED);
+                }
+
                 // end of writer emitter thread : we mark it as terminated, and we signal (= resume) the main thread
-                if (STATUS.compareAndSet(this, STARTED, NOT_STARTED)) {
+                if (mustBreak) {
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: end",
                                 hashCode());

@@ -178,7 +178,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                                                 " stopping consumer thread{3}",
                                         hashCode(), currentSize, MAX_BYTE_SIZE, System.lineSeparator());
                             }
-                            if (tryBreak()) {
+                            if (tryBreak(false)) {
                                 break;
                             } else {
                                 continue;
@@ -197,7 +197,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                                         hashCode(), currentExpectedSize, currentSize,
                                         System.lineSeparator());
                             }
-                            if (tryBreak()) {
+                            if (tryBreak(false)) {
                                 break;
                             }
                         }
@@ -211,19 +211,24 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     } else {
                         exception = new RuntimeException(t);
                     }
-                    if (!tryBreak()) {
-                        throw new IllegalStateException(
-                                "An exception should lead to exit ReaderConsumer Runnable task");
-                    }
+                    tryBreak(true);
                 }
             };
         }
 
-        private boolean tryBreak() {
-            // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
+        private boolean tryBreak(final boolean force) {
             asyncReaderLock.lock();
             try {
-                if (STATUS.compareAndSet(this, STARTED, NOT_STARTED)) {
+                final boolean mustBreak;
+                if (force) {
+                    STATUS.setRelease(this, NOT_STARTED);
+                    mustBreak = true;
+                } else {
+                    mustBreak = STATUS.compareAndSet(this, STARTED, NOT_STARTED);
+                }
+
+                // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
+                if (mustBreak) {
                     if (LOGGER.isLoggable(TRACE)) {
                         LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: ReaderConsumer Runnable task: end",
                                 hashCode());
