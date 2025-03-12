@@ -11,8 +11,6 @@ import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -109,19 +107,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         private static final byte START_NEEDED = 2;
         private static final byte STARTED = 3;
 
-        @SuppressWarnings("FieldMayBeFinal")
-        private volatile byte status = NOT_STARTED;
-
-        static final VarHandle STATUS;
-
-        static {
-            try {
-                final var l = MethodHandles.lookup();
-                STATUS = l.findVarHandle(Async.class, "status", byte.class);
-            } catch (ReflectiveOperationException e) {
-                throw new ExceptionInInitializerError(e);
-            }
-        }
+        private byte status = NOT_STARTED;
 
         private final @NonNull Runnable readerConsumer;
 
@@ -142,7 +128,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                         if (currentExpectedSize == 0L) {
                             asyncReaderLock.lock();
                             try {
-                                STATUS.setRelease(this, STARTED); // not a problem to do this several times.
+                                status = STARTED; // not a problem to do this several times.
 
                                 currentExpectedSize = expectedSize;
                                 currentSize = size();
@@ -219,12 +205,10 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         private boolean tryBreak(final boolean force) {
             asyncReaderLock.lock();
             try {
-                final boolean mustBreak;
-                if (force) {
-                    STATUS.setRelease(this, NOT_STARTED);
+                var mustBreak = false;
+                if (force || status == STARTED) {
+                    status = NOT_STARTED;
                     mustBreak = true;
-                } else {
-                    mustBreak = STATUS.compareAndSet(this, STARTED, NOT_STARTED);
                 }
 
                 // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
@@ -305,8 +289,8 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         }
 
         private void startEmitterIfNeeded() {
-            final var currentStatus = (byte) STATUS.getAndSetRelease(this, START_NEEDED);
-            if (currentStatus == NOT_STARTED) {
+            if (status == NOT_STARTED) {
+                status = START_NEEDED;
                 taskRunner.execute(false, readerConsumer);
             }
         }

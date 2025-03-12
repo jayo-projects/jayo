@@ -13,8 +13,6 @@ import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -132,19 +130,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         private static final byte START_NEEDED = 2;
         private static final byte STARTED = 3;
 
-        @SuppressWarnings("FieldMayBeFinal")
-        private volatile byte status = NOT_STARTED;
-
-        static final VarHandle STATUS;
-
-        static {
-            try {
-                final var l = MethodHandles.lookup();
-                STATUS = l.findVarHandle(Async.class, "status", byte.class);
-            } catch (ReflectiveOperationException e) {
-                throw new ExceptionInInitializerError(e);
-            }
-        }
+        private byte status = NOT_STARTED;
 
         private boolean isSegmentQueueFull = false;
         private final @NonNull Lock asyncWriterlock = new ReentrantLock();
@@ -168,7 +154,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                         final EmitEvent emitEvent;
                         asyncWriterlock.lock();
                         try {
-                            STATUS.setRelease(this, STARTED); // not a problem to do this several times.
+                            status = STARTED; // not a problem to do this several times.
 
                             final var wasFull = isSegmentQueueFull;
                             if (wasFull && size() <= MAX_BYTE_SIZE) {
@@ -189,18 +175,11 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                                     hashCode(), System.lineSeparator(), emitEvent, System.lineSeparator());
                         }
                         if (emitEvent == null) {
-                            if (tryBreak(false)) {
-                                break;
-                            } else {
-                                continue;
-                            }
+                            break;
                         }
                         if (emitEvent == FLUSH_EVENT) {
                             writer.flush();
-                            if (!tryBreak(false)) {
-                                throw new IllegalStateException(
-                                        "A flush event should lead to exit WriterEmitter Runnable task");
-                            }
+                            break;
                         }
 
                         var toWrite = 0L;
@@ -239,43 +218,27 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                         }
                     }
                 } catch (Throwable t) {
-                    if (LOGGER.isLoggable(TRACE)) {
-                        LOGGER.log(TRACE, "AsyncWriterSegmentQueue#" + hashCode() + ": Exception thrown.", t);
-                    }
                     if (t instanceof RuntimeException runtimeException) {
                         exception = runtimeException;
                     } else {
                         exception = new RuntimeException(t);
                     }
-                    tryBreak(true);
+                } finally {
+                    // end of reader consumer thread : we mark it as terminated,
+                    // and we signal (= resume) the main thread
+                    asyncWriterlock.lock();
+                    try {
+                        status = NOT_STARTED;
+                        condition.signal();
+                    } finally {
+                        asyncWriterlock.unlock();
+                    }
+                }
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: end",
+                            hashCode());
                 }
             };
-        }
-
-        private boolean tryBreak(final boolean force) {
-            asyncWriterlock.lock();
-            try {
-                final boolean mustBreak;
-                if (force) {
-                    STATUS.setRelease(this, NOT_STARTED);
-                    mustBreak = true;
-                } else {
-                    mustBreak = STATUS.compareAndSet(this, STARTED, NOT_STARTED);
-                }
-
-                // end of writer emitter thread : we mark it as terminated, and we signal (= resume) the main thread
-                if (mustBreak) {
-                    if (LOGGER.isLoggable(TRACE)) {
-                        LOGGER.log(TRACE, "AsyncWriterSegmentQueue#{0}: WriterEmitter Runnable task: end",
-                                hashCode());
-                    }
-                    condition.signal();
-                    return true;
-                }
-                return false;
-            } finally {
-                asyncWriterlock.unlock();
-            }
         }
 
         @Override
@@ -378,8 +341,8 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         }
 
         private void startEmitterIfNeeded() {
-            final var currentStatus = (byte) STATUS.getAndSetRelease(this, START_NEEDED);
-            if (currentStatus == NOT_STARTED) {
+            if (status == NOT_STARTED) {
+                status = START_NEEDED;
                 taskRunner.execute(false, writerEmitter);
             }
         }
@@ -397,7 +360,6 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
             asyncWriterlock.lock();
             try {
                 if (status != NOT_STARTED) {
-                    // force writer emitter task to end as soon as possible and wait
                     emitEvents.clear();
                     condition.await();
                 }
