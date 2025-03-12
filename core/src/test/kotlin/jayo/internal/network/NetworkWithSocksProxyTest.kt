@@ -118,9 +118,9 @@ class NetworkWithSocksProxyTest {
                     }
                     val proxy = if (credentials != null) {
                         val username = if (authSuccess) credentials.userName else "error"
-                        SocksProxy.socks5(proxy.address, username, credentials.password)
+                        Proxy.socks5(proxy.address, username, credentials.password)
                     } else {
-                        SocksProxy.socks5(proxy.address)
+                        Proxy.socks5(proxy.address)
                     }
                     val client = NetworkEndpoint.connectTcp(server.localAddress, proxy, clientConfig)
 
@@ -216,9 +216,9 @@ class NetworkWithSocksProxyTest {
                     }
                     val proxy = if (username != null) {
                         val usern = if (authSuccess) username else "error"
-                        SocksProxy.socks4(proxy.address, usern)
+                        Proxy.socks4(proxy.address, usern)
                     } else {
-                        SocksProxy.socks4(proxy.address)
+                        Proxy.socks4(proxy.address)
                     }
                     val client = NetworkEndpoint.connectTcp(server.localAddress, proxy, clientConfig)
 

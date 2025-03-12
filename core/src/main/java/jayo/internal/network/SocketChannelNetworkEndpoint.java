@@ -10,7 +10,7 @@ import jayo.internal.GatheringByteChannelRawWriter;
 import jayo.internal.ReadableByteChannelRawReader;
 import jayo.internal.RealAsyncTimeout;
 import jayo.network.NetworkEndpoint;
-import jayo.network.SocksProxy;
+import jayo.network.Proxy;
 import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -40,7 +40,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             final long defaultReadTimeoutNanos,
             final long defaultWriteTimeoutNanos,
             final @Nullable TaskRunner taskRunner,
-            final @Nullable SocksProxy proxy,
+            final Proxy.@Nullable Socks proxy,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @Nullable ProtocolFamily family) {
         assert peerAddress != null;
@@ -89,7 +89,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
                                                     final @NonNull InetSocketAddress peerAddress,
                                                     final @NonNull RealAsyncTimeout asyncTimeout,
                                                     final @Nullable TaskRunner taskRunner,
-                                                    final @Nullable SocksProxy proxy) {
+                                                    final Proxy.@Nullable Socks proxy) {
         try {
             if (proxy != null) {
                 // connect to proxy and use it to target peer

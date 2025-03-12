@@ -46,7 +46,7 @@ public sealed interface NetworkEndpoint extends Endpoint
      * {@linkplain SocketOption socket options} set on the underlying network socket.
      * <p>
      * If you need specific options, please use {@link #connectTcp(InetSocketAddress, Config)} or
-     * {@link #connectTcp(InetSocketAddress, SocksProxy, Config)} instead.
+     * {@link #connectTcp(InetSocketAddress, Proxy.Socks, Config)} instead.
      * @throws jayo.JayoException If an I/O error occurs.
      */
     static @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress) {
@@ -78,7 +78,7 @@ public sealed interface NetworkEndpoint extends Endpoint
      * @throws jayo.JayoException If an I/O error occurs.
      */
     static @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress,
-                                               final @NonNull SocksProxy proxy,
+                                               final Proxy.@NonNull Socks proxy,
                                                final @NonNull Config<?> config) {
         Objects.requireNonNull(peerAddress);
         Objects.requireNonNull(proxy);
@@ -117,9 +117,9 @@ public sealed interface NetworkEndpoint extends Endpoint
     InetSocketAddress getPeerAddress();
 
     /**
-     * @return the {@link SocksProxy} that is used as intermediary between this and the peer, if any.
+     * @return the {@link Proxy.Socks} that is used as intermediary between this and the peer, if any.
      */
-    default @Nullable SocksProxy getProxy() {
+    default Proxy.@Nullable Socks getProxy() {
         return null;
     }
 

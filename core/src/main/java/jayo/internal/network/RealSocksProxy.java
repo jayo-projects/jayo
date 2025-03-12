@@ -5,18 +5,18 @@
 
 package jayo.internal.network;
 
-import jayo.network.SocksProxy;
+import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
 import java.util.regex.Pattern;
 
-public final class RealSocksProxy implements SocksProxy {
+public final class RealSocksProxy implements Proxy.Socks {
     private static final Pattern NON_LATIN1_PATTERN = Pattern.compile("[^\\x00-\\xFF]+");
 
-    final @NonNull String hostname;
-    final int port;
+    private final @NonNull String hostname;
+    private final int port;
     private final int version;
     final @Nullable String username;
     final @Nullable SecureString password;
@@ -53,12 +53,12 @@ public final class RealSocksProxy implements SocksProxy {
     }
 
     @Override
-    public final @NonNull String getHostname() {
+    public @NonNull String getHostname() {
         return hostname;
     }
 
     @Override
-    public final int getPort() {
+    public int getPort() {
         return port;
     }
 

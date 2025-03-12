@@ -8,7 +8,7 @@ package jayo.internal.network;
 import jayo.*;
 import jayo.network.JayoSocketException;
 import jayo.network.NetworkEndpoint;
-import jayo.network.SocksProxy;
+import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -20,7 +20,7 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
     static final byte SOCKS_V4 = 4;
 
     static final byte METHOD_NO_AUTHENTICATION_REQUIRED = 0;
-//    private static final byte METHOD_GSSAPI = 1;
+    //    private static final byte METHOD_GSSAPI = 1;
     static final byte METHOD_USER_PASSWORD = 2;
     private static final byte NO_METHODS = -1;
 
@@ -171,12 +171,12 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
                 // try to prompt the JVM User for credentials
                 final InetAddress address;
                 try {
-                    address = InetAddress.getByName(proxy.hostname);
+                    address = InetAddress.getByName(proxy.getHostname());
                 } catch (UnknownHostException e) {
                     throw JayoException.buildJayoException(e);
                 }
                 final var passwordAuthentication = Authenticator.requestPasswordAuthentication(
-                        proxy.hostname, address, proxy.port, "SOCKS5", "SOCKS authentication", null);
+                        proxy.getHostname(), address, proxy.getPort(), "SOCKS5", "SOCKS authentication", null);
                 if (passwordAuthentication != null) {
                     username = passwordAuthentication.getUserName().getBytes(StandardCharsets.ISO_8859_1);
                     password = new String(passwordAuthentication.getPassword()).getBytes(StandardCharsets.ISO_8859_1);
@@ -268,7 +268,7 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
-    public @NonNull SocksProxy getProxy() {
+    public Proxy.@NonNull Socks getProxy() {
         return proxy;
     }
 

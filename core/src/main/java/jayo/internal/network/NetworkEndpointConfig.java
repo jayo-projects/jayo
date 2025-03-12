@@ -7,7 +7,7 @@ package jayo.internal.network;
 
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkProtocol;
-import jayo.network.SocksProxy;
+import jayo.network.Proxy;
 import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -66,7 +66,7 @@ public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Con
     }
 
     public final @NonNull NetworkEndpoint connect(final @NonNull InetSocketAddress peerAddress,
-                                                  final @Nullable SocksProxy proxy) {
+                                                  final Proxy.@Nullable Socks proxy) {
         assert peerAddress != null;
         return connectInternal(peerAddress, proxy, connectTimeout, readTimeoutNanos, writeTimeoutNanos, socketOptions,
                 taskRunner);
@@ -76,7 +76,7 @@ public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Con
 
     abstract @NonNull NetworkEndpoint connectInternal(
             final @NonNull InetSocketAddress peerAddress,
-            final @Nullable SocksProxy proxy,
+            final Proxy.@Nullable Socks proxy,
             final @Nullable Duration connectTimeout,
             final long defaultReadTimeoutNanos,
             final long defaultWriteTimeoutNanos,
@@ -106,7 +106,7 @@ public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Con
         @Override
         @NonNull
         NetworkEndpoint connectInternal(final @NonNull InetSocketAddress peerAddress,
-                                        final @Nullable SocksProxy proxy,
+                                        final Proxy.@Nullable Socks proxy,
                                         final @Nullable Duration connectTimeout,
                                         final long defaultReadTimeoutNanos,
                                         final long defaultWriteTimeoutNanos,
@@ -137,7 +137,7 @@ public abstract sealed class NetworkEndpointConfig<T extends NetworkEndpoint.Con
         @Override
         @NonNull
         NetworkEndpoint connectInternal(final @NonNull InetSocketAddress peerAddress,
-                                        final @Nullable SocksProxy proxy,
+                                        final Proxy.@Nullable Socks proxy,
                                         final @Nullable Duration connectTimeout,
                                         final long defaultReadTimeoutNanos,
                                         final long defaultWriteTimeoutNanos,
