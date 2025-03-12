@@ -11,6 +11,8 @@ import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -101,7 +103,25 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         private final @NonNull Condition expectingSize = asyncReaderLock.newCondition();
 
         private volatile @Nullable RuntimeException exception = null;
-        private volatile boolean readerConsumerRunning = false;
+
+        // status
+        private static final byte NOT_STARTED = 1;
+        private static final byte START_NEEDED = 2;
+        private static final byte STARTED = 3;
+
+        @SuppressWarnings("FieldMayBeFinal")
+        private volatile byte status = NOT_STARTED;
+
+        static final VarHandle STATUS;
+
+        static {
+            try {
+                final var l = MethodHandles.lookup();
+                STATUS = l.findVarHandle(Async.class, "status", byte.class);
+            } catch (ReflectiveOperationException e) {
+                throw new ExceptionInInitializerError(e);
+            }
+        }
 
         private final @NonNull Runnable readerConsumer;
 
@@ -122,7 +142,8 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                         if (currentExpectedSize == 0L) {
                             asyncReaderLock.lock();
                             try {
-                                readerConsumerRunning = true; // not a problem to do this several times.
+                                STATUS.setRelease(this, STARTED); // not a problem to do this several times.
+
                                 currentExpectedSize = expectedSize;
                                 currentSize = size();
                                 // could happen in harmless race condition
@@ -157,7 +178,11 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                                                 " stopping consumer thread{3}",
                                         hashCode(), currentSize, MAX_BYTE_SIZE, System.lineSeparator());
                             }
-                            break;
+                            if (tryBreak()) {
+                                break;
+                            } else {
+                                continue;
+                            }
                         }
 
                         final var toRead = Math.max(Segment.SIZE, currentExpectedSize - currentSize);
@@ -172,7 +197,9 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                                         hashCode(), currentExpectedSize, currentSize,
                                         System.lineSeparator());
                             }
-                            break;
+                            if (tryBreak()) {
+                                break;
+                            }
                         }
                     }
                 } catch (Throwable t) {
@@ -185,21 +212,26 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     } else {
                         exception = new RuntimeException(t);
                     }
-                } finally {
-                    // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
-                    asyncReaderLock.lock();
-                    try {
-                        readerConsumerRunning = false;
-                        if (LOGGER.isLoggable(TRACE)) {
-                            LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: ReaderConsumer Runnable task: end",
-                                    hashCode());
-                        }
-                        expectingSize.signal();
-                    } finally {
-                        asyncReaderLock.unlock();
-                    }
                 }
             };
+        }
+
+        private boolean tryBreak() {
+            // end of reader consumer thread : we mark it as terminated, and we signal (= resume) the main thread
+            asyncReaderLock.lock();
+            try {
+                if (STATUS.compareAndSet(this, STARTED, NOT_STARTED)) {
+                    if (LOGGER.isLoggable(TRACE)) {
+                        LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: ReaderConsumer Runnable task: end",
+                                hashCode());
+                    }
+                    expectingSize.signal();
+                    return true;
+                }
+                return false;
+            } finally {
+                asyncReaderLock.unlock();
+            }
         }
 
         @Override
@@ -244,10 +276,8 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                 }
                 // we must wait until expected size is reached, or no more write operation
                 this.expectedSize = expectedSize;
+                startEmitterIfNeeded();
                 // resume reader consumer thread if needed, then await on expected size
-                if (!readerConsumerRunning) {
-                    taskRunner.execute(false, readerConsumer);
-                }
                 expectingSize.await();
 
                 currentSize = size();
@@ -266,6 +296,13 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
             }
         }
 
+        private void startEmitterIfNeeded() {
+            final var currentStatus = (byte) STATUS.getAndSetRelease(this, START_NEEDED);
+            if (currentStatus == NOT_STARTED) {
+                taskRunner.execute(false, readerConsumer);
+            }
+        }
+
         @Override
         public void close() {
             if (LOGGER.isLoggable(TRACE)) {
@@ -279,7 +316,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
 
             asyncReaderLock.lock();
             try {
-                if (readerConsumerRunning) {
+                if (status != NOT_STARTED) {
                     // force reader consumer task to end as soon as possible and wait
                     expectedSize = 1L;
                     expectingSize.await();
