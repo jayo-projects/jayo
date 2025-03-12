@@ -197,7 +197,10 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                         }
                         if (emitEvent == FLUSH_EVENT) {
                             writer.flush();
-                            break;
+                            if (!tryBreak()) {
+                                throw new IllegalStateException(
+                                        "A flush event should lead to exit WriterEmitter Runnable task");
+                            }
                         }
 
                         var toWrite = 0L;
@@ -236,10 +239,16 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
                         }
                     }
                 } catch (Throwable t) {
+                    if (LOGGER.isLoggable(TRACE)) {
+                        LOGGER.log(TRACE, "AsyncWriterSegmentQueue#" + hashCode() + ": Exception thrown.", t);
+                    }
                     if (t instanceof RuntimeException runtimeException) {
                         exception = runtimeException;
                     } else {
                         exception = new RuntimeException(t);
+                    }
+                    if (!tryBreak()) {
+                        throw new IllegalStateException("An exception should lead to exit WriterEmitter Runnable task");
                     }
                 }
             };

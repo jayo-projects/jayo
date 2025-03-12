@@ -204,13 +204,16 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
                     }
                 } catch (Throwable t) {
                     if (LOGGER.isLoggable(TRACE)) {
-                        LOGGER.log(TRACE, "AsyncReaderSegmentQueue#{0}: Exception thrown: {1}{2}",
-                                hashCode(), System.lineSeparator(), t);
+                        LOGGER.log(TRACE, "AsyncReaderSegmentQueue#" + hashCode() + ": Exception thrown.", t);
                     }
                     if (t instanceof RuntimeException runtimeException) {
                         exception = runtimeException;
                     } else {
                         exception = new RuntimeException(t);
+                    }
+                    if (!tryBreak()) {
+                        throw new IllegalStateException(
+                                "An exception should lead to exit ReaderConsumer Runnable task");
                     }
                 }
             };
