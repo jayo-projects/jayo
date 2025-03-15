@@ -37,15 +37,15 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     static @NonNull NetworkEndpoint connect(
             final @NonNull InetSocketAddress peerAddress,
             final @Nullable Duration connectTimeout,
-            final long defaultReadTimeoutNanos,
-            final long defaultWriteTimeoutNanos,
+            final long readTimeoutNanos,
+            final long writeTimeoutNanos,
             final @Nullable TaskRunner taskRunner,
             final Proxy.@Nullable Socks proxy,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @Nullable ProtocolFamily family) {
         assert peerAddress != null;
-        assert defaultReadTimeoutNanos >= 0L;
-        assert defaultWriteTimeoutNanos >= 0L;
+        assert readTimeoutNanos >= 0L;
+        assert writeTimeoutNanos >= 0L;
         assert socketOptions != null;
 
         try {
@@ -56,8 +56,8 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
                 socketChannel.setOption(socketOption.getKey(), socketOption.getValue());
             }
 
-            final var asyncTimeout = buildAsyncTimeout(socketChannel, defaultReadTimeoutNanos,
-                    defaultWriteTimeoutNanos);
+            final var asyncTimeout = buildAsyncTimeout(socketChannel, readTimeoutNanos,
+                    writeTimeoutNanos);
             final NetworkEndpoint networkEndpoint;
             if (connectTimeout != null) {
                 networkEndpoint = Cancellable.call(connectTimeout, ignored ->
@@ -71,7 +71,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
                 LOGGER.log(DEBUG, "new client SocketChannelNetworkEndpoint connected to {0}{1}protocol family " +
                                 "= {2}, default read timeout = {3} ns, default write timeout = {4} ns{5}provided " +
                                 "socket options = {6}",
-                        peerAddress, System.lineSeparator(), family, defaultReadTimeoutNanos, defaultWriteTimeoutNanos,
+                        peerAddress, System.lineSeparator(), family, readTimeoutNanos, writeTimeoutNanos,
                         System.lineSeparator(), socketOptions);
             }
 

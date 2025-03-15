@@ -7,7 +7,7 @@ package jayo.network;
 
 import jayo.Endpoint;
 import jayo.JayoClosedResourceException;
-import jayo.internal.network.NetworkServerConfig;
+import jayo.internal.network.NetworkServerBuilder;
 import jayo.internal.network.ServerSocketChannelNetworkServer;
 import jayo.internal.network.ServerSocketNetworkServer;
 import jayo.scheduling.TaskRunner;
@@ -40,37 +40,18 @@ public sealed interface NetworkServer extends Closeable
      * This method uses default configuration, with no read/write timeouts, no {@linkplain SocketOption socket options}
      * for the server and its accepted sockets, and no max pending connections set on the underlying server socket.
      * <p>
-     * If you need specific options, please use {@link #bindTcp(SocketAddress, Config)}  instead.
+     * If you need specific options, please use {@link #builder()} instead.
      * @throws jayo.JayoException If an I/O error occurs.
      */
     static @NonNull NetworkServer bindTcp(final @NonNull SocketAddress localAddress) {
-        return bindTcp(localAddress, configForNIO());
+        return builder().bindTcp(localAddress);
     }
 
     /**
-     * @return a new TCP {@link NetworkServer} bound to the provided {@code localAddress} socket address.
-     * <p>
-     * This method uses the provided {@code config} configuration, which can be used to configure read/write timeouts
-     * and the {@linkplain SocketOption socket options} for the server and its accepted sockets, and the max pending
-     * connections set on the underlying server socket.
-     * @throws jayo.JayoException If an I/O error occurs.
+     * @return a {@link NetworkServer} builder.
      */
-    static @NonNull NetworkServer bindTcp(final @NonNull SocketAddress localAddress, final @NonNull Config<?> config) {
-        return ((NetworkServerConfig<?>) config).bind(localAddress);
-    }
-
-    /**
-     * @return a {@link NetworkServer} configuration based on {@code java.nio.channels}.
-     */
-    static @NonNull NioConfig configForNIO() {
-        return new NetworkServerConfig.Nio();
-    }
-
-    /**
-     * @return a {@link NetworkServer} configuration based on {@code java.io}.
-     */
-    static @NonNull IoConfig configForIO() {
-        return new NetworkServerConfig.Io();
+    static @NonNull Builder builder() {
+        return new NetworkServerBuilder();
     }
 
     /**
@@ -78,17 +59,17 @@ public sealed interface NetworkServer extends Closeable
      * loop task blocks until a request is received and then the resulting connection is established or an error occurs.
      * <h3>Timeouts</h3>
      * <ul>
-     *     <li>The specified {@linkplain Config#readTimeout(Duration) read timeout value} will be used as default for
+     *     <li>The specified {@linkplain Builder#readTimeout(Duration) read timeout value} will be used as default for
      *     each read operation of the {@linkplain jayo.Endpoint#getReader() Endpoint's reader}.
-     *     <li>The specified {@linkplain Config#writeTimeout(Duration) write timeout value} will be used as default for
+     *     <li>The specified {@linkplain Builder#writeTimeout(Duration) write timeout value} will be used as default for
      *     each write operation of the {@linkplain jayo.Endpoint#getWriter() Endpoint's writer}.
      * </ul>
      * A timeout of zero is interpreted as an infinite timeout.
      * @throws UnsupportedOperationException If one of the socket options you set with
-     *                                       {@link Config#option(SocketOption, Object)} is not supported by the
+     *                                       {@link Builder#option(SocketOption, Object)} is not supported by the
      *                                       network endpoint.
      * @throws IllegalArgumentException      If one of the socket options' value you set with
-     *                                       {@link Config#option(SocketOption, Object)} is not a valid value for
+     *                                       {@link Builder#option(SocketOption, Object)} is not a valid value for
      *                                       this socket option.
      * @throws JayoClosedResourceException   If this network server was closed when waiting for an incoming client
      *                                       request.
@@ -135,16 +116,16 @@ public sealed interface NetworkServer extends Closeable
     Object getUnderlying();
 
     /**
-     * The configuration used to create a {@link NetworkServer}.
+     * The builder used to create a {@link NetworkServer}.
      */
-    sealed interface Config<T extends Config<T>> permits IoConfig, NioConfig, NetworkServerConfig {
+    sealed interface Builder permits NetworkServerBuilder {
         /**
          * Sets the default read timeout of all read operations of the
          * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer}
          * built using this configuration. Default is zero. A timeout of zero is interpreted as an infinite timeout.
          */
         @NonNull
-        T readTimeout(final @NonNull Duration readTimeout);
+        Builder readTimeout(final @NonNull Duration readTimeout);
 
         /**
          * Sets the default write timeout of all write operations of the
@@ -152,7 +133,7 @@ public sealed interface NetworkServer extends Closeable
          * built using this configuration. Default is zero. A timeout of zero is interpreted as an infinite timeout.
          */
         @NonNull
-        T writeTimeout(final @NonNull Duration writeTimeout);
+        Builder writeTimeout(final @NonNull Duration writeTimeout);
 
         /**
          * Read and write operations on the {@linkplain NetworkServer#accept() accepted network endpoints} by the
@@ -160,58 +141,63 @@ public sealed interface NetworkServer extends Closeable
          * distinct runnable tasks using the provided {@code taskRunner}.
          */
         @NonNull
-        T bufferAsync(final @NonNull TaskRunner taskRunner);
+        Builder bufferAsync(final @NonNull TaskRunner taskRunner);
 
         /**
          * Sets the value of a socket option to set on the
          * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer} built using this
          * configuration.
          *
-         * @param <U>   The type of the socket option value
+         * @param <T>   The type of the socket option value
          * @param name  The socket option
          * @param value The value of the socket option. A value of {@code null} may be a valid value for some socket
          *              options.
          * @see java.net.StandardSocketOptions
          */
-        <U> @NonNull T option(final @NonNull SocketOption<U> name, final @Nullable U value);
+        <T> @NonNull Builder option(final @NonNull SocketOption<T> name, final @Nullable T value);
 
         /**
          * Sets the value of a socket option to set on the {@link NetworkServer} built using this configuration.
          *
-         * @param <U>   The type of the socket option value
+         * @param <T>   The type of the socket option value
          * @param name  The socket option
          * @param value The value of the socket option. A value of {@code null} may be a valid value for some socket
          *              options.
          * @see java.net.StandardSocketOptions
          */
-        <U> @NonNull T serverOption(final @NonNull SocketOption<U> name, final @Nullable U value);
+        <T> @NonNull Builder serverOption(final @NonNull SocketOption<T> name, final @Nullable T value);
 
         /**
          * Sets the maximum number of pending connections on the {@link NetworkServer} built by using this
          * configuration. Default is zero. If the value is zero, an implementation specific default is used.
          */
         @NonNull
-        T maxPendingConnections(final int maxPendingConnections);
-    }
+        Builder maxPendingConnections(final int maxPendingConnections);
 
-    /**
-     * The configuration used to create a {@link NetworkServer} based on {@code java.nio.channels}.
-     */
-    sealed interface NioConfig extends Config<NioConfig> permits NetworkServerConfig.Nio {
         /**
          * Sets the {@link NetworkProtocol network protocol} to use when opening the underlying NIO server sockets. The
          * default protocol is platform (and possibly configuration) dependent and therefore unspecified.
+         * <p>
+         * <b>This option is only available for Java NIO</b>, so Java NIO mode is forced when this parameter is set !
          *
          * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6">
          * java.net.preferIPv4Stack</a> system property
          */
         @NonNull
-        NioConfig protocol(final @NonNull NetworkProtocol protocol);
-    }
+        Builder protocol(final @NonNull NetworkProtocol protocol);
 
-    /**
-     * The configuration used to create a {@link NetworkServer} based on {@code java.io}
-     */
-    sealed interface IoConfig extends Config<IoConfig> permits NetworkServerConfig.Io {
+        /**
+         * If true the underlying server sockets will be Java NIO ones, if false they will be Java IO ones. Default is
+         * {@code true}.
+         */
+        @NonNull
+        Builder useNio(final boolean useNio);
+
+        /**
+         * @return a new TCP {@link NetworkServer} bound to the provided {@code localAddress} socket address.
+         * @throws jayo.JayoException If an I/O error occurs.
+         */
+        @NonNull
+        NetworkServer bindTcp(final @NonNull SocketAddress localAddress);
     }
 }

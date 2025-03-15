@@ -14,16 +14,16 @@ import javax.net.ssl.SSLSession
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-public fun TlsEndpoint.ClientBuilder.kotlin(config: ClientTlsEndpointConfigDsl.() -> Unit): TlsEndpoint.ClientBuilder {
+public fun TlsEndpoint.ClientBuilder.kotlin(config: ClientTlsEndpointBuilderDsl.() -> Unit): TlsEndpoint.ClientBuilder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(ClientTlsEndpointConfigDsl(this))
+    config(ClientTlsEndpointBuilderDsl(this))
     return this
 }
 
 @JayoDslMarker
 @JvmInline
-public value class ClientTlsEndpointConfigDsl internal constructor(private val builder: TlsEndpoint.ClientBuilder) {
+public value class ClientTlsEndpointBuilderDsl internal constructor(private val builder: TlsEndpoint.ClientBuilder) {
     /**
      * Register a callback function to be executed when the TLS session is established (or re-established). The supplied
      * function will run in the same thread as the rest of the handshake, so it should ideally run as fast as possible.

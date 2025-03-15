@@ -15,45 +15,18 @@ import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
-public fun NetworkEndpoint.NioConfig.kotlin(
-    config: NioNetworkEndpointConfigDsl.() -> Unit
-): NetworkEndpoint.NioConfig {
+public fun NetworkEndpoint.Builder.kotlin(
+    config: NetworkEndpointBuilderDsl.() -> Unit
+): NetworkEndpoint.Builder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(NioNetworkEndpointConfigDsl(this))
+    config(NetworkEndpointBuilderDsl(this))
     return this
 }
 
 @JayoDslMarker
-public class NioNetworkEndpointConfigDsl internal constructor(
-    private val config: NetworkEndpoint.NioConfig
-) : NetworkEndpointConfigDsl(config) {
-    /**
-     * Sets the [network protocol][NetworkProtocol] to use when opening the underlying NIO sockets. The default protocol
-     * is platform (and possibly configuration) dependent and therefore unspecified.
-     *
-     * See [java.net.preferIPv4Stack](https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6)
-     * system property
-     */
-    public var protocol: NetworkProtocol
-        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-        get() = error("unsupported")
-        set(value) {
-            config.protocol(value)
-        }
-}
-
-public fun NetworkEndpoint.IoConfig.kotlin(config: IoNetworkEndpointConfigDsl.() -> Unit): NetworkEndpoint.IoConfig {
-    contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
-
-    config(IoNetworkEndpointConfigDsl(this))
-    return this
-}
-
-@JayoDslMarker
-public class IoNetworkEndpointConfigDsl(config: NetworkEndpoint.IoConfig) : NetworkEndpointConfigDsl(config)
-
-public sealed class NetworkEndpointConfigDsl(private val config: NetworkEndpoint.Config<*>) {
+@JvmInline
+public value class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoint.Builder) {
     /**
      * Sets the timeout for establishing the connection to the peer, including the proxy initialization if one is used.
      * Default is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -62,7 +35,7 @@ public sealed class NetworkEndpointConfigDsl(private val config: NetworkEndpoint
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            config.connectTimeout(value.toJavaDuration())
+            builder.connectTimeout(value.toJavaDuration())
         }
 
     /**
@@ -73,7 +46,7 @@ public sealed class NetworkEndpointConfigDsl(private val config: NetworkEndpoint
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            config.readTimeout(value.toJavaDuration())
+            builder.readTimeout(value.toJavaDuration())
         }
 
     /**
@@ -84,7 +57,7 @@ public sealed class NetworkEndpointConfigDsl(private val config: NetworkEndpoint
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            config.writeTimeout(value.toJavaDuration())
+            builder.writeTimeout(value.toJavaDuration())
         }
 
     /**
@@ -95,7 +68,7 @@ public sealed class NetworkEndpointConfigDsl(private val config: NetworkEndpoint
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            config.bufferAsync(value)
+            builder.bufferAsync(value)
         }
 
     /**
@@ -106,6 +79,32 @@ public sealed class NetworkEndpointConfigDsl(private val config: NetworkEndpoint
      * @see java.net.StandardSocketOptions
      */
     public fun <T> option(name: SocketOption<T>, value: T?) {
-        config.option(name, value)
+        builder.option(name, value)
     }
+
+    /**
+     * Sets the [network protocol][NetworkProtocol] to use when opening the underlying NIO sockets. The default protocol
+     * is platform (and possibly configuration) dependent and therefore unspecified.
+     *
+     * **This option is only available for Java NIO**, so Java NIO mode is forced when this parameter is set !
+     *
+     * See [java.net.preferIPv4Stack](https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6)
+     * system property
+     */
+    public var protocol: NetworkProtocol
+        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
+        get() = error("unsupported")
+        set(value) {
+            builder.protocol(value)
+        }
+
+    /**
+     * If true the socket will be a Java NIO one, if false it will be a Java IO one. Default is `true`.
+     */
+    public var useNio: Boolean
+        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
+        get() = error("unsupported")
+        set(value) {
+            builder.useNio(value)
+        }
 }

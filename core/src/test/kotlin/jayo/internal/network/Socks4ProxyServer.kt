@@ -19,11 +19,11 @@ import java.util.concurrent.Executor
  * A partial implementation of SOCKS Protocol Version 4.
  */
 class Socks4ProxyServer(
-    config: NetworkServer.Config<*>,
+    builder: NetworkServer.Builder,
     private val executor: Executor,
     private val username: String?
 ) : Closeable {
-    private val networkServer: NetworkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */), config)
+    private val networkServer: NetworkServer = builder.bindTcp(InetSocketAddress(0 /* find free port */))
 
     init {
         executor.execute { acceptClient() }

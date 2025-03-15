@@ -52,15 +52,15 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     static @NonNull NetworkEndpoint connect(
             final @NonNull InetSocketAddress peerAddress,
             final @Nullable Duration connectTimeout,
-            final long defaultReadTimeoutNanos,
-            final long defaultWriteTimeoutNanos,
+            final long readTimeoutNanos,
+            final long writeTimeoutNanos,
             final @Nullable TaskRunner taskRunner,
             final Proxy.@Nullable Socks proxy,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions
     ) {
         assert peerAddress != null;
-        assert defaultReadTimeoutNanos >= 0L;
-        assert defaultWriteTimeoutNanos >= 0L;
+        assert readTimeoutNanos >= 0L;
+        assert writeTimeoutNanos >= 0L;
         assert socketOptions != null;
 
         final var socket = new Socket();
@@ -69,8 +69,8 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
 
-            final var asyncTimeout = buildAsyncTimeout(socket, defaultReadTimeoutNanos,
-                    defaultWriteTimeoutNanos);
+            final var asyncTimeout = buildAsyncTimeout(socket, readTimeoutNanos,
+                    writeTimeoutNanos);
             final NetworkEndpoint networkEndpoint;
             if (connectTimeout != null) {
                 networkEndpoint = Cancellable.call(connectTimeout, ignored ->
@@ -83,7 +83,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG, "new client SocketNetworkEndpoint connected to {0}{1}default read timeout =" +
                                 " {2} ns, default write timeout = {3} ns{4}provided socket options = {5}",
-                        peerAddress, System.lineSeparator(), defaultReadTimeoutNanos, defaultWriteTimeoutNanos,
+                        peerAddress, System.lineSeparator(), readTimeoutNanos, writeTimeoutNanos,
                         System.lineSeparator(), socketOptions);
             }
 

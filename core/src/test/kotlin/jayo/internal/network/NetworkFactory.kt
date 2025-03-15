@@ -15,8 +15,8 @@ import kotlin.time.Duration.Companion.seconds
 
 enum class NetworkFactory {
     TCP_NIO {
-        override fun networkServerConfig() =
-            NetworkServer.configForNIO().kotlin {
+        override fun networkServerBuilder() =
+            NetworkServer.builder().kotlin {
                 protocol = NetworkProtocol.IPv6
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
@@ -25,8 +25,8 @@ enum class NetworkFactory {
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
             }
 
-        override fun networkEndpointConfig() =
-            NetworkEndpoint.configForNIO().kotlin {
+        override fun networkEndpointBuilder() =
+            NetworkEndpoint.builder().kotlin {
                 protocol = NetworkProtocol.IPv6
                 connectTimeout = 10.seconds
                 readTimeout = 10.seconds
@@ -37,8 +37,8 @@ enum class NetworkFactory {
         override val isIo get() = false
     },
     TCP_NIO_ASYNC {
-        override fun networkServerConfig() =
-            NetworkServer.configForNIO().kotlin {
+        override fun networkServerBuilder() =
+            NetworkServer.builder().kotlin {
                 bufferAsync = TaskRunner.create("NetworkFactory-")
                 protocol = NetworkProtocol.IPv6
                 readTimeout = 10.seconds
@@ -48,8 +48,8 @@ enum class NetworkFactory {
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
             }
 
-        override fun networkEndpointConfig() =
-            NetworkEndpoint.configForNIO().kotlin {
+        override fun networkEndpointBuilder() =
+            NetworkEndpoint.builder().kotlin {
                 bufferAsync = TaskRunner.create("NetworkFactory-")
                 protocol = NetworkProtocol.IPv6
                 connectTimeout = 10.seconds
@@ -61,8 +61,9 @@ enum class NetworkFactory {
         override val isIo get() = false
     },
     TCP_IO {
-        override fun networkServerConfig() =
-            NetworkServer.configForIO().kotlin {
+        override fun networkServerBuilder() =
+            NetworkServer.builder().kotlin {
+                useNio = false
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
                 maxPendingConnections = 2
@@ -70,8 +71,9 @@ enum class NetworkFactory {
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
             }
 
-        override fun networkEndpointConfig() =
-            NetworkEndpoint.configForIO().kotlin {
+        override fun networkEndpointBuilder() =
+            NetworkEndpoint.builder().kotlin {
+                useNio = false
                 connectTimeout = 10.seconds
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
@@ -81,8 +83,9 @@ enum class NetworkFactory {
         override val isIo get() = true
     },
     TCP_IO_ASYNC {
-        override fun networkServerConfig() =
-            NetworkServer.configForIO().kotlin {
+        override fun networkServerBuilder() =
+            NetworkServer.builder().kotlin {
+                useNio = false
                 bufferAsync = TaskRunner.create("NetworkFactory-")
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds
@@ -91,8 +94,9 @@ enum class NetworkFactory {
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
             }
 
-        override fun networkEndpointConfig() =
-            NetworkEndpoint.configForIO().kotlin {
+        override fun networkEndpointBuilder() =
+            NetworkEndpoint.builder().kotlin {
+                useNio = false
                 bufferAsync = TaskRunner.create("NetworkFactory-")
                 connectTimeout = 10.seconds
                 readTimeout = 10.seconds
@@ -104,7 +108,7 @@ enum class NetworkFactory {
     },
     ;
 
-    abstract fun networkServerConfig(): NetworkServer.Config<*>
-    abstract fun networkEndpointConfig(): NetworkEndpoint.Config<*>
+    abstract fun networkServerBuilder(): NetworkServer.Builder
+    abstract fun networkEndpointBuilder(): NetworkEndpoint.Builder
     abstract val isIo: Boolean
 }

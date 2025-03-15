@@ -158,8 +158,8 @@ public class SocketPairFactory {
     }
 
     public OldIoSocketPair oldIo(Optional<String> cipher) throws InterruptedException {
-        NetworkServer networkServer = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */),
-                NetworkServer.configForIO());
+        NetworkServer networkServer = NetworkServer.builder().useNio(false)
+                .bindTcp(new InetSocketAddress(0 /* find free port */));
         AtomicReference<NetworkEndpoint> serverEndpoint = new AtomicReference<>();
         AtomicReference<TlsEndpoint> tlsServer = new AtomicReference<>();
         var thread = new Thread(() -> {

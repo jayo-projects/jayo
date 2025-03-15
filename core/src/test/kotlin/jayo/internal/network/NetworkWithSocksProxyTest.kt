@@ -38,29 +38,29 @@ class NetworkWithSocksProxyTest {
     @Test
     fun `Socks V5 Proxy test with NIO and IPv4`() {
         socks5(
-            NetworkEndpoint.configForNIO().protocol(NetworkProtocol.IPv4),
-            NetworkServer.configForNIO().protocol(NetworkProtocol.IPv4)
+            NetworkEndpoint.builder().protocol(NetworkProtocol.IPv4),
+            NetworkServer.builder().protocol(NetworkProtocol.IPv4)
         )
     }
 
     @Test
     fun `Socks V5 Proxy test with NIO and IPv6`() {
         socks5(
-            NetworkEndpoint.configForNIO().protocol(NetworkProtocol.IPv6),
-            NetworkServer.configForNIO().protocol(NetworkProtocol.IPv6)
+            NetworkEndpoint.builder().protocol(NetworkProtocol.IPv6),
+            NetworkServer.builder().protocol(NetworkProtocol.IPv6)
         )
     }
 
     @Test
     fun `Socks V5 Proxy test with IO`() {
-        socks5(NetworkEndpoint.configForIO(), NetworkServer.configForIO())
+        socks5(NetworkEndpoint.builder().useNio(false), NetworkServer.builder().useNio(false))
     }
 
     @Test
     fun `Socks V5 Proxy test with NIO and proxy credentials success`() {
         socks5(
-            NetworkEndpoint.configForNIO(),
-            NetworkServer.configForNIO(),
+            NetworkEndpoint.builder(),
+            NetworkServer.builder(),
             PasswordAuthentication("Noël", "Pâques".toCharArray())
         )
     }
@@ -68,8 +68,8 @@ class NetworkWithSocksProxyTest {
     @Test
     fun `Socks V5 Proxy test with IO and proxy credentials success`() {
         socks5(
-            NetworkEndpoint.configForIO(),
-            NetworkServer.configForIO(),
+            NetworkEndpoint.builder().useNio(false),
+            NetworkServer.builder().useNio(false),
             PasswordAuthentication("Noël", "Pâques".toCharArray())
         )
     }
@@ -78,8 +78,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V5 Proxy test with NIO and proxy credentials failure`() {
         assertThatThrownBy {
             socks5(
-                NetworkEndpoint.configForNIO(),
-                NetworkServer.configForNIO(),
+                NetworkEndpoint.builder(),
+                NetworkServer.builder(),
                 PasswordAuthentication("Noël", "Pâques".toCharArray()),
                 false
             )
@@ -91,8 +91,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V5 Proxy test with IO and proxy credentials failure`() {
         assertThatThrownBy {
             socks5(
-                NetworkEndpoint.configForIO(),
-                NetworkServer.configForIO(),
+                NetworkEndpoint.builder().useNio(false),
+                NetworkServer.builder().useNio(false),
                 PasswordAuthentication("Noël", "Pâques".toCharArray()),
                 false
             )
@@ -101,14 +101,14 @@ class NetworkWithSocksProxyTest {
     }
 
     private fun socks5(
-        clientConfig: NetworkEndpoint.Config<*>,
-        serverConfig: NetworkServer.Config<*>,
+        clientBuilder: NetworkEndpoint.Builder,
+        serverBuilder: NetworkServer.Builder,
         credentials: PasswordAuthentication? = null,
         authSuccess: Boolean = true
     ) {
-        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */), serverConfig)
+        serverBuilder.bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                Socks5ProxyServer(serverConfig, executor, credentials).use { proxy ->
+                Socks5ProxyServer(serverBuilder, executor, credentials).use { proxy ->
                     executor.execute {
                         val accepted = server.accept()
                         accepted.writer.use { writer ->
@@ -122,7 +122,7 @@ class NetworkWithSocksProxyTest {
                     } else {
                         Proxy.socks5(proxy.address)
                     }
-                    val client = NetworkEndpoint.connectTcp(server.localAddress, proxy, clientConfig)
+                    val client = clientBuilder.connectTcp(server.localAddress, proxy)
 
                     val stringRead = client.reader.readString()
                     assertThat(stringRead).isEqualTo(TO_WRITE)
@@ -133,8 +133,8 @@ class NetworkWithSocksProxyTest {
     @Test
     fun `Socks V4 Proxy test with NIO and IPv4`() {
         socks4(
-            NetworkEndpoint.configForNIO().protocol(NetworkProtocol.IPv4),
-            NetworkServer.configForNIO().protocol(NetworkProtocol.IPv4)
+            NetworkEndpoint.builder().protocol(NetworkProtocol.IPv4),
+            NetworkServer.builder().protocol(NetworkProtocol.IPv4)
         )
     }
 
@@ -142,8 +142,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V4 Proxy test with NIO and IPv6`() {
         assertThatThrownBy {
             socks4(
-                NetworkEndpoint.configForNIO().protocol(NetworkProtocol.IPv6),
-                NetworkServer.configForNIO().protocol(NetworkProtocol.IPv6)
+                NetworkEndpoint.builder().protocol(NetworkProtocol.IPv6),
+                NetworkServer.builder().protocol(NetworkProtocol.IPv6)
             )
         }.isInstanceOf(JayoSocketException::class.java)
             .hasMessage("SOCKS4 : SOCKS V4 only supports IPv4 socket address")
@@ -151,14 +151,14 @@ class NetworkWithSocksProxyTest {
 
     @Test
     fun `Socks V4 Proxy test with IO`() {
-        socks4(NetworkEndpoint.configForIO(), NetworkServer.configForIO())
+        socks4(NetworkEndpoint.builder().useNio(false), NetworkServer.builder().useNio(false))
     }
 
     @Test
     fun `Socks V4 Proxy test with NIO and proxy credentials success`() {
         socks4(
-            NetworkEndpoint.configForNIO().protocol(NetworkProtocol.IPv4),
-            NetworkServer.configForNIO().protocol(NetworkProtocol.IPv4),
+            NetworkEndpoint.builder().protocol(NetworkProtocol.IPv4),
+            NetworkServer.builder().protocol(NetworkProtocol.IPv4),
             "Noël"
         )
     }
@@ -166,8 +166,8 @@ class NetworkWithSocksProxyTest {
     @Test
     fun `Socks V4 Proxy test with IO and proxy credentials success`() {
         socks4(
-            NetworkEndpoint.configForIO(),
-            NetworkServer.configForIO(),
+            NetworkEndpoint.builder().useNio(false),
+            NetworkServer.builder().useNio(false),
             "Noël"
         )
     }
@@ -176,8 +176,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V4 Proxy test with NIO and proxy credentials failure`() {
         assertThatThrownBy {
             socks4(
-                NetworkEndpoint.configForNIO().protocol(NetworkProtocol.IPv4),
-                NetworkServer.configForNIO().protocol(NetworkProtocol.IPv4),
+                NetworkEndpoint.builder().protocol(NetworkProtocol.IPv4),
+                NetworkServer.builder().protocol(NetworkProtocol.IPv4),
                 "Noël",
                 false
             )
@@ -189,8 +189,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V4 Proxy test with IO and proxy credentials failure`() {
         assertThatThrownBy {
             socks4(
-                NetworkEndpoint.configForIO(),
-                NetworkServer.configForIO(),
+                NetworkEndpoint.builder().useNio(false),
+                NetworkServer.builder().useNio(false),
                 "Noël",
                 false
             )
@@ -199,14 +199,14 @@ class NetworkWithSocksProxyTest {
     }
 
     private fun socks4(
-        clientConfig: NetworkEndpoint.Config<*>,
-        serverConfig: NetworkServer.Config<*>,
+        clientBuilder: NetworkEndpoint.Builder,
+        serverBuilder: NetworkServer.Builder,
         username: String? = null,
         authSuccess: Boolean = true
     ) {
-        NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */), serverConfig)
+        serverBuilder.bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                Socks4ProxyServer(serverConfig, executor, username).use { proxy ->
+                Socks4ProxyServer(serverBuilder, executor, username).use { proxy ->
                     executor.execute {
                         val accepted = server.accept()
                         accepted.writer.use { writer ->
@@ -220,7 +220,7 @@ class NetworkWithSocksProxyTest {
                     } else {
                         Proxy.socks4(proxy.address)
                     }
-                    val client = NetworkEndpoint.connectTcp(server.localAddress, proxy, clientConfig)
+                    val client = clientBuilder.connectTcp(server.localAddress, proxy)
 
                     val stringRead = client.reader.readString()
                     assertThat(stringRead).isEqualTo(TO_WRITE)

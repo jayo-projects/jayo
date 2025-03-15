@@ -36,11 +36,11 @@ import java.util.concurrent.Executor
  * See [RFC 1928](https://www.ietf.org/rfc/rfc1928.txt).
  */
 class Socks5ProxyServer(
-    config: NetworkServer.Config<*>,
+    builder: NetworkServer.Builder,
     private val executor: Executor,
     private val credentials: PasswordAuthentication?
 ) : Closeable {
-    private val networkServer: NetworkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */), config)
+    private val networkServer: NetworkServer = builder.bindTcp(InetSocketAddress(0 /* find free port */))
 
     init {
         executor.execute { acceptClient() }
