@@ -8,7 +8,7 @@
  * Licensed under the MIT License
  */
 
-package jayo.internal;
+package jayo.internal.tls;
 
 import jayo.Reader;
 import jayo.tls.JayoTlsHandshakeException;
@@ -21,9 +21,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Implement basic TLS parsing, just to read the SNI.
+ * Implement basic TLS parsing, just to read the SNI. Used by
+ * {@linkplain jayo.internal.ServerTlsEndpoint ServerTlsEndpoint}.
  */
-final class TlsExplorer {
+public final class TlsExplorer {
     // un-instantiable
     private TlsExplorer() {
     }
@@ -53,7 +54,7 @@ final class TlsExplorer {
     /**
      * Explores a TLS record in search to the SNI. This method does not consume buffer.
      */
-    static Map<Integer, SNIServerName> exploreTlsRecord(final @NonNull Reader reader) {
+    public static Map<Integer, SNIServerName> exploreTlsRecord(final @NonNull Reader reader) {
         final var firstByte = reader.readByte();
         if (firstByte != 22) {
             // 22: handshake record

@@ -5,7 +5,7 @@
 
 package jayo.tools;
 
-import jayo.internal.SinglyLinkedBasicFifoQueue;
+import jayo.internal.tools.SinglyLinkedBasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Collection;

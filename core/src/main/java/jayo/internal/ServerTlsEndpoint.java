@@ -11,6 +11,7 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.internal.tls.TlsExplorer;
 import jayo.tls.Handshake;
 import jayo.tls.JayoTlsHandshakeCallbackException;
 import jayo.tls.JayoTlsHandshakeException;

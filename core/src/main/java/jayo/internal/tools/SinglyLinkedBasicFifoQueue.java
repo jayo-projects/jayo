@@ -3,7 +3,7 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.internal;
+package jayo.internal.tools;
 
 import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
@@ -115,13 +115,16 @@ public final class SinglyLinkedBasicFifoQueue<T> implements BasicFifoQueue<T> {
     }
 
     private final class SinglyLinkedIterator implements Iterator<T> {
-        private final @NonNull Node<T> virtualOrigin = new Node<>(null); // ok to put null, this first item is virtual
+        // ok to put null, this first item is virtual
+        private static final @NonNull Node<?> VIRTUAL_ORIGIN = new Node<>(null);
+
         private @NonNull Node<T> previous;
         private @NonNull Node<T> current;
         private boolean canRemove = false;
 
+        @SuppressWarnings("unchecked")
         private SinglyLinkedIterator() {
-            previous = virtualOrigin;
+            previous = (Node<T>) VIRTUAL_ORIGIN;
             current = previous;
             current.next = head;
         }
@@ -152,7 +155,7 @@ public final class SinglyLinkedBasicFifoQueue<T> implements BasicFifoQueue<T> {
                 head = current.next;
             }
             if (tail == current) {
-                tail = previous != virtualOrigin ? previous : null;
+                tail = previous != VIRTUAL_ORIGIN ? previous : null;
             }
             previous.next = current.next;
             current = previous;
