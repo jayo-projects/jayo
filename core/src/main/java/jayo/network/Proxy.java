@@ -42,7 +42,6 @@ public sealed interface Proxy {
 
     static @NonNull Http http(final @NonNull InetSocketAddress address) {
         Objects.requireNonNull(address);
-        // username is required for Socks V4, that's why we default it to ""
         return new RealHttpProxy(address);
     }
 
