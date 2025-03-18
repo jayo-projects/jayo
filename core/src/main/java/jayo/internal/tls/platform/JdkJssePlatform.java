@@ -21,15 +21,13 @@
 
 package jayo.internal.tls.platform;
 
-import jayo.tls.Protocol;
 import jayo.tls.JssePlatform;
+import jayo.tls.Protocol;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -46,6 +44,18 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
             return SSLContext.getInstance("TLS");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public final @NonNull SSLContext newSSLContextWithTrustManager(@NonNull X509TrustManager trustManager) {
+        try {
+            final var newSSLContext = newSSLContext();
+            newSSLContext.init(null, new TrustManager[]{trustManager}, null);
+            return newSSLContext;
+        } catch (KeyManagementException e) {
+            // The system has no TLS. Just give up.
+            throw new AssertionError("No System TLS: " + e.getMessage(), e);
         }
     }
 
