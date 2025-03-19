@@ -91,8 +91,8 @@ public final class ConscryptJssePlatform extends JdkJssePlatform {
     }
 
     @Override
-    public @NonNull X509TrustManager platformTrustManager() {
-        final var x509TrustManager = super.platformTrustManager();
+    public @NonNull X509TrustManager getDefaultTrustManager() {
+        final var x509TrustManager = super.getDefaultTrustManager();
         // Disabled because Jayo will run anyway
         Conscrypt.setHostnameVerifier(x509TrustManager, DisabledHostnameVerifier.getInstance());
         return x509TrustManager;

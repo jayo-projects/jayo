@@ -72,7 +72,7 @@ public final class BouncyCastleJssePlatform extends JdkJssePlatform {
     }
 
     @Override
-    public @NonNull X509TrustManager platformTrustManager() {
+    public @NonNull X509TrustManager getDefaultTrustManager() {
         final TrustManagerFactory factory;
         try {
             factory = TrustManagerFactory.getInstance("PKIX", BouncyCastleJsseProvider.PROVIDER_NAME);
