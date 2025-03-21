@@ -35,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.cert.X509Certificate;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Platform using Conscrypt (<a href="https://conscrypt.org">conscrypt</a>) if installed as the first Security Provider.
@@ -99,12 +100,9 @@ public final class ConscryptJssePlatform extends JdkJssePlatform {
     }
 
     @Override
-    public void configureTlsExtensions(
-            final @NonNull SSLEngine sslEngine,
-            final @Nullable String hostname,
-            final @NonNull List<Protocol> protocols) {
-        assert sslEngine != null;
-        assert protocols != null;
+    public void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols) {
+        Objects.requireNonNull(sslEngine);
+        Objects.requireNonNull(protocols);
 
         if (Conscrypt.isConscrypt(sslEngine)) {
             // Enable session tickets.
@@ -114,13 +112,13 @@ public final class ConscryptJssePlatform extends JdkJssePlatform {
             final var names = alpnProtocolNames(protocols);
             Conscrypt.setApplicationProtocols(sslEngine, names.toArray(String[]::new));
         } else {
-            super.configureTlsExtensions(sslEngine, hostname, protocols);
+            super.configureTlsExtensions(sslEngine, protocols);
         }
     }
 
     @Override
     public @Nullable String getSelectedProtocol(final @NonNull SSLEngine sslEngine) {
-        assert sslEngine != null;
+        Objects.requireNonNull(sslEngine);
 
         if (Conscrypt.isConscrypt(sslEngine)) {
             return Conscrypt.getApplicationProtocol(sslEngine);

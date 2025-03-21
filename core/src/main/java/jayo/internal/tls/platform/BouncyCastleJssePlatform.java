@@ -34,6 +34,7 @@ import javax.net.ssl.X509TrustManager;
 import java.security.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Platform using BouncyCastle if installed as the first Security Provider.
@@ -89,12 +90,9 @@ public final class BouncyCastleJssePlatform extends JdkJssePlatform {
     }
 
     @Override
-    public void configureTlsExtensions(
-            final @NonNull SSLEngine sslEngine,
-            final @Nullable String hostname,
-            final @NonNull List<Protocol> protocols) {
-        assert sslEngine != null;
-        assert protocols != null;
+    public void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols) {
+        Objects.requireNonNull(sslEngine);
+        Objects.requireNonNull(protocols);
 
         if (sslEngine instanceof BCSSLEngine bouncyCastleSSLEngine) {
             final var sslParameters = bouncyCastleSSLEngine.getParameters();
@@ -104,13 +102,13 @@ public final class BouncyCastleJssePlatform extends JdkJssePlatform {
             sslParameters.setApplicationProtocols(names.toArray(String[]::new));
             bouncyCastleSSLEngine.setParameters(sslParameters);
         } else {
-            super.configureTlsExtensions(sslEngine, hostname, protocols);
+            super.configureTlsExtensions(sslEngine, protocols);
         }
     }
 
     @Override
     public @Nullable String getSelectedProtocol(final @NonNull SSLEngine sslEngine) {
-        assert sslEngine != null;
+        Objects.requireNonNull(sslEngine);
 
         if (sslEngine instanceof BCSSLEngine bouncyCastleSSLEngine) {
             final var protocol = bouncyCastleSSLEngine.getApplicationProtocol();

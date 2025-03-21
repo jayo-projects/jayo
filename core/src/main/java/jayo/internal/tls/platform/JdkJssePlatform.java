@@ -33,6 +33,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The default Security Provider included in the JDK.
@@ -48,7 +49,9 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
     }
 
     @Override
-    public final @NonNull SSLContext newSSLContextWithTrustManager(@NonNull X509TrustManager trustManager) {
+    public final @NonNull SSLContext newSSLContextWithTrustManager(final @NonNull X509TrustManager trustManager) {
+        Objects.requireNonNull(trustManager);
+
         try {
             final var newSSLContext = newSSLContext();
             newSSLContext.init(null, new TrustManager[]{trustManager}, null);
@@ -77,12 +80,9 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
     }
 
     @Override
-    public void configureTlsExtensions(
-            final @NonNull SSLEngine sslEngine,
-            final @Nullable String hostname,
-            final @NonNull List<Protocol> protocols) {
-        assert sslEngine != null;
-        assert protocols != null;
+    public void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols) {
+        Objects.requireNonNull(sslEngine);
+        Objects.requireNonNull(protocols);
 
         final var sslParameters = sslEngine.getSSLParameters();
         // Enable ALPN.
@@ -92,7 +92,7 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
     }
 
     public @Nullable String getSelectedProtocol(final @NonNull SSLEngine sslEngine) {
-        assert sslEngine != null;
+        Objects.requireNonNull(sslEngine);
 
         try {
             final var protocol = sslEngine.getApplicationProtocol();

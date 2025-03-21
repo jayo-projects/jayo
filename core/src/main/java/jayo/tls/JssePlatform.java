@@ -51,11 +51,9 @@ public sealed interface JssePlatform permits JdkJssePlatform {
     X509TrustManager getDefaultTrustManager();
 
     /**
-     * Configure TLS extensions on {@code sslEngine} for {@code hostname}.
+     * Configure TLS extensions on {@code sslEngine}.
      */
-    void configureTlsExtensions(final @NonNull SSLEngine sslEngine,
-                                final @Nullable String hostname,
-                                final @NonNull List<Protocol> protocols);
+    void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols);
 
     /**
      * Returns the negotiated protocol, or null if no protocol was negotiated.
