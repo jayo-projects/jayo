@@ -95,7 +95,7 @@ public sealed interface NetworkEndpoint extends Endpoint
     /**
      * The builder used to create a client-side {@link NetworkEndpoint}.
      */
-    sealed interface Builder permits NetworkEndpointBuilder {
+    sealed interface Builder extends Cloneable permits NetworkEndpointBuilder {
         /**
          * Sets the timeout for establishing the connection to the peer, including the proxy initialization if one is
          * used. Default is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -171,5 +171,11 @@ public sealed interface NetworkEndpoint extends Endpoint
          */
         @NonNull
         NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress, final Proxy.@NonNull Socks proxy);
+
+        /**
+         * @return a deep copy of this builder.
+         */
+        @NonNull
+        Builder clone();
     }
 }

@@ -220,17 +220,30 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
         private final @NonNull SslContextStrategy internalSslContextFactory;
         private @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory = null;
 
-        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLContext sslContext) {
-            super(encryptedEndpoint);
+        public Builder(final @NonNull SSLContext sslContext) {
             assert sslContext != null;
             this.internalSslContextFactory = new FixedSslContextStrategy(sslContext);
         }
 
-        public Builder(final @NonNull Endpoint encryptedEndpoint,
-                       final @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sniSslCF) {
-            super(encryptedEndpoint);
+        public Builder(final @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sniSslCF) {
             assert sniSslCF != null;
             this.internalSslContextFactory = new SniSslContextStrategy(sniSslCF);
+        }
+
+        /**
+         * The private constructor used by {@link #clone()}.
+         */
+        private Builder(final @NonNull SslContextStrategy internalSslContextFactory,
+                        final @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory,
+                        final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
+                        final boolean waitForCloseConfirmation) {
+            assert internalSslContextFactory != null;
+            assert sessionInitCallback != null;
+
+            this.internalSslContextFactory = internalSslContextFactory;
+            this.sslEngineFactory = sslEngineFactory;
+            this.sessionInitCallback = sessionInitCallback;
+            this.waitForCloseConfirmation = waitForCloseConfirmation;
         }
 
         @Override
@@ -247,13 +260,19 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
         }
 
         @Override
-        public @NonNull TlsEndpoint build() {
+        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint) {
+            Objects.requireNonNull(encryptedEndpoint);
             return new ServerTlsEndpoint(
                     encryptedEndpoint,
                     internalSslContextFactory,
                     (sslEngineFactory != null) ? sslEngineFactory : ServerTlsEndpoint::defaultSSLEngineFactory,
                     sessionInitCallback,
                     waitForCloseConfirmation);
+        }
+
+        @Override
+        public @NonNull ServerBuilder clone() {
+            return new Builder(internalSslContextFactory, sslEngineFactory, sessionInitCallback, waitForCloseConfirmation);
         }
     }
 }

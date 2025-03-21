@@ -16,11 +16,9 @@ import jayo.Writer;
 import jayo.network.NetworkEndpoint;
 import jayo.tls.TlsEndpoint;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * Client example. Connects to a public TLS reporting service.
@@ -30,21 +28,10 @@ public class TlsSocketClient {
     private static final String HTTP_LINE =
             "GET https://www.howsmyssl.com/a/check HTTP/1.0\nHost: www.howsmyssl.com\n\n";
 
-    // initialize the SSLContext, a configuration holder, reusable object
-    private static final SSLContext SSL_CONTEXT;
-
-    static {
-        try {
-            SSL_CONTEXT = SSLContext.getDefault();
-        } catch (NoSuchAlgorithmException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
-
     public static void main(String... args) throws IOException {
         try (NetworkEndpoint client = NetworkEndpoint.connectTcp(new InetSocketAddress(DOMAIN, 443));
-             // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-             TlsEndpoint tlsEndpoint = TlsEndpoint.clientBuilder(client, SSL_CONTEXT).build();
+             // create the TlsEndpoint using minimal options
+             TlsEndpoint tlsEndpoint = TlsEndpoint.createClient(client);
              Writer toEncryptWriter = Jayo.buffer(tlsEndpoint.getWriter());
              Reader decryptedReader = Jayo.buffer(tlsEndpoint.getReader())) {
             // do HTTP interaction and print result

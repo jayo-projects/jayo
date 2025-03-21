@@ -12,12 +12,14 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.tls.Handshake;
+import jayo.tls.JssePlatform;
 import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -100,19 +102,39 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
     public static final class Builder extends RealTlsEndpoint.Builder<ClientBuilder> implements ClientBuilder {
         private final @NonNull SSLEngine engine;
 
-        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLContext sslContext) {
-            super(encryptedEndpoint);
+        public Builder() {
+            final var jssePlatform = JssePlatform.get();
+            final var trustManager = jssePlatform.getDefaultTrustManager();
+            final var sslContext = jssePlatform.newSSLContextWithTrustManager(trustManager);
+            engine = sslContext.createSSLEngine();
+            engine.setUseClientMode(true);
+        }
+
+        public Builder(final @NonNull SSLContext sslContext) {
             assert sslContext != null;
 
             engine = sslContext.createSSLEngine();
             engine.setUseClientMode(true);
         }
 
-        public Builder(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLEngine engine) {
-            super(encryptedEndpoint);
+        public Builder(final @NonNull SSLEngine engine) {
             assert engine != null;
 
             this.engine = engine;
+        }
+
+        /**
+         * The private constructor used by {@link #clone()}.
+         */
+        private Builder(final @NonNull SSLEngine engine,
+                        final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
+                        final boolean waitForCloseConfirmation) {
+            assert engine != null;
+            assert sessionInitCallback != null;
+
+            this.engine = engine;
+            this.sessionInitCallback = sessionInitCallback;
+            this.waitForCloseConfirmation = waitForCloseConfirmation;
         }
 
         @Override
@@ -122,12 +144,18 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
         }
 
         @Override
-        public @NonNull TlsEndpoint build() {
+        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint) {
+            Objects.requireNonNull(encryptedEndpoint);
             return new ClientTlsEndpoint(
                     encryptedEndpoint,
                     engine,
                     sessionInitCallback,
                     waitForCloseConfirmation);
+        }
+
+        @Override
+        public @NonNull ClientBuilder clone() {
+            return new Builder(engine, sessionInitCallback, waitForCloseConfirmation);
         }
     }
 

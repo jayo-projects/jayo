@@ -27,13 +27,39 @@ import static java.lang.System.Logger.Level.INFO;
 public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkEndpointBuilder");
 
-    private @Nullable Duration connectTimeout = null;
-    private long readTimeoutNanos = 0L;
-    private long writeTimeoutNanos = 0L;
-    private @Nullable TaskRunner taskRunner = null;
-    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
-    private @Nullable ProtocolFamily protocolFamily = null;
-    private boolean useNio = true;
+    private @Nullable Duration connectTimeout;
+    private long readTimeoutNanos;
+    private long writeTimeoutNanos;
+    private @Nullable TaskRunner taskRunner;
+    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
+    private @Nullable ProtocolFamily protocolFamily;
+    private boolean useNio;
+
+    public NetworkEndpointBuilder() {
+        this(null, 0L, 0L, null, new HashMap<>(),
+                null, true);
+    }
+
+    /**
+     * The private constructor used by {@link #clone()}.
+     */
+    private NetworkEndpointBuilder(final @Nullable Duration connectTimeout,
+                                  final long readTimeoutNanos,
+                                  final long writeTimeoutNanos,
+                                  final @Nullable TaskRunner taskRunner,
+                                  final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                                  final @Nullable ProtocolFamily protocolFamily,
+                                  final boolean useNio) {
+        assert socketOptions != null;
+
+        this.connectTimeout = connectTimeout;
+        this.readTimeoutNanos = readTimeoutNanos;
+        this.writeTimeoutNanos = writeTimeoutNanos;
+        this.taskRunner = taskRunner;
+        this.socketOptions = socketOptions;
+        this.protocolFamily = protocolFamily;
+        this.useNio = useNio;
+    }
 
     @Override
     public @NonNull NetworkEndpointBuilder connectTimeout(final @NonNull Duration connectTimeout) {
@@ -134,5 +160,12 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
                 taskRunner,
                 proxy,
                 socketOptions);
+    }
+
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
+    @Override
+    public @NonNull NetworkEndpointBuilder clone() {
+        return new NetworkEndpointBuilder(connectTimeout, readTimeoutNanos, writeTimeoutNanos, taskRunner,
+                socketOptions, protocolFamily, useNio);
     }
 }

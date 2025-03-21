@@ -26,14 +26,43 @@ import static java.lang.System.Logger.Level.INFO;
 public final class NetworkServerBuilder implements NetworkServer.Builder {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkServerBuilder");
 
-    private long readTimeoutNanos = 0L;
-    private long writeTimeoutNanos = 0L;
-    private @Nullable TaskRunner taskRunner = null;
-    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
-    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions = new HashMap<>();
-    private int maxPendingConnections = 0;
-    private @Nullable ProtocolFamily protocolFamily = null;
-    private boolean useNio = true;
+    private long readTimeoutNanos;
+    private long writeTimeoutNanos;
+    private @Nullable TaskRunner taskRunner;
+    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
+    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions;
+    private int maxPendingConnections;
+    private @Nullable ProtocolFamily protocolFamily;
+    private boolean useNio;
+
+    public NetworkServerBuilder() {
+        this(0L, 0L, null, new HashMap<>(), new HashMap<>(),
+                0, null, true);
+    }
+
+    /**
+     * The private constructor used by {@link #clone()}.
+     */
+    private NetworkServerBuilder(final long readTimeoutNanos,
+                                 final long writeTimeoutNanos,
+                                 final @Nullable TaskRunner taskRunner,
+                                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
+                                 final int maxPendingConnections,
+                                 final @Nullable ProtocolFamily protocolFamily,
+                                 final boolean useNio) {
+        assert socketOptions != null;
+        assert serverSocketOptions != null;
+
+        this.readTimeoutNanos = readTimeoutNanos;
+        this.writeTimeoutNanos = writeTimeoutNanos;
+        this.taskRunner = taskRunner;
+        this.socketOptions = socketOptions;
+        this.serverSocketOptions = serverSocketOptions;
+        this.maxPendingConnections = maxPendingConnections;
+        this.protocolFamily = protocolFamily;
+        this.useNio = useNio;
+    }
 
     @Override
     public @NonNull NetworkServerBuilder readTimeout(final @NonNull Duration readTimeout) {
@@ -129,5 +158,12 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
                 socketOptions,
                 serverSocketOptions,
                 maxPendingConnections);
+    }
+
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
+    @Override
+    public @NonNull NetworkServerBuilder clone() {
+        return new NetworkServerBuilder(readTimeoutNanos, writeTimeoutNanos, taskRunner, socketOptions,
+                serverSocketOptions, maxPendingConnections, protocolFamily, useNio);
     }
 }

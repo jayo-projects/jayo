@@ -33,7 +33,7 @@ public class FailTest {
     @Test
     public void testIoPlanToTls() throws IOException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
-        int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
+        int chosenPort = server.getLocalAddress().getPort();
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
@@ -41,11 +41,11 @@ public class FailTest {
         factory.createClientSslEngine(Optional.empty(), chosenPort);
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
-                TlsEndpoint.serverBuilder(serverEndpoint, nameOpt ->
+                TlsEndpoint.serverBuilder(nameOpt ->
                                 factory.sslContextFactory(factory.sslContext, nameOpt))
                         .engineFactory(sslContext ->
                                 factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
-                        .build())
+                        .build(serverEndpoint))
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");
@@ -61,7 +61,7 @@ public class FailTest {
     @Test
     public void testNioPlanToTls() throws IOException, InterruptedException {
         NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
-        int chosenPort = ((InetSocketAddress) server.getLocalAddress()).getPort();
+        int chosenPort = server.getLocalAddress().getPort();
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
@@ -69,11 +69,11 @@ public class FailTest {
         factory.createClientSslEngine(Optional.empty(), chosenPort);
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
-                TlsEndpoint.serverBuilder(serverEndpoint, nameOpt ->
+                TlsEndpoint.serverBuilder(nameOpt ->
                                 factory.sslContextFactory(factory.sslContext, nameOpt))
                         .engineFactory(sslContext ->
                                 factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
-                        .build())
+                        .build(serverEndpoint))
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");

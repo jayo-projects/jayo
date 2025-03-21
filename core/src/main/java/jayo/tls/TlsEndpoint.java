@@ -20,17 +20,14 @@ import jayo.internal.ServerTlsEndpoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import javax.net.ssl.SNIServerName;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLSession;
+import javax.net.ssl.*;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * A TLS (Transport Layer Security) endpoint, either the client-side or server-side end of a TLS connection between two
- * peers. {@link TlsEndpoint} guarantee that the TLS connection is initialized and its <b>initial handshake was done</b>
+ * peers. {@link TlsEndpoint} guarantee that the TLS connection is established and its <b>initial handshake was done</b>
  * upon creation.
  * <p>
  * {@link TlsEndpoint} implementations delegate all cryptographic operations to the standard JDK's existing
@@ -38,7 +35,8 @@ import java.util.function.Function;
  * reader and writer, that allows to secure JVM applications with minimal added complexity.
  * <p>
  * Note that this is an API adapter, not a cryptographic implementation: except for a few bytes that are parsed at
- * the beginning of the connection, to look for the SNI, the whole protocol implementation is done by the SSLEngine.
+ * the beginning of the connection in server mode, to look for the SNI, the whole protocol implementation is done by the
+ * {@link SSLEngine}.
  * <p>
  * A TLS endpoint is created by using one of its {@code create*} for client or server side. They require an existing
  * {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a network socket); and a
@@ -50,83 +48,88 @@ import java.util.function.Function;
  */
 public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, ServerTlsEndpoint {
     /**
-     * Create a new {@link ClientBuilder} for a client-side TLS endpoint, it requires an existing {@link Endpoint} for
-     * encrypted bytes (typically, but not necessarily associated with a network socket); and the provided
-     * {@link SSLContext}. This SSL context will be used to create a {@link SSLEngine} configured in client mode.
+     * Create a new default client-side TLS endpoint, it requires an existing {@link Endpoint} for encrypted bytes
+     * (typically, but not necessarily associated with a network socket). A default {@link SSLContext} will be used.
+     * <p>
+     * If you need any specific configuration, please use {@link #clientBuilder()}, {@link #clientBuilder(SSLContext)}
+     * or {@link #clientBuilder(SSLEngine)} instead.
      *
-     * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
-     * @param sslContext        the {@link SSLContext} to be used.
-     * @see JssePlatform#newSSLContext()
-     * @see HandshakeCertificates#sslContext()
+     * @see JssePlatform#getDefaultTrustManager()
+     * @see JssePlatform#newSSLContextWithTrustManager(X509TrustManager)
      */
-    static @NonNull ClientBuilder clientBuilder(final @NonNull Endpoint encryptedEndpoint,
-                                                final @NonNull SSLContext sslContext) {
+    static @NonNull TlsEndpoint createClient(final @NonNull Endpoint encryptedEndpoint) {
         Objects.requireNonNull(encryptedEndpoint);
-        Objects.requireNonNull(sslContext);
-        return new ClientTlsEndpoint.Builder(encryptedEndpoint, sslContext);
+        return clientBuilder().build(encryptedEndpoint);
     }
 
     /**
-     * Create a new {@link ClientBuilder} for a client-side TLS endpoint, it requires an existing {@link Endpoint} for
-     * encrypted bytes (typically, but not necessarily associated with a network socket); and the provided
-     * {@link SSLEngine}.
+     * Create a new {@link ClientBuilder} for a client-side TLS endpoint using a default {@link SSLContext}. This
+     * TLS/SSL context will be used to create a {@link SSLEngine} configured in client mode.
      *
-     * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
-     * @param engine            the {@link SSLEngine} to be used.
+     * @see JssePlatform#getDefaultTrustManager()
+     * @see JssePlatform#newSSLContextWithTrustManager(X509TrustManager)
      */
-    static @NonNull ClientBuilder clientBuilder(final @NonNull Endpoint encryptedEndpoint,
-                                                final @NonNull SSLEngine engine) {
-        Objects.requireNonNull(encryptedEndpoint);
+    static @NonNull ClientBuilder clientBuilder() {
+        return new ClientTlsEndpoint.Builder();
+    }
+
+    /**
+     * Create a new {@link ClientBuilder} for a client-side TLS endpoint using the provided {@link SSLContext}. This
+     * TLS/SSL context will be used to create a {@link SSLEngine} configured in client mode.
+     *
+     * @see JssePlatform#newSSLContext()
+     * @see HandshakeCertificates#sslContext()
+     */
+    static @NonNull ClientBuilder clientBuilder(final @NonNull SSLContext sslContext) {
+        Objects.requireNonNull(sslContext);
+        return new ClientTlsEndpoint.Builder(sslContext);
+    }
+
+    /**
+     * Create a new {@link ClientBuilder} for a client-side TLS endpoint using the provided {@link SSLEngine}.
+     */
+    static @NonNull ClientBuilder clientBuilder(final @NonNull SSLEngine engine) {
         Objects.requireNonNull(engine);
         if (!engine.getUseClientMode()) {
             throw new IllegalArgumentException("The provided SSL engine must use client mode");
         }
-        return new ClientTlsEndpoint.Builder(encryptedEndpoint, engine);
+        return new ClientTlsEndpoint.Builder(engine);
     }
 
     /**
-     * Create a new {@link ServerBuilder} for a server-side TLS endpoint, it requires an existing {@link Endpoint} for
-     * encrypted bytes (typically, but not necessarily associated with a network socket); and the provided
-     * {@link SSLContext}. This SSL context will be used to create a {@link SSLEngine} configured in server mode.
+     * Create a new {@link ServerBuilder} for a server-side TLS endpoint using the provided {@link SSLContext}, and so
+     * the correct certificate. This TLS/SSL context will be used to create a {@link SSLEngine} configured in server
+     * mode.
      *
-     * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
-     * @param sslContext        the fixed SSL context (and so the correct certificate) to be used.
      * @see JssePlatform#newSSLContext()
      * @see HandshakeCertificates#sslContext()
      */
-    static @NonNull ServerBuilder serverBuilder(final @NonNull Endpoint encryptedEndpoint,
-                                                final @NonNull SSLContext sslContext) {
-        Objects.requireNonNull(encryptedEndpoint);
+    static @NonNull ServerBuilder serverBuilder(final @NonNull SSLContext sslContext) {
         Objects.requireNonNull(sslContext);
-        return new ServerTlsEndpoint.Builder(encryptedEndpoint, sslContext);
+        return new ServerTlsEndpoint.Builder(sslContext);
     }
 
     /**
-     * Create a new {@link ServerBuilder} for a server-side TLS endpoint, it requires an existing {@link Endpoint} for
-     * encrypted bytes (typically, but not necessarily associated with a network socket); and a custom
-     * {@link SSLContext} factory, which will be used to create the SSL context, as a function of the SNI received at
-     * the TLS connection start. This SSL context will then be used to create a {@link SSLEngine} configured in server
-     * mode.
+     * Create a new {@link ServerBuilder} for a server-side TLS endpoint using a custom {@link SSLContext} factory,
+     * which will be used to create the TLS/SSL context, as a function of the SNI received at the TLS connection start.
+     * This TLS/SSL context will then be used to create a {@link SSLEngine} configured in server mode.
      *
-     * @param encryptedEndpoint a reference to the underlying {@link Endpoint} for encrypted bytes.
      * @param sslContextFactory a function to select the correct SSL context (and so the correct certificate) based on
      *                          the optional SNI server name provided by the client. A {@code null} SNI server name
      *                          means that the client did not send a SNI server name. Returning {@code null} indicates
      *                          that no SSL context is supplied and the TLS connection would then be aborted by throwing
-     *                          a {@linkplain JayoTlsHandshakeException JayoSSLHandshakeException}.
+     *                          a {@link JayoTlsHandshakeException}.
      * @implNote Due to limitations of {@link SSLEngine}, configuring a server-side {@link TlsEndpoint} to select the
      * {@link SSLContext} based on the SNI value implies parsing the first TLS frame (ClientHello) independently of the
-     * SSLEngine.
+     * {@link SSLEngine}.
      * @see <a href="https://tools.ietf.org/html/rfc6066#section-3">Server Name Indication</a>
      * @see JssePlatform#newSSLContext()
      * @see HandshakeCertificates#sslContext()
      */
     static @NonNull ServerBuilder serverBuilder(
-            final @NonNull Endpoint encryptedEndpoint,
             final @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sslContextFactory) {
-        Objects.requireNonNull(encryptedEndpoint);
         Objects.requireNonNull(sslContextFactory);
-        return new ServerTlsEndpoint.Builder(encryptedEndpoint, sslContextFactory);
+        return new ServerTlsEndpoint.Builder(sslContextFactory);
     }
 
     /**
@@ -218,7 +221,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     /**
      * The abstract builder used to create a {@link TlsEndpoint} instance.
      */
-    sealed interface Builder<T extends Builder<T>> permits RealTlsEndpoint.Builder, ClientBuilder, ServerBuilder {
+    sealed interface Builder<T extends Builder<T>> extends Cloneable permits RealTlsEndpoint.Builder, ClientBuilder, ServerBuilder {
         /**
          * Register a callback function to be executed when the TLS session is established (or re-established). The
          * supplied function will run in the same thread as the rest of the handshake, so it should ideally run as fast
@@ -248,14 +251,23 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         @NonNull
         T waitForCloseConfirmation(final boolean waitForCloseConfirmation);
 
+        /**
+         * @return a deep copy of this builder.
+         */
         @NonNull
-        TlsEndpoint build();
+        T clone();
     }
 
     /**
      * The builder used to create a client-side {@link TlsEndpoint} instance.
      */
     sealed interface ClientBuilder extends Builder<ClientBuilder> permits ClientTlsEndpoint.Builder {
+        /**
+         * Create a new {@link ClientBuilder} for a client-side TLS endpoint, it requires an existing {@link Endpoint} for
+         * encrypted bytes (typically, but not necessarily associated with a network socket).
+         */
+        @NonNull
+        TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint);
     }
 
     /**
@@ -268,5 +280,12 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
          */
         @NonNull
         ServerBuilder engineFactory(final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory);
+
+        /**
+         * Create a new {@link ClientBuilder} for a server-side TLS endpoint, it requires an existing {@link Endpoint}
+         * for encrypted bytes (typically, but not necessarily associated with a network socket).
+         */
+        @NonNull
+        TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint);
     }
 }

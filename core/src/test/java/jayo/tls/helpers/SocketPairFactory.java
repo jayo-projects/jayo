@@ -123,13 +123,13 @@ public class SocketPairFactory {
     }
 
     private TlsEndpoint createTlsServerEndpoint(Optional<String> cipher, NetworkEndpoint endpoint) {
-        return TlsEndpoint.serverBuilder(endpoint, sslContext)
+        return TlsEndpoint.serverBuilder(sslContext)
                 .engineFactory(sslContext -> {
                     SSLEngine engine = sslContext.createSSLEngine();
                     engine.setUseClientMode(false);
                     cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}));
                     return engine;
-                }).build();
+                }).build(endpoint);
     }
 
     private TlsEndpoint createTlsClientEndpoint(Optional<String> cipher,
@@ -141,7 +141,8 @@ public class SocketPairFactory {
         SSLParameters sslParameters = engine.getSSLParameters(); // returns a value object
         sslParameters.setServerNames(Collections.singletonList(clientSniHostName));
         engine.setSSLParameters(sslParameters);
-        return TlsEndpoint.clientBuilder(NetworkEndpoint.connectTcp(address), engine).build();
+        return TlsEndpoint.clientBuilder(engine)
+                .build(NetworkEndpoint.connectTcp(address));
     }
 
     public OldOldSocketPair oldOld(Optional<String> cipher) throws InterruptedException {
@@ -165,10 +166,10 @@ public class SocketPairFactory {
         var thread = new Thread(() -> {
             serverEndpoint.set(networkServer.accept());
             networkServer.close();
-            tlsServer.set(TlsEndpoint.serverBuilder(serverEndpoint.get(), nameOpt ->
+            tlsServer.set(TlsEndpoint.serverBuilder(nameOpt ->
                             sslContextFactory(sslContext, nameOpt))
                     .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x))
-                    .build());
+                    .build(serverEndpoint.get()));
         });
         thread.start();
         TlsEndpoint client = createTlsClientEndpoint(cipher, networkServer.getLocalAddress(), clientSniHostName);
@@ -186,8 +187,8 @@ public class SocketPairFactory {
         });
         thread.start();
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);
-        TlsEndpoint client =
-                TlsEndpoint.clientBuilder(encryptedEndpoint, createClientSslEngine(cipher, address.getPort())).build();
+        TlsEndpoint client = TlsEndpoint.clientBuilder(createClientSslEngine(cipher, address.getPort()))
+                        .build(encryptedEndpoint);
         thread.join();
         return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer.get());
     }
@@ -226,15 +227,15 @@ public class SocketPairFactory {
                     }
                     final TlsEndpoint serverTlsEndpoint;
                     if (cipher.equals(Optional.of(NULL_CIPHER))) {
-                        serverTlsEndpoint = TlsEndpoint.serverBuilder(plainServerEndpoint, new NullSslContext())
+                        serverTlsEndpoint = TlsEndpoint.serverBuilder(new NullSslContext())
                                 .waitForCloseConfirmation(waitForCloseConfirmation)
-                                .build();
+                                .build(plainServerEndpoint);
                     } else {
-                        serverTlsEndpoint = TlsEndpoint.serverBuilder(plainServerEndpoint, nameOpt ->
+                        serverTlsEndpoint = TlsEndpoint.serverBuilder(nameOpt ->
                                         sslContextFactory(sslContext, nameOpt))
                                 .waitForCloseConfirmation(waitForCloseConfirmation)
                                 .engineFactory(ctx -> fixedCipherServerSslEngineFactory(cipher, ctx))
-                                .build();
+                                .build(plainServerEndpoint);
 
                     }
                     serverPair.set(new SocketGroup(serverTlsEndpoint, rawServerEndpoint));
@@ -259,9 +260,9 @@ public class SocketPairFactory {
                 } else {
                     clientEngine = createClientSslEngine(cipher, chosenPort);
                 }
-                TlsEndpoint clientTlsEndpoint = TlsEndpoint.clientBuilder(plainClientEndpoint, clientEngine)
+                TlsEndpoint clientTlsEndpoint = TlsEndpoint.clientBuilder(clientEngine)
                         .waitForCloseConfirmation(waitForCloseConfirmation)
-                        .build();
+                        .build(plainClientEndpoint);
                 SocketGroup clientPair = new SocketGroup(clientTlsEndpoint, rawClient);
 
                 thread.join();
@@ -281,10 +282,10 @@ public class SocketPairFactory {
         var thread = new Thread(() -> {
             encryptedEndpoint.set(server.accept());
             server.close();
-            tlsServer.set(TlsEndpoint.serverBuilder(encryptedEndpoint.get(), nameOpt ->
+            tlsServer.set(TlsEndpoint.serverBuilder(nameOpt ->
                             sslContextFactory(sslContext, nameOpt))
                     .engineFactory(x -> fixedCipherServerSslEngineFactory(cipher, x))
-                    .build());
+                    .build(encryptedEndpoint.get()));
         });
         thread.start();
         TlsEndpoint client = createTlsClientEndpoint(cipher, server.getLocalAddress(), clientSniHostName);
@@ -303,8 +304,8 @@ public class SocketPairFactory {
         });
         thread.start();
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);
-        TlsEndpoint client = TlsEndpoint.clientBuilder(encryptedEndpoint, createClientSslEngine(cipher, chosenPort))
-                .build();
+        TlsEndpoint client = TlsEndpoint.clientBuilder(createClientSslEngine(cipher, chosenPort))
+                .build(encryptedEndpoint);
         thread.join();
         return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer.get());
     }

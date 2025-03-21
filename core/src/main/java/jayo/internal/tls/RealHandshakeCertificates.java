@@ -93,7 +93,7 @@ public final class RealHandshakeCertificates implements HandshakeCertificates {
 
         @Override
         public @NonNull Builder addPlatformTrustedCertificates() {
-            final var platformTrustManager = JssePlatform.get().platformTrustManager();
+            final var platformTrustManager = JssePlatform.get().getDefaultTrustManager();
             Collections.addAll(trustedCertificates, platformTrustManager.getAcceptedIssuers());
             return this;
         }

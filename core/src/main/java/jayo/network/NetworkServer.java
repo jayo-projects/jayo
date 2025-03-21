@@ -118,7 +118,7 @@ public sealed interface NetworkServer extends Closeable
     /**
      * The builder used to create a {@link NetworkServer}.
      */
-    sealed interface Builder permits NetworkServerBuilder {
+    sealed interface Builder extends Cloneable permits NetworkServerBuilder {
         /**
          * Sets the default read timeout of all read operations of the
          * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer}
@@ -199,5 +199,11 @@ public sealed interface NetworkServer extends Closeable
          */
         @NonNull
         NetworkServer bindTcp(final @NonNull SocketAddress localAddress);
+
+        /**
+         * @return a deep copy of this builder.
+         */
+        @NonNull
+        Builder clone();
     }
 }

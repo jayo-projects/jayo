@@ -669,17 +669,10 @@ public final class RealTlsEndpoint {
      */
     public static abstract sealed class Builder<T extends TlsEndpoint.Builder<T>> implements TlsEndpoint.Builder<T>
             permits ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
-        final @NonNull Endpoint encryptedEndpoint;
-
         // @formatter:off
         @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
         // @formatter:on
         boolean waitForCloseConfirmation = false;
-
-        Builder(final @NonNull Endpoint encryptedEndpoint) {
-            assert encryptedEndpoint != null;
-            this.encryptedEndpoint = encryptedEndpoint;
-        }
 
         abstract @NonNull T getThis();
 
@@ -694,5 +687,8 @@ public final class RealTlsEndpoint {
             this.waitForCloseConfirmation = waitForCloseConfirmation;
             return getThis();
         }
+
+        @Override
+        public abstract @NonNull T clone();
     }
 }
