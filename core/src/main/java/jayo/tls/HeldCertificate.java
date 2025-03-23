@@ -162,7 +162,7 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
     String privateKeyPkcs1Pem();
 
     /**
-     * The configuration used to create a {@link HeldCertificate} with reasonable defaults.
+     * The builder used to create a {@link HeldCertificate} with reasonable defaults.
      */
     sealed interface Builder permits RealHeldCertificate.Builder {
         /**

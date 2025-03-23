@@ -21,9 +21,9 @@
 
 package jayo.internal.tls
 
+import jayo.bytestring.toByteString
 import jayo.internal.JavaVersionUtils.threadFactory
 import jayo.tls.*
-import jayo.bytestring.toByteString
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -60,6 +60,60 @@ class HandshakeCertificatesTest {
     }
 
     @Test
+    fun keyManager() {
+        val root =
+            HeldCertificate.builder()
+                .certificateAuthority(1)
+                .build()
+        val intermediate =
+            HeldCertificate.builder()
+                .certificateAuthority(0)
+                .signedBy(root)
+                .build()
+        val certificate =
+            HeldCertificate.builder()
+                .signedBy(intermediate)
+                .build()
+        val handshakeCertificates =
+            ClientHandshakeCertificates.builder()
+                .addTrustedCertificate(root.certificate) // BouncyCastle requires at least one
+                .heldCertificate(certificate, intermediate.certificate)
+                .build()
+        assertPrivateKeysEquals(
+            certificate.keyPair.private,
+            handshakeCertificates.keyManager.getPrivateKey("private"),
+        )
+        assertThat(handshakeCertificates.keyManager.getCertificateChain("private").toList())
+            .isEqualTo(listOf(certificate.certificate, intermediate.certificate))
+    }
+
+    @Test
+    fun platformTrustedCertificates() {
+        // default = all platform
+        var handshakeCertificates =
+            ClientHandshakeCertificates.builder()
+                .build()
+        var acceptedIssuers = handshakeCertificates.trustManager.acceptedIssuers
+        assertThat(acceptedIssuers).isNotEmpty()
+        val names =
+            acceptedIssuers
+                .map { it.subjectX500Principal.name }
+                .toSet()
+
+        // It's safe to assume all platforms will have a major Internet certificate issuer.
+        assertThat(names).matches { strings ->
+            strings.any { it.matches(Regex("[A-Z]+=Entrust.*")) }
+        }
+
+        handshakeCertificates =
+            ClientHandshakeCertificates.builder()
+                .addPlatformTrustedCertificates(false)
+                .build()
+        acceptedIssuers = handshakeCertificates.trustManager.acceptedIssuers
+        assertThat(acceptedIssuers).isEmpty()
+    }
+
+    @Test
     fun clientAndServer() {
         platform.assumeNotConscrypt()
         platform.assumeNotBouncyCastle()
@@ -91,12 +145,11 @@ class HandshakeCertificatesTest {
                 .signedBy(serverIntermediate)
                 .build()
         val server =
-            HandshakeCertificates.builder()
+            ServerHandshakeCertificates.builder(serverCertificate, serverIntermediate.certificate)
                 .addTrustedCertificate(clientRoot.certificate)
-                .heldCertificate(serverCertificate, serverIntermediate.certificate)
                 .build()
         val client =
-            HandshakeCertificates.builder()
+            ClientHandshakeCertificates.builder()
                 .addTrustedCertificate(serverRoot.certificate)
                 .heldCertificate(clientCertificate, clientIntermediate.certificate)
                 .build()
@@ -115,52 +168,6 @@ class HandshakeCertificatesTest {
             .isEqualTo(clientHandshake.localCertificates)
     }
 
-    @Test
-    fun keyManager() {
-        val root =
-            HeldCertificate.builder()
-                .certificateAuthority(1)
-                .build()
-        val intermediate =
-            HeldCertificate.builder()
-                .certificateAuthority(0)
-                .signedBy(root)
-                .build()
-        val certificate =
-            HeldCertificate.builder()
-                .signedBy(intermediate)
-                .build()
-        val handshakeCertificates =
-            HandshakeCertificates.builder()
-                .addTrustedCertificate(root.certificate) // BouncyCastle requires at least one
-                .heldCertificate(certificate, intermediate.certificate)
-                .build()
-        assertPrivateKeysEquals(
-            certificate.keyPair.private,
-            handshakeCertificates.keyManager.getPrivateKey("private"),
-        )
-        assertThat(handshakeCertificates.keyManager.getCertificateChain("private").toList())
-            .isEqualTo(listOf(certificate.certificate, intermediate.certificate))
-    }
-
-    @Test
-    fun platformTrustedCertificates() {
-        val handshakeCertificates =
-            HandshakeCertificates.builder()
-                .addPlatformTrustedCertificates()
-                .build()
-        val acceptedIssuers = handshakeCertificates.trustManager.acceptedIssuers
-        val names =
-            acceptedIssuers
-                .map { it.subjectX500Principal.name }
-                .toSet()
-
-        // It's safe to assume all platforms will have a major Internet certificate issuer.
-        assertThat(names).matches { strings ->
-            strings.any { it.matches(Regex("[A-Z]+=Entrust.*")) }
-        }
-    }
-
     private fun startTlsServer(): InetSocketAddress {
         val serverSocketFactory = ServerSocketFactory.getDefault()
         serverSocket = serverSocketFactory.createServerSocket()
@@ -169,11 +176,11 @@ class HandshakeCertificatesTest {
         return InetSocketAddress(serverAddress, serverSocket!!.localPort)
     }
 
-    private fun doServerHandshake(server: HandshakeCertificates): Future<Handshake> {
+    private fun doServerHandshake(server: ServerHandshakeCertificates): Future<Handshake> {
         return executorService.submit<Handshake> {
             serverSocket!!.accept().use { rawSocket ->
                 val sslSocket =
-                    server.sslContext().socketFactory.createSocket(
+                    (server as RealHandshakeCertificates).sslContext().socketFactory.createSocket(
                         rawSocket,
                         rawSocket.inetAddress.hostAddress,
                         rawSocket.port,
@@ -190,14 +197,14 @@ class HandshakeCertificatesTest {
     }
 
     private fun doClientHandshake(
-        client: HandshakeCertificates,
+        client: ClientHandshakeCertificates,
         serverAddress: InetSocketAddress,
     ): Future<Handshake> {
         return executorService.submit<Handshake> {
             SocketFactory.getDefault().createSocket().use { rawSocket ->
                 rawSocket.connect(serverAddress)
                 val sslSocket =
-                    client.sslContext().socketFactory.createSocket(
+                    (client as RealHandshakeCertificates).sslContext().socketFactory.createSocket(
                         rawSocket,
                         rawSocket.inetAddress.hostAddress,
                         rawSocket.port,

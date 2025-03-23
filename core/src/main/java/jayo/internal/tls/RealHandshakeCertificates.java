@@ -21,9 +21,10 @@
 
 package jayo.internal.tls;
 
-import jayo.tls.HandshakeCertificates;
+import jayo.tls.ClientHandshakeCertificates;
 import jayo.tls.HeldCertificate;
 import jayo.tls.JssePlatform;
+import jayo.tls.ServerHandshakeCertificates;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -33,12 +34,13 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.*;
 
-public final class RealHandshakeCertificates implements HandshakeCertificates {
+public final class RealHandshakeCertificates
+        implements ClientHandshakeCertificates, ServerHandshakeCertificates {
     private final @NonNull X509KeyManager keyManager;
     private final @NonNull X509TrustManager trustManager;
 
     private RealHandshakeCertificates(final @NonNull X509KeyManager keyManager,
-                                     final @NonNull X509TrustManager trustManager) {
+                                      final @NonNull X509TrustManager trustManager) {
         assert keyManager != null;
         assert trustManager != null;
 
@@ -56,8 +58,8 @@ public final class RealHandshakeCertificates implements HandshakeCertificates {
         return trustManager;
     }
 
-    @Override
-    public @NonNull SSLContext sslContext() {
+    @NonNull
+    SSLContext sslContext() {
         final var sslContext = JssePlatform.get().newSSLContext();
         try {
             sslContext.init(new KeyManager[]{keyManager}, new TrustManager[]{trustManager}, new SecureRandom());
@@ -67,15 +69,36 @@ public final class RealHandshakeCertificates implements HandshakeCertificates {
         return sslContext;
     }
 
-    public static final class Builder implements HandshakeCertificates.Builder {
-        private @Nullable HeldCertificate heldCertificate = null;
-        private @NonNull X509Certificate @Nullable [] intermediates = null;
-        private final @NonNull List<X509Certificate> trustedCertificates = new ArrayList<>();
-        private final @NonNull List<String> insecureHosts = new ArrayList<>();
+    public static sealed abstract class Builder {
+        @Nullable
+        HeldCertificate heldCertificate = null;
+        @NonNull
+        X509Certificate @Nullable [] intermediates = null;
+        final @NonNull Collection<X509Certificate> trustedCertificates = new LinkedHashSet<>();
+        final @NonNull Collection<String> insecureHosts = new LinkedHashSet<>();
+
+        @NonNull
+        RealHandshakeCertificates buildInternal() {
+            if (heldCertificate != null && heldCertificate.getKeyPair().getPrivate().getFormat() == null) {
+                throw new IllegalArgumentException("KeyStoreException : unable to support unencodable private key");
+            }
+
+            final var keyManager = TlsUtils.newKeyManager(
+                    null,
+                    heldCertificate,
+                    (intermediates != null) ? intermediates : new X509Certificate[0]);
+            final var trustManager =
+                    TlsUtils.newTrustManager(null, trustedCertificates, insecureHosts);
+            return new RealHandshakeCertificates(keyManager, trustManager);
+        }
+    }
+
+    public static final class ClientBuilder extends Builder implements ClientHandshakeCertificates.Builder {
+        private boolean addPlatformTrustedCertificates = true;
 
         @Override
-        public @NonNull Builder heldCertificate(final @NonNull HeldCertificate heldCertificate,
-                                                final @NonNull X509Certificate @NonNull ... intermediates) {
+        public @NonNull ClientBuilder heldCertificate(final @NonNull HeldCertificate heldCertificate,
+                                                      final @NonNull X509Certificate @NonNull ... intermediates) {
             Objects.requireNonNull(heldCertificate);
 
             this.heldCertificate = heldCertificate;
@@ -84,22 +107,20 @@ public final class RealHandshakeCertificates implements HandshakeCertificates {
         }
 
         @Override
-        public @NonNull Builder addTrustedCertificate(final @NonNull X509Certificate certificate) {
-            Objects.requireNonNull(certificate);
+        public @NonNull ClientBuilder addPlatformTrustedCertificates(final boolean addPlatformTrustedCertificates) {
+            this.addPlatformTrustedCertificates = addPlatformTrustedCertificates;
+            return this;
+        }
 
+        @Override
+        public @NonNull ClientBuilder addTrustedCertificate(final @NonNull X509Certificate certificate) {
+            Objects.requireNonNull(certificate);
             this.trustedCertificates.add(certificate);
             return this;
         }
 
         @Override
-        public @NonNull Builder addPlatformTrustedCertificates() {
-            final var platformTrustManager = JssePlatform.get().getDefaultTrustManager();
-            Collections.addAll(trustedCertificates, platformTrustManager.getAcceptedIssuers());
-            return this;
-        }
-
-        @Override
-        public @NonNull Builder addInsecureHost(final @NonNull String hostname) {
+        public @NonNull ClientBuilder addInsecureHost(final @NonNull String hostname) {
             Objects.requireNonNull(hostname);
 
             this.insecureHosts.add(hostname);
@@ -107,21 +128,36 @@ public final class RealHandshakeCertificates implements HandshakeCertificates {
         }
 
         @Override
-        public @NonNull HandshakeCertificates build() {
-            final var immutableInsecureHosts = Collections.unmodifiableList(insecureHosts);
-
-            if (heldCertificate != null && heldCertificate.getKeyPair().getPrivate().getFormat() == null) {
-                throw new IllegalArgumentException("KeyStoreException : unable to support unencodable private key");
+        public @NonNull ClientHandshakeCertificates build() {
+            if (addPlatformTrustedCertificates) {
+                final var platformTrustManager = JssePlatform.get().getDefaultTrustManager();
+                Collections.addAll(trustedCertificates, platformTrustManager.getAcceptedIssuers());
             }
 
-            final var keyManager =
-                    TlsUtils.newKeyManager(
-                            null,
-                            heldCertificate,
-                            (intermediates != null) ? intermediates : new X509Certificate[0]);
-            final var trustManager =
-                    TlsUtils.newTrustManager(null, trustedCertificates, immutableInsecureHosts);
-            return new RealHandshakeCertificates(keyManager, trustManager);
+            return buildInternal();
+        }
+    }
+
+    public static final class ServerBuilder extends Builder implements ServerHandshakeCertificates.Builder {
+        public ServerBuilder(final @NonNull HeldCertificate heldCertificate,
+                             final @NonNull X509Certificate @NonNull [] intermediates) {
+            assert heldCertificate != null;
+            assert intermediates != null;
+
+            this.heldCertificate = heldCertificate;
+            this.intermediates = intermediates;
+        }
+
+        @Override
+        public ServerHandshakeCertificates.@NonNull Builder addTrustedCertificate(@NonNull X509Certificate certificate) {
+            Objects.requireNonNull(certificate);
+            this.trustedCertificates.add(certificate);
+            return this;
+        }
+
+        @Override
+        public @NonNull ServerHandshakeCertificates build() {
+            return buildInternal();
         }
     }
 }

@@ -59,7 +59,7 @@ public final class BouncyCastleJssePlatform extends JdkJssePlatform {
 
     private final @NonNull Provider provider;
 
-    private BouncyCastleJssePlatform(boolean isFips) {
+    private BouncyCastleJssePlatform(final boolean isFips) {
         provider = isFips ? new BouncyCastleJsseProvider("fips:BCFIPS") : new BouncyCastleJsseProvider();
     }
 

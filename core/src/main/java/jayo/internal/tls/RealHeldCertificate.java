@@ -101,7 +101,7 @@ public final class RealHeldCertificate implements HeldCertificate {
             throw new IllegalArgumentException("failed to decode private key");
         }
 
-        // The private key doesn't tell us its type but it's okay because the certificate knows!
+        // The private key doesn't tell us its type, but it's okay because the certificate knows!
         final var certificatePublicKey = certificate.getPublicKey();
         final String keyType;
         if (certificatePublicKey instanceof ECPublicKey) {
