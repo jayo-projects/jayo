@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-present, pull-vert and Jayo contributors.
+ * Copyright (c) 2025-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
  *
  * Forked from OkHttp (https://github.com/square/okhttp), original copyright is below
@@ -24,7 +24,6 @@ package jayo.tls;
 import jayo.internal.tls.RealHandshakeCertificates;
 import org.jspecify.annotations.NonNull;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;
@@ -34,35 +33,46 @@ import java.security.cert.X509Certificate;
  * exchange these certificates during the handshake phase of a TLS connection.
  * <h3>Server Authentication</h3>
  * This is the most common form of TLS authentication: clients verify that servers are trusted and that they own the
- * hostnames that they represent. Server authentication is required.
+ * hostnames that they represent. <b>Server authentication is required</b>.
  * <p>
  * To perform server authentication:
  * <ul>
- * <li>The server's handshake certificates must have a {@linkplain HeldCertificate held certificate} (a certificate and
- * its private key). The certificate's subject alternative names must match the server's hostname. The server must also
- * have is a (possibly-empty) chain of intermediate certificates to establish trust from a root certificate to the
- * server's certificate. The root certificate is not included in this chain.
- * <li>The client's handshake certificates must include a set of trusted root certificates. They will be used to
- * authenticate the server's certificate chain. Typically, this is a set of well-known root certificates that is
- * distributed with the HTTP client or its platform. It may be augmented by certificates private to an organization or
- * service.
+ * <li>The {@linkplain ServerHandshakeCertificates server's handshake certificates} must have a
+ * {@linkplain HeldCertificate held certificate} (a certificate and its private key). The
+ * {@linkplain HeldCertificate.Builder#addSubjectAlternativeName(String) certificate's subject alternative names} must
+ * match the server's hostname. The server must also have a (possibly-empty) chain of intermediate certificates to
+ * establish trust from a root certificate to the server's certificate. The
+ * {@linkplain ServerHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) root certificate} is not
+ * included in this chain.
+ * <li>The {@linkplain ClientHandshakeCertificates client's handshake certificates} must include a set of trusted root
+ * certificates. They will be used to authenticate the server's certificate chain. Typically, this is a
+ * {@linkplain ClientHandshakeCertificates.Builder#addPlatformTrustedCertificates(boolean) set of well-known root
+ * certificates} that is distributed with the HTTP client or its platform. It may be replaced or augmented by
+ * {@linkplain ClientHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) certificates private to an
+ * organization or service}.
  * </ul>
  * <h3>Client Authentication</h3>
- * This is authentication of the client by the server during the TLS handshake. Client authentication is optional.
+ * This is authentication of the client by the server during the TLS handshake. <b>Client authentication is optional</b>.
  * <p>
  * To perform client authentication:
  * <ul>
- * <li>The client's handshake certificates must have a {@linkplain HeldCertificate held certificate} (a certificate and
- * its private key). The client must also have a (possibly-empty) chain of intermediate certificates to establish trust
- * from a root certificate to the client's certificate. The root certificate is not included in this chain.
- * <li>The server's handshake certificates must include a set of trusted root certificates. They will be used to
- * authenticate the client's certificate chain. Typically, this is not the same set of root certificates used in server
- * authentication. Instead, it will be a small set of roots private to an organization or service.
+ * <li>The {@linkplain ClientHandshakeCertificates client's handshake certificates} must have a
+ * {@linkplain HeldCertificate held certificate} (a certificate and its private key). The client must also have a
+ * (possibly-empty) chain of intermediate certificates to establish trust from a root certificate to the client's
+ * certificate. The {@linkplain ClientHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) root
+ * certificate} is not included in this chain.
+ * <li>The {@linkplain ServerHandshakeCertificates server's handshake certificates} must include a set of trusted root
+ * certificates. They will be used to authenticate the client's certificate chain. This is not the same set of root
+ * certificates used in server authentication. Instead, it will be a
+ * {@linkplain ServerHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) small set of roots private to
+ * an organization or service}.
  * </ul>
+ *
+ * @see ServerHandshakeCertificates
  */
-public sealed interface HandshakeCertificates permits RealHandshakeCertificates {
+public sealed interface ClientHandshakeCertificates permits RealHandshakeCertificates {
     static @NonNull Builder builder() {
-        return new RealHandshakeCertificates.Builder();
+        return new RealHandshakeCertificates.ClientBuilder();
     }
 
     @NonNull
@@ -71,13 +81,10 @@ public sealed interface HandshakeCertificates permits RealHandshakeCertificates 
     @NonNull
     X509TrustManager getTrustManager();
 
-    @NonNull
-    SSLContext sslContext();
-
     /**
-     * The configuration used to create a {@link HandshakeCertificates}.
+     * The builder used to create a {@link ClientHandshakeCertificates}.
      */
-    sealed interface Builder permits RealHandshakeCertificates.Builder {
+    sealed interface Builder permits RealHandshakeCertificates.ClientBuilder {
         /**
          * Configure the certificate chain to use when being authenticated. The first certificate is the held
          * certificate, further certificates are included in the handshake so the peer can build a trusted path to a
@@ -91,24 +98,25 @@ public sealed interface HandshakeCertificates permits RealHandshakeCertificates 
                                 final @NonNull X509Certificate @NonNull ... intermediates);
 
         /**
-         * Add a trusted root certificate to use when authenticating a peer. Peers must provide a chain of certificates
-         * whose root is one of these.
-         */
-        @NonNull
-        Builder addTrustedCertificate(final @NonNull X509Certificate certificate);
-
-        /**
-         * Add all the host platform's trusted root certificates.
+         * Add all the host platform's trusted root certificates. Default is true.
          * <p>
-         * Most TLS clients that connect to hosts on the public Internet should call this method. Otherwise, it is
-         * necessary to manually prepare a comprehensive set of trusted roots.
+         * Most TLS clients that connect to hosts on the public Internet <b>should not call this method with false</b>.
+         * Otherwise, it is necessary to {@linkplain #addTrustedCertificate(X509Certificate) manually prepare a
+         * comprehensive set of trusted roots}.
          * <p>
          * If the host platform is compromised or misconfigured this may contain untrustworthy root certificates.
          * Applications that connect to a known set of servers may be able to mitigate this problem with certificate
          * pinning.
          */
         @NonNull
-        Builder addPlatformTrustedCertificates();
+        Builder addPlatformTrustedCertificates(final boolean addPlatformTrustedCertificates);
+
+        /**
+         * Add a trusted root certificate to use when authenticating a peer. Peers must provide a chain of certificates
+         * whose root is one of these.
+         */
+        @NonNull
+        Builder addTrustedCertificate(final @NonNull X509Certificate certificate);
 
         /**
          * Configures this to not authenticate the HTTPS server on to {@code hostname}. This makes the user vulnerable
@@ -133,6 +141,6 @@ public sealed interface HandshakeCertificates permits RealHandshakeCertificates 
         Builder addInsecureHost(final @NonNull String hostname);
 
         @NonNull
-        HandshakeCertificates build();
+        ClientHandshakeCertificates build();
     }
 }

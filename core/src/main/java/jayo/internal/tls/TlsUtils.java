@@ -37,6 +37,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 final class TlsUtils {
@@ -44,22 +45,26 @@ final class TlsUtils {
     private TlsUtils() {
     }
 
-    private static final char @NonNull [] password = "password".toCharArray();
+    /**
+     * Just because we need one.
+     */
+    private static final char @NonNull [] PASSWORD = "password".toCharArray();
 
     /**
      * @return a trust manager that trusts {@code trustedCertificates}.
      */
     static @NonNull X509TrustManager newTrustManager(final @Nullable String keyStoreType,
-                                                     final @NonNull List<X509Certificate> trustedCertificates,
-                                                     final @NonNull List<String> insecureHosts) {
+                                                     final @NonNull Collection<X509Certificate> trustedCertificates,
+                                                     final @NonNull Collection<String> insecureHosts) {
         assert trustedCertificates != null;
         assert insecureHosts != null;
 
         final var trustStore = newEmptyKeyStore(keyStoreType);
         final TrustManagerFactory factory;
         try {
-            for (var i = 0; i < trustedCertificates.size(); i++) {
-                trustStore.setCertificateEntry("cert_" + i, trustedCertificates.get(i));
+            var index = 0;
+            for (final var trustedCertificate : trustedCertificates) {
+                trustStore.setCertificateEntry("cert_" + index++, trustedCertificate);
             }
 
             factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -72,14 +77,17 @@ final class TlsUtils {
             throw new IllegalStateException("Unexpected trust managers: " + Arrays.toString(trustManagers));
         }
 
-        return insecureHosts.isEmpty()
-                ? x509TrustManager
-                : new InsecureExtendedTrustManager((X509ExtendedTrustManager) x509TrustManager, insecureHosts);
+        if (insecureHosts.isEmpty()) {
+            return x509TrustManager;
+        }
+
+        final var insecureHostsList = List.copyOf(insecureHosts);
+        return new InsecureExtendedTrustManager((X509ExtendedTrustManager) x509TrustManager, insecureHostsList);
     }
 
     /**
      * Returns a key manager for the held certificate and its chain. Returns an empty key manager if
-     * `heldCertificate` is null.
+     * {@code heldCertificate} is null.
      */
     static @NonNull X509KeyManager newKeyManager(final @Nullable String keyStoreType,
                                                  final @Nullable HeldCertificate heldCertificate,
@@ -91,7 +99,7 @@ final class TlsUtils {
                 final var chain = new Certificate[1 + intermediates.length];
                 chain[0] = heldCertificate.getCertificate();
                 System.arraycopy(intermediates, 0, chain, 1, intermediates.length);
-                keyStore.setKeyEntry("private", heldCertificate.getKeyPair().getPrivate(), password, chain);
+                keyStore.setKeyEntry("private", heldCertificate.getKeyPair().getPrivate(), PASSWORD, chain);
             }
 
             // https://github.com/bcgit/bc-java/issues/1160
@@ -100,7 +108,7 @@ final class TlsUtils {
                 default -> KeyManagerFactory.getDefaultAlgorithm();
             };
             factory = KeyManagerFactory.getInstance(algorithm);
-            factory.init(keyStore, password);
+            factory.init(keyStore, PASSWORD);
         } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
             throw new IllegalStateException(e);
         }
@@ -123,7 +131,7 @@ final class TlsUtils {
         final InputStream inputStream = null; // By convention, 'null' creates an empty key store.
         try {
             //noinspection ConstantValue
-            keyStore.load(inputStream, password);
+            keyStore.load(inputStream, PASSWORD);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         } catch (NoSuchAlgorithmException | CertificateException e) {

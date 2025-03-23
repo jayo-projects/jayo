@@ -20,7 +20,10 @@ import jayo.internal.ServerTlsEndpoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import javax.net.ssl.*;
+import javax.net.ssl.SNIServerName;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSession;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -53,9 +56,6 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * <p>
      * If you need any specific configuration, please use {@link #clientBuilder()}, {@link #clientBuilder(SSLContext)}
      * or {@link #clientBuilder(SSLEngine)} instead.
-     *
-     * @see JssePlatform#getDefaultTrustManager()
-     * @see JssePlatform#newSSLContextWithTrustManager(X509TrustManager)
      */
     static @NonNull TlsEndpoint createClient(final @NonNull Endpoint encryptedEndpoint) {
         Objects.requireNonNull(encryptedEndpoint);
@@ -65,9 +65,6 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     /**
      * Create a new {@link ClientBuilder} for a client-side TLS endpoint using a default {@link SSLContext}. This
      * TLS/SSL context will be used to create a {@link SSLEngine} configured in client mode.
-     *
-     * @see JssePlatform#getDefaultTrustManager()
-     * @see JssePlatform#newSSLContextWithTrustManager(X509TrustManager)
      */
     static @NonNull ClientBuilder clientBuilder() {
         return new ClientTlsEndpoint.Builder();
@@ -76,9 +73,6 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     /**
      * Create a new {@link ClientBuilder} for a client-side TLS endpoint using the provided {@link SSLContext}. This
      * TLS/SSL context will be used to create a {@link SSLEngine} configured in client mode.
-     *
-     * @see JssePlatform#newSSLContext()
-     * @see HandshakeCertificates#sslContext()
      */
     static @NonNull ClientBuilder clientBuilder(final @NonNull SSLContext sslContext) {
         Objects.requireNonNull(sslContext);
@@ -100,9 +94,6 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * Create a new {@link ServerBuilder} for a server-side TLS endpoint using the provided {@link SSLContext}, and so
      * the correct certificate. This TLS/SSL context will be used to create a {@link SSLEngine} configured in server
      * mode.
-     *
-     * @see JssePlatform#newSSLContext()
-     * @see HandshakeCertificates#sslContext()
      */
     static @NonNull ServerBuilder serverBuilder(final @NonNull SSLContext sslContext) {
         Objects.requireNonNull(sslContext);
@@ -123,8 +114,6 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * {@link SSLContext} based on the SNI value implies parsing the first TLS frame (ClientHello) independently of the
      * {@link SSLEngine}.
      * @see <a href="https://tools.ietf.org/html/rfc6066#section-3">Server Name Indication</a>
-     * @see JssePlatform#newSSLContext()
-     * @see HandshakeCertificates#sslContext()
      */
     static @NonNull ServerBuilder serverBuilder(
             final @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sslContextFactory) {

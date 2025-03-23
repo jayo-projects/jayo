@@ -12,13 +12,13 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.tls.Handshake;
-import jayo.tls.JssePlatform;
 import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
+import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -103,10 +103,12 @@ public final class ClientTlsEndpoint implements TlsEndpoint {
         private final @NonNull SSLEngine engine;
 
         public Builder() {
-            final var jssePlatform = JssePlatform.get();
-            final var trustManager = jssePlatform.getDefaultTrustManager();
-            final var sslContext = jssePlatform.newSSLContextWithTrustManager(trustManager);
-            engine = sslContext.createSSLEngine();
+            // todo change this!
+            try {
+                engine = SSLContext.getDefault().createSSLEngine();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
             engine.setUseClientMode(true);
         }
 

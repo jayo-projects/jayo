@@ -667,7 +667,7 @@ public final class RealTlsEndpoint {
     /**
      * The base class for builders of {@link TlsEndpoint}.
      */
-    public static abstract sealed class Builder<T extends TlsEndpoint.Builder<T>> implements TlsEndpoint.Builder<T>
+    public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T>> implements TlsEndpoint.Builder<T>
             permits ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
         // @formatter:off
         @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
