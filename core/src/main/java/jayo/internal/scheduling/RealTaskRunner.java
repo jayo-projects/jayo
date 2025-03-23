@@ -21,10 +21,12 @@
 
 package jayo.internal.scheduling;
 
+import jayo.scheduling.TaskQueue;
 import jayo.scheduling.TaskRunner;
 import jayo.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
@@ -39,16 +41,16 @@ import static jayo.internal.JavaVersionUtils.executorService;
 public final class RealTaskRunner implements TaskRunner {
     private static final System.Logger LOGGER = System.getLogger("jayo.scheduling.TaskRunner");
 
-    private final AtomicLong nextTaskIndex = new AtomicLong(10000);
-    private final AtomicInteger nextQueueIndex = new AtomicInteger(10000);
+    private final @NonNull AtomicLong nextTaskIndex = new AtomicLong(10000);
+    private final @NonNull AtomicInteger nextQueueIndex = new AtomicInteger(10000);
 
     final @NonNull Backend backend;
     final System.@NonNull Logger logger;
 
     // scheduled runner
     private final @NonNull Runnable scheduledRunnable;
-    final ReentrantLock scheduledLock = new ReentrantLock();
-    final Condition scheduledCondition = scheduledLock.newCondition();
+    final @NonNull ReentrantLock scheduledLock = new ReentrantLock();
+    final @NonNull Condition scheduledCondition = scheduledLock.newCondition();
     private boolean scheduledCoordinatorWaiting = false;
     private long scheduledCoordinatorWakeUpAt = 0L;
     private int scheduledExecuteCallCount = 0;
@@ -56,7 +58,7 @@ public final class RealTaskRunner implements TaskRunner {
 
     // FIFO runner
     private final @NonNull Runnable runnable;
-    final ReentrantLock lock = new ReentrantLock();
+    final @NonNull ReentrantLock lock = new ReentrantLock();
 
     /**
      * When we need a new thread to run tasks, we call {@link Backend#execute(RealTaskRunner, Runnable)}. A few microseconds
@@ -390,7 +392,7 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     @Override
-    public RealTaskQueue.@NonNull RunnableQueue newQueue() {
+    public @NonNull TaskQueue newQueue() {
         return new RealTaskQueue.RunnableQueue(this, "Q" + nextQueueIndex.getAndIncrement());
     }
 
@@ -400,7 +402,7 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     @Override
-    public void execute(final boolean cancellable, final Runnable block) {
+    public void execute(final boolean cancellable, final @NonNull Runnable block) {
         assert block != null;
         final var task = new Task.RunnableTask("T" + nextTaskIndex, cancellable) {
             @Override
@@ -434,7 +436,7 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     @Override
-    public @NonNull Backend getBackend() {
+    public TaskRunner.@NonNull Backend getBackend() {
         return backend;
     }
 
@@ -475,7 +477,6 @@ public final class RealTaskRunner implements TaskRunner {
 
         RealBackend(final @NonNull ExecutorService executor) {
             assert executor != null;
-
             this.executor = executor;
         }
 
@@ -485,7 +486,14 @@ public final class RealTaskRunner implements TaskRunner {
         }
 
         @Override
+        public @NonNull <T> BlockingQueue<T> decorate(final @NonNull BlockingQueue<T> queue) {
+            Objects.requireNonNull(queue);
+            return queue;
+        }
+
+        @Override
         public void coordinatorNotify(final @NonNull RealTaskRunner taskRunner) {
+            assert taskRunner != null;
             taskRunner.scheduledCondition.signal();
         }
 
@@ -495,18 +503,17 @@ public final class RealTaskRunner implements TaskRunner {
          * @return true if wait was fully completed, false if it has been signalled before ending the wait phase.
          */
         @Override
-        public boolean coordinatorWait(final @NonNull RealTaskRunner taskRunner, final long nanos) throws InterruptedException {
+        public boolean coordinatorWait(final @NonNull RealTaskRunner taskRunner,
+                                       final long nanos) throws InterruptedException {
+            assert taskRunner != null;
             assert nanos > 0;
             return taskRunner.scheduledCondition.awaitNanos(nanos) <= 0;
         }
 
         @Override
-        public @NonNull <T> BlockingQueue<T> decorate(final @NonNull BlockingQueue<T> queue) {
-            return queue;
-        }
-
-        @Override
-        public void execute(@NonNull RealTaskRunner taskRunner, @NonNull Runnable runnable) {
+        public void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable) {
+            assert taskRunner != null;
+            assert runnable != null;
             executor.execute(runnable);
         }
 

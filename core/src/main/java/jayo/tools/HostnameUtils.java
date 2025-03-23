@@ -19,13 +19,13 @@
  * limitations under the License.
  */
 
-package jayo.internal.tls;
+package jayo.tools;
 
 import org.jspecify.annotations.NonNull;
 
 import java.util.regex.Pattern;
 
-final class HostnameUtils {
+public final class HostnameUtils {
     // un-instantiable
     private HostnameUtils() {
     }
@@ -45,7 +45,7 @@ final class HostnameUtils {
     /**
      * @return true if this string is not a host name and might be an IP address.
      */
-    static boolean canParseAsIpAddress(final @NonNull String maybeIpAddress) {
+    public static boolean canParseAsIpAddress(final @NonNull String maybeIpAddress) {
         assert maybeIpAddress != null;
 
         return VERIFY_AS_IP_ADDRESS.matcher(maybeIpAddress).matches();

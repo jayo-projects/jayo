@@ -51,7 +51,7 @@ public final class JavaVersionUtils {
                 TimeUnit.SECONDS,
                 new SynchronousQueue<>(),
                 threadFactory(prefix)
-                );
+        );
     }
 
     /**
@@ -107,10 +107,14 @@ public final class JavaVersionUtils {
         }
 
         @Override
-        public @NonNull Thread newThread(final @NonNull Runnable r) {
-            final var thread = new Thread(null, r,
+        public @NonNull Thread newThread(final @NonNull Runnable runnable) {
+            assert runnable != null;
+            final var thread = new Thread(
+                    null,
+                    runnable,
                     prefix + threadCounter.incrementAndGet(),
-                    0, true);
+                    0,
+                    true);
             thread.setDaemon(true);
             return thread;
         }

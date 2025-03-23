@@ -29,6 +29,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
@@ -112,10 +113,14 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
         }
 
         @Override
-        public void schedule(final @NonNull String name, final long initialDelayNanos, final @NonNull LongSupplier block) {
-            assert name != null;
-            assert initialDelayNanos >= 0;
-            assert block != null;
+        public void schedule(final @NonNull String name,
+                             final long initialDelayNanos,
+                             final @NonNull LongSupplier block) {
+            Objects.requireNonNull(name);
+            Objects.requireNonNull(block);
+            if (initialDelayNanos < 0) {
+                throw new IllegalArgumentException("initialDelayNanos < 0: " + initialDelayNanos);
+            }
 
             schedule(new Task.@NonNull ScheduledTask(name, true) {
                 @Override
@@ -126,9 +131,11 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
         }
 
         @Override
-        public void execute(final @NonNull String name, final boolean cancellable, final @NonNull Runnable block) {
-            assert name != null;
-            assert block != null;
+        public void execute(final @NonNull String name,
+                            final boolean cancellable,
+                            final @NonNull Runnable block) {
+            Objects.requireNonNull(name);
+            Objects.requireNonNull(block);
 
             schedule(new Task.@NonNull ScheduledTask(name, cancellable) {
                 @Override
@@ -321,9 +328,11 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
         }
 
         @Override
-        public void execute(final @NonNull String name, final boolean cancellable, final @NonNull Runnable block) {
-            assert name != null;
-            assert block != null;
+        public void execute(final @NonNull String name,
+                            final boolean cancellable,
+                            final @NonNull Runnable block) {
+            Objects.requireNonNull(name);
+            Objects.requireNonNull(block);
 
             schedule(new Task.@NonNull RunnableTask(name, cancellable) {
                 @Override

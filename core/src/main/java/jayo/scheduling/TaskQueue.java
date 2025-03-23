@@ -43,7 +43,9 @@ public sealed interface TaskQueue permits RealTaskQueue, ScheduledTaskQueue {
     /**
      * Execute a task once on a task runner thread.
      */
-    void execute(final @NonNull String name, final boolean cancellable, final Runnable block);
+    void execute(final @NonNull String name,
+                 final boolean cancellable,
+                 final @NonNull Runnable block);
 
     /**
      * @return a latch that reaches 0 when the queue is next idle.

@@ -26,6 +26,7 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 
 /**
  * A set of worker threads that are shared among a set of task queues.
@@ -37,9 +38,21 @@ import java.util.concurrent.BlockingQueue;
  * the benefit of container environments that implement code unloading.
  */
 public sealed interface TaskRunner permits RealTaskRunner {
+    /**
+     * Create a new {@link TaskRunner}. The threads it will use will start with the provided {@code name}.
+     */
     static TaskRunner create(final @NonNull String name) {
         Objects.requireNonNull(name);
         return new RealTaskRunner(name);
+    }
+
+    /**
+     * Create a new {@link TaskRunner} that will use the provided {@code executor} to schedule and execute asynchronous
+     * tasks.
+     */
+    static TaskRunner create(final @NonNull ExecutorService executor) {
+        Objects.requireNonNull(executor);
+        return new RealTaskRunner(executor);
     }
 
     @NonNull
@@ -48,7 +61,7 @@ public sealed interface TaskRunner permits RealTaskRunner {
     @NonNull
     ScheduledTaskQueue newScheduledQueue();
 
-    void execute(final boolean cancellable, final Runnable block);
+    void execute(final boolean cancellable, final @NonNull Runnable block);
 
     void shutdown();
 

@@ -221,7 +221,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     /**
      * The abstract builder used to create a {@link TlsEndpoint} instance.
      */
-    sealed interface Builder<T extends Builder<T>> extends Cloneable permits RealTlsEndpoint.Builder, ClientBuilder, ServerBuilder {
+    sealed interface Builder<T extends Builder<T>> extends Cloneable
+            permits RealTlsEndpoint.Builder, ClientBuilder, ServerBuilder {
         /**
          * Register a callback function to be executed when the TLS session is established (or re-established). The
          * supplied function will run in the same thread as the rest of the handshake, so it should ideally run as fast

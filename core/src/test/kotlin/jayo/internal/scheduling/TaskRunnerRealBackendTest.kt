@@ -21,6 +21,7 @@
 
 package jayo.internal.scheduling
 
+import jayo.scheduling.TaskRunner
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.offset
 import org.junit.jupiter.api.AfterEach
@@ -51,7 +52,7 @@ class TaskRunnerRealBackendTest {
             }
         }
 
-    private val taskRunner = RealTaskRunner(Executors.newCachedThreadPool(threadFactory))
+    private val taskRunner = TaskRunner.create(Executors.newCachedThreadPool(threadFactory))
     private val backend = taskRunner.backend as RealTaskRunner.RealBackend
 
     @AfterEach

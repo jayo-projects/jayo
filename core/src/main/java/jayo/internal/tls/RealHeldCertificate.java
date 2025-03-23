@@ -25,6 +25,7 @@ import jayo.bytestring.ByteString;
 import jayo.JayoUnknownHostException;
 import jayo.internal.tls.Adapters.DerAdapterValue;
 import jayo.tls.HeldCertificate;
+import jayo.tools.HostnameUtils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
