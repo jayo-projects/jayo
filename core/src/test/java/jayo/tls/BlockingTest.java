@@ -10,12 +10,12 @@
 
 package jayo.tls;
 
+import jayo.tls.helpers.CertificateFactory;
 import jayo.tls.helpers.Loops;
 import jayo.tls.helpers.SocketGroups.SocketPair;
 import jayo.tls.helpers.SocketPairFactory;
 import jayo.tls.helpers.SocketPairFactory.ChuckSizes;
 import jayo.tls.helpers.SocketPairFactory.ChunkSizeConfig;
-import jayo.tls.helpers.SslContextFactory;
 import jayo.tls.helpers.TlsTestUtil;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -29,13 +29,13 @@ import java.util.stream.Stream;
 
 public class BlockingTest {
     private static final int dataSize = 60 * 1000;
-    private final SslContextFactory sslContextFactory = new SslContextFactory();
-    private final SocketPairFactory factory = new SocketPairFactory(sslContextFactory.getDefaultContext());
+    private final CertificateFactory certificateFactory = new CertificateFactory();
+    private final SocketPairFactory factory = new SocketPairFactory(certificateFactory);
 
     // Test a half-duplex interaction, with renegotiation before reversing the direction of the flow (as in HTTP)
     @TestFactory
     public Collection<DynamicTest> testIoHalfDuplexWireRenegotiations() {
-        List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(1, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .toList();
         List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();
@@ -60,7 +60,7 @@ public class BlockingTest {
     // Test a full-duplex interaction, without any renegotiation
     @TestFactory
     public Collection<DynamicTest> testIoFullDuplex() {
-        List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(1, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .collect(Collectors.toList());
         List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();
@@ -85,7 +85,7 @@ public class BlockingTest {
     // Test a half-duplex interaction, with renegotiation before reversing the direction of the flow (as in HTTP)
     @TestFactory
     public Collection<DynamicTest> testNioHalfDuplexWireRenegotiations() {
-        List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(1, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .toList();
         List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();
@@ -110,7 +110,7 @@ public class BlockingTest {
     // Test a full-duplex interaction, without any renegotiation
     @TestFactory
     public Collection<DynamicTest> testNioFullDuplex() {
-        List<Integer> sizes = Stream.iterate(1, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(1, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .collect(Collectors.toList());
         List<Integer> reversedSizes = TlsTestUtil.reversed(sizes);
         List<DynamicTest> ret = new ArrayList<>();

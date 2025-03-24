@@ -82,13 +82,10 @@ public final class ConscryptJssePlatform extends JdkJssePlatform {
 
     // See release notes https://groups.google.com/forum/#!forum/conscrypt for version differences
     @Override
-    public @NonNull SSLContext newSSLContext() {
-        try {
-            // supports TLSv1.3 by default (version api is >= 1.4.0)
-            return SSLContext.getInstance("TLS", provider);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+    @NonNull
+    SSLContext newSSLContext(final @NonNull String version) throws NoSuchAlgorithmException {
+        // supports TLSv1.3 by default (version api is >= 1.4.0)
+        return SSLContext.getInstance(version, provider);
     }
 
     @Override

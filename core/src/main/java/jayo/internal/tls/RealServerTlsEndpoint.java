@@ -8,14 +8,11 @@
  * Licensed under the MIT License
  */
 
-package jayo.internal;
+package jayo.internal.tls;
 
 import jayo.*;
-import jayo.internal.tls.TlsExplorer;
-import jayo.tls.Handshake;
-import jayo.tls.JayoTlsHandshakeCallbackException;
-import jayo.tls.JayoTlsHandshakeException;
-import jayo.tls.TlsEndpoint;
+import jayo.internal.RealTlsEndpoint;
+import jayo.tls.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -30,33 +27,36 @@ import static java.lang.System.Logger.Level.TRACE;
 /**
  * A server-side {@link TlsEndpoint}.
  */
-public final class ServerTlsEndpoint implements TlsEndpoint {
+public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
     private static final System.Logger LOGGER = System.getLogger("jayo.tls.ServerTlsEndpoint");
 
     private final @NonNull Endpoint encryptedEndpoint;
+    private final @NonNull ServerHandshakeCertificates handshakeCertificates;
     private final @NonNull RealTlsEndpoint impl;
 
     private Reader reader = null;
     private Writer writer = null;
 
-    private ServerTlsEndpoint(
+    private RealServerTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
-            final @NonNull SslContextStrategy sslContextStrategy,
+            final @NonNull HandshakeCertificatesStrategy handshakeCertificatesStrategy,
             final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> engineFactory,
             final @NonNull Consumer<SSLSession> sessionInitCallback,
             final boolean waitForCloseConfirmation) {
         assert encryptedEndpoint != null;
-        assert sslContextStrategy != null;
+        assert handshakeCertificatesStrategy != null;
         assert engineFactory != null;
         assert sessionInitCallback != null;
 
         this.encryptedEndpoint = encryptedEndpoint;
         try {
-            final var sslContext = sslContextStrategy.getSslContext(this::getServerNameIndication);
+            handshakeCertificates =
+                    handshakeCertificatesStrategy.getHandshakeCertificates(this::getServerNameIndication);
+            final var context = ((RealHandshakeCertificates) handshakeCertificates).sslContext();
             // call client code
             final SSLEngine engine;
             try {
-                engine = engineFactory.apply(sslContext);
+                engine = engineFactory.apply(context);
             } catch (Exception e) {
                 if (LOGGER.isLoggable(TRACE)) {
                     LOGGER.log(TRACE, "Client threw exception in SSLEngine factory.", e);
@@ -110,17 +110,22 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
 
     @Override
     public boolean shutdownReceived() {
-        return impl.shutdownReceived;
+        return impl.shutdownReceived();
     }
 
     @Override
     public boolean shutdownSent() {
-        return impl.shutdownSent;
+        return impl.shutdownSent();
     }
 
     @Override
     public void close() {
         impl.close();
+    }
+
+    @Override
+    public @NonNull ServerHandshakeCertificates getHandshakeCertificates() {
+        return handshakeCertificates;
     }
 
     private @Nullable SNIServerName getServerNameIndication() {
@@ -157,7 +162,7 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
         }
     }
 
-    private sealed interface SslContextStrategy {
+    private sealed interface HandshakeCertificatesStrategy {
         @FunctionalInterface
         interface SniReader {
             @Nullable
@@ -165,21 +170,23 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
         }
 
         @NonNull
-        SSLContext getSslContext(final @NonNull SniReader sniReader);
+        ServerHandshakeCertificates getHandshakeCertificates(final @NonNull SniReader sniReader);
     }
 
-    private record SniSslContextStrategy(
-            @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sniSslCF) implements SslContextStrategy {
+    private record SniHandshakeCertificatesStrategy(
+            @NonNull Function<@Nullable SNIServerName, @Nullable ServerHandshakeCertificates>
+                    handshakeCertificatesFactory
+    ) implements HandshakeCertificatesStrategy {
         @Override
-        public @NonNull SSLContext getSslContext(final @NonNull SniReader sniReader) {
+        public @NonNull ServerHandshakeCertificates getHandshakeCertificates(final @NonNull SniReader sniReader) {
             assert sniReader != null;
 
             // IO block
             final var nameOpt = sniReader.readSni();
             // call client code
-            final SSLContext chosenContext;
+            final ServerHandshakeCertificates chosenHandshakeCertificates;
             try {
-                chosenContext = sniSslCF.apply(nameOpt);
+                chosenHandshakeCertificates = handshakeCertificatesFactory.apply(nameOpt);
             } catch (Exception e) {
                 if (LOGGER.isLoggable(TRACE)) {
                     LOGGER.log(TRACE, "Client code threw exception during evaluation of server name indication.",
@@ -192,87 +199,84 @@ public final class ServerTlsEndpoint implements TlsEndpoint {
                 throw new JayoTlsHandshakeCallbackException("SNI callback failed", e);
             }
 
-            if (chosenContext == null) {
+            if (chosenHandshakeCertificates == null) {
                 throw new JayoTlsHandshakeException("No TLS context available for received SNI: " + nameOpt);
             }
-            return chosenContext;
+            return chosenHandshakeCertificates;
         }
     }
 
-    private record FixedSslContextStrategy(@NonNull SSLContext sslContext) implements SslContextStrategy {
+    private record FixedHandshakeCertificatesStrategy(
+            @NonNull ServerHandshakeCertificates handshakeCertificates
+    ) implements HandshakeCertificatesStrategy {
         @Override
-        public @NonNull SSLContext getSslContext(final @NonNull SniReader sniReader) {
+        public @NonNull ServerHandshakeCertificates getHandshakeCertificates(final @NonNull SniReader sniReader) {
             // Avoid SNI parsing (using the supplied sniReader) when no decision would be made based on it.
-            return sslContext;
+            return handshakeCertificates;
         }
     }
 
     private static @NonNull SSLEngine defaultSSLEngineFactory(final @NonNull SSLContext sslContext) {
+        assert sslContext != null;
         SSLEngine engine = sslContext.createSSLEngine();
         engine.setUseClientMode(false);
         return engine;
     }
 
     /**
-     * Builder of {@link ServerTlsEndpoint}
+     * Builder of {@link RealServerTlsEndpoint}
      */
-    public static final class Builder extends RealTlsEndpoint.Builder<ServerBuilder> implements ServerBuilder {
-        private final @NonNull SslContextStrategy internalSslContextFactory;
-        private @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory = null;
+    public static final class Builder extends RealTlsEndpoint.Builder<ServerTlsEndpoint.Builder>
+            implements ServerTlsEndpoint.Builder {
+        private final @NonNull HandshakeCertificatesStrategy internalHandshakeCertificatesFactory;
 
-        public Builder(final @NonNull SSLContext sslContext) {
-            assert sslContext != null;
-            this.internalSslContextFactory = new FixedSslContextStrategy(sslContext);
+
+        public Builder(final @NonNull ServerHandshakeCertificates handshakeCertificates) {
+            assert handshakeCertificates != null;
+            this.internalHandshakeCertificatesFactory = new FixedHandshakeCertificatesStrategy(handshakeCertificates);
         }
 
-        public Builder(final @NonNull Function<@Nullable SNIServerName, @Nullable SSLContext> sniSslCF) {
-            assert sniSslCF != null;
-            this.internalSslContextFactory = new SniSslContextStrategy(sniSslCF);
+        public Builder(final @NonNull Function<@Nullable SNIServerName, @Nullable ServerHandshakeCertificates>
+                               handshakeCertificatesFactory) {
+            assert handshakeCertificatesFactory != null;
+            this.internalHandshakeCertificatesFactory = new SniHandshakeCertificatesStrategy(handshakeCertificatesFactory);
         }
 
         /**
          * The private constructor used by {@link #clone()}.
          */
-        private Builder(final @NonNull SslContextStrategy internalSslContextFactory,
+        private Builder(final @NonNull HandshakeCertificatesStrategy internalHandshakeCertificatesFactory,
                         final @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory,
                         final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
                         final boolean waitForCloseConfirmation) {
-            assert internalSslContextFactory != null;
+            assert internalHandshakeCertificatesFactory != null;
             assert sessionInitCallback != null;
 
-            this.internalSslContextFactory = internalSslContextFactory;
+            this.internalHandshakeCertificatesFactory = internalHandshakeCertificatesFactory;
             this.sslEngineFactory = sslEngineFactory;
             this.sessionInitCallback = sessionInitCallback;
             this.waitForCloseConfirmation = waitForCloseConfirmation;
         }
 
         @Override
-        @NonNull
-        ServerBuilder getThis() {
+        protected @NonNull Builder getThis() {
             return this;
         }
 
         @Override
-        public @NonNull ServerBuilder engineFactory(
-                final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory) {
-            this.sslEngineFactory = Objects.requireNonNull(sslEngineFactory);
-            return this;
-        }
-
-        @Override
-        public @NonNull TlsEndpoint build(final @NonNull Endpoint encryptedEndpoint) {
+        public @NonNull ServerTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint) {
             Objects.requireNonNull(encryptedEndpoint);
-            return new ServerTlsEndpoint(
+            return new RealServerTlsEndpoint(
                     encryptedEndpoint,
-                    internalSslContextFactory,
-                    (sslEngineFactory != null) ? sslEngineFactory : ServerTlsEndpoint::defaultSSLEngineFactory,
+                    internalHandshakeCertificatesFactory,
+                    (sslEngineFactory != null) ? sslEngineFactory : RealServerTlsEndpoint::defaultSSLEngineFactory,
                     sessionInitCallback,
                     waitForCloseConfirmation);
         }
 
         @Override
-        public @NonNull ServerBuilder clone() {
-            return new Builder(internalSslContextFactory, sslEngineFactory, sessionInitCallback, waitForCloseConfirmation);
+        public @NonNull Builder clone() {
+            return new Builder(internalHandshakeCertificatesFactory, sslEngineFactory, sessionInitCallback, waitForCloseConfirmation);
         }
     }
 }

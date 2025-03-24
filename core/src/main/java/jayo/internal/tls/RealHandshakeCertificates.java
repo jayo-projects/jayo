@@ -21,10 +21,7 @@
 
 package jayo.internal.tls;
 
-import jayo.tls.ClientHandshakeCertificates;
-import jayo.tls.HeldCertificate;
-import jayo.tls.JssePlatform;
-import jayo.tls.ServerHandshakeCertificates;
+import jayo.tls.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -38,6 +35,12 @@ public final class RealHandshakeCertificates
         implements ClientHandshakeCertificates, ServerHandshakeCertificates {
     private final @NonNull X509KeyManager keyManager;
     private final @NonNull X509TrustManager trustManager;
+    private final @NonNull SSLContext sslContext;
+
+    public RealHandshakeCertificates() {
+        this(TlsUtils.newKeyManager(null, null),
+                JssePlatform.get().getDefaultTrustManager());
+    }
 
     private RealHandshakeCertificates(final @NonNull X509KeyManager keyManager,
                                       final @NonNull X509TrustManager trustManager) {
@@ -46,6 +49,52 @@ public final class RealHandshakeCertificates
 
         this.keyManager = keyManager;
         this.trustManager = trustManager;
+
+        sslContext = newSslContext(new KeyManager[]{keyManager}, new TrustManager[]{trustManager}, null);
+    }
+
+    public RealHandshakeCertificates(final @Nullable TrustManagerFactory tmf,
+                                     final @Nullable KeyManagerFactory kmf,
+                                     final @Nullable TlsVersion tlsVersion) {
+        assert tmf != null || kmf != null;
+
+        final TrustManager[] trustManagers;
+        if (tmf != null) {
+            trustManager = TlsUtils.newTrustManager(tmf, Set.of());
+            trustManagers = tmf.getTrustManagers();
+        } else {
+            trustManager = TlsUtils.newTrustManager(null, Set.of(), Set.of());
+            trustManagers = null;
+        }
+
+        final KeyManager[] keyManagers;
+        if (kmf != null) {
+            keyManager = TlsUtils.newKeyManager(kmf);
+            keyManagers = kmf.getKeyManagers();
+        } else {
+            keyManager = TlsUtils.newKeyManager(null, null);
+            keyManagers = null;
+        }
+
+        sslContext = newSslContext(keyManagers, trustManagers, tlsVersion);
+    }
+
+    private static @NonNull SSLContext newSslContext(final @NonNull KeyManager @Nullable [] keyManagers,
+                                                     final @NonNull TrustManager @Nullable [] trustManagers,
+                                                     final @Nullable TlsVersion tlsVersion) {
+        final SSLContext sslContext;
+        if (tlsVersion != null) {
+            sslContext = JssePlatform.get().newSSLContext(tlsVersion);
+        } else {
+            sslContext = JssePlatform.get().newSSLContext();
+        }
+
+        try {
+            sslContext.init(keyManagers, trustManagers, new SecureRandom());
+            return sslContext;
+        } catch (KeyManagementException e) {
+            throw new IllegalStateException("A key management exception occurred during init of the SSLContext", e);
+        }
     }
 
     @Override
@@ -60,12 +109,6 @@ public final class RealHandshakeCertificates
 
     @NonNull
     SSLContext sslContext() {
-        final var sslContext = JssePlatform.get().newSSLContext();
-        try {
-            sslContext.init(new KeyManager[]{keyManager}, new TrustManager[]{trustManager}, new SecureRandom());
-        } catch (KeyManagementException e) {
-            throw new IllegalStateException("A key management exception occurred during init of the SSLContext", e);
-        }
         return sslContext;
     }
 

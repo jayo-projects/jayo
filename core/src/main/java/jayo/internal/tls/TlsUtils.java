@@ -60,19 +60,28 @@ final class TlsUtils {
         assert insecureHosts != null;
 
         final var trustStore = newEmptyKeyStore(keyStoreType);
-        final TrustManagerFactory factory;
+        final TrustManagerFactory tmf;
         try {
             var index = 0;
             for (final var trustedCertificate : trustedCertificates) {
                 trustStore.setCertificateEntry("cert_" + index++, trustedCertificate);
             }
 
-            factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            factory.init(trustStore);
+            tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
         } catch (KeyStoreException | NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
-        final var trustManagers = factory.getTrustManagers();
+
+        return newTrustManager(tmf, insecureHosts);
+    }
+
+    /**
+     * @return a trust manager from {@code tmf}.
+     */
+    static @NonNull X509TrustManager newTrustManager(final @NonNull TrustManagerFactory tmf,
+                                                     final @NonNull Collection<String> insecureHosts) {
+        final var trustManagers = tmf.getTrustManagers();
         if (trustManagers.length != 1 || !(trustManagers[0] instanceof X509TrustManager x509TrustManager)) {
             throw new IllegalStateException("Unexpected trust managers: " + Arrays.toString(trustManagers));
         }
@@ -93,7 +102,7 @@ final class TlsUtils {
                                                  final @Nullable HeldCertificate heldCertificate,
                                                  final @NonNull X509Certificate @NonNull ... intermediates) {
         final var keyStore = newEmptyKeyStore(keyStoreType);
-        final KeyManagerFactory factory;
+        final KeyManagerFactory kmf;
         try {
             if (heldCertificate != null) {
                 final var chain = new Certificate[1 + intermediates.length];
@@ -107,12 +116,20 @@ final class TlsUtils {
                 case "BC", "BCFIPS" -> "PKIX";
                 default -> KeyManagerFactory.getDefaultAlgorithm();
             };
-            factory = KeyManagerFactory.getInstance(algorithm);
-            factory.init(keyStore, PASSWORD);
+            kmf = KeyManagerFactory.getInstance(algorithm);
+            kmf.init(keyStore, PASSWORD);
         } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
             throw new IllegalStateException(e);
         }
-        final var keyManagers = factory.getKeyManagers();
+
+        return newKeyManager(kmf);
+    }
+
+    /**
+     * @return a key manager from {@code kmf}.
+     */
+    static @NonNull X509KeyManager newKeyManager(final @NonNull KeyManagerFactory kmf) {
+        final var keyManagers = kmf.getKeyManagers();
         if (keyManagers.length != 1 || !(keyManagers[0] instanceof X509KeyManager x509KeyManager)) {
             throw new IllegalStateException("Unexpected key managers: " + Arrays.toString(keyManagers));
         }

@@ -14,9 +14,9 @@ import jayo.Buffer;
 import jayo.RawReader;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkServer;
-import jayo.tls.TlsEndpoint;
+import jayo.tls.ServerHandshakeCertificates;
+import jayo.tls.ServerTlsEndpoint;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
@@ -32,15 +32,16 @@ import java.security.GeneralSecurityException;
 public class TlsSocketServer {
     public static void main(String[] args) throws IOException, GeneralSecurityException {
 
-        // initialize the SSLContext, a configuration holder, reusable object
-        SSLContext sslContext = ContextFactory.authenticatedContext("TLSv1.2");
+        // initialize the server handshake certificates, a configuration holder, reusable object
+        ServerHandshakeCertificates handshakeCertificates = CertificateFactory.authenticatedCertificate();
 
         try (NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(10000))) {
             // accept encrypted connections
             System.out.println("Waiting for connection...");
             try (NetworkEndpoint accepted = server.accept();
-                 // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-                 TlsEndpoint tlsEndpoint = TlsEndpoint.serverBuilder(sslContext).build(accepted);
+                 // create the ServerTlsEndpoint, combining the socket endpoint and the server handshake certificates,
+                 // using minimal options
+                 ServerTlsEndpoint tlsEndpoint = ServerTlsEndpoint.builder(handshakeCertificates).build(accepted);
                  RawReader decryptedReader = tlsEndpoint.getReader()) {
                 Buffer buffer = Buffer.create();
                 // write to stdout all data sent by the client

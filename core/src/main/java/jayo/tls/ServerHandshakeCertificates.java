@@ -23,7 +23,10 @@ package jayo.tls;
 
 import jayo.internal.tls.RealHandshakeCertificates;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;
@@ -73,6 +76,40 @@ import java.util.Objects;
  * @see ClientHandshakeCertificates
  */
 public sealed interface ServerHandshakeCertificates permits RealHandshakeCertificates {
+    /**
+     * Creates a {@linkplain ServerHandshakeCertificates server's handshake certificates} from a {@link KeyManagerFactory}.
+     * <p>
+     * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
+     */
+    static @NonNull ServerHandshakeCertificates create(final @NonNull KeyManagerFactory kmf) {
+        return create(kmf, null, null);
+    }
+
+    /**
+     * Creates a {@linkplain ServerHandshakeCertificates server's handshake certificates} from a
+     * {@link KeyManagerFactory}. This server will also be able to authenticate to the client if a non-null
+     * {@link TrustManagerFactory} is provided.
+     * <p>
+     * If a non-null {@linkplain TlsVersion tlsVersion} is provided it will be used, else the TLS version will default
+     * to the generic {@code SSLContext.getInstance("TLS")}.
+     */
+    static @NonNull ServerHandshakeCertificates create(final @NonNull KeyManagerFactory kmf,
+                                                       final @Nullable TrustManagerFactory tmf,
+                                                       final @Nullable TlsVersion tlsVersion) {
+        Objects.requireNonNull(kmf);
+        return new RealHandshakeCertificates(tmf, kmf, tlsVersion);
+    }
+
+    /**
+     * @return a builder to craft a {@linkplain ServerHandshakeCertificates server's handshake certificates}.
+     * <p>
+     * It is required to configure the certificate chain to use when being authenticated. The first certificate is the
+     * held certificate, further certificates are included in the handshake so the peer can build a trusted path to a
+     * trusted root certificate.
+     * <p>
+     * The chain should include all intermediate certificates but does not need the root certificate that we expect
+     * to be known by the remote peer. The peer already has that certificate so transmitting it is unnecessary.
+     */
     static @NonNull Builder builder(final @NonNull HeldCertificate heldCertificate,
                                     final @NonNull X509Certificate @NonNull ... intermediates) {
         Objects.requireNonNull(heldCertificate);

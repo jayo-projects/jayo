@@ -12,8 +12,8 @@ package jayo.tls;
 
 import jayo.Endpoint;
 import jayo.network.NetworkServer;
+import jayo.tls.helpers.CertificateFactory;
 import jayo.tls.helpers.SocketPairFactory;
-import jayo.tls.helpers.SslContextFactory;
 import jayo.tls.helpers.TlsTestUtil;
 import org.junit.jupiter.api.Test;
 
@@ -27,8 +27,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FailTest {
-    private final SslContextFactory sslContextFactory = new SslContextFactory();
-    private final SocketPairFactory factory = new SocketPairFactory(sslContextFactory.getDefaultContext());
+    private final CertificateFactory certificateFactory = new CertificateFactory();
+    private final SocketPairFactory factory = new SocketPairFactory(certificateFactory);
 
     @Test
     public void testIoPlanToTls() throws IOException {
@@ -38,11 +38,11 @@ public class FailTest {
         SocketChannel clientChannel = SocketChannel.open(address);
 
         Endpoint serverEndpoint = server.accept();
-        factory.createClientSslEngine(Optional.empty(), chosenPort);
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
-                TlsEndpoint.serverBuilder(nameOpt ->
-                                factory.sslContextFactory(factory.sslContext, nameOpt))
+                ServerTlsEndpoint.builder(nameOpt ->
+                                factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
+                                        nameOpt))
                         .engineFactory(sslContext ->
                                 factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
                         .build(serverEndpoint))
@@ -66,11 +66,11 @@ public class FailTest {
         SocketChannel clientChannel = SocketChannel.open(address);
 
         Endpoint serverEndpoint = server.accept();
-        factory.createClientSslEngine(Optional.empty(), chosenPort);
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
-                TlsEndpoint.serverBuilder(nameOpt ->
-                                factory.sslContextFactory(factory.sslContext, nameOpt))
+                ServerTlsEndpoint.builder(nameOpt ->
+                                factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
+                                        nameOpt))
                         .engineFactory(sslContext ->
                                 factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
                         .build(serverEndpoint))

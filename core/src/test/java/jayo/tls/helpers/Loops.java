@@ -10,7 +10,6 @@
 
 package jayo.tls.helpers;
 
-import jayo.Jayo;
 import jayo.tls.helpers.SocketGroups.SocketGroup;
 import jayo.tls.helpers.SocketGroups.SocketPair;
 
@@ -110,7 +109,7 @@ public class Loops {
             SplittableRandom random = new SplittableRandom(seed);
             int bytesRemaining = size;
             byte[] bufferArray = new byte[bufferSize];
-            final var writer = Jayo.buffer(socketGroup.tls.getWriter());
+            final var writer = socketGroup.tls.getWriter();
             while (bytesRemaining > 0) {
                 final var toWrite = Math.min(bufferSize, bytesRemaining);
                 TlsTestUtil.nextBytes(random, bufferArray, toWrite);
@@ -135,7 +134,7 @@ public class Loops {
             byte[] readArray = new byte[bufferSize];
             int bytesRemaining = size;
             MessageDigest digest = MessageDigest.getInstance(hashAlgorithm);
-            final var reader = Jayo.buffer(socketGroup.tls.getReader());
+            final var reader = socketGroup.tls.getReader();
             while (bytesRemaining > 0) {
                 final var toRead = Math.min(bufferSize, bytesRemaining);
                 int c = reader.readAtMostTo(readArray, 0, toRead);

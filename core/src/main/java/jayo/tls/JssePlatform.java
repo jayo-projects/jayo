@@ -45,6 +45,9 @@ public sealed interface JssePlatform permits JdkJssePlatform {
     SSLContext newSSLContext();
 
     @NonNull
+    SSLContext newSSLContext(final @NonNull TlsVersion version);
+
+    @NonNull
     X509TrustManager getDefaultTrustManager();
 
     /**

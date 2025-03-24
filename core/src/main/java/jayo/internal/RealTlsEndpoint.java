@@ -11,6 +11,8 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.internal.tls.RealClientTlsEndpoint;
+import jayo.internal.tls.RealServerTlsEndpoint;
 import jayo.tls.Handshake;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeCallbackException;
@@ -18,12 +20,9 @@ import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 import java.io.Serial;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -31,6 +30,7 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
@@ -70,17 +70,17 @@ public final class RealTlsEndpoint {
     /**
      * Whether an IOException was received from the underlying endpoint or from the {@link SSLEngine}.
      */
-    volatile boolean invalid = false;
+    private volatile boolean invalid = false;
 
     /**
      * Whether a close_notify was already sent.
      */
-    volatile boolean shutdownSent = false;
+    private volatile boolean shutdownSent = false;
 
     /**
      * Whether a close_notify was already received.
      */
-    volatile boolean shutdownReceived = false;
+    private volatile boolean shutdownReceived = false;
 
     /**
      * Decrypted data from encryptedReader
@@ -101,7 +101,7 @@ public final class RealTlsEndpoint {
 
     private int remainingBytesToRead;
 
-    RealTlsEndpoint(
+    public RealTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull SSLEngine engine,
             final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
@@ -125,14 +125,14 @@ public final class RealTlsEndpoint {
     }
 
     @NonNull
-    Handshake getHandshake() {
+    public Handshake getHandshake() {
         // on-demand Handshake creation, only if user calls it
         return Handshake.get(engine.getSession());
     }
 
     // read
 
-    long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
+    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
         Objects.requireNonNull(writer);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -210,6 +210,7 @@ public final class RealTlsEndpoint {
                 }
             }
             if (result.getStatus() == Status.CLOSED) {
+                System.out.println(this + " status closed, shutdown received");
                 shutdownReceived = true;
                 return;
             }
@@ -345,7 +346,7 @@ public final class RealTlsEndpoint {
 
     // write
 
-    void write(final @NonNull Buffer reader, final long byteCount) {
+    public void write(final @NonNull Buffer reader, final long byteCount) {
         Objects.requireNonNull(reader);
         checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
 
@@ -628,6 +629,25 @@ public final class RealTlsEndpoint {
         }
     }
 
+    public boolean shutdownReceived() {
+        readLock.lock();
+        try {
+            writeLock.lock();
+            try {
+                System.out.println(this + " Shutdown received : " + shutdownReceived);
+                return shutdownReceived;
+            } finally {
+                writeLock.unlock();
+            }
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public boolean shutdownSent() {
+        return shutdownSent;
+    }
+
     private void freeBuffer() {
         decryptedBuffer.clear();
     }
@@ -668,13 +688,21 @@ public final class RealTlsEndpoint {
      * The base class for builders of {@link TlsEndpoint}.
      */
     public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T>> implements TlsEndpoint.Builder<T>
-            permits ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
+            permits RealClientTlsEndpoint.Builder, RealServerTlsEndpoint.Builder {
+        protected @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory = null;
         // @formatter:off
-        @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
+        protected @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
         // @formatter:on
-        boolean waitForCloseConfirmation = false;
+        protected boolean waitForCloseConfirmation = false;
 
-        abstract @NonNull T getThis();
+        protected abstract @NonNull T getThis();
+
+        @Override
+        public @NonNull T engineFactory(
+                final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory) {
+            this.sslEngineFactory = Objects.requireNonNull(sslEngineFactory);
+            return getThis();
+        }
 
         @Override
         public final @NonNull T sessionInitCallback(final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback) {
