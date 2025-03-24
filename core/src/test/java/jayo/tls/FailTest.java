@@ -43,8 +43,8 @@ public class FailTest {
                 ServerTlsEndpoint.builder(nameOpt ->
                                 factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
                                         nameOpt))
-                        .engineFactory(sslContext ->
-                                factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
+                        .engineCustomizer(sslContext ->
+                                factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), sslContext))
                         .build(serverEndpoint))
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));
@@ -71,8 +71,8 @@ public class FailTest {
                 ServerTlsEndpoint.builder(nameOpt ->
                                 factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
                                         nameOpt))
-                        .engineFactory(sslContext ->
-                                factory.fixedCipherServerSslEngineFactory(Optional.empty(), sslContext))
+                        .engineCustomizer(sslContext ->
+                                factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), sslContext))
                         .build(serverEndpoint))
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));

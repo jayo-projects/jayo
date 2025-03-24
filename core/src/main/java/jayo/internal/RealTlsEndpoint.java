@@ -20,9 +20,12 @@ import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import javax.net.ssl.*;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
 import java.io.Serial;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -30,7 +33,6 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
@@ -689,7 +691,8 @@ public final class RealTlsEndpoint {
      */
     public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T>> implements TlsEndpoint.Builder<T>
             permits RealClientTlsEndpoint.Builder, RealServerTlsEndpoint.Builder {
-        protected @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory = null;
+        protected @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer = ignored -> {
+        };
         // @formatter:off
         protected @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
         // @formatter:on
@@ -698,9 +701,8 @@ public final class RealTlsEndpoint {
         protected abstract @NonNull T getThis();
 
         @Override
-        public @NonNull T engineFactory(
-                final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory) {
-            this.sslEngineFactory = Objects.requireNonNull(sslEngineFactory);
+        public @NonNull T engineCustomizer(final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer) {
+            this.sslEngineCustomizer = Objects.requireNonNull(sslEngineCustomizer);
             return getThis();
         }
 

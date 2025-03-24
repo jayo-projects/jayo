@@ -75,6 +75,7 @@ class TlsEndpointTest {
             ClientTlsEndpoint.builder(clientHandshakeCertificates).kotlin {
                 sessionInitCallback = { sslSession = it }
                 waitForCloseConfirmation = true
+                engineCustomizer = { useClientMode = true }
             }.build(encryptedEndpoint).use { tlsClient ->
                 assertThat(sslSession).isNotNull
                 val handshake = tlsClient.handshake
@@ -139,7 +140,7 @@ class TlsEndpointTest {
                     ServerTlsEndpoint.builder(serverHandshakeCertificates).kotlin {
                         sessionInitCallback = { sslSession = it }
                         waitForCloseConfirmation = true
-                        engineFactory = { it.createSSLEngine().apply { useClientMode = false } }
+                        engineCustomizer = { useClientMode = false }
                     }.build(serverEndpoint).use { tlsServer ->
                         tlsServer.writer.buffered()
                             .writeInt(42)
@@ -191,7 +192,7 @@ class TlsEndpointTest {
             val serverThread = thread(start = true) {
                 listener.accept().use { serverEndpoint ->
                     ServerTlsEndpoint.builder(serverHandshakeCertificates).kotlin {
-                        engineFactory = { throw Exception() }
+                        engineCustomizer = { throw Exception() }
                     }.build(serverEndpoint).use { serverTlsEndpoint ->
                         assertThatThrownBy {
                             serverTlsEndpoint.writer.buffered()
