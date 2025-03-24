@@ -8,7 +8,6 @@
 package jayo.tls
 
 import jayo.JayoDslMarker
-import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLEngine
 import javax.net.ssl.SSLSession
 import kotlin.contracts.InvocationKind
@@ -57,12 +56,12 @@ public value class ClientTlsEndpointBuilderDsl internal constructor(private val 
         }
 
     /**
-     * The custom function that builds a [SSLEngine] from the [SSLContext] when it will be available during handshake.
+     * Sets the function that allow to customize the [SSLEngine] that will be used in the handshake.
      */
-    public var engineFactory: (SSLContext) -> SSLEngine
+    public var engineCustomizer: SSLEngine.() -> Unit
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.engineFactory(value)
+            builder.engineCustomizer(value)
         }
 }

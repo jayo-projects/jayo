@@ -17,11 +17,9 @@ import jayo.Writer;
 import jayo.internal.RealTlsEndpoint;
 import org.jspecify.annotations.NonNull;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * A TLS (Transport Layer Security) endpoint, either the client-side or server-side end of a TLS connection between two
@@ -136,11 +134,10 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     sealed interface Builder<T extends Builder<T>> extends Cloneable
             permits RealTlsEndpoint.Builder, ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
         /**
-         * Sets the custom function that builds a {@link SSLEngine} from the {@link SSLContext} when it will be
-         * available during handshake.
+         * Sets the function that allow to customize the {@link SSLEngine} that will be used in the handshake.
          */
         @NonNull
-        T engineFactory(final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory);
+        T engineCustomizer(final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer);
 
         /**
          * Register a callback function to be executed when the TLS session is established (or re-established). The

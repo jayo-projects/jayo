@@ -40,32 +40,33 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
     private RealServerTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull HandshakeCertificatesStrategy handshakeCertificatesStrategy,
-            final @NonNull Function<@NonNull SSLContext, @NonNull SSLEngine> engineFactory,
+            final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer,
             final @NonNull Consumer<SSLSession> sessionInitCallback,
             final boolean waitForCloseConfirmation) {
         assert encryptedEndpoint != null;
         assert handshakeCertificatesStrategy != null;
-        assert engineFactory != null;
+        assert sslEngineCustomizer != null;
         assert sessionInitCallback != null;
 
         this.encryptedEndpoint = encryptedEndpoint;
         try {
             handshakeCertificates =
                     handshakeCertificatesStrategy.getHandshakeCertificates(this::getServerNameIndication);
-            final var context = ((RealHandshakeCertificates) handshakeCertificates).sslContext();
-            // call client code
-            final SSLEngine engine;
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext().createSSLEngine();
+            engine.setUseClientMode(false);
+
+            // call customizer
             try {
-                engine = engineFactory.apply(context);
+                sslEngineCustomizer.accept(engine);
             } catch (Exception e) {
                 if (LOGGER.isLoggable(TRACE)) {
-                    LOGGER.log(TRACE, "Client threw exception in SSLEngine factory.", e);
+                    LOGGER.log(TRACE, "Client threw exception in SSLEngine customizer.", e);
                 } else if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "Client threw exception in SSLEngine factory: {0}.",
-                            e.getMessage());
+                    LOGGER.log(DEBUG, "Client threw exception in SSLEngine customizer: {0}.", e.getMessage());
                 }
-                throw new JayoTlsHandshakeCallbackException("SSLEngine creation callback failed", e);
+                throw new JayoTlsHandshakeCallbackException("SSLEngine customizer failed", e);
             }
+
             impl = new RealTlsEndpoint(
                     encryptedEndpoint,
                     engine,
@@ -216,13 +217,6 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
         }
     }
 
-    private static @NonNull SSLEngine defaultSSLEngineFactory(final @NonNull SSLContext sslContext) {
-        assert sslContext != null;
-        SSLEngine engine = sslContext.createSSLEngine();
-        engine.setUseClientMode(false);
-        return engine;
-    }
-
     /**
      * Builder of {@link RealServerTlsEndpoint}
      */
@@ -246,14 +240,15 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
          * The private constructor used by {@link #clone()}.
          */
         private Builder(final @NonNull HandshakeCertificatesStrategy internalHandshakeCertificatesFactory,
-                        final @Nullable Function<@NonNull SSLContext, @NonNull SSLEngine> sslEngineFactory,
+                        final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer,
                         final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
                         final boolean waitForCloseConfirmation) {
             assert internalHandshakeCertificatesFactory != null;
+            assert sslEngineCustomizer != null;
             assert sessionInitCallback != null;
 
             this.internalHandshakeCertificatesFactory = internalHandshakeCertificatesFactory;
-            this.sslEngineFactory = sslEngineFactory;
+            this.sslEngineCustomizer = sslEngineCustomizer;
             this.sessionInitCallback = sessionInitCallback;
             this.waitForCloseConfirmation = waitForCloseConfirmation;
         }
@@ -269,14 +264,15 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
             return new RealServerTlsEndpoint(
                     encryptedEndpoint,
                     internalHandshakeCertificatesFactory,
-                    (sslEngineFactory != null) ? sslEngineFactory : RealServerTlsEndpoint::defaultSSLEngineFactory,
+                    sslEngineCustomizer,
                     sessionInitCallback,
                     waitForCloseConfirmation);
         }
 
         @Override
         public @NonNull Builder clone() {
-            return new Builder(internalHandshakeCertificatesFactory, sslEngineFactory, sessionInitCallback, waitForCloseConfirmation);
+            return new Builder(internalHandshakeCertificatesFactory, sslEngineCustomizer, sessionInitCallback,
+                    waitForCloseConfirmation);
         }
     }
 }

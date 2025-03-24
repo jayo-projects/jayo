@@ -70,7 +70,7 @@ public class CertificateFactory {
     }
 
     private List<String> ciphers(SSLContext ctx) {
-        return Arrays.stream(ctx.createSSLEngine().getSupportedCipherSuites())
+        var ciphers = Arrays.stream(ctx.createSSLEngine().getSupportedCipherSuites())
                 // this is not a real cipher, but a hack actually
                 .filter(c -> !Objects.equals(c, "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"))
                 // disable problematic ciphers
@@ -100,6 +100,8 @@ public class CertificateFactory {
                 // Anonymous ciphers are problematic because they are disabled in some VMs
                 .filter(c -> !c.contains("_anon_"))
                 .toList();
+        System.out.println(ciphers);
+        return ciphers;
     }
 
     public SSLContext getDefaultContext() {
