@@ -1,7 +1,7 @@
 [versions]
 # plugins
 # https://github.com/JetBrains/kotlin/releases
-kotlin = "2.1.10"
+kotlin = "2.1.20"
 # https://github.com/Kotlin/dokka/releases
 dokka = "2.0.0"
 # https://github.com/Kotlin/kotlinx-kover/releases
@@ -27,7 +27,7 @@ conscrypt = "2.5.2"
 
 # test + test fixtures
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-junit = "5.12.0"
+junit = "5.12.1"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
 assertj = "3.27.3"
 # https://mvnrepository.com/artifact/org.hamcrest/hamcrest
@@ -37,7 +37,7 @@ amazonCorretto = "2.5.0"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-jdk-platform-logging
 slf4j = "2.0.17"
 # https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-logback = "1.5.17"
+logback = "1.5.18"
 
 # third-parties
 # https://github.com/Kotlin/kotlinx.serialization/releases
