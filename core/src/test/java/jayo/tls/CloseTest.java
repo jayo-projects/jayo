@@ -16,7 +16,7 @@ import jayo.tls.helpers.SocketGroups.SocketPair;
 import jayo.tls.helpers.SocketPairFactory;
 import jayo.tls.helpers.SocketPairFactory.ChuckSizes;
 import jayo.tls.helpers.SocketPairFactory.ChunkSizeConfig;
-import jayo.tls.helpers.SslContextFactory;
+import jayo.tls.helpers.CertificateFactory;
 import jayo.tls.helpers.TlsTestUtil;
 import org.junit.jupiter.api.Test;
 
@@ -28,8 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class CloseTest {
-    private final SslContextFactory sslContextFactory = new SslContextFactory();
-    private final SocketPairFactory factory = new SocketPairFactory(sslContextFactory.getDefaultContext());
+    private final CertificateFactory certificateFactory = new CertificateFactory();
+    private final SocketPairFactory factory = new SocketPairFactory(certificateFactory);
     private final byte[] data = new byte[]{15};
 
     /**
@@ -50,7 +50,7 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientGroup.plain.close();
             assertThat(clientGroup.tls.shutdownSent()).isFalse();
@@ -59,7 +59,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
             assertThat(serverGroup.tls.shutdownReceived()).isFalse();
             assertThat(serverGroup.tls.shutdownSent()).isFalse();
@@ -89,7 +89,7 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
             clientGroup.plain.close();
@@ -100,7 +100,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -134,7 +134,7 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
             client.close();
@@ -145,7 +145,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -179,7 +179,7 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
             client.close();
@@ -190,7 +190,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -224,14 +224,14 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
             client.close();
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -266,7 +266,7 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
             assertThat(client.shutdown()).isFalse();
@@ -277,7 +277,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -311,7 +311,7 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
             // send first close_notify
@@ -327,7 +327,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -365,7 +365,7 @@ public class CloseTest {
         TlsEndpoint client = clientGroup.tls;
         TlsEndpoint server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = Jayo.buffer(client.getWriter())
+            Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
             // send first close_notify
@@ -381,7 +381,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = Jayo.buffer(server.getReader());
+            Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));

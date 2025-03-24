@@ -14,11 +14,11 @@ import jayo.Buffer;
 import jayo.RawReader;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkServer;
-import jayo.tls.TlsEndpoint;
+import jayo.tls.ServerHandshakeCertificates;
+import jayo.tls.ServerTlsEndpoint;
 
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
@@ -34,18 +34,18 @@ import java.util.function.Function;
  */
 public class TlsSniSocketServer {
     public static void main(String[] args) throws IOException, GeneralSecurityException {
-
-        // initialize the SSLContext, a configuration holder, reusable object
-        SSLContext sslContext = ContextFactory.authenticatedContext("TLSv1.2");
+        // initialize the server handshake certificates, a configuration holder, reusable object
+        ServerHandshakeCertificates handshakeCertificates = CertificateFactory.authenticatedCertificate();
 
         /*
          * Set the SSLContext factory with a lambda expression. In this case we reject the connection in all cases
          * except when the supplied domain matches exacting, in which case we just return our default context. A real
          * implementation would have more than one context to return according to the supplied name.
          */
-        Function<SNIServerName, SSLContext> exampleSslContextFactory = sniServerName -> {
+        Function<SNIServerName, ServerHandshakeCertificates> exampleHandshakeCertificatesFactory =
+                sniServerName -> {
             if (sniServerName instanceof SNIHostName hostName && hostName.getAsciiName().equals("domain.com")) {
-                return sslContext;
+                return handshakeCertificates;
             }
             return null;
         };
@@ -54,8 +54,8 @@ public class TlsSniSocketServer {
             // accept encrypted connections
             System.out.println("Waiting for connection...");
             try (NetworkEndpoint accepted = server.accept();
-                 // create the TlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-                 TlsEndpoint tlsEndpoint = TlsEndpoint.serverBuilder(exampleSslContextFactory).build(accepted);
+                 // create the ServerTlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
+                 ServerTlsEndpoint tlsEndpoint = ServerTlsEndpoint.builder(exampleHandshakeCertificatesFactory).build(accepted);
                  RawReader decryptedReader = tlsEndpoint.getReader()) {
                 Buffer buffer = Buffer.create();
                 // write to stdout all data sent by the client

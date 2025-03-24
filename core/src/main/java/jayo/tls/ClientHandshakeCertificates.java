@@ -23,10 +23,14 @@ package jayo.tls;
 
 import jayo.internal.tls.RealHandshakeCertificates;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.X509Certificate;
+import java.util.Objects;
 
 /**
  * Certificates to identify which peers to trust and also to earn the trust of those peers in kind. Client and server
@@ -71,6 +75,53 @@ import java.security.cert.X509Certificate;
  * @see ServerHandshakeCertificates
  */
 public sealed interface ClientHandshakeCertificates permits RealHandshakeCertificates {
+    /**
+     * Creates a system default {@link ClientHandshakeCertificates} to secure TLS connections.
+     * <p>
+     * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
+     */
+    static @NonNull ClientHandshakeCertificates createDefault() {
+        return new RealHandshakeCertificates();
+    }
+
+    /**
+     * Creates a {@linkplain ClientHandshakeCertificates client's handshake certificates} from a
+     * {@link TrustManagerFactory}. This client will be able to authenticate to the server, and not require any
+     * authentication back from the server.
+     * <p>
+     * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
+     * <p>
+     * Most applications should not call this method, and instead use the {@linkplain #createDefault() system defaults},
+     * as it includes special optimizations that can be lost if the implementations are decorated.
+     */
+    static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf) {
+        return create(tmf, null, null);
+    }
+
+    /**
+     * Creates a {@linkplain ClientHandshakeCertificates client's handshake certificates} from a
+     * {@link TrustManagerFactory}. This client will be able to authenticate to the server, and will also require the
+     * server to authenticate to it if a non-null {@link KeyManagerFactory} is provided.
+     * <p>
+     * If a non-null {@linkplain TlsVersion tlsVersion} is provided it will be used, else the TLS version will default
+     * to the generic {@code SSLContext.getInstance("TLS")}.
+     * <p>
+     * Most applications should not call this method, and instead use the {@linkplain #createDefault() system defaults},
+     * as it includes special optimizations that can be lost if the implementations are decorated.
+     */
+    static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf,
+                                                       final @Nullable KeyManagerFactory kmf,
+                                                       final @Nullable TlsVersion tlsVersion) {
+        Objects.requireNonNull(tmf);
+        return new RealHandshakeCertificates(tmf, kmf, tlsVersion);
+    }
+
+    /**
+     * @return a builder to craft a {@linkplain ClientHandshakeCertificates client's handshake certificates}.
+     * <p>
+     * Most applications should not call this method, and instead use the {@linkplain #createDefault() system defaults},
+     * as it includes special optimizations that can be lost if the implementations are decorated.
+     */
     static @NonNull Builder builder() {
         return new RealHandshakeCertificates.ClientBuilder();
     }
@@ -85,18 +136,6 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
      * The builder used to create a {@link ClientHandshakeCertificates}.
      */
     sealed interface Builder permits RealHandshakeCertificates.ClientBuilder {
-        /**
-         * Configure the certificate chain to use when being authenticated. The first certificate is the held
-         * certificate, further certificates are included in the handshake so the peer can build a trusted path to a
-         * trusted root certificate.
-         * <p>
-         * The chain should include all intermediate certificates but does not need the root certificate that we expect
-         * to be known by the remote peer. The peer already has that certificate so transmitting it is unnecessary.
-         */
-        @NonNull
-        Builder heldCertificate(final @NonNull HeldCertificate heldCertificate,
-                                final @NonNull X509Certificate @NonNull ... intermediates);
-
         /**
          * Add all the host platform's trusted root certificates. Default is true.
          * <p>
@@ -117,6 +156,18 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
          */
         @NonNull
         Builder addTrustedCertificate(final @NonNull X509Certificate certificate);
+
+        /**
+         * Configure the certificate chain to use when being authenticated. The first certificate is the held
+         * certificate, further certificates are included in the handshake so the peer can build a trusted path to a
+         * trusted root certificate.
+         * <p>
+         * The chain should include all intermediate certificates but does not need the root certificate that we expect
+         * to be known by the remote peer. The peer already has that certificate so transmitting it is unnecessary.
+         */
+        @NonNull
+        Builder heldCertificate(final @NonNull HeldCertificate heldCertificate,
+                                final @NonNull X509Certificate @NonNull ... intermediates);
 
         /**
          * Configures this to not authenticate the HTTPS server on to {@code hostname}. This makes the user vulnerable

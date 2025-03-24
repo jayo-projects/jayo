@@ -15,7 +15,7 @@ import jayo.tls.helpers.SocketGroups;
 import jayo.tls.helpers.SocketPairFactory;
 import jayo.tls.helpers.SocketPairFactory.ChuckSizes;
 import jayo.tls.helpers.SocketPairFactory.ChunkSizeConfig;
-import jayo.tls.helpers.SslContextFactory;
+import jayo.tls.helpers.CertificateFactory;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 
@@ -33,8 +33,8 @@ import static jayo.tls.helpers.SocketPairFactory.NULL_CIPHER;
  * {@link SSLEngine} to be able to test the overhead of the {@link TlsEndpoint} (todo).
  */
 public class NullEngineTest {
-    private final SslContextFactory sslContextFactory = new SslContextFactory();
-    private final SocketPairFactory factory = new SocketPairFactory(sslContextFactory.getDefaultContext());
+    private final CertificateFactory certificateFactory = new CertificateFactory();
+    private final SocketPairFactory factory = new SocketPairFactory(certificateFactory);
     private final int dataSize = 2 * 1024 * 1024;
 
     {
@@ -45,7 +45,7 @@ public class NullEngineTest {
     // null engine - half duplex - heap buffers
     @TestFactory
     public Collection<DynamicTest> testIoHalfDuplexHeapBuffers() {
-        List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(512, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .toList();
         List<DynamicTest> tests = new ArrayList<>();
         for (int size1 : sizes) {
@@ -67,7 +67,7 @@ public class NullEngineTest {
     // null engine - half duplex - direct buffers
     @TestFactory
     public Collection<DynamicTest> testIoHalfDuplexDirectBuffers() {
-        List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(512, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .toList();
         List<DynamicTest> tests = new ArrayList<>();
         for (int size1 : sizes) {
@@ -89,7 +89,7 @@ public class NullEngineTest {
     // null engine - half duplex - heap buffers
     @TestFactory
     public Collection<DynamicTest> testNioHalfDuplexHeapBuffers() {
-        List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(512, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .toList();
         List<DynamicTest> tests = new ArrayList<>();
         for (int size1 : sizes) {
@@ -111,7 +111,7 @@ public class NullEngineTest {
     // null engine - half duplex - direct buffers
     @TestFactory
     public Collection<DynamicTest> testNioHalfDuplexDirectBuffers() {
-        List<Integer> sizes = Stream.iterate(512, x -> x < SslContextFactory.tlsMaxDataSize * 4, x -> x * 2)
+        List<Integer> sizes = Stream.iterate(512, x -> x < CertificateFactory.TLS_MAX_DATA_SIZE * 4, x -> x * 2)
                 .toList();
         List<DynamicTest> tests = new ArrayList<>();
         for (int size1 : sizes) {

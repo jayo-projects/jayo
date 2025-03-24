@@ -235,7 +235,7 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
          * Set this certificate to be a signing certificate, with up to {@code maxIntermediateCas} intermediate signing
          * certificates beneath it.
          * <p>
-         * By default, this certificate cannot not sign other certificates. Set this to 0 so this certificate can sign
+         * By default, this certificate cannot sign other certificates. Set this to 0 so this certificate can sign
          * other certificates (but those certificates cannot themselves sign certificates). Set this to 1 so this
          * certificate can sign intermediate certificates that can themselves sign certificates. Add one for each
          * additional layer of intermediates to permit.

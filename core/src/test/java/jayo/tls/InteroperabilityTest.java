@@ -10,9 +10,9 @@
 
 package jayo.tls;
 
+import jayo.tls.helpers.CertificateFactory;
 import jayo.tls.helpers.SocketGroups;
 import jayo.tls.helpers.SocketPairFactory;
-import jayo.tls.helpers.SslContextFactory;
 import jayo.tls.helpers.TlsTestUtil;
 import org.junit.jupiter.api.Test;
 
@@ -25,13 +25,13 @@ import static jayo.tls.helpers.InteroperabilityUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class InteroperabilityTest {
-    private final SslContextFactory sslContextFactory = new SslContextFactory();
+    private final CertificateFactory certificateFactory = new CertificateFactory();
     private final SocketPairFactory factory =
-            new SocketPairFactory(sslContextFactory.getDefaultContext(), SslContextFactory.certificateCommonName);
+            new SocketPairFactory(certificateFactory, CertificateFactory.CERTIFICATE_COMMON_NAME);
 
     private final Random random = new Random();
 
-    private final int dataSize = SslContextFactory.tlsMaxDataSize * 10;
+    private final int dataSize = CertificateFactory.TLS_MAX_DATA_SIZE * 10;
 
     private final byte[] data = new byte[dataSize];
 
