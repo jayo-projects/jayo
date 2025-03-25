@@ -391,7 +391,7 @@ final class DerReader {
     /**
      * A raw reader that keeps track of how many bytes it consumed.
      */
-    private final static class CountingRawReader implements RawReader {
+    private static final class CountingRawReader implements RawReader {
         private final @NonNull RawReader delegate;
         private long bytesRead = 0L;
 

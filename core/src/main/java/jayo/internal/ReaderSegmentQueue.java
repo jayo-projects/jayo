@@ -90,7 +90,7 @@ sealed class ReaderSegmentQueue extends SegmentQueue permits ReaderSegmentQueue.
         buffer.clear();
     }
 
-    final static class Async extends ReaderSegmentQueue {
+    static final class Async extends ReaderSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.AsyncReaderSegmentQueue");
 
         private final @NonNull TaskRunner taskRunner;

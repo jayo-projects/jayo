@@ -57,7 +57,7 @@ public final class RealTlsEndpoint {
      * Note: standard SSLEngine is happy with no buffers, the empty buffer is here to make this work with Netty's
      * OpenSSL wrapper.
      */
-    private final static @NonNull ByteBuffer @NonNull [] DUMMY_OUT = new ByteBuffer[]{ByteBuffer.allocate(0)};
+    private static final @NonNull ByteBuffer @NonNull [] DUMMY_OUT = new ByteBuffer[]{ByteBuffer.allocate(0)};
 
     private final @NonNull RealReader encryptedReader;
     private final @NonNull WriterSegmentQueue encryptedWriterSegmentQueue;

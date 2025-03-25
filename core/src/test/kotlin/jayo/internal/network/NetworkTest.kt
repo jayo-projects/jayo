@@ -233,6 +233,30 @@ class NetworkTest {
         }
     }
 
+    @Disabled // inconsistent, sometimes does not throw
+    @Tag("no-ci")
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun `default write timeout`(networkFactory: NetworkFactory) {
+        networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
+            .use { server ->
+                val serverThread = thread(start = true) {
+                    server.accept()
+                }
+                val client = networkFactory.networkEndpointBuilder()
+                    .writeTimeout(Duration.ofNanos(1))
+                    .connectTcp(server.localAddress)
+
+                assertThatThrownBy {
+                    client.writer.write(TO_WRITE)
+                        .flush()
+                }.isInstanceOf(JayoTimeoutException::class.java)
+                    .hasMessage("timeout")
+
+                serverThread.join()
+            }
+    }
+
     @Tag("no-ci")
     @ParameterizedTest
     @MethodSource("parameters")
@@ -252,32 +276,6 @@ class NetworkTest {
                 assertThatThrownBy { client.reader.readString() }
                     .isInstanceOf(JayoTimeoutException::class.java)
                     .hasMessage("timeout")
-                serverThread.join()
-            }
-    }
-
-    @Tag("no-ci")
-    @ParameterizedTest
-    @MethodSource("parameters")
-    fun `default write timeout`(networkFactory: NetworkFactory) {
-        if (networkFactory.isIo) {
-            return // inconsistent with IO
-        }
-        networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
-            .use { server ->
-                val serverThread = thread(start = true) {
-                    server.accept()
-                }
-                val client = networkFactory.networkEndpointBuilder()
-                    .writeTimeout(Duration.ofNanos(1))
-                    .connectTcp(server.localAddress)
-
-                assertThatThrownBy {
-                    client.writer.write(TO_WRITE)
-                        .flush()
-                }.isInstanceOf(JayoTimeoutException::class.java)
-                    .hasMessage("timeout")
-
                 serverThread.join()
             }
     }

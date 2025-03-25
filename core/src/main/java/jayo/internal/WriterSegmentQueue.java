@@ -107,14 +107,14 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
         }
     }
 
-    final static class Async extends WriterSegmentQueue {
+    static final class Async extends WriterSegmentQueue {
         private static final System.Logger LOGGER = System.getLogger("jayo.WriterSegmentQueue");
 
         /**
          * A specific STOP event that will be sent to {@link #emitEvents} queue
          * to trigger the end of the async emitter thread
          */
-        private final static EmitEvent FLUSH_EVENT = new EmitEvent(
+        private static final EmitEvent FLUSH_EVENT = new EmitEvent(
                 new Segment(new byte[0], 0, 0, null, false),
                 false, -42);
 
