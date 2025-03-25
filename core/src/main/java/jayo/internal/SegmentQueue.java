@@ -24,7 +24,7 @@ import static java.lang.System.Logger.Level.TRACE;
 import static jayo.internal.Utils.NULL_SEGMENT_REF;
 
 sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, ReaderSegmentQueue {
-    final static long MAX_BYTE_SIZE = 128 * 1024;
+    static final long MAX_BYTE_SIZE = 128 * 1024;
 
     private static final System.Logger LOGGER = System.getLogger("jayo.SegmentQueue");
 

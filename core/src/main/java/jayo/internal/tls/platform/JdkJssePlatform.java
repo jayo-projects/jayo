@@ -42,6 +42,9 @@ import java.util.Objects;
  * The default Security Provider included in the JDK.
  */
 public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastleJssePlatform, ConscryptJssePlatform {
+    JdkJssePlatform() {
+    }
+
     @Override
     public final @NonNull SSLContext newSSLContext() {
         try {
