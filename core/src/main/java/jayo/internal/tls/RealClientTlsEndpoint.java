@@ -130,7 +130,6 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
             implements ClientTlsEndpoint.Builder {
         private final @NonNull ClientHandshakeCertificates handshakeCertificates;
 
-
         public Builder(final @NonNull ClientHandshakeCertificates handshakeCertificates) {
             assert handshakeCertificates != null;
 
@@ -152,6 +151,11 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
             this.sslEngineCustomizer = sslEngineCustomizer;
             this.sessionInitCallback = sessionInitCallback;
             this.waitForCloseConfirmation = waitForCloseConfirmation;
+        }
+
+        @Override
+        public @NonNull ClientHandshakeCertificates getHandshakeCertificates() {
+            return handshakeCertificates;
         }
 
         @Override

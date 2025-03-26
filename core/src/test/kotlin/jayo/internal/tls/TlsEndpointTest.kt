@@ -110,6 +110,15 @@ class TlsEndpointTest {
     }
 
     @Test
+    fun handshakeCertificatesClientTlsEndpointBuilder() {
+        val builder = ClientTlsEndpoint.builder(clientHandshakeCertificates)
+        assertThat(builder.handshakeCertificates.keyManager)
+            .isSameAs(clientHandshakeCertificates.keyManager)
+        assertThat(builder.handshakeCertificates.trustManager)
+            .isSameAs(clientHandshakeCertificates.trustManager)
+    }
+
+    @Test
     fun tlsClientEndpointBuilder_ExceptionInSessionInitCallback() {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
             val serverThread = thread(start = true) {
@@ -179,8 +188,8 @@ class TlsEndpointTest {
             client.startHandshake()
             client.shutdownOutput() // needed to respect the 'waitForCloseConfirmation' config of server
             serverThread.join()
-            assertThat(resolvedServerHandshakeCertificates!!.trustManager)
-                .isSameAs(serverHandshakeCertificates.trustManager)
+            assertThat(resolvedServerHandshakeCertificates!!.keyManager)
+                .isSameAs(serverHandshakeCertificates.keyManager)
             assertThat(resolvedServerHandshakeCertificates.trustManager)
                 .isSameAs(serverHandshakeCertificates.trustManager)
         }

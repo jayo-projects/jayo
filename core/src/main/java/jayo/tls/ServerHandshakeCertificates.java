@@ -119,10 +119,11 @@ public sealed interface ServerHandshakeCertificates permits RealHandshakeCertifi
                 Arrays.copyOf(intermediates, intermediates.length)); // Defensive copy.
     }
 
+    @SuppressWarnings("NullableProblems")
     @NonNull
     X509KeyManager getKeyManager();
 
-    @NonNull
+    @Nullable
     X509TrustManager getTrustManager();
 
     /**

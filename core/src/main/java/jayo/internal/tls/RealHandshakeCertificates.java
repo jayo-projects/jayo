@@ -33,24 +33,23 @@ import java.util.*;
 
 public final class RealHandshakeCertificates
         implements ClientHandshakeCertificates, ServerHandshakeCertificates {
-    private final @NonNull X509KeyManager keyManager;
-    private final @NonNull X509TrustManager trustManager;
+    private final @Nullable X509KeyManager keyManager;
+    private final @Nullable X509TrustManager trustManager;
     private final @NonNull SSLContext sslContext;
 
     public RealHandshakeCertificates() {
-        this(TlsUtils.newKeyManager(null, null),
-                JssePlatform.get().getDefaultTrustManager());
+        this(null, JssePlatform.get().getDefaultTrustManager());
     }
 
-    private RealHandshakeCertificates(final @NonNull X509KeyManager keyManager,
-                                      final @NonNull X509TrustManager trustManager) {
-        assert keyManager != null;
-        assert trustManager != null;
-
+    private RealHandshakeCertificates(final @Nullable X509KeyManager keyManager,
+                                      final @Nullable X509TrustManager trustManager) {
         this.keyManager = keyManager;
         this.trustManager = trustManager;
 
-        sslContext = newSslContext(new KeyManager[]{keyManager}, new TrustManager[]{trustManager}, null);
+        sslContext = newSslContext(
+                (keyManager != null) ? new KeyManager[]{keyManager} : null,
+                (trustManager != null) ? new TrustManager[]{trustManager} : null,
+                null);
     }
 
     public RealHandshakeCertificates(final @Nullable TrustManagerFactory tmf,
@@ -63,7 +62,7 @@ public final class RealHandshakeCertificates
             trustManager = TlsUtils.newTrustManager(tmf, Set.of());
             trustManagers = tmf.getTrustManagers();
         } else {
-            trustManager = TlsUtils.newTrustManager(null, Set.of(), Set.of());
+            trustManager = null;
             trustManagers = null;
         }
 
@@ -72,7 +71,7 @@ public final class RealHandshakeCertificates
             keyManager = TlsUtils.newKeyManager(kmf);
             keyManagers = kmf.getKeyManagers();
         } else {
-            keyManager = TlsUtils.newKeyManager(null, null);
+            keyManager = null;
             keyManagers = null;
         }
 
@@ -97,13 +96,15 @@ public final class RealHandshakeCertificates
         }
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
-    public @NonNull X509KeyManager getKeyManager() {
+    public @Nullable X509KeyManager getKeyManager() {
         return keyManager;
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
-    public @NonNull X509TrustManager getTrustManager() {
+    public @Nullable X509TrustManager getTrustManager() {
         return trustManager;
     }
 

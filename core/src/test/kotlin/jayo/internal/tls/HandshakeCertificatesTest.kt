@@ -81,9 +81,9 @@ class HandshakeCertificatesTest {
                 .build()
         assertPrivateKeysEquals(
             certificate.keyPair.private,
-            handshakeCertificates.keyManager.getPrivateKey("private"),
+            handshakeCertificates.keyManager!!.getPrivateKey("private"),
         )
-        assertThat(handshakeCertificates.keyManager.getCertificateChain("private").toList())
+        assertThat(handshakeCertificates.keyManager!!.getCertificateChain("private").toList())
             .isEqualTo(listOf(certificate.certificate, intermediate.certificate))
     }
 

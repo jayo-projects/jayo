@@ -12,7 +12,6 @@ package jayo.tls;
 
 import jayo.Endpoint;
 import jayo.internal.tls.RealClientTlsEndpoint;
-import jayo.internal.tls.RealHandshakeCertificates;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -34,7 +33,7 @@ public sealed interface ClientTlsEndpoint extends TlsEndpoint permits RealClient
      */
     static @NonNull ClientTlsEndpoint create(final @NonNull Endpoint encryptedEndpoint) {
         Objects.requireNonNull(encryptedEndpoint);
-        return builder(new RealHandshakeCertificates())
+        return builder(ClientHandshakeCertificates.createDefault())
                 .build(encryptedEndpoint);
     }
 
@@ -54,6 +53,9 @@ public sealed interface ClientTlsEndpoint extends TlsEndpoint permits RealClient
      * The builder used to create a {@link ClientTlsEndpoint} instance.
      */
     sealed interface Builder extends TlsEndpoint.Builder<Builder> permits RealClientTlsEndpoint.Builder {
+        @NonNull
+        ClientHandshakeCertificates getHandshakeCertificates();
+
         /**
          * Create a new {@linkplain ClientTlsEndpoint client-side TLS endpoint}, it requires an existing
          * {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a network socket).
