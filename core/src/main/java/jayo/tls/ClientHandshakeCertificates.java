@@ -126,11 +126,12 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
         return new RealHandshakeCertificates.ClientBuilder();
     }
 
-    @NonNull
-    X509KeyManager getKeyManager();
-
+    @SuppressWarnings("NullableProblems")
     @NonNull
     X509TrustManager getTrustManager();
+
+    @Nullable
+    X509KeyManager getKeyManager();
 
     /**
      * The builder used to create a {@link ClientHandshakeCertificates}.
