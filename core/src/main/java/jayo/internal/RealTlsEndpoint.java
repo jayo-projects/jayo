@@ -65,10 +65,10 @@ public final class RealTlsEndpoint {
     private final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback;
     private final boolean waitForCloseConfirmation;
 
-    private final Lock readLock = new ReentrantLock();
-    private final Lock writeLock = new ReentrantLock();
+    private final @NonNull Lock readLock = new ReentrantLock();
+    private final @NonNull Lock writeLock = new ReentrantLock();
 
-    private Boolean isTls = null;
+    private @Nullable Boolean isTls = null;
     /**
      * Whether an IOException was received from the underlying endpoint or from the {@link SSLEngine}.
      */
@@ -212,7 +212,6 @@ public final class RealTlsEndpoint {
                 }
             }
             if (result.getStatus() == Status.CLOSED) {
-                System.out.println(this + " status closed, shutdown received");
                 shutdownReceived = true;
                 return;
             }
@@ -632,18 +631,7 @@ public final class RealTlsEndpoint {
     }
 
     public boolean shutdownReceived() {
-        readLock.lock();
-        try {
-            writeLock.lock();
-            try {
-                System.out.println(this + " Shutdown received : " + shutdownReceived);
-                return shutdownReceived;
-            } finally {
-                writeLock.unlock();
-            }
-        } finally {
-            readLock.unlock();
-        }
+        return shutdownReceived;
     }
 
     public boolean shutdownSent() {

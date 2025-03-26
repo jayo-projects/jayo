@@ -76,7 +76,8 @@ import java.util.Objects;
  */
 public sealed interface ClientHandshakeCertificates permits RealHandshakeCertificates {
     /**
-     * Creates a system default {@link ClientHandshakeCertificates} to secure TLS connections.
+     * Creates a system default {@linkplain ClientHandshakeCertificates client's handshake certificates} to secure TLS
+     * connections.
      * <p>
      * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
      */

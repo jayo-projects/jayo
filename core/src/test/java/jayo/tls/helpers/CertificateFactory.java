@@ -70,7 +70,13 @@ public class CertificateFactory {
     }
 
     private List<String> ciphers(SSLContext ctx) {
-        var ciphers = Arrays.stream(ctx.createSSLEngine().getSupportedCipherSuites())
+        // this is not a real cipher, but a hack actually
+        // disable problematic ciphers
+        // No SHA-2 with TLS < 1.2
+        // Disable cipher only supported in TLS >= 1.3
+        // https://bugs.openjdk.java.net/browse/JDK-8224997
+        // Anonymous ciphers are problematic because they are disabled in some VMs
+        return Arrays.stream(ctx.createSSLEngine().getSupportedCipherSuites())
                 // this is not a real cipher, but a hack actually
                 .filter(c -> !Objects.equals(c, "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"))
                 // disable problematic ciphers
@@ -100,8 +106,6 @@ public class CertificateFactory {
                 // Anonymous ciphers are problematic because they are disabled in some VMs
                 .filter(c -> !c.contains("_anon_"))
                 .toList();
-        System.out.println(ciphers);
-        return ciphers;
     }
 
     public SSLContext getDefaultContext() {

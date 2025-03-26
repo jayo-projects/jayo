@@ -37,6 +37,9 @@ public final class RealHandshakeCertificates
     private final @Nullable X509TrustManager trustManager;
     private final @NonNull SSLContext sslContext;
 
+    /**
+     * A client-side no-arg constructor with system default. Should be used by most users.
+     */
     public RealHandshakeCertificates() {
         this(null, JssePlatform.get().getDefaultTrustManager());
     }
@@ -121,8 +124,7 @@ public final class RealHandshakeCertificates
         final @NonNull Collection<X509Certificate> trustedCertificates = new LinkedHashSet<>();
         final @NonNull Collection<String> insecureHosts = new LinkedHashSet<>();
 
-        @NonNull
-        RealHandshakeCertificates buildInternal() {
+        final @NonNull RealHandshakeCertificates buildInternal() {
             if (heldCertificate != null && heldCertificate.getKeyPair().getPrivate().getFormat() == null) {
                 throw new IllegalArgumentException("KeyStoreException : unable to support unencodable private key");
             }
@@ -193,7 +195,7 @@ public final class RealHandshakeCertificates
         }
 
         @Override
-        public ServerHandshakeCertificates.@NonNull Builder addTrustedCertificate(@NonNull X509Certificate certificate) {
+        public @NonNull ServerBuilder addTrustedCertificate(@NonNull X509Certificate certificate) {
             Objects.requireNonNull(certificate);
             this.trustedCertificates.add(certificate);
             return this;
