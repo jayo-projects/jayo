@@ -76,12 +76,12 @@ import java.util.Objects;
  */
 public sealed interface ClientHandshakeCertificates permits RealHandshakeCertificates {
     /**
-     * Creates a system default {@linkplain ClientHandshakeCertificates client's handshake certificates} to secure TLS
-     * connections.
+     * Creates a default {@linkplain ClientHandshakeCertificates client's handshake certificates} to secure TLS
+     * connections. It provides good security based on the System's default trust manager.
      * <p>
      * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
      */
-    static @NonNull ClientHandshakeCertificates createDefault() {
+    static @NonNull ClientHandshakeCertificates create() {
         return new RealHandshakeCertificates();
     }
 
@@ -92,7 +92,7 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
      * <p>
      * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
      * <p>
-     * Most applications should not call this method, and instead use the {@linkplain #createDefault() system defaults},
+     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
      * as it includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf) {
@@ -107,7 +107,7 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
      * If a non-null {@linkplain TlsVersion tlsVersion} is provided it will be used, else the TLS version will default
      * to the generic {@code SSLContext.getInstance("TLS")}.
      * <p>
-     * Most applications should not call this method, and instead use the {@linkplain #createDefault() system defaults},
+     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
      * as it includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf,
@@ -120,7 +120,7 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
     /**
      * @return a builder to craft a {@linkplain ClientHandshakeCertificates client's handshake certificates}.
      * <p>
-     * Most applications should not call this method, and instead use the {@linkplain #createDefault() system defaults},
+     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
      * as it includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull Builder builder() {

@@ -33,7 +33,7 @@ public sealed interface ClientTlsEndpoint extends TlsEndpoint permits RealClient
      */
     static @NonNull ClientTlsEndpoint create(final @NonNull Endpoint encryptedEndpoint) {
         Objects.requireNonNull(encryptedEndpoint);
-        return builder(ClientHandshakeCertificates.createDefault())
+        return builder(ClientHandshakeCertificates.create())
                 .build(encryptedEndpoint);
     }
 
