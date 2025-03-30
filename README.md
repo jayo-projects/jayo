@@ -1,7 +1,7 @@
 [![License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?logo=apache&style=flat-square)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Version](https://img.shields.io/maven-central/v/dev.jayo/jayo?logo=apache-maven&color=&style=flat-square)](https://central.sonatype.com/artifact/dev.jayo/jayo)
 [![Java](https://img.shields.io/badge/Java-17%20/%2021-ED8B00?logo=openjdk&logoColor=white&style=flat-square)](https://www.java.com/en/download/help/whatis_java.html)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.1.0-blue.svg?logo=kotlin&style=flat-square)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.1.20-blue.svg?logo=kotlin&style=flat-square)](http://kotlinlang.org)
 
 # Jayo
 
@@ -15,14 +15,14 @@ read, and easier to debug (with stack traces that make sense!).
 try (NetworkServer listener = NetworkServer.bindTcp(new InetSocketAddress(0))) {
   Thread serverThread = Thread.startVirtualThread(() -> {
     try (NetworkEndpoint serverEndpoint = listener.accept();
-         Writer serverWriter = Jayo.buffer(serverEndpoint.getWriter())) {
+         Writer serverWriter = serverEndpoint.getWriter()) {
       serverWriter.write("The Answer to the Ultimate Question of Life is ")
             .writeUtf8CodePoint('4')
             .writeUtf8CodePoint('2');
     }
   });
   try (NetworkEndpoint clientEndpoint = NetworkEndpoint.connectTcp(listener.getLocalAddress());
-       Reader clientReader = Jayo.buffer(clientEndpoint.getReader())) {
+       Reader clientReader = clientEndpoint.getReader()) {
     assertThat(clientReader.readString())
         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
   }
@@ -49,7 +49,7 @@ Maven:
 </dependency>
 ```
 
-Jayo is written in plain Java without the use of any external dependencies, to be as light as possible.
+Jayo is written in Java without the use of any external dependencies, to be as light as possible.
 
 We also love Kotlin ! Jayo is fully usable and optimized from Kotlin code thanks to `@NonNull` annotations, Kotlin
 friendly method naming (`get*` and `set*`) and Kotlin extension functions are natively included in this project.
@@ -78,8 +78,8 @@ ready !*
 * `NetworkEndpoint` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
 
 Jayo also provides some useful tools for TLS
-* `TlsEndpoint` is an easy-to-use streaming API based on Jayo's reader and writer, that allows to secure JVM
-applications with minimal added complexity.
+* `ClientTlsEndpoint` and `ServerTlsEndpoint` are easy-to-use APIs based on Jayo's reader and writer, that allows to
+secure JVM applications with minimal added complexity.
 * `JssePlatform` eases access to platform-specific Java Secure Socket Extension (JSSE) features.
 
 When used within Java 21+ virtual threads (see [Project Loom](https://openjdk.org/projects/loom/)), synchronous I/O will

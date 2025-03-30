@@ -26,7 +26,7 @@ import jayo.tls.decodeCertificatePem
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-class CertificatesTest {
+class CertificateUtilsTest {
     @Test
     fun testRoundtrip() {
         val certificateString =

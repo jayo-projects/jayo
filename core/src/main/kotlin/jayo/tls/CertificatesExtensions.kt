@@ -23,6 +23,7 @@
 
 package jayo.tls
 
+import jayo.tools.CertificateUtils
 import java.security.cert.X509Certificate
 
 /**
@@ -42,9 +43,9 @@ import java.security.cert.X509Certificate
  * -----END CERTIFICATE-----
  * ```
  */
-public fun String.decodeCertificatePem(): X509Certificate = Certificates.decodeCertificatePem(this)
+public fun String.decodeCertificatePem(): X509Certificate = CertificateUtils.decodeCertificatePem(this)
 
 /**
  * @return the certificate encoded in [PEM format][https://tools.ietf.org/html/rfc7468].
  */
-public fun X509Certificate.certificatePem(): String = Certificates.certificatePem(this)
+public fun X509Certificate.certificatePem(): String = CertificateUtils.certificatePem(this)

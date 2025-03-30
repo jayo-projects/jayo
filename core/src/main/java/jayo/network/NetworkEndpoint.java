@@ -41,8 +41,8 @@ public sealed interface NetworkEndpoint extends Endpoint
      * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} connected to the server using the provided
      * {@code peerAddress} socket address.
      * <p>
-     * This method uses default configuration, with no connect/read/write timeouts and no
-     * {@linkplain SocketOption socket options} set on the underlying network socket.
+     * This method uses default configuration, with no connect/read/write timeouts, no
+     * {@linkplain SocketOption socket options} set on the underlying network socket and no proxy.
      * <p>
      * If you need any specific configuration, please use {@link #builder()} instead.
      * @throws jayo.JayoException If an I/O error occurs.
@@ -165,8 +165,8 @@ public sealed interface NetworkEndpoint extends Endpoint
 
         /**
          * @return a new client-side TCP {@link NetworkEndpoint} connected to the server using the provided
-         * {@code peerAddress} socket address using the provided {@code proxy} as intermediary between this and the peer
-         * server.
+         * {@code peerAddress} socket address using the provided Socks {@code proxy} as intermediary between this and
+         * the peer server.
          * @throws jayo.JayoException If an I/O error occurs.
          */
         @NonNull

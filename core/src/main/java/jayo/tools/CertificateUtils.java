@@ -19,16 +19,16 @@
  * limitations under the License.
  */
 
-package jayo.tls;
+package jayo.tools;
 
 import jayo.internal.tls.RealCertificates;
 import org.jspecify.annotations.NonNull;
 
 import java.security.cert.X509Certificate;
 
-public final class Certificates {
+public final class CertificateUtils {
     // un-instantiable
-    private Certificates() {
+    private CertificateUtils() {
     }
 
     /**
