@@ -14,12 +14,16 @@ import java.util.Objects;
 /**
  * Wraps a {@link SocketException} with an unchecked exception.
  */
-public final class JayoSocketException extends JayoException {
+public sealed class JayoSocketException extends JayoException permits JayoConnectException {
     public JayoSocketException(final @NonNull SocketException cause) {
         super(Objects.requireNonNull(cause));
     }
 
     public JayoSocketException(final @NonNull String message) {
         super(Objects.requireNonNull(message), new SocketException(message));
+    }
+
+    JayoSocketException(final @NonNull String message, final @NonNull SocketException cause) {
+        super(Objects.requireNonNull(message), Objects.requireNonNull(cause));
     }
 }

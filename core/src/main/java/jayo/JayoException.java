@@ -5,6 +5,7 @@
 
 package jayo;
 
+import jayo.network.JayoConnectException;
 import jayo.network.JayoSocketException;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeException;
@@ -15,10 +16,7 @@ import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import java.io.*;
-import java.net.ProtocolException;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.channels.ClosedChannelException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
@@ -97,6 +95,9 @@ public class JayoException extends UncheckedIOException {
         if (ioException instanceof ClosedChannelException closedChanException) {
             return new JayoClosedResourceException(closedChanException);
         }
+        if (ioException instanceof ConnectException connectException) {
+            return new JayoConnectException(connectException);
+        }
         if (ioException instanceof SocketException socketException) {
             if (CLOSED_SOCKET_MESSAGE.equals(socketException.getMessage())
                     || BROKEN_PIPE_SOCKET_MESSAGE.equals(socketException.getMessage())) {
@@ -104,6 +105,7 @@ public class JayoException extends UncheckedIOException {
             }
             return new JayoSocketException(socketException);
         }
+
 
         // TLS/SSL related exceptions
         if (ioException instanceof SSLHandshakeException sslHandshakeException) {
