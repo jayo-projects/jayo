@@ -47,6 +47,7 @@ class HandshakeTest {
     fun createFromParts() {
         val handshake =
             Handshake.get(
+                Protocol.H2_PRIOR_KNOWLEDGE,
                 TlsVersion.TLS_1_3,
                 CipherSuite.TLS_AES_128_GCM_SHA256,
                 listOf(),

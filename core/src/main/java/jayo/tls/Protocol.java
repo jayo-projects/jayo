@@ -23,16 +23,16 @@ package jayo.tls;
 
 import jayo.JayoProtocolException;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
 import java.net.URL;
-import java.util.Objects;
 
 /**
  * Protocols for <a href="https://tools.ietf.org/html/draft-ietf-tls-applayerprotoneg">ALPN</a> selection.
  * <h3>Protocol vs Scheme</h3>
  * Despite its name, {@link URL#getProtocol()} returns the {@linkplain URI#getScheme() scheme} (http,
- * https, etc.) of the URL, not the protocol (http/1.1, spdy/3.1, etc.). Jayo uses the word <b>protocol</b> to identify
+ * https, etc.) of the URL, not the protocol (http/1.1, quic, etc.). Jayo uses the word <b>protocol</b> to identify
  * how HTTP messages are framed.
  */
 public enum Protocol {
@@ -94,10 +94,13 @@ public enum Protocol {
         return protocol;
     }
 
-    public static @NonNull Protocol get(final @NonNull String protocol) {
-        Objects.requireNonNull(protocol);
+    public static @Nullable Protocol get(final @Nullable String applicationProtocol) {
+        if (applicationProtocol == null || applicationProtocol.isEmpty()) {
+            return null;
+        }
+
         // Unroll the loop over values() to save an allocation.
-        return switch (protocol) {
+        return switch (applicationProtocol) {
             case "http/1.0" -> HTTP_1_0;
             case "http/1.1" -> HTTP_1_1;
             case "h2" -> HTTP_2;
@@ -106,10 +109,10 @@ public enum Protocol {
             case "h3" -> HTTP_3;
             default -> {
                 // Support HTTP3 draft like h3-29
-                if (protocol.startsWith("h3")) {
+                if (applicationProtocol.startsWith("h3")) {
                     yield HTTP_3;
                 } else {
-                    throw new JayoProtocolException("Unexpected protocol: " + protocol);
+                    throw new JayoProtocolException("Unexpected protocol: " + applicationProtocol);
                 }
             }
         };

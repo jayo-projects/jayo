@@ -13,10 +13,7 @@ package jayo.internal;
 import jayo.*;
 import jayo.internal.tls.RealClientTlsEndpoint;
 import jayo.internal.tls.RealServerTlsEndpoint;
-import jayo.tls.Handshake;
-import jayo.tls.JayoTlsException;
-import jayo.tls.JayoTlsHandshakeCallbackException;
-import jayo.tls.TlsEndpoint;
+import jayo.tls.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -29,6 +26,7 @@ import javax.net.ssl.SSLSession;
 import java.io.Serial;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -129,7 +127,8 @@ public final class RealTlsEndpoint {
     @NonNull
     public Handshake getHandshake() {
         // on-demand Handshake creation, only if user calls it
-        return Handshake.get(engine.getSession());
+        final var applicationProtocol = engine.getApplicationProtocol();
+        return Handshake.get(engine.getSession(), Protocol.get(applicationProtocol));
     }
 
     // read
@@ -677,22 +676,14 @@ public final class RealTlsEndpoint {
     /**
      * The base class for builders of {@link TlsEndpoint}.
      */
-    public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T>> implements TlsEndpoint.Builder<T>
-            permits RealClientTlsEndpoint.Builder, RealServerTlsEndpoint.Builder {
-        protected @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer = ignored -> {
-        };
+    public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T, U>, U extends TlsEndpoint.Parameterizer>
+            implements TlsEndpoint.Builder<T, U> permits RealClientTlsEndpoint.Builder, RealServerTlsEndpoint.Builder {
         // @formatter:off
         protected @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
         // @formatter:on
         protected boolean waitForCloseConfirmation = false;
 
         protected abstract @NonNull T getThis();
-
-        @Override
-        public @NonNull T engineCustomizer(final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer) {
-            this.sslEngineCustomizer = Objects.requireNonNull(sslEngineCustomizer);
-            return getThis();
-        }
 
         @Override
         public final @NonNull T sessionInitCallback(final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback) {
@@ -708,5 +699,79 @@ public final class RealTlsEndpoint {
 
         @Override
         public abstract @NonNull T clone();
+    }
+
+    /**
+     * The base class for parameterize {@link TlsEndpoint}.
+     */
+    public static sealed abstract class Parameterizer implements TlsEndpoint.Parameterizer
+            permits RealClientTlsEndpoint.Builder.Parameterizer, RealServerTlsEndpoint.Builder.Parameterizer {
+        protected final @NonNull SSLEngine engine;
+
+        protected Parameterizer(final @NonNull SSLEngine engine) {
+            assert engine != null;
+            this.engine = engine;
+        }
+
+        @Override
+        public final @NonNull List<@NonNull Protocol> getEnabledProtocols() {
+            return Arrays.stream(engine.getSSLParameters().getApplicationProtocols())
+                    .map(Protocol::get)
+                    .filter(Objects::nonNull)
+                    .toList();
+        }
+
+        @Override
+        public final void setEnabledProtocols(@NonNull List<@NonNull Protocol> protocols) {
+            Objects.requireNonNull(protocols);
+
+            final var sslParameters = engine.getSSLParameters();
+            final var protocolsAsStrings = protocols.stream()
+                    .map(Protocol::toString)
+                    .toArray(String[]::new);
+            sslParameters.setApplicationProtocols(protocolsAsStrings);
+            engine.setSSLParameters(sslParameters);
+        }
+
+        @Override
+        public final @NonNull List<@NonNull TlsVersion> getEnabledTlsVersions() {
+            return Arrays.stream(engine.getEnabledProtocols())
+                    .map(TlsVersion::fromJavaName)
+                    .toList();
+        }
+
+        @Override
+        public final void setEnabledTlsVersions(final @NonNull List<@NonNull TlsVersion> tlsVersions) {
+            Objects.requireNonNull(tlsVersions);
+
+            final var tlsVersionsAsStrings = tlsVersions.stream()
+                    .map(TlsVersion::getJavaName)
+                    .toArray(String[]::new);
+            engine.setEnabledProtocols(tlsVersionsAsStrings);
+        }
+
+        @Override
+        public final @NonNull List<@NonNull CipherSuite> getSupportedCipherSuites() {
+            return Arrays.stream(engine.getSupportedCipherSuites())
+                    .map(CipherSuite::fromJavaName)
+                    .toList();
+        }
+
+        @Override
+        public final @NonNull List<@NonNull CipherSuite> getEnabledCipherSuites() {
+            return Arrays.stream(engine.getEnabledCipherSuites())
+                    .map(CipherSuite::fromJavaName)
+                    .toList();
+        }
+
+        @Override
+        public final void setEnabledCipherSuites(@NonNull List<@NonNull CipherSuite> cipherSuites) {
+            Objects.requireNonNull(cipherSuites);
+
+            final var cipherSuitesAsStrings = cipherSuites.stream()
+                    .map(CipherSuite::getJavaName)
+                    .toArray(String[]::new);
+            engine.setEnabledCipherSuites(cipherSuitesAsStrings);
+        }
     }
 }

@@ -19,6 +19,7 @@ import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -131,20 +132,14 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     /**
      * The abstract builder used to create a {@link TlsEndpoint} instance.
      */
-    sealed interface Builder<T extends Builder<T>> extends Cloneable
+    sealed interface Builder<T extends Builder<T, U>, U extends Parameterizer> extends Cloneable
             permits RealTlsEndpoint.Builder, ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
-        /**
-         * Sets the function that allow to customize the {@link SSLEngine} that will be used in the handshake.
-         */
-        @NonNull
-        T engineCustomizer(final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer);
-
         /**
          * Register a callback function to be executed when the TLS session is established (or re-established). The
          * supplied function will run in the same thread as the rest of the handshake, so it should ideally run as fast
          * as possible.
          *
-         * @see Handshake#get(SSLSession)
+         * @see Handshake#get(SSLSession, Protocol)
          */
         @NonNull
         T sessionInitCallback(final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback);
@@ -169,9 +164,89 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         T waitForCloseConfirmation(final boolean waitForCloseConfirmation);
 
         /**
+         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using no advisory peer information, it
+         * requires an existing {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a
+         * network socket).
+         *
+         * @see #createParameterizer(Endpoint, String, int)
+         */
+        @NonNull
+        U createParameterizer(final @NonNull Endpoint encryptedEndpoint);
+
+        /**
+         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using advisory peer information, it
+         * requires an existing {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a
+         * network socket).
+         * <p>
+         * Applications using this method are providing hints for an internal session reuse strategy.
+         * <p>
+         * Some cipher suites (such as Kerberos) require remote hostname information, in which case peerHost needs to be
+         * specified.
+         *
+         * @param peerHost the non-authoritative name of the host.
+         * @param peerPort the non-authoritative port.
+         */
+        @NonNull
+        U createParameterizer(final @NonNull Endpoint encryptedEndpoint,
+                              final @NonNull String peerHost,
+                              final int peerPort);
+
+        /**
          * @return a deep copy of this builder.
          */
         @NonNull
         T clone();
+    }
+
+    sealed interface Parameterizer permits RealTlsEndpoint.Parameterizer, ClientTlsEndpoint.Parameterizer,
+            ServerTlsEndpoint.Parameterizer {
+        /**
+         * @return the list of enabled {@linkplain Protocol protocols} (http/1.1, quic, etc.) for
+         * <a href="https://tools.ietf.org/html/draft-ietf-tls-applayerprotoneg">ALPN</a> selection. These protocols
+         * describe how HTTP messages are framed.
+         */
+        @NonNull
+        List<@NonNull Protocol> getEnabledProtocols();
+
+        /**
+         * Sets the list of enabled {@linkplain Protocol protocols} (http/1.1, quic, etc.) for
+         * <a href="https://tools.ietf.org/html/draft-ietf-tls-applayerprotoneg">ALPN</a> selection. These protocols
+         * describe how HTTP messages are framed.
+         */
+        void setEnabledProtocols(final @NonNull List<@NonNull Protocol> protocols);
+
+        /**
+         * @return the list of enabled {@linkplain TlsVersion TLS versions} (TLSv1.3, TLSv1.2 etc.) to secure the
+         * connection. The chosen TLS version will vary, depending on protocols and cipher suites negotiated with the
+         * peer.
+         */
+        @NonNull
+        List<@NonNull TlsVersion> getEnabledTlsVersions();
+
+        /**
+         * Sets the list of enabled {@linkplain TlsVersion TLS versions} (TLSv1.3, TLSv1.2 etc.) to secure the
+         * connection. The chosen TLS version will vary, depending on protocols and cipher suites negotiated with the
+         * peer.
+         */
+        void setEnabledTlsVersions(final @NonNull List<@NonNull TlsVersion> tlsVersions);
+
+        /**
+         * @return the list of supported {@linkplain CipherSuite TLS cipher suites} by this platform.
+         */
+        @NonNull
+        List<@NonNull CipherSuite> getSupportedCipherSuites();
+
+        /**
+         * @return the list of enabled {@linkplain CipherSuite TLS cipher suites}, it must be a sub-list of
+         * {@link #getSupportedCipherSuites()}.
+         */
+        @NonNull
+        List<@NonNull CipherSuite> getEnabledCipherSuites();
+
+        /**
+         * Sets the list of enabled {@linkplain CipherSuite TLS cipher suites}, it must be a sub-list of
+         * {@link #getSupportedCipherSuites()}.
+         */
+        void setEnabledCipherSuites(final @NonNull List<@NonNull CipherSuite> cipherSuites);
     }
 }

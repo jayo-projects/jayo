@@ -77,27 +77,22 @@ import java.util.Objects;
  */
 public sealed interface ServerHandshakeCertificates permits RealHandshakeCertificates {
     /**
-     * Creates a {@linkplain ServerHandshakeCertificates server's handshake certificates} from a {@link KeyManagerFactory}.
-     * <p>
-     * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
+     * Creates a {@linkplain ServerHandshakeCertificates server's handshake certificates} from a
+     * {@link KeyManagerFactory}. This server will not be able to authenticate to the client.
      */
     static @NonNull ServerHandshakeCertificates create(final @NonNull KeyManagerFactory kmf) {
-        return create(kmf, null, null);
+        return new RealHandshakeCertificates(null, kmf);
     }
 
     /**
      * Creates a {@linkplain ServerHandshakeCertificates server's handshake certificates} from a
-     * {@link KeyManagerFactory}. This server will also be able to authenticate to the client if a non-null
-     * {@link TrustManagerFactory} is provided.
-     * <p>
-     * If a non-null {@linkplain TlsVersion tlsVersion} is provided it will be used, else the TLS version will default
-     * to the generic {@code SSLContext.getInstance("TLS")}.
+     * {@link KeyManagerFactory}. This server will also be able to authenticate to the client thanks to the
+     * {@link TrustManagerFactory}.
      */
     static @NonNull ServerHandshakeCertificates create(final @NonNull KeyManagerFactory kmf,
-                                                       final @Nullable TrustManagerFactory tmf,
-                                                       final @Nullable TlsVersion tlsVersion) {
+                                                       final @NonNull TrustManagerFactory tmf) {
         Objects.requireNonNull(kmf);
-        return new RealHandshakeCertificates(tmf, kmf, tlsVersion);
+        return new RealHandshakeCertificates(tmf, kmf);
     }
 
     /**

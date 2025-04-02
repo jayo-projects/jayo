@@ -23,7 +23,6 @@ package jayo.internal.tls.platform;
 
 import jayo.tls.JssePlatform;
 import jayo.tls.Protocol;
-import jayo.tls.TlsVersion;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -46,29 +45,13 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
     }
 
     @Override
-    public final @NonNull SSLContext newSSLContext() {
+    public @NonNull SSLContext newSSLContext() {
         try {
-            return newSSLContext("TLS");
+            return SSLContext.getInstance("TLS");
         } catch (NoSuchAlgorithmException e) {
             // The system has no TLS. Just give up.
             throw new AssertionError("'TLS' is not supported: " + e.getMessage(), e);
         }
-    }
-
-    @Override
-    public final @NonNull SSLContext newSSLContext(final @NonNull TlsVersion version) {
-        Objects.requireNonNull(version);
-        try {
-            return newSSLContext(version.getJavaName());
-        } catch (NoSuchAlgorithmException e) {
-            // The system has no TLS. Just give up.
-            throw new AssertionError("TLS version '" + version + "' is not supported: " + e.getMessage(), e);
-        }
-    }
-
-    @NonNull
-    SSLContext newSSLContext(final @NonNull String version) throws NoSuchAlgorithmException {
-        return SSLContext.getInstance(version);
     }
 
     @Override

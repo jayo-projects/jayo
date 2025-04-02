@@ -64,9 +64,13 @@ public final class BouncyCastleJssePlatform extends JdkJssePlatform {
     }
 
     @Override
-    @NonNull
-    SSLContext newSSLContext(final @NonNull String version) throws NoSuchAlgorithmException {
-        return SSLContext.getInstance(version, provider);
+    public @NonNull SSLContext newSSLContext() {
+        try {
+            return SSLContext.getInstance("TLS", provider);
+        } catch (NoSuchAlgorithmException e) {
+            // The system has no TLS. Just give up.
+            throw new AssertionError("'TLS' is not supported: " + e.getMessage(), e);
+        }
     }
 
     @Override

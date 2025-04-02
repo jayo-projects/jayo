@@ -12,23 +12,24 @@ package jayo.internal.tls;
 
 import jayo.*;
 import jayo.internal.RealTlsEndpoint;
-import jayo.tls.*;
+import jayo.tls.ClientHandshakeCertificates;
+import jayo.tls.ClientTlsEndpoint;
+import jayo.tls.Handshake;
+import jayo.tls.TlsEndpoint;
 import org.jspecify.annotations.NonNull;
 
+import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-
-import static java.lang.System.Logger.Level.DEBUG;
-import static java.lang.System.Logger.Level.TRACE;
 
 /**
  * A client-side {@link TlsEndpoint}.
  */
 public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
-    private static final System.Logger LOGGER = System.getLogger("jayo.tls.ClientTlsEndpoint");
-
     private final @NonNull Endpoint encryptedEndpoint;
     private final @NonNull ClientHandshakeCertificates handshakeCertificates;
     private final @NonNull RealTlsEndpoint impl;
@@ -39,31 +40,16 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     private RealClientTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull ClientHandshakeCertificates handshakeCertificates,
-            final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer,
             final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
-            final boolean waitForCloseConfirmation) {
+            final boolean waitForCloseConfirmation,
+            final @NonNull SSLEngine engine) {
         assert encryptedEndpoint != null;
         assert handshakeCertificates != null;
-        assert sslEngineCustomizer != null;
         assert sessionInitCallback != null;
+        assert engine != null;
 
         this.encryptedEndpoint = encryptedEndpoint;
         this.handshakeCertificates = handshakeCertificates;
-
-        final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext().createSSLEngine();
-        engine.setUseClientMode(true);
-
-        // call customizer
-        try {
-            sslEngineCustomizer.accept(engine);
-        } catch (Exception e) {
-            if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "Client threw exception in SSLEngine customizer.", e);
-            } else if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "Client threw exception in SSLEngine customizer: {0}.", e.getMessage());
-            }
-            throw new JayoTlsHandshakeCallbackException("SSLEngine customizer failed", e);
-        }
 
         impl = new RealTlsEndpoint(
                 encryptedEndpoint,
@@ -126,13 +112,12 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     /**
      * Builder of {@link RealClientTlsEndpoint}
      */
-    public static final class Builder extends RealTlsEndpoint.Builder<ClientTlsEndpoint.Builder>
+    public static final class Builder extends RealTlsEndpoint.Builder<ClientTlsEndpoint.Builder, ClientTlsEndpoint.Parameterizer>
             implements ClientTlsEndpoint.Builder {
         private final @NonNull ClientHandshakeCertificates handshakeCertificates;
 
         public Builder(final @NonNull ClientHandshakeCertificates handshakeCertificates) {
             assert handshakeCertificates != null;
-
             this.handshakeCertificates = handshakeCertificates;
         }
 
@@ -140,15 +125,12 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
          * The private constructor used by {@link #clone()}.
          */
         private Builder(final @NonNull ClientHandshakeCertificates handshakeCertificates,
-                        final @NonNull Consumer<@NonNull SSLEngine> sslEngineCustomizer,
                         final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
                         final boolean waitForCloseConfirmation) {
             assert handshakeCertificates != null;
-            assert sslEngineCustomizer != null;
             assert sessionInitCallback != null;
 
             this.handshakeCertificates = handshakeCertificates;
-            this.sslEngineCustomizer = sslEngineCustomizer;
             this.sessionInitCallback = sessionInitCallback;
             this.waitForCloseConfirmation = waitForCloseConfirmation;
         }
@@ -166,18 +148,79 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
         @Override
         public @NonNull ClientTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint) {
             Objects.requireNonNull(encryptedEndpoint);
+
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext.createSSLEngine();
+            engine.setUseClientMode(true);
             return new RealClientTlsEndpoint(
                     encryptedEndpoint,
                     handshakeCertificates,
-                    sslEngineCustomizer,
                     sessionInitCallback,
-                    waitForCloseConfirmation);
+                    waitForCloseConfirmation,
+                    engine);
+        }
+
+        @Override
+        public @NonNull Parameterizer createParameterizer(final @NonNull Endpoint encryptedEndpoint) {
+            Objects.requireNonNull(encryptedEndpoint);
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext
+                    .createSSLEngine();
+            engine.setUseClientMode(true);
+            return new Parameterizer(encryptedEndpoint, engine);
+        }
+
+        @Override
+        public @NonNull Parameterizer createParameterizer(final @NonNull Endpoint encryptedEndpoint,
+                                                          final @NonNull String peerHost,
+                                                          final int peerPort) {
+            Objects.requireNonNull(encryptedEndpoint);
+            Objects.requireNonNull(peerHost);
+            assert peerPort > 0;
+
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext
+                    .createSSLEngine(peerHost, peerPort);
+            engine.setUseClientMode(true);
+            return new Parameterizer(encryptedEndpoint, engine);
         }
 
         @Override
         public @NonNull Builder clone() {
-            return new Builder(handshakeCertificates, sslEngineCustomizer, sessionInitCallback,
-                    waitForCloseConfirmation);
+            return new Builder(handshakeCertificates, sessionInitCallback, waitForCloseConfirmation);
+        }
+
+        public final class Parameterizer extends RealTlsEndpoint.Parameterizer
+                implements ClientTlsEndpoint.Parameterizer {
+            private final @NonNull Endpoint encryptedEndpoint;
+
+            private Parameterizer(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLEngine engine) {
+                super(engine);
+                assert encryptedEndpoint != null;
+                this.encryptedEndpoint = encryptedEndpoint;
+            }
+
+            @Override
+            public @NonNull List<@NonNull SNIServerName> getServerNames() {
+                final var serverNames = engine.getSSLParameters().getServerNames();
+                return (serverNames != null) ? serverNames : List.of();
+            }
+
+            @Override
+            public void setServerNames(@NonNull List<@NonNull SNIServerName> serverNames) {
+                Objects.requireNonNull(serverNames);
+
+                final var sslParameters = engine.getSSLParameters();
+                sslParameters.setServerNames(serverNames);
+                engine.setSSLParameters(sslParameters);
+            }
+
+            @Override
+            public @NonNull ClientTlsEndpoint build() {
+                return new RealClientTlsEndpoint(
+                        encryptedEndpoint,
+                        handshakeCertificates,
+                        sessionInitCallback,
+                        waitForCloseConfirmation,
+                        engine);
+            }
         }
     }
 

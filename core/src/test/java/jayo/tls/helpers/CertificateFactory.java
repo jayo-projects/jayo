@@ -29,7 +29,7 @@ public class CertificateFactory {
     public static final int TLS_MAX_DATA_SIZE = (int) Math.pow(2, 14);
     public static final String CERTIFICATE_COMMON_NAME = "name"; // must match what's in the certificates
 
-    private final TlsVersion version;
+    public final TlsVersion version;
     private final SSLContext defaultContext;
     private final TrustManagerFactory tmf;
     private final KeyManagerFactory kmf;
@@ -39,6 +39,7 @@ public class CertificateFactory {
         this.version = version;
         try {
             SSLContext sslContext = SSLContext.getInstance(version.getJavaName());
+            System.out.println("CertificateFactory TLS version: " + version);
             KeyStore ks = KeyStore.getInstance("JKS");
             try (InputStream keystoreFile = getClass().getClassLoader().getResourceAsStream("keystore.jks")) {
                 char[] password = "password".toCharArray();
@@ -58,11 +59,11 @@ public class CertificateFactory {
     }
 
     public ServerHandshakeCertificates getServerHandshakeCertificates() {
-        return ServerHandshakeCertificates.create(kmf, null, version);
+        return ServerHandshakeCertificates.create(kmf);
     }
 
     public ClientHandshakeCertificates getClientHandshakeCertificates() {
-        return ClientHandshakeCertificates.create(tmf, null, version);
+        return ClientHandshakeCertificates.create(tmf);
     }
 
     public CertificateFactory() {
@@ -70,12 +71,6 @@ public class CertificateFactory {
     }
 
     private List<String> ciphers(SSLContext ctx) {
-        // this is not a real cipher, but a hack actually
-        // disable problematic ciphers
-        // No SHA-2 with TLS < 1.2
-        // Disable cipher only supported in TLS >= 1.3
-        // https://bugs.openjdk.java.net/browse/JDK-8224997
-        // Anonymous ciphers are problematic because they are disabled in some VMs
         return Arrays.stream(ctx.createSSLEngine().getSupportedCipherSuites())
                 // this is not a real cipher, but a hack actually
                 .filter(c -> !Objects.equals(c, "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"))
@@ -94,15 +89,6 @@ public class CertificateFactory {
                                 "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
                                 "SSL_RSA_EXPORT_WITH_RC4_40_MD5")
                         .contains(c))
-                // No SHA-2 with TLS < 1.2
-                .filter(c -> Arrays.asList("TLSv1.2", "TLSv1.3").contains(version.getJavaName())
-                        || !c.endsWith("_SHA256") && !c.endsWith("_SHA384"))
-                // Disable cipher only supported in TLS >= 1.3
-                .filter(c -> version.getJavaName().compareTo("TLSv1.3") > 0
-                        || !Arrays.asList("TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384")
-                        .contains(c))
-                // https://bugs.openjdk.java.net/browse/JDK-8224997
-                .filter(c -> !c.endsWith("_CHACHA20_POLY1305_SHA256"))
                 // Anonymous ciphers are problematic because they are disabled in some VMs
                 .filter(c -> !c.contains("_anon_"))
                 .toList();
