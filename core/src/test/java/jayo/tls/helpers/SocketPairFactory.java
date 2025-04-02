@@ -95,15 +95,12 @@ public class SocketPairFactory {
     }
 
     public void fixedCipherServerSslEngineCustomizer(Optional<String> cipher, TlsEndpoint.Parameterizer parameterizer) {
-        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
-        LOGGER.info("server enabled version: " + certificateFactory.version);
-        cipher.ifPresent(c -> {
+        cipher.ifPresentOrElse(c -> {
             final var cipherSuite = CipherSuite.fromJavaName(c);
             assertThat(parameterizer.getSupportedCipherSuites()).contains(cipherSuite);
             assertThat(parameterizer.getEnabledCipherSuites()).isNotEmpty();
-            LOGGER.info("server cipher suite: " + cipherSuite);
             parameterizer.setEnabledCipherSuites(List.of(cipherSuite));
-        });
+        }, () -> parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version)));
     }
 
     public ServerHandshakeCertificates handshakeCertificatesFactory(ServerHandshakeCertificates handshakeCertificates,
@@ -120,24 +117,15 @@ public class SocketPairFactory {
     }
 
     private void customizeClientSslEngine(ClientTlsEndpoint.Parameterizer parameterizer, Optional<String> cipher) {
-        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
-        LOGGER.info("client enabled version: " + certificateFactory.version);
-        cipher.ifPresent(c -> {
-            parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c)));
-            LOGGER.info("client cipher suite: " + CipherSuite.fromJavaName(c));
-        });
+        cipher.ifPresentOrElse(c -> parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c))),
+                () -> parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version)));
         parameterizer.setServerNames(Collections.singletonList(clientSniHostName));
     }
 
     private TlsEndpoint createTlsServerEndpoint(Optional<String> cipher, NetworkEndpoint endpoint) {
         final var parameterizer = ServerTlsEndpoint.builder(certificateFactory.getServerHandshakeCertificates())
                 .createParameterizer(endpoint);
-        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
-        LOGGER.info("server enabled version: " + certificateFactory.version);
-        cipher.ifPresent(c -> {
-            parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c)));
-            LOGGER.info("server cipher suite: " + CipherSuite.fromJavaName(c));
-        });
+        cipher.ifPresent(c -> parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c))));
         return parameterizer.build();
     }
 
@@ -146,12 +134,7 @@ public class SocketPairFactory {
                                                 SNIHostName clientSniHostName) {
         final var parameterizer = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
                 .createParameterizer(NetworkEndpoint.connectTcp(address));
-        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
-        LOGGER.info("client enabled version: " + certificateFactory.version);
-        cipher.ifPresent(c -> {
-            parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c)));
-            LOGGER.info("client cipher suite: " + CipherSuite.fromJavaName(c));
-        });
+        cipher.ifPresent(c -> parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c))));
         parameterizer.setServerNames(Collections.singletonList(clientSniHostName));
         return parameterizer.build();
     }
