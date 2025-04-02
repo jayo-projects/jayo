@@ -21,8 +21,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -39,13 +41,16 @@ public class FailTest {
 
         Endpoint serverEndpoint = server.accept();
 
-        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
-                ServerTlsEndpoint.builder(nameOpt ->
-                                factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
-                                        nameOpt))
-                        .engineCustomizer(sslContext ->
-                                factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), sslContext))
-                        .build(serverEndpoint))
+        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> {
+            final var parameterizer = ServerTlsEndpoint.builder(nameOpt ->
+                            factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
+                                    nameOpt))
+                    .createParameterizer(serverEndpoint);
+            factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), parameterizer);
+            assertThat(parameterizer.getEnabledTlsVersions()).contains(certificateFactory.version);
+            parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
+            parameterizer.build();
+        })
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");
@@ -67,13 +72,15 @@ public class FailTest {
 
         Endpoint serverEndpoint = server.accept();
 
-        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() ->
-                ServerTlsEndpoint.builder(nameOpt ->
-                                factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
-                                        nameOpt))
-                        .engineCustomizer(sslContext ->
-                                factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), sslContext))
-                        .build(serverEndpoint))
+        Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> {
+            final var parameterizer = ServerTlsEndpoint.builder(nameOpt ->
+                            factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
+                                    nameOpt))
+                    .createParameterizer(serverEndpoint);
+            factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), parameterizer);
+            parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
+            parameterizer.build();
+        })
                 .isInstanceOf(JayoTlsHandshakeException.class)
                 .hasMessage("Not a handshake record"));
         Thread serverThread = new Thread(serverFn, "server-thread");

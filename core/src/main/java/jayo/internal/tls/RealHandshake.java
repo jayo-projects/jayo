@@ -24,6 +24,7 @@ package jayo.internal.tls;
 import jayo.JayoException;
 import jayo.tls.CipherSuite;
 import jayo.tls.Handshake;
+import jayo.tls.Protocol;
 import jayo.tls.TlsVersion;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -40,17 +41,20 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 public final class RealHandshake implements Handshake {
-    public static @NonNull RealHandshake get(final @NonNull TlsVersion tlsVersion,
+    public static @NonNull RealHandshake get(final @NonNull Protocol protocol,
+                                             final @NonNull TlsVersion tlsVersion,
                                              final @NonNull CipherSuite cipherSuite,
                                              final @NonNull List<Certificate> localCertificates,
                                              final @NonNull List<Certificate> peerCertificates) {
-        Objects.requireNonNull(tlsVersion);
-        Objects.requireNonNull(cipherSuite);
-        Objects.requireNonNull(localCertificates);
-        Objects.requireNonNull(peerCertificates);
+        assert protocol != null;
+        assert tlsVersion != null;
+        assert cipherSuite != null;
+        assert localCertificates != null;
+        assert peerCertificates != null;
 
         final var peerCertificatesCopy = List.copyOf(peerCertificates);
         return new RealHandshake(
+                protocol,
                 tlsVersion,
                 cipherSuite,
                 List.copyOf(localCertificates),
@@ -58,8 +62,10 @@ public final class RealHandshake implements Handshake {
         );
     }
 
-    public static @NonNull RealHandshake get(final @NonNull SSLSession session) {
-        Objects.requireNonNull(session);
+    public static @NonNull RealHandshake get(final @NonNull SSLSession session,
+                                             final @NonNull Protocol protocol) {
+        assert session != null;
+        assert protocol != null;
 
         final var cipherSuiteString = session.getCipherSuite();
         if (cipherSuiteString == null) {
@@ -88,6 +94,7 @@ public final class RealHandshake implements Handshake {
         final var peerCertificatesCopy = unmodifiableCertificateList(peerCertificates);
 
         return new RealHandshake(
+                protocol,
                 tlsVersion,
                 cipherSuite,
                 unmodifiableCertificateList(session.getLocalCertificates()),
@@ -100,25 +107,34 @@ public final class RealHandshake implements Handshake {
         return (certificates != null) ? Collections.unmodifiableList(Arrays.asList(certificates)) : List.of();
     }
 
+    private final @NonNull Protocol protocol;
     private final @NonNull TlsVersion tlsVersion;
     private final @NonNull CipherSuite cipherSuite;
     private final @NonNull List<Certificate> localCertificates;
     private final @NonNull Supplier<List<Certificate>> peerCertificatesFn;
     private @Nullable List<Certificate> peerCertificates = null;
 
-    private RealHandshake(final @NonNull TlsVersion tlsVersion,
-                         final @NonNull CipherSuite cipherSuite,
-                         final @NonNull List<Certificate> localCertificates,
-                         final @NonNull Supplier<@NonNull List<Certificate>> peerCertificatesFn) {
+    private RealHandshake(final @NonNull Protocol protocol,
+                          final @NonNull TlsVersion tlsVersion,
+                          final @NonNull CipherSuite cipherSuite,
+                          final @NonNull List<Certificate> localCertificates,
+                          final @NonNull Supplier<@NonNull List<Certificate>> peerCertificatesFn) {
+        assert protocol != null;
         assert tlsVersion != null;
         assert cipherSuite != null;
         assert localCertificates != null;
         assert peerCertificatesFn != null;
 
+        this.protocol = protocol;
         this.tlsVersion = tlsVersion;
         this.cipherSuite = cipherSuite;
         this.localCertificates = localCertificates;
         this.peerCertificatesFn = peerCertificatesFn;
+    }
+
+    @Override
+    public @NonNull Protocol getProtocol() {
+        return protocol;
     }
 
     @Override

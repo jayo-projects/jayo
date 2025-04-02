@@ -28,4 +28,4 @@ import javax.net.ssl.SSLSession
 /**
  * Build a Jayo Handshake from this [SSLSession]
  */
-public fun SSLSession.handshake(): Handshake = Handshake.get(this)
+public fun SSLSession.handshake(protocol: Protocol? = null): Handshake = Handshake.get(this, protocol)

@@ -1,11 +1,6 @@
 /*
  * Copyright (c) 2025-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
- *
- * Forked from TLS Channel (https://github.com/marianobarrios/tls-channel), original copyright is below
- *
- * Copyright (c) [2015-2021] all contributors
- * Licensed under the MIT License
  */
 
 package jayo.tls;
@@ -65,12 +60,24 @@ public sealed interface ServerTlsEndpoint extends TlsEndpoint permits RealServer
     /**
      * The builder used to create a {@link ServerTlsEndpoint} instance.
      */
-    sealed interface Builder extends TlsEndpoint.Builder<Builder> permits RealServerTlsEndpoint.Builder {
+    sealed interface Builder extends TlsEndpoint.Builder<Builder, Parameterizer> permits RealServerTlsEndpoint.Builder {
         /**
          * Create a new {@linkplain ServerTlsEndpoint server-side TLS endpoint}, it requires an existing
          * {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a network socket).
+         * <p>
+         * If you need TLS parameterization, please use {@link #createParameterizer(Endpoint)} or
+         * {@link #createParameterizer(Endpoint, String, int)} instead.
          */
         @NonNull
         ServerTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint);
+    }
+
+    sealed interface Parameterizer extends TlsEndpoint.Parameterizer
+            permits RealServerTlsEndpoint.Builder.Parameterizer {
+        /**
+         * Create a new {@linkplain ServerTlsEndpoint server-side TLS endpoint}.
+         */
+        @NonNull
+        ServerTlsEndpoint build();
     }
 }

@@ -29,6 +29,7 @@ import javax.net.ssl.SSLSession;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A record of a TLS handshake.
@@ -42,16 +43,24 @@ public sealed interface Handshake permits RealHandshake {
     /**
      * Build a Jayo Handshake from a {@link SSLSession}
      */
-    static @NonNull Handshake get(final @NonNull SSLSession session) {
-        return RealHandshake.get(session);
+    static @NonNull Handshake get(final @NonNull SSLSession session, final @Nullable Protocol protocol) {
+        Objects.requireNonNull(session);
+        return RealHandshake.get(session, (protocol != null) ? protocol : Protocol.HTTP_1_1);
     }
 
-    static @NonNull Handshake get(final @NonNull TlsVersion tlsVersion,
+    static @NonNull Handshake get(final @NonNull Protocol protocol,
+                                  final @NonNull TlsVersion tlsVersion,
                                   final @NonNull CipherSuite cipherSuite,
                                   final @NonNull List<Certificate> localCertificates,
                                   final @NonNull List<Certificate> peerCertificates) {
-        return RealHandshake.get(tlsVersion, cipherSuite, localCertificates, peerCertificates);
+        return RealHandshake.get(protocol, tlsVersion, cipherSuite, localCertificates, peerCertificates);
     }
+
+    /**
+     * @return the protocol used for this connection.
+     */
+    @NonNull
+    Protocol getProtocol();
 
     /**
      * @return the TLS version used for this connection.

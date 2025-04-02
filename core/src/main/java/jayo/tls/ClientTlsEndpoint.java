@@ -1,11 +1,6 @@
 /*
  * Copyright (c) 2025-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
- *
- * Forked from TLS Channel (https://github.com/marianobarrios/tls-channel), original copyright is below
- *
- * Copyright (c) [2015-2021] all contributors
- * Licensed under the MIT License
  */
 
 package jayo.tls;
@@ -14,6 +9,8 @@ import jayo.Endpoint;
 import jayo.internal.tls.RealClientTlsEndpoint;
 import org.jspecify.annotations.NonNull;
 
+import javax.net.ssl.SNIServerName;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -52,15 +49,40 @@ public sealed interface ClientTlsEndpoint extends TlsEndpoint permits RealClient
     /**
      * The builder used to create a {@link ClientTlsEndpoint} instance.
      */
-    sealed interface Builder extends TlsEndpoint.Builder<Builder> permits RealClientTlsEndpoint.Builder {
+    sealed interface Builder extends TlsEndpoint.Builder<Builder, Parameterizer> permits RealClientTlsEndpoint.Builder {
         @NonNull
         ClientHandshakeCertificates getHandshakeCertificates();
 
         /**
          * Create a new {@linkplain ClientTlsEndpoint client-side TLS endpoint}, it requires an existing
          * {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a network socket).
+         * <p>
+         * If you need TLS parameterization, please use {@link #createParameterizer(Endpoint)} or
+         * {@link #createParameterizer(Endpoint, String, int)} instead.
          */
         @NonNull
         ClientTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint);
+    }
+
+    sealed interface Parameterizer extends TlsEndpoint.Parameterizer
+            permits RealClientTlsEndpoint.Builder.Parameterizer {
+        /**
+         * @return the list containing all {@linkplain SNIServerName SNI server names} of the Server Name Indication
+         * (SNI) parameter.
+         */
+        @NonNull
+        List<@NonNull SNIServerName> getServerNames();
+
+        /**
+         * Sets the list containing all {@linkplain SNIServerName SNI server names} of the Server Name Indication
+         * (SNI) parameter.
+         */
+        void setServerNames(final @NonNull List<@NonNull SNIServerName> serverNames);
+
+        /**
+         * Create a new {@linkplain ClientTlsEndpoint client-side TLS endpoint}.
+         */
+        @NonNull
+        ClientTlsEndpoint build();
     }
 }

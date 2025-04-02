@@ -10,10 +10,10 @@ import jayo.network.NetworkEndpoint
 import jayo.network.NetworkServer
 import jayo.tls.*
 import jayo.tls.helpers.CertificateFactory
+import jayo.tls.helpers.TlsTestUtil
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
-import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import javax.net.ssl.SSLSession
@@ -72,11 +72,25 @@ class TlsEndpointTest {
             val address = InetSocketAddress(localhost, listener.localPort)
             val encryptedEndpoint = NetworkEndpoint.connectTcp(address)
             var sslSession: SSLSession? = null
-            ClientTlsEndpoint.builder(clientHandshakeCertificates).kotlin {
+            val parameterizer = ClientTlsEndpoint.builder(clientHandshakeCertificates).kotlin {
                 sessionInitCallback = { sslSession = it }
                 waitForCloseConfirmation = true
-                engineCustomizer = { useClientMode = true }
-            }.build(encryptedEndpoint).use { tlsClient ->
+            }.createParameterizer(encryptedEndpoint)
+
+            assertThat(parameterizer.enabledProtocols).isEmpty()
+            val protocol = Protocol.HTTP_1_1
+            parameterizer.enabledProtocols = listOf(protocol)
+
+            val tlsVersion = TlsVersion.TLS_1_3
+            assertThat(parameterizer.enabledTlsVersions).contains(tlsVersion)
+            parameterizer.enabledTlsVersions = listOf(tlsVersion)
+
+            val cipher = CipherSuite.TLS_CHACHA20_POLY1305_SHA256
+            assertThat(parameterizer.supportedCipherSuites).contains(cipher)
+            assertThat(parameterizer.enabledCipherSuites).contains(cipher)
+            parameterizer.enabledCipherSuites = listOf(cipher)
+
+            parameterizer.build().use { tlsClient ->
                 assertThat(sslSession).isNotNull
                 val handshake = tlsClient.handshake
                 assertThat(handshake).isNotNull
@@ -84,6 +98,10 @@ class TlsEndpointTest {
                 assertThat(handshake.localPrincipal).isNull()
                 assertThat(handshake.peerCertificates).isNotEmpty.hasSize(1)
                 assertThat(handshake.peerPrincipal).isNotNull
+
+                assertThat(handshake.protocol).isSameAs(protocol)
+                assertThat(handshake.tlsVersion).isEqualTo(tlsVersion)
+                assertThat(handshake.cipherSuite).isSameAs(cipher)
             }
             serverThread.join()
         }
@@ -149,7 +167,6 @@ class TlsEndpointTest {
                     ServerTlsEndpoint.builder(serverHandshakeCertificates).kotlin {
                         sessionInitCallback = { sslSession = it }
                         waitForCloseConfirmation = true
-                        engineCustomizer = { useClientMode = false }
                     }.build(serverEndpoint).use { tlsServer ->
                         tlsServer.writer.buffered()
                             .writeInt(42)
@@ -196,25 +213,23 @@ class TlsEndpointTest {
     }
 
     @Test
-    fun tlsServerEndpointBuilder_ExceptionInEngineFactory() {
+    fun tlsServerEndpointBuilder_ExceptionInSessionInitCallback() {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             val serverThread = thread(start = true) {
-                listener.accept().use { serverEndpoint ->
-                    ServerTlsEndpoint.builder(serverHandshakeCertificates).kotlin {
-                        engineCustomizer = { throw Exception() }
-                    }.build(serverEndpoint).use { serverTlsEndpoint ->
+                TlsTestUtil.cannotFail {
+                    listener.accept().use { serverEndpoint ->
                         assertThatThrownBy {
-                            serverTlsEndpoint.writer.buffered()
-                                .writeInt(42)
-                                .flush()
+                            ServerTlsEndpoint.builder(serverHandshakeCertificates).kotlin {
+                                sessionInitCallback = { throw Exception() }
+                            }.build(serverEndpoint)
                         }.isInstanceOf(JayoTlsHandshakeCallbackException::class.java)
-                            .hasMessage("SSLEngine creation callback failed")
+                            .hasMessage("Session initialization callback failed")
                     }
                 }
             }
             val client = sslSocketFactory.createSocket() as SSLSocket
             client.connect(listener.localAddress)
-            assertThatThrownBy { client.startHandshake() }.isInstanceOf(IOException::class.java)
+            client.startHandshake()
             serverThread.join()
         }
     }
