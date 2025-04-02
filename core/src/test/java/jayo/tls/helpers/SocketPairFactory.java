@@ -14,14 +14,13 @@ import jayo.Endpoint;
 import jayo.internal.network.ChunkingEndpoint;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkServer;
-import jayo.tls.ClientTlsEndpoint;
-import jayo.tls.ServerHandshakeCertificates;
-import jayo.tls.ServerTlsEndpoint;
-import jayo.tls.TlsEndpoint;
+import jayo.tls.*;
 import jayo.tls.helpers.SocketGroups.*;
 
 import javax.crypto.Cipher;
-import javax.net.ssl.*;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIMatcher;
+import javax.net.ssl.SNIServerName;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -32,6 +31,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Create pairs of connected sockets (using the loopback interface). Additionally, all the raw (non-encrypted) socket
@@ -93,8 +94,16 @@ public class SocketPairFactory {
         this(certificateFactory, CertificateFactory.CERTIFICATE_COMMON_NAME);
     }
 
-    public void fixedCipherServerSslEngineCustomizer(Optional<String> cipher, SSLEngine engine) {
-        cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}));
+    public void fixedCipherServerSslEngineCustomizer(Optional<String> cipher, TlsEndpoint.Parameterizer parameterizer) {
+        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
+        LOGGER.info("server enabled version: " + certificateFactory.version);
+        cipher.ifPresent(c -> {
+            final var cipherSuite = CipherSuite.fromJavaName(c);
+            assertThat(parameterizer.getSupportedCipherSuites()).contains(cipherSuite);
+            assertThat(parameterizer.getEnabledCipherSuites()).isNotEmpty();
+            LOGGER.info("server cipher suite: " + cipherSuite);
+            parameterizer.setEnabledCipherSuites(List.of(cipherSuite));
+        });
     }
 
     public ServerHandshakeCertificates handshakeCertificatesFactory(ServerHandshakeCertificates handshakeCertificates,
@@ -110,31 +119,41 @@ public class SocketPairFactory {
         }
     }
 
-    private void customizeClientSslEngine(SSLEngine engine, Optional<String> cipher, int peerPort) {
-        cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}));
-        SSLParameters sslParams = engine.getSSLParameters(); // returns a value object
-        sslParams.setEndpointIdentificationAlgorithm("HTTPS");
-        sslParams.setServerNames(Collections.singletonList(clientSniHostName));
-        engine.setSSLParameters(sslParams);
+    private void customizeClientSslEngine(ClientTlsEndpoint.Parameterizer parameterizer, Optional<String> cipher) {
+        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
+        LOGGER.info("client enabled version: " + certificateFactory.version);
+        cipher.ifPresent(c -> {
+            parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c)));
+            LOGGER.info("client cipher suite: " + CipherSuite.fromJavaName(c));
+        });
+        parameterizer.setServerNames(Collections.singletonList(clientSniHostName));
     }
 
     private TlsEndpoint createTlsServerEndpoint(Optional<String> cipher, NetworkEndpoint endpoint) {
-        return ServerTlsEndpoint.builder(certificateFactory.getServerHandshakeCertificates())
-                .engineCustomizer(engine ->
-                        cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}))).build(endpoint);
+        final var parameterizer = ServerTlsEndpoint.builder(certificateFactory.getServerHandshakeCertificates())
+                .createParameterizer(endpoint);
+        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
+        LOGGER.info("server enabled version: " + certificateFactory.version);
+        cipher.ifPresent(c -> {
+            parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c)));
+            LOGGER.info("server cipher suite: " + CipherSuite.fromJavaName(c));
+        });
+        return parameterizer.build();
     }
 
     private TlsEndpoint createTlsClientEndpoint(Optional<String> cipher,
                                                 InetSocketAddress address,
                                                 SNIHostName clientSniHostName) {
-        return ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
-                .engineCustomizer(engine -> {
-                    cipher.ifPresent(c -> engine.setEnabledCipherSuites(new String[]{c}));
-                    SSLParameters sslParameters = engine.getSSLParameters(); // returns a value object
-                    sslParameters.setServerNames(Collections.singletonList(clientSniHostName));
-                    engine.setSSLParameters(sslParameters);
-                })
-                .build(NetworkEndpoint.connectTcp(address));
+        final var parameterizer = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
+                .createParameterizer(NetworkEndpoint.connectTcp(address));
+        parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
+        LOGGER.info("client enabled version: " + certificateFactory.version);
+        cipher.ifPresent(c -> {
+            parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c)));
+            LOGGER.info("client cipher suite: " + CipherSuite.fromJavaName(c));
+        });
+        parameterizer.setServerNames(Collections.singletonList(clientSniHostName));
+        return parameterizer.build();
     }
 
     public OldOldSocketPair oldOld(Optional<String> cipher) throws InterruptedException {
@@ -158,10 +177,11 @@ public class SocketPairFactory {
         var thread = new Thread(() -> {
             serverEndpoint.set(networkServer.accept());
             networkServer.close();
-            tlsServer.set(ServerTlsEndpoint.builder(nameOpt ->
+            final var parameterizer = ServerTlsEndpoint.builder(nameOpt ->
                             handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(), nameOpt))
-                    .engineCustomizer(engine -> fixedCipherServerSslEngineCustomizer(cipher, engine))
-                    .build(serverEndpoint.get()));
+                    .createParameterizer(serverEndpoint.get());
+            fixedCipherServerSslEngineCustomizer(cipher, parameterizer);
+            tlsServer.set(parameterizer.build());
         });
         thread.start();
         TlsEndpoint client = createTlsClientEndpoint(cipher, networkServer.getLocalAddress(), clientSniHostName);
@@ -179,9 +199,10 @@ public class SocketPairFactory {
         });
         thread.start();
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);
-        TlsEndpoint client = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
-                .engineCustomizer(engine -> customizeClientSslEngine(engine, cipher, address.getPort()))
-                .build(encryptedEndpoint);
+        final var parameterizer = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
+                .createParameterizer(encryptedEndpoint);
+        customizeClientSslEngine(parameterizer, cipher);
+        TlsEndpoint client = parameterizer.build();
         thread.join();
         return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer.get());
     }
@@ -218,13 +239,14 @@ public class SocketPairFactory {
                     } else {
                         plainServerEndpoint = rawServerEndpoint;
                     }
-                    final TlsEndpoint serverTlsEndpoint = ServerTlsEndpoint.builder(nameOpt ->
+                    final var parameterizer = ServerTlsEndpoint.builder(nameOpt ->
                                     handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
                                             nameOpt))
                             .waitForCloseConfirmation(waitForCloseConfirmation)
-                            .engineCustomizer(ctx -> fixedCipherServerSslEngineCustomizer(cipher, ctx))
-                            .build(plainServerEndpoint);
+                            .createParameterizer(plainServerEndpoint);
+                    fixedCipherServerSslEngineCustomizer(cipher, parameterizer);
 
+                    final TlsEndpoint serverTlsEndpoint = parameterizer.build();
                     serverPair.set(new SocketGroup(serverTlsEndpoint, rawServerEndpoint));
                 });
                 thread.start();
@@ -241,13 +263,16 @@ public class SocketPairFactory {
                 } else {
                     plainClientEndpoint = rawClient;
                 }
-                TlsEndpoint clientTlsEndpoint = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
-                        .engineCustomizer(engine -> customizeClientSslEngine(engine, cipher, chosenPort))
+                final var parameterizer = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
                         .waitForCloseConfirmation(waitForCloseConfirmation)
-                        .build(plainClientEndpoint);
+                        .createParameterizer(plainClientEndpoint);
+                customizeClientSslEngine(parameterizer, cipher);
+
+                TlsEndpoint clientTlsEndpoint = parameterizer.build();
                 SocketGroup clientPair = new SocketGroup(clientTlsEndpoint, rawClient);
 
                 thread.join();
+                LOGGER.info("Socket pair created");
 
                 pairs.add(new SocketPair(clientPair, serverPair.get()));
             }
@@ -264,10 +289,12 @@ public class SocketPairFactory {
         var thread = new Thread(() -> {
             encryptedEndpoint.set(server.accept());
             server.close();
-            tlsServer.set(ServerTlsEndpoint.builder(nameOpt ->
+            final var parameterizer = ServerTlsEndpoint.builder(nameOpt ->
                             handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(), nameOpt))
-                    .engineCustomizer(x -> fixedCipherServerSslEngineCustomizer(cipher, x))
-                    .build(encryptedEndpoint.get()));
+                    .createParameterizer(encryptedEndpoint.get());
+            fixedCipherServerSslEngineCustomizer(cipher, parameterizer);
+
+            tlsServer.set(parameterizer.build());
         });
         thread.start();
         TlsEndpoint client = createTlsClientEndpoint(cipher, server.getLocalAddress(), clientSniHostName);
@@ -286,9 +313,12 @@ public class SocketPairFactory {
         });
         thread.start();
         NetworkEndpoint encryptedEndpoint = NetworkEndpoint.connectTcp(address);
-        TlsEndpoint client = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
-                .engineCustomizer(context -> customizeClientSslEngine(context, cipher, chosenPort))
-                .build(encryptedEndpoint);
+        final var parameterizer = ClientTlsEndpoint.builder(certificateFactory.getClientHandshakeCertificates())
+                .createParameterizer(encryptedEndpoint);
+        customizeClientSslEngine(parameterizer, cipher);
+
+        TlsEndpoint client = parameterizer.build();
+
         thread.join();
         return new IoOldSocketPair(new SocketGroup(client, encryptedEndpoint), tlsServer.get());
     }

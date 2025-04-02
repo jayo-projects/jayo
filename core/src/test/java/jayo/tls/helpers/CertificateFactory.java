@@ -29,7 +29,7 @@ public class CertificateFactory {
     public static final int TLS_MAX_DATA_SIZE = (int) Math.pow(2, 14);
     public static final String CERTIFICATE_COMMON_NAME = "name"; // must match what's in the certificates
 
-    private final TlsVersion version;
+    public final TlsVersion version;
     private final SSLContext defaultContext;
     private final TrustManagerFactory tmf;
     private final KeyManagerFactory kmf;
@@ -38,7 +38,8 @@ public class CertificateFactory {
     public CertificateFactory(TlsVersion version) {
         this.version = version;
         try {
-            SSLContext sslContext = SSLContext.getInstance(version.getJavaName());
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            System.out.println("CertificateFactory TLS version: " + version);
             KeyStore ks = KeyStore.getInstance("JKS");
             try (InputStream keystoreFile = getClass().getClassLoader().getResourceAsStream("keystore.jks")) {
                 char[] password = "password".toCharArray();
@@ -58,11 +59,11 @@ public class CertificateFactory {
     }
 
     public ServerHandshakeCertificates getServerHandshakeCertificates() {
-        return ServerHandshakeCertificates.create(kmf, null, version);
+        return ServerHandshakeCertificates.create(kmf);
     }
 
     public ClientHandshakeCertificates getClientHandshakeCertificates() {
-        return ClientHandshakeCertificates.create(tmf, null, version);
+        return ClientHandshakeCertificates.create(tmf);
     }
 
     public CertificateFactory() {
@@ -70,13 +71,15 @@ public class CertificateFactory {
     }
 
     private List<String> ciphers(SSLContext ctx) {
+        var engine = ctx.createSSLEngine();
+        engine.setEnabledProtocols(new String[]{version.getJavaName()});
         // this is not a real cipher, but a hack actually
         // disable problematic ciphers
         // No SHA-2 with TLS < 1.2
         // Disable cipher only supported in TLS >= 1.3
         // https://bugs.openjdk.java.net/browse/JDK-8224997
         // Anonymous ciphers are problematic because they are disabled in some VMs
-        return Arrays.stream(ctx.createSSLEngine().getSupportedCipherSuites())
+        return Arrays.stream(engine.getSupportedCipherSuites())
                 // this is not a real cipher, but a hack actually
                 .filter(c -> !Objects.equals(c, "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"))
                 // disable problematic ciphers

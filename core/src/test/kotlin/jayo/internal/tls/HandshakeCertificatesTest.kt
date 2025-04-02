@@ -180,7 +180,7 @@ class HandshakeCertificatesTest {
         return executorService.submit<Handshake> {
             serverSocket!!.accept().use { rawSocket ->
                 val sslSocket =
-                    (server as RealHandshakeCertificates).sslContext().socketFactory.createSocket(
+                    (server as RealHandshakeCertificates).sslContext.socketFactory.createSocket(
                         rawSocket,
                         rawSocket.inetAddress.hostAddress,
                         rawSocket.port,
@@ -190,7 +190,7 @@ class HandshakeCertificatesTest {
                     sslSocket.useClientMode = false
                     sslSocket.wantClientAuth = true
                     sslSocket.startHandshake()
-                    return@submit sslSocket.session.handshake()
+                    return@submit sslSocket.session.handshake(Protocol.get(sslSocket.applicationProtocol))
                 }
             }
         }
@@ -204,7 +204,7 @@ class HandshakeCertificatesTest {
             SocketFactory.getDefault().createSocket().use { rawSocket ->
                 rawSocket.connect(serverAddress)
                 val sslSocket =
-                    (client as RealHandshakeCertificates).sslContext().socketFactory.createSocket(
+                    (client as RealHandshakeCertificates).sslContext.socketFactory.createSocket(
                         rawSocket,
                         rawSocket.inetAddress.hostAddress,
                         rawSocket.port,
@@ -212,7 +212,7 @@ class HandshakeCertificatesTest {
                     ) as SSLSocket
                 sslSocket.use {
                     sslSocket.startHandshake()
-                    return@submit sslSocket.session.handshake()
+                    return@submit sslSocket.session.handshake(Protocol.get(sslSocket.applicationProtocol))
                 }
             }
         }

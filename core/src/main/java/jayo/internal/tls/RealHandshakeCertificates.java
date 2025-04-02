@@ -21,7 +21,10 @@
 
 package jayo.internal.tls;
 
-import jayo.tls.*;
+import jayo.tls.ClientHandshakeCertificates;
+import jayo.tls.HeldCertificate;
+import jayo.tls.JssePlatform;
+import jayo.tls.ServerHandshakeCertificates;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -35,7 +38,7 @@ public final class RealHandshakeCertificates
         implements ClientHandshakeCertificates, ServerHandshakeCertificates {
     private final @Nullable X509KeyManager keyManager;
     private final @Nullable X509TrustManager trustManager;
-    private final @NonNull SSLContext sslContext;
+    final @NonNull SSLContext sslContext;
 
     /**
      * A client-side no-arg constructor with system default. Should be used by most users.
@@ -51,13 +54,11 @@ public final class RealHandshakeCertificates
 
         sslContext = newSslContext(
                 (keyManager != null) ? new KeyManager[]{keyManager} : null,
-                (trustManager != null) ? new TrustManager[]{trustManager} : null,
-                null);
+                (trustManager != null) ? new TrustManager[]{trustManager} : null);
     }
 
     public RealHandshakeCertificates(final @Nullable TrustManagerFactory tmf,
-                                     final @Nullable KeyManagerFactory kmf,
-                                     final @Nullable TlsVersion tlsVersion) {
+                                     final @Nullable KeyManagerFactory kmf) {
         assert tmf != null || kmf != null;
 
         final TrustManager[] trustManagers;
@@ -78,18 +79,12 @@ public final class RealHandshakeCertificates
             keyManagers = null;
         }
 
-        sslContext = newSslContext(keyManagers, trustManagers, tlsVersion);
+        sslContext = newSslContext(keyManagers, trustManagers);
     }
 
     private static @NonNull SSLContext newSslContext(final @NonNull KeyManager @Nullable [] keyManagers,
-                                                     final @NonNull TrustManager @Nullable [] trustManagers,
-                                                     final @Nullable TlsVersion tlsVersion) {
-        final SSLContext sslContext;
-        if (tlsVersion != null) {
-            sslContext = JssePlatform.get().newSSLContext(tlsVersion);
-        } else {
-            sslContext = JssePlatform.get().newSSLContext();
-        }
+                                                     final @NonNull TrustManager @Nullable [] trustManagers) {
+        final var sslContext = JssePlatform.get().newSSLContext();
 
         try {
             sslContext.init(keyManagers, trustManagers, new SecureRandom());
@@ -109,11 +104,6 @@ public final class RealHandshakeCertificates
     @Override
     public @Nullable X509TrustManager getTrustManager() {
         return trustManager;
-    }
-
-    @NonNull
-    SSLContext sslContext() {
-        return sslContext;
     }
 
     public static sealed abstract class Builder {

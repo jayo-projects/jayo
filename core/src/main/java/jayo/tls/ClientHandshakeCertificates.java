@@ -78,8 +78,6 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
     /**
      * Creates a default {@linkplain ClientHandshakeCertificates client's handshake certificates} to secure TLS
      * connections. It provides good security based on the System's default trust manager.
-     * <p>
-     * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
      */
     static @NonNull ClientHandshakeCertificates create() {
         return new RealHandshakeCertificates();
@@ -87,34 +85,30 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
 
     /**
      * Creates a {@linkplain ClientHandshakeCertificates client's handshake certificates} from a
-     * {@link TrustManagerFactory}. This client will be able to authenticate to the server, and not require any
+     * {@link TrustManagerFactory}. This client will be able to authenticate to the server, and does not support
      * authentication back from the server.
-     * <p>
-     * TLS version will default to the generic {@code SSLContext.getInstance("TLS")}.
      * <p>
      * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
      * as it includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf) {
-        return create(tmf, null, null);
+        Objects.requireNonNull(tmf);
+        return new RealHandshakeCertificates(tmf, null);
     }
 
     /**
      * Creates a {@linkplain ClientHandshakeCertificates client's handshake certificates} from a
-     * {@link TrustManagerFactory}. This client will be able to authenticate to the server, and will also require the
-     * server to authenticate to it if a non-null {@link KeyManagerFactory} is provided.
-     * <p>
-     * If a non-null {@linkplain TlsVersion tlsVersion} is provided it will be used, else the TLS version will default
-     * to the generic {@code SSLContext.getInstance("TLS")}.
+     * {@link TrustManagerFactory} and a {@link KeyManagerFactory}. This client will be able to authenticate to the
+     * server, and supports authentication back from the server.
      * <p>
      * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
      * as it includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf,
-                                                       final @Nullable KeyManagerFactory kmf,
-                                                       final @Nullable TlsVersion tlsVersion) {
+                                                       final @NonNull KeyManagerFactory kmf) {
         Objects.requireNonNull(tmf);
-        return new RealHandshakeCertificates(tmf, kmf, tlsVersion);
+        Objects.requireNonNull(kmf);
+        return new RealHandshakeCertificates(tmf, kmf);
     }
 
     /**
