@@ -48,9 +48,9 @@ public sealed interface JssePlatform permits JdkJssePlatform {
     X509TrustManager getDefaultTrustManager();
 
     /**
-     * Configure TLS extensions on {@code sslEngine}.
+     * Configure the {@code sslEngine} to the platform = Conscrypt adds Session Tickets support.
      */
-    void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols);
+    void adaptSslEngine(final @NonNull SSLEngine sslEngine);
 
     /**
      * Returns the negotiated protocol, or null if no protocol was negotiated.

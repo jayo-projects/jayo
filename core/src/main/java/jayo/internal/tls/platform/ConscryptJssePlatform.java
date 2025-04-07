@@ -21,7 +21,6 @@
 
 package jayo.internal.tls.platform;
 
-import jayo.tls.Protocol;
 import org.conscrypt.Conscrypt;
 import org.conscrypt.ConscryptHostnameVerifier;
 import org.jspecify.annotations.NonNull;
@@ -34,7 +33,6 @@ import javax.net.ssl.X509TrustManager;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.cert.X509Certificate;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -101,20 +99,14 @@ public final class ConscryptJssePlatform extends JdkJssePlatform {
     }
 
     @Override
-    public void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols) {
+    public void adaptSslEngine(final @NonNull SSLEngine sslEngine) {
         Objects.requireNonNull(sslEngine);
-        Objects.requireNonNull(protocols);
 
         if (Conscrypt.isConscrypt(sslEngine)) {
             // Enable session tickets.
             Conscrypt.setUseSessionTickets(sslEngine, true);
-
-            // Enable ALPN.
-            final var names = alpnProtocolNames(protocols);
-            Conscrypt.setApplicationProtocols(sslEngine, names.toArray(String[]::new));
-        } else {
-            super.configureTlsExtensions(sslEngine, protocols);
         }
+        super.adaptSslEngine(sslEngine);
     }
 
     @Override
