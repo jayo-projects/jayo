@@ -34,6 +34,7 @@ import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
+import static jayo.internal.tls.platform.JdkJssePlatform.alpnProtocolNames;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class RealTlsEndpoint {
@@ -118,6 +119,9 @@ public final class RealTlsEndpoint {
             throw new IllegalArgumentException("encryptedEndpoint.writer must be an instance of RealWriter");
         }
         this.encryptedWriterSegmentQueue = writer.segmentQueue;
+
+        JssePlatform.get().adaptSslEngine(engine);
+
         this.engine = engine;
         this.sessionInitCallback = sessionInitCallback;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
@@ -726,10 +730,9 @@ public final class RealTlsEndpoint {
             Objects.requireNonNull(protocols);
 
             final var sslParameters = engine.getSSLParameters();
-            final var protocolsAsStrings = protocols.stream()
-                    .map(Protocol::toString)
-                    .toArray(String[]::new);
-            sslParameters.setApplicationProtocols(protocolsAsStrings);
+            // Enable ALPN.
+            final var names = alpnProtocolNames(protocols);
+            sslParameters.setApplicationProtocols(names.toArray(String[]::new));
             engine.setSSLParameters(sslParameters);
         }
 

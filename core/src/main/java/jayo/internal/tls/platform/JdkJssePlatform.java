@@ -72,15 +72,7 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
     }
 
     @Override
-    public void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols) {
-        Objects.requireNonNull(sslEngine);
-        Objects.requireNonNull(protocols);
-
-        final var sslParameters = sslEngine.getSSLParameters();
-        // Enable ALPN.
-        final var names = alpnProtocolNames(protocols);
-        sslParameters.setApplicationProtocols(names.toArray(String[]::new));
-        sslEngine.setSSLParameters(sslParameters);
+    public void adaptSslEngine(final @NonNull SSLEngine sslEngine) {
     }
 
     public @Nullable String getSelectedProtocol(final @NonNull SSLEngine sslEngine) {
@@ -100,7 +92,7 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
         }
     }
 
-    static @NonNull List<String> alpnProtocolNames(final @NonNull List<Protocol> protocols) {
+    public static @NonNull List<String> alpnProtocolNames(final @NonNull List<Protocol> protocols) {
         assert protocols != null;
 
         return protocols.stream()

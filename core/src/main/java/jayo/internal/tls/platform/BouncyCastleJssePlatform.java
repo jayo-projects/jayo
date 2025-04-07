@@ -21,7 +21,6 @@
 
 package jayo.internal.tls.platform;
 
-import jayo.tls.Protocol;
 import org.bouncycastle.jsse.BCSSLEngine;
 import org.bouncycastle.jsse.provider.BouncyCastleJsseProvider;
 import org.jspecify.annotations.NonNull;
@@ -33,7 +32,6 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.security.*;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -88,23 +86,6 @@ public final class BouncyCastleJssePlatform extends JdkJssePlatform {
             throw new IllegalStateException("Unexpected default trust managers: " + Arrays.toString(trustManagers));
         }
         return x509TrustManager;
-    }
-
-    @Override
-    public void configureTlsExtensions(final @NonNull SSLEngine sslEngine, final @NonNull List<Protocol> protocols) {
-        Objects.requireNonNull(sslEngine);
-        Objects.requireNonNull(protocols);
-
-        if (sslEngine instanceof BCSSLEngine bouncyCastleSSLEngine) {
-            final var sslParameters = bouncyCastleSSLEngine.getParameters();
-
-            // Enable ALPN.
-            final var names = alpnProtocolNames(protocols);
-            sslParameters.setApplicationProtocols(names.toArray(String[]::new));
-            bouncyCastleSSLEngine.setParameters(sslParameters);
-        } else {
-            super.configureTlsExtensions(sslEngine, protocols);
-        }
     }
 
     @Override
