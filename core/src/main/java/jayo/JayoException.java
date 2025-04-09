@@ -7,6 +7,7 @@ package jayo;
 
 import jayo.network.JayoConnectException;
 import jayo.network.JayoSocketException;
+import jayo.network.JayoUnknownServiceException;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeException;
 import jayo.tls.JayoTlsPeerUnverifiedException;
@@ -105,7 +106,9 @@ public class JayoException extends UncheckedIOException {
             }
             return new JayoSocketException(socketException);
         }
-
+        if (ioException instanceof UnknownServiceException unknownServiceException) {
+            return new JayoUnknownServiceException(unknownServiceException);
+        }
 
         // TLS/SSL related exceptions
         if (ioException instanceof SSLHandshakeException sslHandshakeException) {
