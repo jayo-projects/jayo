@@ -35,6 +35,8 @@ import java.util.zip.Deflater;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class DeflaterRawWriter implements RawWriter {
+    private static final byte @NonNull [] EMPTY_BYTE_ARRAY = new byte[0];
+
     private final @NonNull WriterSegmentQueue segmentQueue;
     private final @NonNull Deflater deflater;
     private boolean closed = false;
@@ -84,6 +86,9 @@ public final class DeflaterRawWriter implements RawWriter {
         if (head.pos == head.limit) {
             _reader.segmentQueue.removeHead(head, false);
         }
+        // Deflater still holds a reference to the most recent segment's byte array. That can cause problems in JNI,
+        // so clear it now.
+        deflater.setInput(EMPTY_BYTE_ARRAY, 0, 0);
     }
 
     @Override
