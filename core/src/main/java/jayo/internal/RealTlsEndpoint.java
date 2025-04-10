@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
@@ -61,8 +60,8 @@ public final class RealTlsEndpoint {
     private final @NonNull RealReader encryptedReader;
     private final @NonNull WriterSegmentQueue encryptedWriterSegmentQueue;
     private final @NonNull SSLEngine engine;
-    private final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback;
     private final boolean waitForCloseConfirmation;
+    private final @NonNull SSLSession tlsSession;
 
     private final @NonNull Lock readLock = new ReentrantLock();
     private final @NonNull Lock writeLock = new ReentrantLock();
@@ -105,11 +104,9 @@ public final class RealTlsEndpoint {
     public RealTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull SSLEngine engine,
-            final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
             boolean waitForCloseConfirmation) {
         assert encryptedEndpoint != null;
         assert engine != null;
-        assert sessionInitCallback != null;
 
         if (!(encryptedEndpoint.getReader() instanceof RealReader reader)) {
             throw new IllegalArgumentException("encryptedEndpoint.reader must be an instance of RealReader");
@@ -123,16 +120,26 @@ public final class RealTlsEndpoint {
         JssePlatform.get().adaptSslEngine(engine);
 
         this.engine = engine;
-        this.sessionInitCallback = sessionInitCallback;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
-        handshake(); // THE initial handshake, this is an important step !
+
+        // THE initial handshake, this is an important step !
+        handshake();
+
+        tlsSession = engine.getSession();
+
+        if (tlsSession.getProtocol().startsWith("DTLS")) {
+            throw new IllegalArgumentException("DTLS not supported");
+        }
     }
 
-    @NonNull
-    public Handshake getHandshake() {
+    public @NonNull SSLSession getSession() {
+        return tlsSession;
+    }
+
+    public @NonNull Handshake getHandshake() {
         // on-demand Handshake creation, only if user calls it
         final var applicationProtocol = engine.getApplicationProtocol();
-        return Handshake.get(engine.getSession(), Protocol.get(applicationProtocol));
+        return Handshake.get(tlsSession, Protocol.get(applicationProtocol));
     }
 
     // read
@@ -464,23 +471,6 @@ public final class RealTlsEndpoint {
         }
 
         writeAndHandshake();
-
-        if (engine.getSession().getProtocol().startsWith("DTLS")) {
-            throw new IllegalArgumentException("DTLS not supported");
-        }
-
-        // call client code
-        try {
-            sessionInitCallback.accept(engine.getSession());
-        } catch (Exception e) {
-            if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(DEBUG, "Client code threw exception in session initialization callback.", e);
-            } else if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "Client code threw exception in session initialization callback: {0}.",
-                        e.getMessage());
-            }
-            throw new JayoTlsHandshakeCallbackException("Session initialization callback failed", e);
-        }
     }
 
     private void writeAndHandshake() throws TlsEOFException {
@@ -682,18 +672,9 @@ public final class RealTlsEndpoint {
      */
     public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T, U>, U extends TlsEndpoint.Parameterizer>
             implements TlsEndpoint.Builder<T, U> permits RealClientTlsEndpoint.Builder, RealServerTlsEndpoint.Builder {
-        // @formatter:off
-        protected @NonNull Consumer<@NonNull SSLSession> sessionInitCallback = session -> {};
-        // @formatter:on
         protected boolean waitForCloseConfirmation = false;
 
         protected abstract @NonNull T getThis();
-
-        @Override
-        public final @NonNull T sessionInitCallback(final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback) {
-            this.sessionInitCallback = Objects.requireNonNull(sessionInitCallback);
-            return getThis();
-        }
 
         @Override
         public final @NonNull T waitForCloseConfirmation(final boolean waitForCloseConfirmation) {

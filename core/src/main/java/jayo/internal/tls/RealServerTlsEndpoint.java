@@ -18,7 +18,6 @@ import org.jspecify.annotations.Nullable;
 
 import javax.net.ssl.*;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.DEBUG;
@@ -40,12 +39,10 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
     private RealServerTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull ServerHandshakeCertificates handshakeCertificates,
-            final @NonNull Consumer<SSLSession> sessionInitCallback,
             final boolean waitForCloseConfirmation,
             final @NonNull SSLEngine engine) {
         assert encryptedEndpoint != null;
         assert handshakeCertificates != null;
-        assert sessionInitCallback != null;
         assert engine != null;
 
         this.encryptedEndpoint = encryptedEndpoint;
@@ -54,7 +51,6 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
         impl = new RealTlsEndpoint(
                 encryptedEndpoint,
                 engine,
-                sessionInitCallback,
                 waitForCloseConfirmation);
     }
 
@@ -72,6 +68,11 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
             writer = Jayo.buffer(new ServerTlsEndpointRawWriter(impl));
         }
         return writer;
+    }
+
+    @Override
+    public @NonNull SSLSession getSession() {
+        return impl.getSession();
     }
 
     @Override
@@ -198,7 +199,6 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
             implements ServerTlsEndpoint.Builder {
         private final @NonNull HandshakeCertificatesStrategy handshakeCertificatesStrategy;
 
-
         public Builder(final @NonNull ServerHandshakeCertificates handshakeCertificates) {
             assert handshakeCertificates != null;
             this.handshakeCertificatesStrategy = new FixedHandshakeCertificatesStrategy(handshakeCertificates);
@@ -214,13 +214,10 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
          * The private constructor used by {@link #clone()}.
          */
         private Builder(final @NonNull HandshakeCertificatesStrategy internalHandshakeCertificatesFactory,
-                        final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
                         final boolean waitForCloseConfirmation) {
             assert internalHandshakeCertificatesFactory != null;
-            assert sessionInitCallback != null;
 
             this.handshakeCertificatesStrategy = internalHandshakeCertificatesFactory;
-            this.sessionInitCallback = sessionInitCallback;
             this.waitForCloseConfirmation = waitForCloseConfirmation;
         }
 
@@ -241,7 +238,6 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
             return new RealServerTlsEndpoint(
                     encryptedEndpoint,
                     handshakeCertificates,
-                    sessionInitCallback,
                     waitForCloseConfirmation,
                     engine);
         }
@@ -287,7 +283,7 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
 
         @Override
         public @NonNull Builder clone() {
-            return new Builder(handshakeCertificatesStrategy, sessionInitCallback, waitForCloseConfirmation);
+            return new Builder(handshakeCertificatesStrategy, waitForCloseConfirmation);
         }
 
         public final class Parameterizer extends RealTlsEndpoint.Parameterizer
@@ -312,7 +308,6 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
                 return new RealServerTlsEndpoint(
                         encryptedEndpoint,
                         handshakeCertificates,
-                        sessionInitCallback,
                         waitForCloseConfirmation,
                         engine);
             }

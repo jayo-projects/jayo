@@ -8,7 +8,6 @@
 package jayo.tls
 
 import jayo.JayoDslMarker
-import javax.net.ssl.SSLSession
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
@@ -22,17 +21,6 @@ public fun ClientTlsEndpoint.Builder.kotlin(config: ClientTlsEndpointBuilderDsl.
 @JayoDslMarker
 @JvmInline
 public value class ClientTlsEndpointBuilderDsl internal constructor(private val builder: ClientTlsEndpoint.Builder) {
-    /**
-     * Register a callback function to be executed when the TLS session is established (or re-established). The supplied
-     * function will run in the same thread as the rest of the handshake, so it should ideally run as fast as possible.
-     */
-    public var sessionInitCallback: (SSLSession) -> Unit
-        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-        get() = error("unsupported")
-        set(value) {
-            builder.sessionInitCallback(value)
-        }
-
     /**
      * Whether to wait for TLS close confirmation when calling `close()` on this TLS endpoint or its
      * [reader][TlsEndpoint.getReader] or [writer][TlsEndpoint.getWriter]. Default is `false` to not wait and close
