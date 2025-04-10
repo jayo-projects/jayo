@@ -20,7 +20,6 @@ import org.jspecify.annotations.NonNull;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * A TLS (Transport Layer Security) endpoint, either the client-side or server-side end of a TLS connection between two
@@ -56,6 +55,12 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     @Override
     @NonNull
     Writer getWriter();
+
+    /**
+     * @return the {@linkplain SSLSession TLS session} of the TLS connection.
+     */
+    @NonNull
+    SSLSession getSession();
 
     /**
      * @return the result of the initial handshake on this TLS connection.
@@ -134,16 +139,6 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      */
     sealed interface Builder<T extends Builder<T, U>, U extends Parameterizer> extends Cloneable
             permits RealTlsEndpoint.Builder, ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
-        /**
-         * Register a callback function to be executed when the TLS session is established (or re-established). The
-         * supplied function will run in the same thread as the rest of the handshake, so it should ideally run as fast
-         * as possible.
-         *
-         * @see Handshake#get(SSLSession, Protocol)
-         */
-        @NonNull
-        T sessionInitCallback(final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback);
-
         /**
          * Whether to wait for TLS close confirmation when calling {@code close()} on this TLS endpoint or its
          * {@linkplain TlsEndpoint#getReader() reader} or {@linkplain TlsEndpoint#getWriter() writer}. Default is

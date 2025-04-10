@@ -21,10 +21,8 @@ import org.jspecify.annotations.NonNull;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * A client-side {@link TlsEndpoint}.
@@ -40,12 +38,10 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     private RealClientTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull ClientHandshakeCertificates handshakeCertificates,
-            final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
             final boolean waitForCloseConfirmation,
             final @NonNull SSLEngine engine) {
         assert encryptedEndpoint != null;
         assert handshakeCertificates != null;
-        assert sessionInitCallback != null;
         assert engine != null;
 
         this.encryptedEndpoint = encryptedEndpoint;
@@ -54,7 +50,6 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
         impl = new RealTlsEndpoint(
                 encryptedEndpoint,
                 engine,
-                sessionInitCallback,
                 waitForCloseConfirmation);
     }
 
@@ -72,6 +67,11 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
             writer = Jayo.buffer(new ClientTlsEndpointRawWriter(impl));
         }
         return writer;
+    }
+
+    @Override
+    public @NonNull SSLSession getSession() {
+        return impl.getSession();
     }
 
     @Override
@@ -125,13 +125,10 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
          * The private constructor used by {@link #clone()}.
          */
         private Builder(final @NonNull ClientHandshakeCertificates handshakeCertificates,
-                        final @NonNull Consumer<@NonNull SSLSession> sessionInitCallback,
                         final boolean waitForCloseConfirmation) {
             assert handshakeCertificates != null;
-            assert sessionInitCallback != null;
 
             this.handshakeCertificates = handshakeCertificates;
-            this.sessionInitCallback = sessionInitCallback;
             this.waitForCloseConfirmation = waitForCloseConfirmation;
         }
 
@@ -154,7 +151,6 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
             return new RealClientTlsEndpoint(
                     encryptedEndpoint,
                     handshakeCertificates,
-                    sessionInitCallback,
                     waitForCloseConfirmation,
                     engine);
         }
@@ -184,7 +180,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
 
         @Override
         public @NonNull Builder clone() {
-            return new Builder(handshakeCertificates, sessionInitCallback, waitForCloseConfirmation);
+            return new Builder(handshakeCertificates, waitForCloseConfirmation);
         }
 
         public final class Parameterizer extends RealTlsEndpoint.Parameterizer
@@ -217,7 +213,6 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
                 return new RealClientTlsEndpoint(
                         encryptedEndpoint,
                         handshakeCertificates,
-                        sessionInitCallback,
                         waitForCloseConfirmation,
                         engine);
             }

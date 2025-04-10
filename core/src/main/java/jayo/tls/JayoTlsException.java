@@ -16,9 +16,6 @@ import java.util.Objects;
  */
 public sealed class JayoTlsException extends JayoException
         permits JayoTlsHandshakeCallbackException, JayoTlsHandshakeException, JayoTlsPeerUnverifiedException {
-    public JayoTlsException(final @NonNull String message) {
-        super(Objects.requireNonNull(message), new SSLException(message));
-    }
 
     public JayoTlsException(final @NonNull SSLException cause) {
         super(Objects.requireNonNull(cause));
