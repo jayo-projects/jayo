@@ -39,7 +39,7 @@ public final class HostnameUtils {
      * strings like "a:.23" and "54" that are neither IP addresses nor hostnames; they will be verified as IP addresses
      * (which is a stricter verification).
      */
-    private final static Pattern VERIFY_AS_IP_ADDRESS = Pattern.compile(
+    private static final Pattern VERIFY_AS_IP_ADDRESS = Pattern.compile(
             "([0-9a-fA-F]*:[0-9a-fA-F:.]*)|([\\d.]+)");
 
     /**
