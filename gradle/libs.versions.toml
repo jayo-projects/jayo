@@ -49,7 +49,7 @@ jmh = "1.37"
 # https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
 jackson = "2.18.3"
 # https://github.com/square/okio/tags
-okio = "3.10.2"
+okio = "3.11.0"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
