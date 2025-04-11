@@ -21,11 +21,18 @@
 
 package jayo.tools;
 
+import jayo.internal.tls.RealHandshake;
+import jayo.tls.CipherSuite;
+import jayo.tls.Handshake;
+import jayo.tls.Protocol;
+import jayo.tls.TlsVersion;
 import org.jspecify.annotations.NonNull;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Objects;
+import java.security.cert.Certificate;
+import java.util.List;
+import java.util.function.Supplier;
 
 public final class JayoUtils {
     // un-instantiable
@@ -39,7 +46,8 @@ public final class JayoUtils {
     }
 
     public static @NonNull String socketPeerName(@NonNull final Socket socket) {
-        Objects.requireNonNull(socket);
+        assert socket != null;
+
         final var address = socket.getRemoteSocketAddress();
         return (address instanceof InetSocketAddress inetSocketAddress)
                 ? inetSocketAddress.getHostName()
@@ -55,5 +63,26 @@ public final class JayoUtils {
             return string.substring(prefix.length());
         }
         return string;
+    }
+
+    public static @NonNull Handshake createHandshake(
+            final @NonNull Protocol protocol,
+            final @NonNull TlsVersion tlsVersion,
+            final @NonNull CipherSuite cipherSuite,
+            final @NonNull List<Certificate> localCertificates,
+            final @NonNull Supplier<@NonNull List<Certificate>> peerCertificatesFn) {
+        assert protocol != null;
+        assert tlsVersion != null;
+        assert cipherSuite != null;
+        assert localCertificates != null;
+        assert peerCertificatesFn != null;
+
+        return new RealHandshake(
+                protocol,
+                tlsVersion,
+                cipherSuite,
+                localCertificates,
+                peerCertificatesFn
+        );
     }
 }

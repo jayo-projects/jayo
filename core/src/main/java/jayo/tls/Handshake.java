@@ -53,7 +53,20 @@ public sealed interface Handshake permits RealHandshake {
                                   final @NonNull CipherSuite cipherSuite,
                                   final @NonNull List<Certificate> localCertificates,
                                   final @NonNull List<Certificate> peerCertificates) {
-        return RealHandshake.get(protocol, tlsVersion, cipherSuite, localCertificates, peerCertificates);
+        Objects.requireNonNull(protocol);
+        Objects.requireNonNull(tlsVersion);
+        Objects.requireNonNull(cipherSuite);
+        Objects.requireNonNull(localCertificates);
+        Objects.requireNonNull(peerCertificates);
+
+        final var peerCertificatesCopy = List.copyOf(peerCertificates);
+        return new RealHandshake(
+                protocol,
+                tlsVersion,
+                cipherSuite,
+                List.copyOf(localCertificates),
+                () -> peerCertificatesCopy
+        );
     }
 
     /**

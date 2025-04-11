@@ -41,27 +41,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 public final class RealHandshake implements Handshake {
-    public static @NonNull RealHandshake get(final @NonNull Protocol protocol,
-                                             final @NonNull TlsVersion tlsVersion,
-                                             final @NonNull CipherSuite cipherSuite,
-                                             final @NonNull List<Certificate> localCertificates,
-                                             final @NonNull List<Certificate> peerCertificates) {
-        assert protocol != null;
-        assert tlsVersion != null;
-        assert cipherSuite != null;
-        assert localCertificates != null;
-        assert peerCertificates != null;
-
-        final var peerCertificatesCopy = List.copyOf(peerCertificates);
-        return new RealHandshake(
-                protocol,
-                tlsVersion,
-                cipherSuite,
-                List.copyOf(localCertificates),
-                () -> peerCertificatesCopy
-        );
-    }
-
     public static @NonNull RealHandshake get(final @NonNull SSLSession session,
                                              final @NonNull Protocol protocol) {
         assert session != null;
@@ -98,8 +77,7 @@ public final class RealHandshake implements Handshake {
                 tlsVersion,
                 cipherSuite,
                 unmodifiableCertificateList(session.getLocalCertificates()),
-                () -> peerCertificatesCopy
-        );
+                () -> peerCertificatesCopy);
     }
 
     private static @NonNull List<Certificate> unmodifiableCertificateList(final @Nullable Certificate[] certificates) {
@@ -114,11 +92,11 @@ public final class RealHandshake implements Handshake {
     private final @NonNull Supplier<List<Certificate>> peerCertificatesFn;
     private @Nullable List<Certificate> peerCertificates = null;
 
-    private RealHandshake(final @NonNull Protocol protocol,
-                          final @NonNull TlsVersion tlsVersion,
-                          final @NonNull CipherSuite cipherSuite,
-                          final @NonNull List<Certificate> localCertificates,
-                          final @NonNull Supplier<@NonNull List<Certificate>> peerCertificatesFn) {
+    public RealHandshake(final @NonNull Protocol protocol,
+                         final @NonNull TlsVersion tlsVersion,
+                         final @NonNull CipherSuite cipherSuite,
+                         final @NonNull List<Certificate> localCertificates,
+                         final @NonNull Supplier<@NonNull List<Certificate>> peerCertificatesFn) {
         assert protocol != null;
         assert tlsVersion != null;
         assert cipherSuite != null;
