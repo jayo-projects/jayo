@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * Wraps a {@link SSLHandshakeException} with an unchecked exception.
  */
-public final class JayoTlsHandshakeException extends JayoTlsException {
+public sealed class JayoTlsHandshakeException extends JayoTlsException permits JayoTlsHandshakeCallbackException {
     public JayoTlsHandshakeException(final @NonNull String message) {
         super(Objects.requireNonNull(message), new SSLHandshakeException(message));
     }

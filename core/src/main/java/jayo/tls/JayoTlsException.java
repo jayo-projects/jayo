@@ -15,7 +15,7 @@ import java.util.Objects;
  * Wraps a {@link SSLException} with an unchecked exception.
  */
 public sealed class JayoTlsException extends JayoException
-        permits JayoTlsHandshakeCallbackException, JayoTlsHandshakeException, JayoTlsPeerUnverifiedException {
+        permits JayoTlsHandshakeException, JayoTlsPeerUnverifiedException {
 
     public JayoTlsException(final @NonNull SSLException cause) {
         super(Objects.requireNonNull(cause));
