@@ -3,7 +3,7 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-@file:JvmName("-NetworkServer") // A leading '-' hides this class from Java.
+@file:JvmName("-NetworkServer") // Leading '-' hides this class from Java.
 
 package jayo.network
 

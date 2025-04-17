@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("-Certificates") // A leading '-' hides this class from Java.
+@file:JvmName("-Certificates") // Leading '-' hides this class from Java.
 
 package jayo.tls
 

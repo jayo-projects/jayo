@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("-Handshake") // A leading '-' hides this class from Java.
+@file:JvmName("-Handshake") // Leading '-' hides this class from Java.
 
 package jayo.tls
 

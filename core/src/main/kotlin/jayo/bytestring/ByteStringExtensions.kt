@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("-ByteString") // A leading '-' hides this class from Java.
+@file:JvmName("-ByteString") // Leading '-' hides this class from Java.
 
 package jayo.bytestring
 

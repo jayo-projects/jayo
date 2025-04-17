@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("-Jayo") // A leading '-' hides this class from Java.
+@file:JvmName("-Jayo") // Leading '-' hides this class from Java.
 
 package jayo
 

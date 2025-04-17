@@ -35,14 +35,14 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 
 /**
- * A writer that facilitates typed data writes and keeps a buffer internally so that caller can write some data without
- * sending it directly to an upstream.
+ * A writer that facilitates typed data writes and keeps a buffer internally so that a caller can write some data
+ * without sending it directly to an upstream.
  * <p>
  * Writer is the main Jayo interface to write data in client's code, any {@link RawWriter} could be turned into
  * {@link Writer} using {@code Jayo.buffer(myRawWriter)}.
  * <p>
  * Depending on the kind of upstream and the number of bytes written, buffering may improve the performance by hiding
- * the latency of small writes.
+ * the latency of small writings.
  * <p>
  * Data stored inside the internal buffer could be sent to an upstream using {@link #flush}, {@link #emit}, or
  * {@link #emitCompleteSegments}:
@@ -52,7 +52,7 @@ import java.nio.charset.Charset;
  * <li>{@link #emitCompleteSegments} hints the reader that current write operation is now finished and a part of data
  * from the buffer, complete segments, may be partially emitted into the upstream.
  * </ul>
- * The latter is aimed to reduce memory footprint by keeping the buffer as small as possible without excessive writes
+ * The latter is aimed to reduce memory footprint by keeping the buffer as small as possible without excessive writings
  * to the upstream. On each write operation, the underlying buffer will automatically emit all the complete segment(s),
  * if any, by calling {@link #emitCompleteSegments}.
  * <h3>Write methods' behavior and naming conventions</h3>
@@ -60,11 +60,11 @@ import java.nio.charset.Charset;
  * {@link #writeInt}, except methods writing data from some collection of bytes, like {@code write(byte[], int, int)}
  * or {@code write(RawReader, long)}.
  * In the latter case, if a collection is consumable (i.e., once data was read from it will no longer be available for
- * reading again), write method will consume as many bytes as it was requested to write.
+ * reading again), the write method will consume as many bytes as it was requested to write.
  * <p>
  * Methods fully consuming its argument are named {@code transferFrom}, like {@link #transferFrom(RawReader)}.
  * <p>
- * Kotlin notice : It is recommended to follow the same naming convention for Writer extensions.
+ * Kotlin notice: It is recommended to follow the same naming convention for Writer extensions.
  * <p>
  * Write methods on numbers use the big-endian order. If you need little-endian order, use <i>reverseBytes()</i>, for
  * example {@code writer.writeShort(Short.reverseBytes(myShortValue))}. Jayo provides Kotlin extension functions that
@@ -88,9 +88,9 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param offset    the start offset (inclusive) in the byte array's data.
      * @param byteCount the number of bytes to write.
      * @return {@code this}
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
-     *                                   {@code source} indices.
-     * @throws IllegalStateException     if this writer is closed.
+     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of
+     *                                     {@code source} indices.
+     * @throws JayoClosedResourceException if this writer is closed.
      */
     @NonNull
     Writer write(final byte @NonNull [] source,
@@ -114,9 +114,9 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param offset     the start offset (inclusive) in the byte string's data.
      * @param byteCount  the number of bytes to write.
      * @return {@code this}
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
-     *                                   {@code byteString} indices.
-     * @throws IllegalStateException     if this writer is closed.
+     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of
+     *                                     {@code byteString} indices.
+     * @throws JayoClosedResourceException if this writer is closed.
      */
     @NonNull
     Writer write(final @NonNull ByteString byteString,
@@ -159,14 +159,14 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * }
      * </pre>
      *
-     * @param string the string to be encoded.
-     * @param startIndex   the index (inclusive) of the first character to encode.
-     * @param endIndex     the index (exclusive) of a character past to a last character to encode.
+     * @param string     the string to be encoded.
+     * @param startIndex the index (inclusive) of the first character to encode.
+     * @param endIndex   the index (exclusive) of a character past to the last character to encode.
      * @return {@code this}
-     * @throws IndexOutOfBoundsException if {@code startIndex} or {@code endIndex} is out of range of {@code string}
-     *                                   indices.
-     * @throws IllegalArgumentException  if {@code startIndex > endIndex}.
-     * @throws IllegalStateException     if this writer is closed.
+     * @throws IndexOutOfBoundsException   if {@code startIndex} or {@code endIndex} is out of range of {@code string}
+     *                                     indices.
+     * @throws IllegalArgumentException    if {@code startIndex > endIndex}.
+     * @throws JayoClosedResourceException if this writer is closed.
      */
     @NonNull
     Writer write(final @NonNull String string,
@@ -215,10 +215,10 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param endIndex   the index (exclusive) of a character past to a last character to encode.
      * @param charset    the charset to use for encoding.
      * @return {@code this}
-     * @throws IndexOutOfBoundsException if {@code startIndex} or {@code endIndex} is out of range of {@code string}
-     *                                   indices.
-     * @throws IllegalArgumentException  if {@code startIndex > endIndex}.
-     * @throws IllegalStateException     if this writer is closed.
+     * @throws IndexOutOfBoundsException   if {@code startIndex} or {@code endIndex} is out of range of {@code string}
+     *                                     indices.
+     * @throws IllegalArgumentException    if {@code startIndex > endIndex}.
+     * @throws JayoClosedResourceException if this writer is closed.
      */
     @NonNull
     Writer write(final @NonNull String string,
@@ -245,8 +245,8 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param reader    the reader to consume data from.
      * @param byteCount the number of bytes to read from {@code reader} and to write into this writer.
      * @return {@code this}
-     * @throws IllegalArgumentException if {@code byteCount} is negative.
-     * @throws IllegalStateException    if this writer or the reader is closed.
+     * @throws IllegalArgumentException    if {@code byteCount} is negative.
+     * @throws JayoClosedResourceException if this writer or the reader is closed.
      */
     @NonNull
     Writer write(final @NonNull RawReader reader, final long byteCount);
@@ -414,7 +414,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     long transferFrom(final @NonNull RawReader reader);
 
     /**
-     * Ensures to write all the buffered data that was written until this call to the underlying writer, if one exists.
+     * Ensures to write all the buffered data that was written until this call to the underlying writer if one exists.
      * Then the underlying writer is explicitly flushed.
      * <p>
      * Even though some {@link Writer} implementations are asynchronous, it is certain that all buffered data were emitted
@@ -443,12 +443,12 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     void flush();
 
     /**
-     * Ensures to write all the buffered data that was written until this call to the underlying writer, if one exists.
+     * Ensures to write all the buffered data that was written until this call to the underlying writer if one exists.
      * The underlying writer will not be explicitly flushed.
      * <p>
      * This method behaves like {@link #flush}, but has weaker guarantees.
      * <p>
-     * Some {@link Writer} implementations are asynchronous, you cannot assert that all buffered data will be emitted to
+     * Some {@link Writer} implementations are asynchronous; you cannot assert that all buffered data will be emitted to
      * the underlying writer immediately after calling this method.
      * <p>
      * Call this method before a buffered writer goes out of scope so that its data can reach its destination.
@@ -482,9 +482,9 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     Writer emit();
 
     /**
-     * This writer's internal buffer writes complete segments to the underlying writer, if at least one complete segment
+     * This writer's internal buffer writes complete segments to the underlying writer if at least one complete segment
      * exists. The underlying writer will not be explicitly flushed.
-     * There are no guarantees that this call will cause emit of buffered data as well as there are no guarantees how
+     * There are no guarantees that this call will cause emitting buffered data as well as there are no guarantees how
      * many bytes will be emitted.
      * <p>
      * This method behaves like {@link #flush}, but has weaker guarantees.

@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-@file:JvmName("-RawWriter") // A leading '-' hides this class from Java.
+@file:JvmName("-RawWriter") // Leading '-' hides this class from Java.
 
 package jayo
 
