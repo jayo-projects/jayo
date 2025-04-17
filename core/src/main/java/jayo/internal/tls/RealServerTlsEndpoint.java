@@ -92,12 +92,12 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
 
     @Override
     public boolean shutdownReceived() {
-        return impl.shutdownReceived();
+        return impl.shutdownReceived;
     }
 
     @Override
     public boolean shutdownSent() {
-        return impl.shutdownSent();
+        return impl.shutdownSent;
     }
 
     @Override
@@ -151,7 +151,7 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
 
     private record SniHandshakeCertificatesStrategy(
             @NonNull Function<@Nullable SNIServerName, @Nullable ServerHandshakeCertificates>
-                    handshakeCertificatesFactory
+            handshakeCertificatesFactory
     ) implements HandshakeCertificatesStrategy {
         @Override
         public @NonNull ServerHandshakeCertificates getHandshakeCertificates(final @NonNull SniReader sniReader) {

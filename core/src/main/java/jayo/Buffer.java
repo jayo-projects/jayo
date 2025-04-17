@@ -44,7 +44,7 @@ import java.nio.charset.Charset;
  * consumed.
  * <p>
  * Internally, the buffer consists of a queue of data segments, and the buffer's capacity grows and shrinks in units of
- * data segments instead of individual bytes. Each data segment store binary data in a fixed-sized {@code byte[]}.
+ * data segments instead of individual bytes. Each data segment stores binary data in a fixed-sized {@code byte[]}.
  * <ul>
  * <li><b>Moving data from one buffer to another is fast.</b> The buffer was designed to reduce memory allocations when
  * possible. Instead of copying bytes from one place in memory to another, this class just changes ownership of the
@@ -466,7 +466,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * data using all the {@link Reader} methods concurrently.
      * </ul>
      * These optimizations all leverage the way Jayo stores data internally. Jayo buffers are implemented using a
-     * singly-linked queue of segments. Each segment holds a {@code bye[]} of 16_709 bytes. Each segment has two
+     * singly linked queue of segments. Each segment holds a {@code bye[]} of 16_709 bytes. Each segment has two
      * indexes: {@code pos}, the offset of the first byte of the first byte of the array containing application data,
      * and {@code limit}, the offset of the first byte beyond {@code pos} whose data is undefined.
      * <p>
@@ -488,7 +488,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * }
      * </pre>
      * When we read 4 bytes of data from the buffer, it finds its first segment and returns that data to us. As bytes
-     * are read the data is consumed. The segment tracks this by adjusting its internal indices.
+     * are read, the data is consumed. The segment tracks this by adjusting its internal indices.
      * <pre>
      * {@code
      * buffer.readUtf8(4); // "seal"

@@ -32,13 +32,13 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 /**
  * A segment of a buffer.
  * <p>
- * Each segment in a {@linkplain jayo.Buffer Buffer} is a singly-linked queue node referencing the following segments in
+ * Each segment in a {@linkplain jayo.Buffer Buffer} is a singly linked queue node referencing the following segments in
  * the buffer.
  * <p>
- * Each segment in the {@link SegmentPool} is a singly-linked queue node referencing the rest of segments in the pool.
+ * Each segment in the {@link SegmentPool} is a singly linked queue node referencing the rest of segments in the pool.
  * <p>
  * The underlying byte array of segments may be shared between buffers and byte strings. When a segment's byte array
- * is shared the segment may not be recycled, nor may its byte data be changed.
+ * is shared, the segment may not be recycled, nor may its byte data be changed.
  * The lone exception is that the owner segment is allowed to append to the segment, meaning writing data at
  * {@code limit} and beyond. There is a single owning segment for each byte array. Positions, limits, and next
  * references are not shared.
@@ -52,7 +52,7 @@ final class Segment {
     static final int SIZE = RealTlsEndpoint.MAX_ENCRYPTED_PACKET_BYTE_SIZE;
 
     /**
-     * A segment will be shared if the data size exceeds this threshold, to avoid having to copy this many bytes.
+     * A segment will be shared if the data size exceeds this threshold to avoid having to copy this many bytes.
      */
     private static final int SHARE_MINIMUM = 1024; // todo should it be more now that size is 16 KB ?
 
@@ -257,10 +257,10 @@ final class Segment {
         final Segment prefix;
 
         // We have two competing performance goals:
-        //  - Avoid copying data. We accomplish this by sharing segments.
+        //  - Avoid copying data. We achieve this by sharing segments.
         //  - Avoid short shared segments. These are bad for performance because they are readonly and may lead to long
         //    chains of short segments.
-        // To balance these goals we only share segments when the copy will be large.
+        // To balance these goals, we only share segments when the copy will be large.
         if (byteCount >= SHARE_MINIMUM) {
             prefix = sharedCopy();
         } else {
@@ -311,7 +311,7 @@ final class Segment {
             readByteBuffer = JavaVersionUtils.asReadOnlyBuffer(ByteBuffer.wrap(data));
         }
 
-        // just set position and limit, then return this BytBuffer
+        // set position and limit, then return this ByteBuffer
         return readByteBuffer
                 .limit(pos + byteCount)
                 .position(pos);
@@ -326,7 +326,7 @@ final class Segment {
         }
 
         final var currentLimit = limit;
-        // just set position and limit, then return this BytBuffer
+        // set position and limit, then return this ByteBuffer
         return writeByteBuffer
                 .limit(currentLimit + byteCount)
                 .position(currentLimit);

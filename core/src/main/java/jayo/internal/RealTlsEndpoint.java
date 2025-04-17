@@ -75,15 +75,15 @@ public final class RealTlsEndpoint {
     /**
      * Whether a close_notify was already sent.
      */
-    private volatile boolean shutdownSent = false;
+    public volatile boolean shutdownSent = false;
 
     /**
      * Whether a close_notify was already received.
      */
-    private volatile boolean shutdownReceived = false;
+    public volatile boolean shutdownReceived = false;
 
     /**
-     * Decrypted data from encryptedReader
+     * Decrypted data from {@link #encryptedReader}
      */
     private final @NonNull RealBuffer decryptedBuffer = new RealBuffer();
 
@@ -95,7 +95,7 @@ public final class RealTlsEndpoint {
     private @Nullable RealBuffer suppliedDecryptedBuffer;
 
     /**
-     * Bytes produced by the current read operation.
+     * The number of bytes produced by the current read operation.
      */
     private int bytesToReturn;
 
@@ -104,7 +104,7 @@ public final class RealTlsEndpoint {
     public RealTlsEndpoint(
             final @NonNull Endpoint encryptedEndpoint,
             final @NonNull SSLEngine engine,
-            boolean waitForCloseConfirmation) {
+            final boolean waitForCloseConfirmation) {
         assert encryptedEndpoint != null;
         assert engine != null;
 
@@ -122,7 +122,7 @@ public final class RealTlsEndpoint {
         this.engine = engine;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
 
-        // THE initial handshake, this is an important step !
+        // THE initial handshake, this is an important step!
         handshake();
 
         tlsSession = engine.getSession();
@@ -137,9 +137,8 @@ public final class RealTlsEndpoint {
     }
 
     public @NonNull Handshake getHandshake() {
-        // on-demand Handshake creation, only if user calls it
-        final var applicationProtocol = engine.getApplicationProtocol();
-        return Handshake.get(tlsSession, Protocol.get(applicationProtocol));
+        // on-demand Handshake creation, only if the user calls it
+        return Handshake.get(tlsSession, Protocol.get(engine.getApplicationProtocol()));
     }
 
     // read
@@ -621,14 +620,6 @@ public final class RealTlsEndpoint {
         } finally {
             readLock.unlock();
         }
-    }
-
-    public boolean shutdownReceived() {
-        return shutdownReceived;
-    }
-
-    public boolean shutdownSent() {
-        return shutdownSent;
     }
 
     private void freeBuffer() {

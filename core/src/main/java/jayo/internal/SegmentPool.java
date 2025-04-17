@@ -36,14 +36,14 @@ import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
 
 /**
- * This class pools segments in a lock-free singly-linked queue of {@linkplain Segment segments}. Though this code is
- * lock-free it does use a sentinel {@link #DOOR} value to defend against races. To reduce the contention, the pool
+ * This class pools segments in a lock-free singly linked queue of {@linkplain Segment segments}. Though this code is
+ * lock-free, it does use a sentinel {@link #DOOR} value to defend against races. To reduce the contention, the pool
  * consists of several buckets (see {@link #HASH_BUCKET_COUNT}), each holding a reference to its own segments cache.
  * Every {@link #take()} or {@link #recycle(Segment)} choose one of the buckets depending on a
  * {@link Thread#currentThread()}'s {@linkplain JavaVersionUtils#threadId(Thread) threadId}.
  * <p>
  * On {@link #take()}, a caller swaps the Thread's corresponding segment cache with the {@link #DOOR} sentinel. If the
- * segment cache was not already locked, the caller pop the first segment from the cache.
+ * segment cache was not already locked, the caller pops the first segment from the cache.
  * <p>
  * On {@link #recycle(Segment)}, a caller swaps the head with a new node whose successor is the replaced head.
  * <p>
@@ -58,7 +58,7 @@ import static java.lang.System.Logger.Level.INFO;
  * For better handling of scenarios with high segments demand, a second-level pool is enabled and can be tuned by
  * setting up a value of `jayo.pool.size.bytes` system property.
  * <p>
- * The second-level pool use half of the {@code #HASH_BUCKET_COUNT} and if an initially selected bucket is empty on
+ * The second-level pool uses half of the {@code #HASH_BUCKET_COUNT} and if an initially selected bucket is empty on
  * {@link #take()} or full or {@link #recycle(Segment)}, all other buckets will be inspected before finally giving up
  * (which means allocating a new segment on {@link #take()}, or loosing a reference to a segment on
  * {@link #recycle(Segment)}). That second-level pool is used as a backup in case when {@link #take()} or
@@ -82,7 +82,7 @@ public final class SegmentPool {
     /**
      * The number of hash buckets. This number needs to balance keeping the pool small and contention low. We use the
      * number of processors rounded up to the nearest power of two.
-     * For example a machine with 6 cores will have 8 hash buckets.
+     * For example, a machine with 6 cores will have 8 hash buckets.
      */
     private static final int HASH_BUCKET_COUNT =
             Integer.highestOneBit(Runtime.getRuntime().availableProcessors() * 2 - 1);
@@ -101,7 +101,7 @@ public final class SegmentPool {
     private static final Segment DOOR = new Segment(new byte[0], 0, 0, null, false);
 
     /**
-     * Hash buckets each contain a singly-linked queue of segments. The index/key is a hash function of thread ID
+     * Hash buckets each contain a singly linked queue of segments. The index/key is a hash function of thread ID
      * because it may reduce contention or increase locality.
      * <p>
      * We don't use ThreadLocal because we don't know how many threads the host process has, and we don't want to leak
@@ -169,7 +169,7 @@ public final class SegmentPool {
             }
 
             if (first == null) {
-                // We acquired the lock but the pool was empty.
+                // We acquired the lock, but the pool was empty.
                 // Unlock the bucket and acquire a segment from the second level cache
                 firstRef.set(null);
 
@@ -205,7 +205,7 @@ public final class SegmentPool {
             }
 
             if (first == null) {
-                // We acquired the lock but the pool was empty.
+                // We acquired the lock, but the pool was empty.
                 // Unlock the current bucket and select a new one.
                 // If all buckets were already scanned, allocate a new segment.
                 firstRef.set(null);

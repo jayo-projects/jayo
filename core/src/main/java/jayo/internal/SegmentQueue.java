@@ -268,7 +268,7 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
             if (writableTail != null) {
                 previousLimit = writableTail.limit;
 
-                // current tail has enough room
+                // the current tail has enough room
                 if (writableTail.owner && previousLimit + minimumCapacity <= Segment.SIZE) {
                     needsNewSegment = false;
                 }

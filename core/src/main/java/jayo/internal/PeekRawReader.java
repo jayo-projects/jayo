@@ -22,6 +22,7 @@
 package jayo.internal;
 
 import jayo.Buffer;
+import jayo.JayoClosedResourceException;
 import jayo.RawReader;
 import jayo.Reader;
 import org.jspecify.annotations.NonNull;
@@ -69,16 +70,14 @@ final class PeekRawReader implements RawReader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (closed) {
-            throw new IllegalStateException("this peek reader is closed");
+            throw new JayoClosedResourceException();
         }
 
         final var bufferHead = buffer.segmentQueue.head();
-        // Reader becomes invalid if there is an expected Segment and it and the expected position does not match the
+        // Reader becomes invalid if there is an expected Segment and the expected position does not match the
         // current head and head position of the upstream buffer
         if (expectedSegment != null &&
-                (bufferHead == null
-                        || expectedSegment != bufferHead
-                        || expectedPos != bufferHead.pos)) {
+                (bufferHead == null || expectedSegment != bufferHead || expectedPos != bufferHead.pos)) {
             throw new IllegalStateException("Peek reader is invalid because upstream reader was used");
         }
         if (byteCount == 0L) {
