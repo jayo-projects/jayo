@@ -20,16 +20,16 @@ import java.net.SocketOption;
 import java.time.Duration;
 
 /**
- * A network endpoint, either the client-side or server-side end of a socket based connection between two peers.
+ * A network endpoint, either the client-side or server-side end of a socket-based connection between two peers.
  * {@link NetworkEndpoint} guarantee that its underlying socket is <b>open and connected</b> to a peer upon creation.
  * <p>
  * The {@link #getLocalAddress()} method returns the local address that the socket is bound to, the
  * {@link #getPeerAddress()} method returns the peer address to which the socket is connected, the
  * {@link #getOption(SocketOption)} method is used to query socket options and the {@link #getUnderlying()} method
- * returns the underlying socket itself : an {@linkplain java.net.Socket IO Socket} or a
+ * returns the underlying socket itself: an {@linkplain java.net.Socket IO Socket} or a
  * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel}.
  * <p>
- * Network endpoints honors timeout. When a read or write operation times out, the socket is asynchronously closed by a
+ * Network endpoints honor timeout. When a read or write operation times out, the socket is asynchronously closed by a
  * watchdog thread.
  *
  * @see Endpoint
@@ -85,7 +85,7 @@ public sealed interface NetworkEndpoint extends Endpoint
      * @param <T>  The type of the socket option value.
      * @param name The socket option.
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
-     * @throws UnsupportedOperationException If the socket option is not supported by this channel.
+     * @throws UnsupportedOperationException If this channel does not support the socket option.
      * @throws JayoClosedResourceException   If this network endpoint is closed.
      * @throws jayo.JayoException            If an I/O error occurs.
      * @see java.net.StandardSocketOptions
@@ -112,7 +112,7 @@ public sealed interface NetworkEndpoint extends Endpoint
         Builder readTimeout(final @NonNull Duration readTimeout);
 
         /**
-         * Sets the default write timeout that will apply on each low-level write operation of the underlying socket of
+         * Sets the default write timeout that will apply on each low-level write operation on the underlying socket of
          * the network endpoints that uses this configuration. Default is zero. A timeout of zero is interpreted as an
          * infinite timeout.
          */
@@ -150,7 +150,7 @@ public sealed interface NetworkEndpoint extends Endpoint
         Builder protocol(final @NonNull NetworkProtocol protocol);
 
         /**
-         * If true the socket will be a Java NIO one, if false it will be a Java IO one. Default is {@code true}.
+         * If true, the socket will be a Java NIO one. If false, it will be a Java IO one. Default is {@code true}.
          */
         @NonNull
         Builder useNio(final boolean useNio);
