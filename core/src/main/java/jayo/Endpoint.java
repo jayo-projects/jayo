@@ -42,14 +42,19 @@ public interface Endpoint extends Closeable {
      * After an endpoint is closed, any further attempt to invoke I/O operations upon it will cause a
      * {@link JayoClosedResourceException} to be thrown.
      * <p>
-     * If this endpoint is already closed then invoking this method has no effect.
+     * If this endpoint is already closed, then invoking this method has no effect.
      *
      * @throws JayoException If an I/O error occurs during the closing phase.
      */
     void close();
 
     /**
-     * @return the underlying IO resource. For example a {@linkplain java.net.Socket IO Socket}, a
+     * @return {@code true} if this endpoint is open.
+     */
+    boolean isOpen();
+
+    /**
+     * @return the underlying IO resource. For example, a {@linkplain java.net.Socket IO Socket}, a
      * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} or even another {@link Endpoint}.
      */
     @NonNull

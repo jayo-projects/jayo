@@ -33,7 +33,7 @@ public class CloseTest {
     private final byte[] data = new byte[]{15};
 
     /**
-     * Less than a TLS message, to force read/write loops
+     * Less than a TLS message to force read/write loops
      */
     private final Optional<Integer> internalBufferSize = Optional.of(10);
 
@@ -53,16 +53,18 @@ public class CloseTest {
             Writer clientWriter = client.getWriter()
                     .write(data);
             clientGroup.plain.close();
-            assertThat(clientGroup.tls.shutdownSent()).isFalse();
-            assertThat(clientGroup.tls.shutdownReceived()).isFalse();
+            assertThat(clientGroup.tls.isShutdownSent()).isFalse();
+            assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
+            assertThat(clientGroup.tls.isOpen()).isFalse();
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
             Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            assertThat(serverGroup.tls.shutdownReceived()).isFalse();
-            assertThat(serverGroup.tls.shutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isShutdownReceived()).isFalse();
+            assertThat(serverGroup.tls.isShutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isOpen()).isTrue();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
         });
@@ -93,8 +95,8 @@ public class CloseTest {
                     .write(data);
             clientWriter.flush();
             clientGroup.plain.close();
-            assertThat(clientGroup.tls.shutdownSent()).isFalse();
-            assertThat(clientGroup.tls.shutdownReceived()).isFalse();
+            assertThat(clientGroup.tls.isShutdownSent()).isFalse();
+            assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             clientWriter.write(data);
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
         });
@@ -106,8 +108,8 @@ public class CloseTest {
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
             buffer.clear();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            assertThat(serverGroup.tls.shutdownReceived()).isFalse();
-            assertThat(serverGroup.tls.shutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isShutdownReceived()).isFalse();
+            assertThat(serverGroup.tls.isShutdownSent()).isFalse();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
         });
@@ -138,8 +140,8 @@ public class CloseTest {
                     .write(data);
             clientWriter.flush();
             client.close();
-            assertThat(clientGroup.tls.shutdownSent()).isTrue();
-            assertThat(clientGroup.tls.shutdownReceived()).isFalse();
+            assertThat(clientGroup.tls.isShutdownSent()).isTrue();
+            assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             clientWriter.write(data);
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
         });
@@ -147,12 +149,14 @@ public class CloseTest {
             ByteBuffer buffer = ByteBuffer.allocate(1);
             Reader serverReader = server.getReader();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
+            assertThat(serverGroup.tls.isOpen()).isTrue();
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
             buffer.clear();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            assertThat(serverGroup.tls.shutdownReceived()).isTrue();
-            assertThat(serverGroup.tls.shutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
+            assertThat(serverGroup.tls.isShutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isOpen()).isFalse();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
             server.close();
@@ -183,8 +187,8 @@ public class CloseTest {
                     .write(data);
             clientWriter.flush();
             client.close();
-            assertThat(clientGroup.tls.shutdownSent()).isTrue();
-            assertThat(clientGroup.tls.shutdownReceived()).isTrue();
+            assertThat(clientGroup.tls.isShutdownSent()).isTrue();
+            assertThat(clientGroup.tls.isShutdownReceived()).isTrue();
             clientWriter.write(data);
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
         });
@@ -199,8 +203,8 @@ public class CloseTest {
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
             server.close();
-            assertThat(serverGroup.tls.shutdownReceived()).isTrue();
-            assertThat(serverGroup.tls.shutdownSent()).isTrue();
+            assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
+            assertThat(serverGroup.tls.isShutdownSent()).isTrue();
             assertThatThrownBy(() -> serverReader.readAtMostTo(buffer)).isInstanceOf(JayoClosedResourceException.class);
         });
         Thread clientThread = new Thread(clientFn, "client-thread");
@@ -237,8 +241,8 @@ public class CloseTest {
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
             buffer.clear();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            assertThat(serverGroup.tls.shutdownReceived()).isTrue();
-            assertThat(serverGroup.tls.shutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
+            assertThat(serverGroup.tls.isShutdownSent()).isFalse();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
         });
@@ -270,8 +274,8 @@ public class CloseTest {
                     .write(data);
             clientWriter.flush();
             assertThat(client.shutdown()).isFalse();
-            assertThat(clientGroup.tls.shutdownSent()).isTrue();
-            assertThat(clientGroup.tls.shutdownReceived()).isFalse();
+            assertThat(clientGroup.tls.isShutdownSent()).isTrue();
+            assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             clientWriter.write(data);
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
         });
@@ -283,8 +287,8 @@ public class CloseTest {
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
             buffer.clear();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            assertThat(serverGroup.tls.shutdownReceived()).isTrue();
-            assertThat(serverGroup.tls.shutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
+            assertThat(serverGroup.tls.isShutdownSent()).isFalse();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
         });
@@ -316,14 +320,14 @@ public class CloseTest {
             clientWriter.flush();
             // send first close_notify
             assertThat(client.shutdown()).isFalse();
-            assertThat(clientGroup.tls.shutdownSent()).isTrue();
-            assertThat(clientGroup.tls.shutdownReceived()).isFalse();
+            assertThat(clientGroup.tls.isShutdownSent()).isTrue();
+            assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             clientWriter.write(data);
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
             // wait for second close_notify
             assertThat(client.shutdown()).isTrue();
-            assertThat(clientGroup.tls.shutdownSent()).isTrue();
-            assertThat(clientGroup.tls.shutdownReceived()).isTrue();
+            assertThat(clientGroup.tls.isShutdownSent()).isTrue();
+            assertThat(clientGroup.tls.isShutdownReceived()).isTrue();
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
@@ -333,14 +337,14 @@ public class CloseTest {
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
             buffer.clear();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            assertThat(serverGroup.tls.shutdownReceived()).isTrue();
-            assertThat(serverGroup.tls.shutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
+            assertThat(serverGroup.tls.isShutdownSent()).isFalse();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
             // send second close_notify
             assertThat(server.shutdown()).isTrue();
-            assertThat(serverGroup.tls.shutdownSent()).isTrue();
-            assertThat(serverGroup.tls.shutdownReceived()).isTrue();
+            assertThat(serverGroup.tls.isShutdownSent()).isTrue();
+            assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
         });
         Thread clientThread = new Thread(clientFn, "client-thread");
         Thread serverThread = new Thread(serverFn, "server-thread");
@@ -370,8 +374,8 @@ public class CloseTest {
             clientWriter.flush();
             // send first close_notify
             assertThat(client.shutdown()).isFalse();
-            assertThat(clientGroup.tls.shutdownSent()).isTrue();
-            assertThat(clientGroup.tls.shutdownReceived()).isFalse();
+            assertThat(clientGroup.tls.isShutdownSent()).isTrue();
+            assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             clientWriter.write(data);
             assertThatThrownBy(clientWriter::flush).isInstanceOf(JayoClosedResourceException.class);
             // wait 100ms for second close_notify, JayoTimeoutException proves it would hang forever
@@ -387,8 +391,8 @@ public class CloseTest {
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
             buffer.clear();
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            assertThat(serverGroup.tls.shutdownReceived()).isTrue();
-            assertThat(serverGroup.tls.shutdownSent()).isFalse();
+            assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
+            assertThat(serverGroup.tls.isShutdownSent()).isFalse();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
             // do not send second close_notify

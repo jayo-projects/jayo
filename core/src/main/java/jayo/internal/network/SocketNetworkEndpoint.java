@@ -215,6 +215,11 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
+    public boolean isOpen() {
+        return !socket.isClosed() && !socket.isInputShutdown() && !socket.isOutputShutdown();
+    }
+
+    @Override
     public @NonNull InetSocketAddress getLocalAddress() {
         throwIfClosed();
         return (InetSocketAddress) socket.getLocalSocketAddress();

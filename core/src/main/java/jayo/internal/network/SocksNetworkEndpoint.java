@@ -293,6 +293,11 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
+    public boolean isOpen() {
+        return delegate.isOpen();
+    }
+
+    @Override
     public @NonNull Object getUnderlying() {
         return delegate.getUnderlying();
     }

@@ -197,6 +197,11 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
+    public boolean isOpen() {
+        return socketChannel.isOpen();
+    }
+
+    @Override
     public @NonNull InetSocketAddress getLocalAddress() {
         try {
             return (InetSocketAddress) socketChannel.getLocalAddress();

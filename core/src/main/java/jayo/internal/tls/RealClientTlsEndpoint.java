@@ -90,18 +90,23 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     }
 
     @Override
-    public boolean shutdownReceived() {
+    public boolean isShutdownReceived() {
         return impl.shutdownReceived;
     }
 
     @Override
-    public boolean shutdownSent() {
+    public boolean isShutdownSent() {
         return impl.shutdownSent;
     }
 
     @Override
     public void close() {
         impl.close();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return impl.isOpen();
     }
 
     @Override

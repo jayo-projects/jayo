@@ -57,6 +57,7 @@ public final class RealTlsEndpoint {
      */
     private static final @NonNull ByteBuffer @NonNull [] DUMMY_OUT = new ByteBuffer[]{ByteBuffer.allocate(0)};
 
+    private final @NonNull Endpoint encryptedEndpoint;
     private final @NonNull RealReader encryptedReader;
     private final @NonNull WriterSegmentQueue encryptedWriterSegmentQueue;
     private final @NonNull SSLEngine engine;
@@ -111,14 +112,15 @@ public final class RealTlsEndpoint {
         if (!(encryptedEndpoint.getReader() instanceof RealReader reader)) {
             throw new IllegalArgumentException("encryptedEndpoint.reader must be an instance of RealReader");
         }
-        this.encryptedReader = reader;
         if (!(encryptedEndpoint.getWriter() instanceof RealWriter writer)) {
             throw new IllegalArgumentException("encryptedEndpoint.writer must be an instance of RealWriter");
         }
-        this.encryptedWriterSegmentQueue = writer.segmentQueue;
 
         JssePlatform.get().adaptSslEngine(engine);
 
+        this.encryptedEndpoint = encryptedEndpoint;
+        this.encryptedReader = reader;
+        this.encryptedWriterSegmentQueue = writer.segmentQueue;
         this.engine = engine;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
 
@@ -510,6 +512,10 @@ public final class RealTlsEndpoint {
                 default -> throw new IllegalStateException("unsupported stage: " + engine.getHandshakeStatus());
             }
         }
+    }
+
+    public boolean isOpen() {
+        return encryptedEndpoint.isOpen() && !shutdownSent && !shutdownReceived;
     }
 
     // close

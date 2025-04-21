@@ -54,6 +54,7 @@ class NetworkTest {
 
                 val stringRead = client.reader.readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
+                assertThat(client.isOpen).isTrue()
                 serverThread.join()
             }
     }
@@ -209,7 +210,9 @@ class NetworkTest {
                     server.accept()
                 }
                 val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                assertThat(client.isOpen).isTrue()
                 client.close()
+                assertThat(client.isOpen).isFalse()
                 serverThread.join()
             }
     }

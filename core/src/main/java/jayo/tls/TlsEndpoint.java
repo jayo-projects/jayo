@@ -81,18 +81,18 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * This class supports both uni- and bidirectional shutdown by its 2-step behavior, using this method.
      * <p>
      * When this is the first party to send the "close notify" alert, this method will only send the alert, set the
-     * {@link #shutdownSent()} flag and return {@code false}. If a unidirectional shutdown is enough, this first
+     * {@link #isShutdownSent()} flag and return {@code false}. If a unidirectional shutdown is enough, this first
      * call is sufficient. In order to complete the bidirectional shutdown handshake, This method must be called again.
      * The second call will wait for the peer's "close notify" shutdown alert. On success, the second call will return
      * {@code true}.
      * <p>
      * If the peer already sent the "close notify" alert, and it was already processed implicitly inside a read
-     * operation, the {@link #shutdownReceived()} flag is already set. This method will then send the "close notify"
-     * alert, set the {@link #shutdownSent()} flag and immediately return {@code true}. It is therefore recommended
-     * to check the return value of this method and call it again, if the bidirectional shutdown is not yet complete.
+     * operation, the {@link #isShutdownReceived()} flag is already set. This method will then send the "close notify"
+     * alert, set the {@link #isShutdownSent()} flag and immediately return {@code true}. It is therefore recommended
+     * to check the return value of this method and call it again if the bidirectional shutdown is not yet complete.
      * <p>
      * Note that despite not being mandated by the specification, a proper TLS close is important to prevent truncation
-     * attacks, which consists, essentially, of an adversary introducing TCP FIN segments to trick on party to ignore
+     * attacks. It consists, essentially, of an adversary introducing TCP FIN segments to trick on party to ignore
      * the final bytes of a secure stream. For more details, see
      * <a href="https://hal.inria.fr/hal-01102013">the original paper</a>.
      *
@@ -104,13 +104,13 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * @return {@code true} if this side of the TLS connection has already received the close notification.
      * @see #shutdown()
      */
-    boolean shutdownReceived();
+    boolean isShutdownReceived();
 
     /**
      * @return {@code true} if this side of the TLS connection has already sent the close notification.
      * @see #shutdown()
      */
-    boolean shutdownSent();
+    boolean isShutdownSent();
 
     /**
      * Closes the underlying endpoint. This method first does some form of best-effort TLS close if not already done.

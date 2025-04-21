@@ -75,6 +75,11 @@ public class ChunkingEndpoint implements Endpoint {
     }
 
     @Override
+    public boolean isOpen() {
+        return wrapped.isOpen();
+    }
+
+    @Override
     public @NonNull Endpoint getUnderlying() {
         return wrapped;
     }
