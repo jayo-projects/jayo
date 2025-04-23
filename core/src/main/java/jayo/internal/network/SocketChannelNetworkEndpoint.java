@@ -92,8 +92,8 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
                                                     final Proxy.@Nullable Socks proxy) {
         try {
             if (proxy != null) {
-                // connect to proxy and use it to target peer
-                socketChannel.connect(new InetSocketAddress(proxy.getHostname(), proxy.getPort()));
+                // connect to the proxy and use it to reach peer
+                socketChannel.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
                 final var proxyNetEndpoint = new SocketChannelNetworkEndpoint(socketChannel, asyncTimeout, taskRunner);
                 if (!(proxy instanceof RealSocksProxy socksProxy)) {
                     throw new IllegalArgumentException("proxy is not a RealSocksProxy");

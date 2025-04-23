@@ -5,6 +5,7 @@
 
 package jayo.network;
 
+import jayo.internal.network.AbstractProxy;
 import jayo.internal.network.RealHttpProxy;
 import jayo.internal.network.RealSocksProxy;
 import org.jspecify.annotations.NonNull;
@@ -12,8 +13,7 @@ import org.jspecify.annotations.NonNull;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 
-public sealed interface Proxy {
-
+public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
     static @NonNull Socks socks5(final @NonNull InetSocketAddress address) {
         Objects.requireNonNull(address);
         return new RealSocksProxy(address, 5, null, null);
@@ -30,7 +30,7 @@ public sealed interface Proxy {
 
     static @NonNull Socks socks4(final @NonNull InetSocketAddress address) {
         Objects.requireNonNull(address);
-        // username is required for Socks V4, that's why we default it to ""
+        // a username is required for Socks V4, that's why we default it to ""
         return new RealSocksProxy(address, 4, "", null);
     }
 
@@ -42,11 +42,23 @@ public sealed interface Proxy {
 
     static @NonNull Http http(final @NonNull InetSocketAddress address) {
         Objects.requireNonNull(address);
-        return new RealHttpProxy(address);
+        return new RealHttpProxy(address, null, null);
     }
 
+    static @NonNull Http http(final @NonNull InetSocketAddress address,
+                              final @NonNull String username,
+                              final char @NonNull [] password) {
+        Objects.requireNonNull(address);
+        Objects.requireNonNull(username);
+        Objects.requireNonNull(password);
+        return new RealHttpProxy(address, username, password);
+    }
+
+    /**
+     * @return a host string containing either an actual host name or a numeric IP address.
+     */
     @NonNull
-    String getHostname();
+    String getHost();
 
     int getPort();
 

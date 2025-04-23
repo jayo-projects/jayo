@@ -171,12 +171,12 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
                 // try to prompt the JVM User for credentials
                 final InetAddress address;
                 try {
-                    address = InetAddress.getByName(proxy.getHostname());
+                    address = InetAddress.getByName(proxy.getHost());
                 } catch (UnknownHostException e) {
                     throw JayoException.buildJayoException(e);
                 }
                 final var passwordAuthentication = Authenticator.requestPasswordAuthentication(
-                        proxy.getHostname(), address, proxy.getPort(), "SOCKS5", "SOCKS authentication", null);
+                        proxy.getHost(), address, proxy.getPort(), "SOCKS5", "SOCKS authentication", null);
                 if (passwordAuthentication != null) {
                     username = passwordAuthentication.getUserName().getBytes(StandardCharsets.ISO_8859_1);
                     password = new String(passwordAuthentication.getPassword()).getBytes(StandardCharsets.ISO_8859_1);

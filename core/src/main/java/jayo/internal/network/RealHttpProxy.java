@@ -7,27 +7,14 @@ package jayo.internal.network;
 
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
 
-public final class RealHttpProxy implements Proxy.Http {
-    private final @NonNull String hostname;
-    private final int port;
-
-    public RealHttpProxy(final @NonNull InetSocketAddress address) {
-        assert address != null;
-
-        this.hostname = address.getHostString();
-        this.port = address.getPort();
-    }
-
-    @Override
-    public @NonNull String getHostname() {
-        return hostname;
-    }
-
-    @Override
-    public int getPort() {
-        return port;
+public final class RealHttpProxy extends AbstractProxy implements Proxy.Http {
+    public RealHttpProxy(final @NonNull InetSocketAddress address,
+                         final @Nullable String username,
+                         final char @Nullable [] password) {
+        super(address, username, password);
     }
 }
