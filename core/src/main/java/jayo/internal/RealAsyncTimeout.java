@@ -395,7 +395,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      * cause of the returned exception.
      */
     private @NonNull JayoTimeoutException newTimeoutException(final @Nullable JayoException cause) {
-        // if exception is already a timeout, just return it as-is
+        // if the exception is already a timeout, return it as-is
         if (cause instanceof JayoTimeoutException jayoTimeoutException) {
             return jayoTimeoutException;
         }
@@ -413,12 +413,12 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private static final long IDLE_TIMEOUT_NANOS = TimeUnit.MILLISECONDS.toNanos(IDLE_TIMEOUT_MILLIS);
 
     /**
-     * The watchdog thread processes a linked list of pending timeouts, sorted in the order to be
-     * triggered. This class synchronizes on AsyncTimeout.class. This lock guards the queue.
+     * The watchdog thread processes a linked list of pending timeouts, sorted in the order to be triggered. This lock
+     * guards the queue.
      * <p>
-     * Head's 'next' points to the first element of the linked list. The first element is the next
-     * node to time out, or null if the queue is empty. The head is null until the watchdog thread
-     * is started and also after being idle for {@link #IDLE_TIMEOUT_MILLIS}.
+     * Head's 'next' points to the first element of the linked list. The first element is the next node to time out, or
+     * null if the queue is empty. The head is null until the watchdog thread is started and also after being idle for
+     * {@link #IDLE_TIMEOUT_MILLIS}.
      */
     private static @Nullable RealAsyncTimeout head = null;
 
@@ -482,11 +482,10 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     /**
-     * Removes and returns the node at the head of the list, waiting for it to time out if
-     * necessary. This returns {@link #head} if there was no node at the head of the list when starting,
-     * and there continues to be no node after waiting {@link #IDLE_TIMEOUT_NANOS}. It returns null if a
-     * new node was inserted while waiting. Otherwise, this returns the node being waited on that has
-     * been removed.
+     * Removes and returns the node at the head of the list, waiting for it to time out if necessary. This returns
+     * {@link #head} if there was no node at the head of the list when starting, and there continues to be no node after
+     * waiting {@link #IDLE_TIMEOUT_NANOS}. It returns null if a new node was inserted while waiting. Otherwise, this
+     * returns the node being waited on that has been removed.
      */
     private static @Nullable RealAsyncTimeout awaitTimeout() throws InterruptedException {
         assert head != null;
@@ -527,7 +526,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     try {
                         timedOut = awaitTimeout();
 
-                        // The queue is completely empty. Let this thread exit and let another watchdog thread get
+                        // The queue is completely empty. Let this thread exit and let another watchdog thread be
                         // created on the next call to scheduleTimeout().
                         if (timedOut == head) {
                             head = null;
