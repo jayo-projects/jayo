@@ -36,8 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * This test uses four timeouts of varying durations: 250ms, 500ms, 750ms and
- * 1000ms, named 'a', 'b', 'c' and 'd'.
+ * This test uses four timeouts of varying durations: 250ms, 500ms, 750ms and 1000ms, named 'a', 'b', 'c' and 'd'.
  */
 @Tag("no-ci")
 public final class AsyncTimeoutTest {
@@ -256,7 +255,8 @@ public final class AsyncTimeoutTest {
 
     private AsyncTimeout recordingAsyncTimeout() {
         AtomicReference<AsyncTimeout> asyncTimeoutRef = new AtomicReference<>();
-        final var asyncTimeout = AsyncTimeout.create(() -> timedOut.add(asyncTimeoutRef.get()));
+        final var asyncTimeout = AsyncTimeout.
+                create(0L, 0L, () -> timedOut.add(asyncTimeoutRef.get()));
         asyncTimeoutRef.set(asyncTimeout);
         return asyncTimeout;
     }

@@ -47,12 +47,20 @@ import java.util.function.Supplier;
  */
 public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
-     * @param onTimeout this code block will be invoked by the watchdog thread when the time between calls to
-     *                  {@link #enter} and {@link #exit} has exceeded the timeout.
+     * @param defaultReadTimeoutNanos  The default read timeout (in nanoseconds). It will be used as a fallback for each
+     *                                 read operation, only if no timeout is present in the cancellable context. It must
+     *                                 be non-negative. A timeout of zero is interpreted as an infinite timeout.
+     * @param defaultWriteTimeoutNanos The default write timeout (in nanoseconds). It will be used as a fallback for
+     *                                 each write operation, only if no timeout is present in the cancellable context.
+     *                                 It must be non-negative. A timeout of zero is interpreted as an infinite timeout.
+     * @param onTimeout                this code block will be invoked by the watchdog thread when the time between
+     *                                 calls to {@link #enter} and {@link #exit} has exceeded the timeout.
      * @return a new {@link AsyncTimeout}
      */
-    static @NonNull AsyncTimeout create(final @NonNull Runnable onTimeout) {
-        return new RealAsyncTimeout(onTimeout);
+    static @NonNull AsyncTimeout create(final long defaultReadTimeoutNanos,
+                                        final long defaultWriteTimeoutNanos,
+                                        final @NonNull Runnable onTimeout) {
+        return new RealAsyncTimeout(defaultReadTimeoutNanos, defaultWriteTimeoutNanos, onTimeout);
     }
 
     /**
@@ -76,7 +84,7 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
      * @param writer the delegate writer.
      * @return a new writer that delegates to {@code writer}, using this to implement timeouts. If a timeout occurs, the
-     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
+     * {@code onTimeout} code block declared in {@link #create(long, long, Runnable)} will execute.
      */
     @NonNull
     RawWriter writer(final @NonNull RawWriter writer);
@@ -84,7 +92,7 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
      * @param reader the delegate reader.
      * @return a new reader that delegates to {@code reader}, using this to implement timeouts. If a timeout occurs, the
-     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
+     * {@code onTimeout} code block declared in {@link #create(long, long, Runnable)} will execute.
      */
     @NonNull
     RawReader reader(final @NonNull RawReader reader);
