@@ -113,6 +113,7 @@ final class Segment {
     @SuppressWarnings("FieldMayBeFinal")
     volatile @Nullable Segment next = null;
 
+    // VarHandle mechanics
     static final VarHandle NEXT;
 
     static {
