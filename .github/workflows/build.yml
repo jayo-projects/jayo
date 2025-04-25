@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         distribution: [ 'temurin', 'corretto' ]
-        java: [ '17', '21', '23' ] # replace '23' with '24' when JMH & Kotlin support it
+        java: [ '17', '21', '24' ] # replace '24' with '25' when Gradle, JMH & Kotlin support it
     runs-on: 'ubuntu-latest'
     steps:
       - uses: actions/checkout@v4
