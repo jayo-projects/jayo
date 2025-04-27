@@ -44,7 +44,7 @@ sealed class WriterSegmentQueue extends SegmentQueue permits WriterSegmentQueue.
     }
 
     void pauseIfFull() {
-        // nop for synchronous segment queue
+        // no-op for synchronous segment queue
     }
 
     void emitCompleteSegments() {

@@ -42,7 +42,7 @@ public final class RealCancelToken implements CancelScope, CancelToken {
 
     RealCancelToken(final long deadlineNanos) {
         this(0L,
-                // deadline is set immediately
+                // the deadline is set immediately
                 (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L,
                 false);
     }

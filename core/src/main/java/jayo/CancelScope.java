@@ -40,7 +40,7 @@ public sealed interface CancelScope permits RealCancelToken {
     void cancel();
 
     /**
-     * Allow to protect the rest of this cancellable scope from outside existing cancellations, if any.
+     * Allow protecting the rest of this cancellable scope from outside existing cancellations, if any.
      */
     void shield();
 

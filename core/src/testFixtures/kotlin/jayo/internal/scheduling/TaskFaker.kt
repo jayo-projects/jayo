@@ -122,7 +122,7 @@ class TaskFaker : Closeable {
                 }
 
                 override fun shutdown() {
-                    // NOP
+                    // no-op
                 }
 
                 override fun nanoTime() = nanoTime

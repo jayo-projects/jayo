@@ -41,12 +41,19 @@ public final class CancellableUtils {
         final var cancelTokensIterator = cancelTokens.iterator();
         while (cancelTokensIterator.hasNext()) {
             final var cancelToken = cancelTokensIterator.next();
-            if (cancelToken.finished) { // finished cancel token does not apply anymore
+
+            // a finished cancel token does not apply anymore
+            if (cancelToken.finished) {
                 cancelTokensIterator.remove();
-            } else if (cancelToken.shielded) { // shielded cancel token prevent from applying itself and previous ones
+
+                // a shielded cancel token prevents from applying itself and previous ones
+            } else if (cancelToken.shielded) {
                 break;
+
+                // several cancel tokens apply, we merge them
             } else if (result != null) {
                 result = intersect(result, cancelToken);
+
             } else {
                 result = cancelToken;
             }
@@ -55,7 +62,7 @@ public final class CancellableUtils {
         return result;
     }
 
-    public static void addCancelToken(final @NonNull RealCancelToken cancelToken) {
+    static void addCancelToken(final @NonNull RealCancelToken cancelToken) {
         assert cancelToken != null;
 
         final var cancelTokens = CANCEL_TOKENS.get();

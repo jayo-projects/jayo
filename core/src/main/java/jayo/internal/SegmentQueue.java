@@ -446,7 +446,7 @@ sealed class SegmentQueue implements AutoCloseable permits WriterSegmentQueue, R
 
     @Override
     public void close() {
-        // NOP
+        // no-op
     }
 
     @Override
