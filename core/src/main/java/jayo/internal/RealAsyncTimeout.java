@@ -55,7 +55,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     /**
      * Don't write more than 4 full segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer
      * timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never succeed
-     * on a sufficiently slow connection.
+     * on a slow enough connection.
      */
     static final int TIMEOUT_WRITE_SIZE = 4 * Segment.SIZE;
 
@@ -84,7 +84,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      *
      * Notes:
      *  * enter() crashes if called from a state other than IDLE.
-     *  * If there's no timeout (ie. wait forever), then enter() is a no-op. There's no state to track entered but not
+     *  * If there's no timeout (i.e., wait forever), then enter() is a no-op. There's no state to track entered but not
      *    in the queue.
      *  * exit() is a no-op from IDLE. This is probably too lenient, but it made it simpler for early implementations to
      *    support cases where enter() as a no-op.
@@ -94,7 +94,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private static final int STATE_IDLE = 0;
     private static final int STATE_IN_QUEUE = 1;
     private static final int STATE_TIMED_OUT = 2;
-    private static final int STATE_CANCELED = 3;
+//    private static final int STATE_CANCELED = 3;
 
     /**
      * True if this node is currently in the queue.
@@ -118,38 +118,61 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private final long defaultWriteTimeoutNanos;
 
     private final @NonNull Runnable onTimeout;
+    private @Nullable RealCancelToken tmpCancelToken = null;
 
     public RealAsyncTimeout(final @NonNull Runnable onTimeout) {
         this(0L, 0L, onTimeout);
     }
 
     /**
-     * @param defaultReadTimeoutNanos  The default read timeout (in nanoseconds). It will be used as fallback for each
+     * @param defaultReadTimeoutNanos  The default read timeout (in nanoseconds). It will be used as a fallback for each
      *                                 read operation, only if no timeout is present in the cancellable context. It must
      *                                 be non-negative. A timeout of zero is interpreted as an infinite timeout.
-     * @param defaultWriteTimeoutNanos The default write timeout (in nanoseconds). It will be used as fallback for each
-     *                                 write operation, only if no timeout is present in the cancellable context. It
-     *                                 must be non-negative. A timeout of zero is interpreted as an infinite timeout.
+     * @param defaultWriteTimeoutNanos The default write timeout (in nanoseconds). It will be used as a fallback for
+     *                                 each write operation, only if no timeout is present in the cancellable context.
+     *                                 It must be non-negative. A timeout of zero is interpreted as an infinite timeout.
      */
     public RealAsyncTimeout(final long defaultReadTimeoutNanos,
                             final long defaultWriteTimeoutNanos,
                             final @NonNull Runnable onTimeout) {
+        assert onTimeout != null;
         assert defaultReadTimeoutNanos >= 0;
         assert defaultWriteTimeoutNanos >= 0;
-        assert onTimeout != null;
 
         this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
         this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
         this.onTimeout = onTimeout;
     }
 
-
     @Override
-    public void enter(final @NonNull CancelScope cancelScope) {
+    public void enter(final @Nullable CancelScope cancelScope, final long defaultTimeout) {
+        if (defaultTimeout < 0L) {
+            throw new IllegalArgumentException("defaultTimeout < 0: " + defaultTimeout);
+        }
+
+        // A timeout is already defined, use it
+        if (cancelScope != null) {
+            enter(cancelScope);
+            return;
+        }
+
+        // no default timeout, no-op
+        if (defaultTimeout == 0L) {
+            return;
+        }
+
+        // use defaultTimeout to create a temporary cancel token
+        final var cancelToken = new RealCancelToken(defaultTimeout);
+        CancellableUtils.addCancelToken(cancelToken);
+        this.tmpCancelToken = cancelToken;
+        enter(cancelToken);
+    }
+
+    private void enter(final @NonNull CancelScope cancelScope) {
         if (!(Objects.requireNonNull(cancelScope) instanceof RealCancelToken cancelToken)) {
             throw new IllegalArgumentException("cancelScope must be an instance of CancelToken");
         }
-        // CancelToken is finished, shielded or there is no timeout and no deadline : Don't bother with the queue.
+        // CancelToken is finished, shielded, or there is no timeout and no deadline: don't bother with the queue.
         if (cancelToken.finished || cancelToken.shielded ||
                 (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
             return;
@@ -182,6 +205,11 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             return oldState == STATE_TIMED_OUT;
         } finally {
             LOCK.unlock();
+
+            if (tmpCancelToken != null) {
+                CancellableUtils.finishCancelToken(tmpCancelToken);
+                tmpCancelToken = null;
+            }
         }
     }
 
@@ -220,7 +248,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     throw new IllegalArgumentException("reader must be an instance of RealBuffer");
                 }
 
-                // get cancel token immediately, if present it will be used in all I/O calls of this write operation
+                // get the cancel token immediately; if present, it will be used in all IO calls of this write operation
                 var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
                     cancelToken.timeoutNanos = defaultWriteTimeoutNanos;
@@ -232,7 +260,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     }
                 }
 
-                // no need for cancellation case
+                // no need for cancellation
                 if (defaultWriteTimeoutNanos == 0L) {
                     writer.write(reader, byteCount);
                     return;
@@ -266,7 +294,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     }
 
                     final var toWrite = _toWrite;
-                    // Emit one write. Only this section is subject to the timeout.
+                    // Emit one write operation. Only this section is subject to the timeout.
                     withTimeout(cancelToken, () -> {
                         writer.write(reader, toWrite);
                         return null;
@@ -320,7 +348,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     throw new IllegalArgumentException("byteCount < 0: " + byteCount);
                 }
 
-                // get cancel token immediately, if present it will be used in all I/O calls of this read operation
+                // get the cancel token immediately; if present, it will be used in all IO calls of this read operation
                 var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
                     cancelToken.timeoutNanos = defaultReadTimeoutNanos;
@@ -331,7 +359,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     }
                 }
 
-                // no need for cancellation case
+                // no need for cancellation
                 if (defaultReadTimeoutNanos == 0L) {
                     return reader.readAtMostTo(writer, byteCount);
                 }
@@ -429,7 +457,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                                         final long timeoutNanos,
                                         final long deadlineNanoTime) {
         assert node != null;
-        assert timeoutNanos > 0L || deadlineNanoTime > 0L;
+        assert timeoutNanos >= 0L || deadlineNanoTime >= 0L;
 
         // Start the watchdog thread and create the head node when the first timeout is scheduled.
         if (head == null) {

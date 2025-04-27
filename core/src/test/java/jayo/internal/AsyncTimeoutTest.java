@@ -51,7 +51,7 @@ public final class AsyncTimeoutTest {
         AsyncTimeout timeout = recordingAsyncTimeout();
         // with cancel scope but no timeout
         Cancellable.run(cancelScope -> {
-            timeout.enter(cancelScope);
+            timeout.enter(cancelScope, 0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
@@ -67,7 +67,8 @@ public final class AsyncTimeoutTest {
         AsyncTimeout timeout = recordingAsyncTimeout();
         // with cancel scope but no timeout
         Cancellable.call(cancelScope -> {
-            timeout.enter(cancelScope);
+            // provide a defaultTimeout to check it is ignored
+            timeout.enter(cancelScope, 1L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
@@ -82,7 +83,7 @@ public final class AsyncTimeoutTest {
     @Test
     public void singleInstanceTimedOutRun() {
         Cancellable.run(Duration.ofMillis(25), cancelScope -> {
-            a.enter(cancelScope);
+            a.enter(cancelScope, 0L);
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
@@ -96,7 +97,7 @@ public final class AsyncTimeoutTest {
     @Test
     public void singleInstanceTimedOutCall() {
         Cancellable.call(Duration.ofMillis(25), cancelScope -> {
-            a.enter(cancelScope);
+            a.enter(cancelScope, 0L);
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
@@ -111,7 +112,7 @@ public final class AsyncTimeoutTest {
     @Test
     public void singleInstanceNotTimedOutRun() {
         Cancellable.run(Duration.ofMillis(50), cancelScope -> {
-            b.enter(cancelScope);
+            b.enter(cancelScope, 0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
@@ -126,10 +127,10 @@ public final class AsyncTimeoutTest {
     @Test
     public void instancesAddedAtEnd() {
         Cancellable.run(Duration.ofMillis(100), cancelScope1 -> {
-            a.enter(cancelScope1);
-            b.enter(cancelScope1);
-            c.enter(cancelScope1);
-            d.enter(cancelScope1);
+            a.enter(cancelScope1, 0L);
+            b.enter(cancelScope1, 0L);
+            c.enter(cancelScope1, 0L);
+            d.enter(cancelScope1, 0L);
             Cancellable.run(Duration.ofMillis(75), cancelScope2 ->
                     Cancellable.run(Duration.ofMillis(50), cancelScope3 ->
                             Cancellable.run(Duration.ofMillis(25), cancelScope4 -> {
@@ -150,10 +151,10 @@ public final class AsyncTimeoutTest {
     @Test
     public void instancesRemovedAtFront() {
         Cancellable.run(cancelScope -> {
-            a.enter(cancelScope);
-            b.enter(cancelScope);
-            c.enter(cancelScope);
-            d.enter(cancelScope);
+            a.enter(cancelScope, 0L);
+            b.enter(cancelScope, 0L);
+            c.enter(cancelScope, 0L);
+            d.enter(cancelScope, 0L);
         });
         assertFalse(a.exit());
         assertFalse(b.exit());
@@ -165,8 +166,8 @@ public final class AsyncTimeoutTest {
     @Test
     public void doubleEnter() {
         Cancellable.run(Duration.ofMillis(25), cancelScope -> {
-            a.enter(cancelScope);
-            assertThatThrownBy(() -> a.enter(cancelScope))
+            a.enter(cancelScope, 0L);
+            assertThatThrownBy(() -> a.enter(cancelScope, 0L))
                     .isInstanceOf(IllegalStateException.class);
         });
     }
@@ -174,9 +175,9 @@ public final class AsyncTimeoutTest {
     @Test
     public void reEnter() {
         Cancellable.run(Duration.ofSeconds(1), cancelScope -> {
-            a.enter(cancelScope);
+            a.enter(cancelScope, 0L);
             assertFalse(a.exit());
-            a.enter(cancelScope);
+            a.enter(cancelScope, 0L);
             assertFalse(a.exit());
         });
     }
@@ -184,14 +185,14 @@ public final class AsyncTimeoutTest {
     @Test
     public void reEnterAfterTimeout() {
         Cancellable.run(Duration.ofSeconds(1), cancelScope -> {
-            a.enter(cancelScope);
+            a.enter(cancelScope, 0L);
             try {
                 assertSame(a, timedOut.take());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
             assertTrue(a.exit());
-            a.enter(cancelScope);
+            a.enter(cancelScope, 0L);
             assertFalse(a.exit());
         });
     }
@@ -200,7 +201,7 @@ public final class AsyncTimeoutTest {
     public void timeout() {
         Cancellable.run(Duration.ofMillis(25), cancelScope -> {
             final var timeout = recordingAsyncTimeout();
-            timeout.enter(cancelScope);
+            timeout.enter(cancelScope, 0L);
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
@@ -220,7 +221,7 @@ public final class AsyncTimeoutTest {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            timeout.enter(cancelScope);
+            timeout.enter(cancelScope, 0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
@@ -235,7 +236,7 @@ public final class AsyncTimeoutTest {
     public void shortTimeoutReached() {
         final var timeout = recordingAsyncTimeout();
         Cancellable.run(Duration.ofNanos(1), cancelScope -> {
-            timeout.enter(cancelScope);
+            timeout.enter(cancelScope, 0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
@@ -244,6 +245,36 @@ public final class AsyncTimeoutTest {
             assertTrue(timeout.exit());
             assertTimedOut(timeout);
         });
+    }
+
+    @Test
+    public void defaultTimeout() {
+        a.enter(null, 25_000_000L);
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        assertTrue(a.exit());
+        assertTimedOut(a);
+    }
+
+    @Test
+    public void defaultTimeoutNoTimeout() {
+        a.enter(null, 100_000_000L);
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        assertFalse(a.exit());
+        assertTimedOut();
+    }
+
+    @Test
+    public void defaultTimeoutThrowsWhenInvalid() {
+        assertThatThrownBy(() -> a.enter(null, -1L))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     /**

@@ -27,7 +27,9 @@ import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.internal.RealAsyncTimeout;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -60,14 +62,25 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     static @NonNull AsyncTimeout create(final long defaultReadTimeoutNanos,
                                         final long defaultWriteTimeoutNanos,
                                         final @NonNull Runnable onTimeout) {
+        Objects.requireNonNull(onTimeout);
+        if (defaultReadTimeoutNanos < 0L) {
+            throw new IllegalArgumentException("defaultReadTimeoutNanos < 0: " + defaultReadTimeoutNanos);
+        }
+        if (defaultWriteTimeoutNanos < 0L) {
+            throw new IllegalArgumentException("defaultWriteTimeoutNanos < 0: " + defaultWriteTimeoutNanos);
+        }
         return new RealAsyncTimeout(defaultReadTimeoutNanos, defaultWriteTimeoutNanos, onTimeout);
     }
 
     /**
-     * Call this method before doing work that is subject to timeouts. You must provide a {@code cancelScope} by
-     * obtaining it thanks to {@link CancelToken#getCancelToken()}.
+     * Call this method before doing work that is subject to timeouts.
+     *
+     * @param cancelScope    the {@code cancelScope} obtained by calling {@link CancelToken#getCancelToken()}.
+     * @param defaultTimeout the default timeout (in nanoseconds). It will be used as a fallback for this operation,
+     *                       only if {@code cancelScope} is null = no timeout is present. A timeout of zero is
+     *                       interpreted as an infinite timeout.
      */
-    void enter(final @NonNull CancelScope cancelScope);
+    void enter(final @Nullable CancelScope cancelScope, final long defaultTimeout);
 
     /**
      * @return {@code true} if the timeout occurred.
@@ -76,8 +89,8 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
 
     /**
      * Surrounds {@code block} with calls to {@link #enter} and {@link #exit}, throwing a
-     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a timeout occurred. You
-     * must provide a {@code cancelScope} by obtaining it thanks to {@link CancelToken#getCancelToken()}.
+     * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a timeout occurred. You must provide a
+     * {@code cancelScope} obtained by calling {@link CancelToken#getCancelToken()}.
      */
     <T> T withTimeout(final @NonNull CancelScope cancelScope, final @NonNull Supplier<T> block);
 
