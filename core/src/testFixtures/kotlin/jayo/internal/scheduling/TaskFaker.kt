@@ -34,12 +34,11 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 /**
- * Runs a [RealTaskRunner] in a controlled environment so that everything is sequential and
- * deterministic.
+ * Runs a [RealTaskRunner] in a controlled environment so that everything is sequential and deterministic.
  *
- * This class ensures that at most one thread is running at a time. This is initially the JUnit test
- * thread, which yields its execution privilege while calling [runTasks], [runNextTask], or
- * [advanceUntil]. These functions don't return until the task threads are all idle.
+ * This class ensures that at most one thread is running at a time. This is initially the JUnit test thread, which
+ * yields its execution privilege while calling [runTasks], [runNextTask], or [advanceUntil]. These functions don't
+ * return until the task threads are all idle.
  *
  * Task threads release their execution privilege in these ways:
  *
@@ -73,7 +72,8 @@ class TaskFaker : Closeable {
     val logger: System.Logger = System.getLogger("TaskFaker." + instance++)
 
     /** Though this executor service may hold many threads, they are not executed concurrently. */
-    private val tasksExecutor = Executors.newCachedThreadPool(threadFactory("TaskFaker"))
+    private val tasksExecutor = Executors.newCachedThreadPool(
+        threadFactory("TaskFaker", true))
 
     /**
      * True if this task faker has ever had multiple tasks scheduled to run concurrently. Guarded by
@@ -247,8 +247,8 @@ class TaskFaker : Closeable {
     }
 
     /**
-     * Artificially stall until manually resumed by the test thread with [runTasks]. Use this to
-     * simulate races in tasks that doesn't have a deterministic sequence.
+     * Artificially stall until manually resumed by the test thread with [runTasks]. Use this to simulate races in tasks
+     * that don't have a deterministic sequence.
      */
     fun yield() {
         taskRunner.assertThreadDoesntHoldLock()
@@ -310,7 +310,7 @@ class TaskFaker : Closeable {
         AfterOtherTasks,
     }
 
-    /** Returns the task that was started, or null if there were no tasks to start. */
+    /** @return the task that was started, or null if there were no tasks to start. */
     private fun startNextTask(): SerialTask? {
         taskRunner.assertThreadHoldsLock()
 
@@ -325,7 +325,7 @@ class TaskFaker : Closeable {
     }
 
     private interface SerialTask {
-        /** Returns true if this task is ready to start. */
+        /** @return true if this task is ready to start. */
         fun isReady() = true
 
         /** Do this task's work, and then start another, such as by calling [startNextTask]. */
@@ -361,8 +361,8 @@ class TaskFaker : Closeable {
     }
 
     /**
-     * This blocking queue hooks into a fake clock rather than using regular JVM timing for functions
-     * like [poll]. It is only usable within task faker tasks.
+     * This blocking queue hooks into a fake clock rather than using regular JVM timing for functions like [poll]. It is
+     * only usable within task faker tasks.
      */
     private inner class TaskFakerBlockingQueue<T>(
         val delegate: BlockingQueue<T>,

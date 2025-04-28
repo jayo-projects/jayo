@@ -17,6 +17,7 @@ import static java.lang.System.Logger.Level.INFO;
 /**
  * Java 21 utils
  */
+@SuppressWarnings("unused")
 public final class JavaVersionUtils {
     private static final System.Logger LOGGER = System.getLogger("jayo.JavaVersionUtils");
 
@@ -25,13 +26,15 @@ public final class JavaVersionUtils {
     }
 
     static {
-        LOGGER.log(INFO, "Using Java 21 compatibility, virtual threads in use !");
+        LOGGER.log(INFO, "Using Java 21 compatibility with virtual threads!");
     }
 
     /**
-     * Java 21 has Virtual Thread support, so we use them
+     * Java 21 has virtual Thread support, so we use them.
+     *
+     * @implNote the {@code isDaemon} parameter is ignored, virtual threads are always daemon threads.
      */
-    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix) {
+    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix, final boolean isDaemon) {
         assert prefix != null;
         return Thread.ofVirtual()
                 .name(prefix, 0)
@@ -40,16 +43,24 @@ public final class JavaVersionUtils {
     }
 
     /**
-     * Java 21 has Virtual Thread support, so we use them through
-     * {@link Executors#newThreadPerTaskExecutor(ThreadFactory)} with our {@link #threadFactory(String)}
+     * Java 21 has virtual Thread support, so we use them through
+     * {@link Executors#newThreadPerTaskExecutor(ThreadFactory)} with our {@link #threadFactory(String, boolean)}.
      */
-    public static @NonNull ExecutorService executorService(final @NonNull String prefix) {
+    public static @NonNull ExecutorService executorService(final @NonNull String prefix, final boolean isDaemon) {
         assert prefix != null;
-        return Executors.newThreadPerTaskExecutor(threadFactory(prefix));
+        return Executors.newThreadPerTaskExecutor(threadFactory(prefix, isDaemon));
     }
 
     /**
-     * Java 21 has the {thread.threadId()} final method
+     * Java 21 has the {@code executor.close()} method, we just call it.
+     */
+    public static void close(@NonNull ExecutorService executor) {
+        assert executor != null;
+        executor.close();
+    }
+
+    /**
+     * Java 21 has the {@code thread.threadId()} final method.
      */
     static long threadId(final @NonNull Thread thread) {
         assert thread != null;
@@ -60,18 +71,10 @@ public final class JavaVersionUtils {
      * There was a problem in SSLEngine, SSLCipher or Cipher because calling {@code engine.unwrap(source, dst)} with a
      * readonly source {@link ByteBuffer} failed in Java 17.
      * <p>
-     * This bug is fixed in Java 21, nice !
+     * This bug is fixed in Java 21, nice!
      */
     static @NonNull ByteBuffer asReadOnlyBuffer(final @NonNull ByteBuffer wrap) {
         assert wrap != null;
         return wrap.asReadOnlyBuffer();
-    }
-
-    /**
-     * Java 21 has the {executor.close()} method
-     */
-    public static void close(@NonNull ExecutorService executor) {
-        assert executor != null;
-        executor.close();
     }
 }

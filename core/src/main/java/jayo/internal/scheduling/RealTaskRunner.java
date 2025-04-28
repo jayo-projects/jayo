@@ -61,9 +61,9 @@ public final class RealTaskRunner implements TaskRunner {
     final @NonNull ReentrantLock lock = new ReentrantLock();
 
     /**
-     * When we need a new thread to run tasks, we call {@link Backend#execute(RealTaskRunner, Runnable)}. A few microseconds
-     * later we expect a newly-started thread to call {@link Runnable#run()}. We shouldn't request new threads until the
-     * already-requested ones are in service, otherwise we might create more threads than we need.
+     * When we need a new thread to run tasks, we call {@link Backend#execute(RealTaskRunner, Runnable)}. A few
+     * microseconds later we expect a newly started thread to call {@link Runnable#run()}. We shouldn't request new
+     * threads until the already-requested ones are in service, otherwise we might create more threads than we need.
      * <p>
      * We use {@code #executeCallCount} and {@link #runCallCount} to defend against starting more threads than we need.
      * Both fields are guarded by {@link #lock}.
@@ -81,7 +81,7 @@ public final class RealTaskRunner implements TaskRunner {
     final Queue<Task.ScheduledTask> futureScheduledTasks = new PriorityQueue<>();
 
     public RealTaskRunner(final @NonNull String name) {
-        this(executorService(name + "#"));
+        this(executorService(name + "#", true));
     }
 
     public RealTaskRunner(final @NonNull ExecutorService executor) {

@@ -455,7 +455,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private static @Nullable RealAsyncTimeout head = null;
 
     private static final ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
-            JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#");
+            JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#", false);
 
     private static void insertIntoQueue(final @NonNull RealAsyncTimeout node,
                                         final long timeoutNanos,

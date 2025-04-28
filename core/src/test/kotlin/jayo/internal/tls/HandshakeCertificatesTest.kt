@@ -50,7 +50,8 @@ class HandshakeCertificatesTest {
 
     @BeforeEach
     fun setUp() {
-        executorService = Executors.newCachedThreadPool(threadFactory("HandshakeCertificatesTest"))
+        executorService = Executors.newCachedThreadPool(
+            threadFactory("HandshakeCertificatesTest", true))
     }
 
     @AfterEach
