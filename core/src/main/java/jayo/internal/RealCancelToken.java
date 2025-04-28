@@ -24,7 +24,6 @@ package jayo.internal;
 import jayo.CancelScope;
 import jayo.JayoInterruptedIOException;
 import jayo.JayoTimeoutException;
-import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -33,7 +32,7 @@ import java.util.concurrent.locks.Condition;
 /**
  * CancelToken is thread safe
  */
-public final class RealCancelToken implements CancelScope, CancelToken {
+public final class RealCancelToken implements CancelScope, jayo.tools.CancelToken {
     long timeoutNanos;
     final long deadlineNanoTime;
     volatile boolean cancelled;

@@ -21,7 +21,6 @@
 
 package jayo.tools;
 
-import jayo.CancelScope;
 import jayo.JayoInterruptedIOException;
 import jayo.RawReader;
 import jayo.RawWriter;
@@ -75,12 +74,12 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
      * Call this method before doing work that is subject to timeouts.
      *
-     * @param cancelScope    the {@code cancelScope} obtained by calling {@link CancelToken#getCancelToken()}.
+     * @param cancelToken    the {@code cancelToken} obtained by calling {@link CancelToken#getCancelToken()}.
      * @param defaultTimeout the default timeout (in nanoseconds). It will be used as a fallback for this operation,
-     *                       only if {@code cancelScope} is null = no timeout is present. A timeout of zero is
+     *                       only if {@code cancelToken} is null = no timeout is present. A timeout of zero is
      *                       interpreted as an infinite timeout.
      */
-    void enter(final @Nullable CancelScope cancelScope, final long defaultTimeout);
+    void enter(final @Nullable CancelToken cancelToken, final long defaultTimeout);
 
     /**
      * @return {@code true} if the timeout occurred.
@@ -90,9 +89,9 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
      * Surrounds {@code block} with calls to {@link #enter} and {@link #exit}, throwing a
      * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a timeout occurred. You must provide a
-     * {@code cancelScope} obtained by calling {@link CancelToken#getCancelToken()}.
+     * {@code cancelToken} obtained by calling {@link CancelToken#getCancelToken()}.
      */
-    <T> T withTimeout(final @NonNull CancelScope cancelScope, final @NonNull Supplier<T> block);
+    <T> T withTimeout(final @NonNull CancelToken cancelToken, final @NonNull Supplier<T> block);
 
     /**
      * @param writer the delegate writer.

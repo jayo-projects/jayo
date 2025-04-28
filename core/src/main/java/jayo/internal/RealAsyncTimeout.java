@@ -23,6 +23,7 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.tools.AsyncTimeout;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -44,12 +45,12 @@ import static jayo.tools.JayoUtils.checkOffsetAndCount;
  * the shared watchdog thread, so it should not do any long-running operations. Otherwise, we risk starving other
  * timeouts from being triggered.
  * <p>
- * Use {@link #writer} and {@link #reader} to apply this timeout to a stream. The returned value will apply the timeout
- * to each operation on the wrapped stream.
+ * Use {@link #writer(RawWriter)} and {@link #reader(RawReader)} to apply this timeout to a stream. The returned value
+ * will apply the timeout to each operation on the wrapped stream.
  * <p>
- * Callers should call {@link #enter} before doing work that is subject to timeouts, and {@link #exit} afterward. The
- * return value of {@link #exit} indicates whether a timeout was triggered. Note that the call to {@link #onTimeout} is
- * asynchronous, and may be called after {@link #exit}.
+ * Callers should call {@link #enter(CancelToken, long)} before doing work that is subject to timeouts, and
+ * {@link #exit()} afterward. The return value of {@link #exit()} indicates whether a timeout was triggered. Note that
+ * the call to {@link #onTimeout} is asynchronous, and may be called after {@link #exit()}.
  */
 public final class RealAsyncTimeout implements AsyncTimeout {
     /**
@@ -145,14 +146,14 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public void enter(final @Nullable CancelScope cancelScope, final long defaultTimeout) {
+    public void enter(final @Nullable CancelToken cancelToken, final long defaultTimeout) {
         if (defaultTimeout < 0L) {
             throw new IllegalArgumentException("defaultTimeout < 0: " + defaultTimeout);
         }
 
         // A timeout is already defined, use it
-        if (cancelScope != null) {
-            enter(cancelScope);
+        if (cancelToken != null) {
+            enter(cancelToken);
             return;
         }
 
@@ -162,19 +163,19 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         }
 
         // use defaultTimeout to create a temporary cancel token
-        final var cancelToken = new RealCancelToken(defaultTimeout);
-        CancellableUtils.addCancelToken(cancelToken);
-        this.tmpCancelToken = cancelToken;
-        enter(cancelToken);
+        final var tmpCancelToken = new RealCancelToken(defaultTimeout);
+        CancellableUtils.addCancelToken(tmpCancelToken);
+        this.tmpCancelToken = tmpCancelToken;
+        enter(tmpCancelToken);
     }
 
-    private void enter(final @NonNull CancelScope cancelScope) {
-        if (!(Objects.requireNonNull(cancelScope) instanceof RealCancelToken cancelToken)) {
-            throw new IllegalArgumentException("cancelScope must be an instance of CancelToken");
+    private void enter(final @NonNull CancelToken cancelToken) {
+        if (!(Objects.requireNonNull(cancelToken) instanceof RealCancelToken _cancelToken)) {
+            throw new IllegalArgumentException("cancelToken must be an instance of CancelToken");
         }
         // CancelToken is finished, shielded, or there is no timeout and no deadline: don't bother with the queue.
-        if (cancelToken.finished || cancelToken.shielded ||
-                (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
+        if (_cancelToken.finished || _cancelToken.shielded ||
+                (_cancelToken.deadlineNanoTime == 0L && _cancelToken.timeoutNanos == 0L)) {
             return;
         }
 
@@ -184,7 +185,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 throw new IllegalStateException("Unbalanced enter/exit");
             }
             state = STATE_IN_QUEUE;
-            insertIntoQueue(this, cancelToken.timeoutNanos, cancelToken.deadlineNanoTime);
+            insertIntoQueue(this, _cancelToken.timeoutNanos, _cancelToken.deadlineNanoTime);
         } finally {
             LOCK.unlock();
         }
@@ -396,23 +397,26 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public <T> T withTimeout(final @NonNull CancelScope cancelScope, final @NonNull Supplier<T> block) {
-        Objects.requireNonNull(cancelScope);
+    public <T> T withTimeout(final @NonNull CancelToken cancelToken, final @NonNull Supplier<T> block) {
+        Objects.requireNonNull(cancelToken);
         Objects.requireNonNull(block);
+        if (!(Objects.requireNonNull(cancelToken) instanceof RealCancelToken _cancelToken)) {
+            throw new IllegalArgumentException("cancelToken must be an instance of CancelToken");
+        }
 
         var throwOnTimeout = false;
-        enter(cancelScope);
+        enter(cancelToken);
         try {
             final var result = block.get();
             throwOnTimeout = true;
             return result;
         } catch (JayoException e) {
-            cancelScope.cancel();
+            _cancelToken.cancel();
             throw (!exit()) ? e : newTimeoutException(e);
         } finally {
             final var timedOut = exit();
             if (timedOut && throwOnTimeout) {
-                cancelScope.cancel();
+                _cancelToken.cancel();
                 throw newTimeoutException(null);
             }
         }
