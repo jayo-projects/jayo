@@ -13,7 +13,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 /**
- * A basic lock that only supports {@link #lock()} and {@link #unlock()}. It is reentrant and only support 2 concurrent
+ * A basic lock that only supports {@link #lock()} and {@link #unlock()}. It is reentrant and only supports 2 concurrent
  * threads.
  */
 public sealed interface BasicLock extends Lock permits RealBasicLock {

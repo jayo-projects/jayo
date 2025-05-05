@@ -15,7 +15,7 @@ import java.io.Closeable;
  * An endpoint is plugged to an open connection, you can read incoming data thanks to {@link #getReader()} and write
  * data thanks to {@link #getWriter()}.
  * <p>
- * An endpoint is either open or closed. An endpoint is open upon creation, and once closed it remains closed. After an
+ * An endpoint is either open or closed. An endpoint is open upon creation, and once closed, it remains closed. After an
  * endpoint is closed, any further attempt to invoke an I/O operation upon it will cause a
  * {@link JayoClosedResourceException} to be thrown.
  * <p>
@@ -37,19 +37,19 @@ public interface Endpoint extends Closeable {
     Writer getWriter();
 
     /**
-     * Closes this endpoint.
+     * Closes this endpoint and releases the resources held by its {@linkplain #getReader() reader} and
+     * {@linkplain #getWriter() writer}, that also pushes all buffered data to their final destination. Trying to read
+     * or write to a closed endpoint will throw a {@link JayoClosedResourceException}.
      * <p>
-     * After an endpoint is closed, any further attempt to invoke I/O operations upon it will cause a
-     * {@link JayoClosedResourceException} to be thrown.
-     * <p>
-     * If this endpoint is already closed, then invoking this method has no effect.
+     * It is safe to close an endpoint more than once, but only the first call has an effect.
      *
-     * @throws JayoException If an I/O error occurs during the closing phase.
+     * @throws JayoException if an I/O error occurs during the closing phase.
      */
     void close();
 
     /**
      * @return {@code true} if this endpoint is open.
+     * @see #close()
      */
     boolean isOpen();
 

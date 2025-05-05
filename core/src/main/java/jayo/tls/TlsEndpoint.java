@@ -23,15 +23,15 @@ import java.util.List;
 
 /**
  * A TLS (Transport Layer Security) endpoint, either the client-side or server-side end of a TLS connection between two
- * peers. {@link TlsEndpoint} guarantee that the TLS connection is established and its <b>initial handshake was done</b>
+ * peers. {@link TlsEndpoint} guarantee that the TLS connection is established and the <b>initial handshake was done</b>
  * upon creation.
  * <p>
- * {@link TlsEndpoint} implementations delegate all cryptographic operations to the standard JDK's existing
- * {@linkplain SSLEngine TLS/SSL Engine}; effectively hiding it behind an easy-to-use streaming API based on Jayo's
- * reader and writer, that allows to secure JVM applications with minimal added complexity.
+ * {@link TlsEndpoint} implementation delegate all cryptographic operations to the standard JDK's existing
+ * {@linkplain SSLEngine TLS/SSL Engine}; effectively hiding it behind an easy-to-use API based on Jayo's reader and
+ * writer, that allows to secure JVM applications with minimal added complexity.
  * <p>
  * Note that this is an API adapter, not a cryptographic implementation: except for a few bytes that are parsed at
- * the beginning of the connection in server mode, to look for the SNI, the whole protocol implementation is done by the
+ * the beginning of the connection in server mode to look for the SNI, the whole protocol implementation is done by the
  * {@link SSLEngine}.
  * <p>
  * Please read the {@link #shutdown()} javadoc for a detailed explanation of the TLS shutdown phase.
@@ -57,7 +57,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     Writer getWriter();
 
     /**
-     * @return the {@linkplain SSLSession TLS session} of the TLS connection.
+     * @return the {@link SSLSession} of the TLS connection, that holds parameters of the ongoing TLS session.
      */
     @NonNull
     SSLSession getSession();
@@ -76,14 +76,14 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * of the peer's "close notify". According to the TLS standard, it is acceptable for an application to only send its
      * shutdown alert and then close the underlying connection without waiting for the peer's response. When the
      * underlying connection shall be used for more communications, the complete shutdown procedure (bidirectional
-     * "close notify" alerts) must be performed, so that the peers stay synchronized.
+     * "close notify" alerts) must be performed so that the peers stay synchronized.
      * <p>
      * This class supports both uni- and bidirectional shutdown by its 2-step behavior, using this method.
      * <p>
      * When this is the first party to send the "close notify" alert, this method will only send the alert, set the
      * {@link #isShutdownSent()} flag and return {@code false}. If a unidirectional shutdown is enough, this first
-     * call is sufficient. In order to complete the bidirectional shutdown handshake, This method must be called again.
-     * The second call will wait for the peer's "close notify" shutdown alert. On success, the second call will return
+     * call is enough. To complete the bidirectional shutdown handshake, This method must be called again. The second
+     * call will wait for the peer's "close notify" shutdown alert. On success, the second call will return
      * {@code true}.
      * <p>
      * If the peer already sent the "close notify" alert, and it was already processed implicitly inside a read
@@ -96,7 +96,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
      * the final bytes of a secure stream. For more details, see
      * <a href="https://hal.inria.fr/hal-01102013">the original paper</a>.
      *
-     * @return {@code true} if the closing of this TLS connection is finished.
+     * @return {@code true} if the closing of this TLS connection is fully finished.
      */
     boolean shutdown();
 
@@ -140,13 +140,13 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     sealed interface Builder<T extends Builder<T, U>, U extends Parameterizer> extends Cloneable
             permits RealTlsEndpoint.Builder, ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
         /**
-         * Whether to wait for TLS close confirmation when calling {@code close()} on this TLS endpoint or its
+         * Whether to wait for TLS close confirmation when calling {@code close()} on this TLS endpoint or on its
          * {@linkplain TlsEndpoint#getReader() reader} or {@linkplain TlsEndpoint#getWriter() writer}. Default is
          * {@code false} to not wait and close immediately. The proper closing procedure can then be triggered at any
          * moment using {@link TlsEndpoint#shutdown()}.
          * <p>
          * Setting this to {@code true} will block (potentially until it times out, or indefinitely) the close operation
-         * until the counterpart confirms the close on their side (sending a close_notify alert). In this case it
+         * until the counterpart confirms the close on their side (sending a "close notify" alert). In this case it
          * emulates the behavior of {@linkplain javax.net.ssl.SSLSocket SSLSocket} when used in layered mode (and
          * without autoClose).
          * <p>
@@ -159,7 +159,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         T waitForCloseConfirmation(final boolean waitForCloseConfirmation);
 
         /**
-         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using no advisory peer information, it
+         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using no advisory peer information. It
          * requires an existing {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a
          * network socket).
          *
@@ -169,14 +169,14 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         U createParameterizer(final @NonNull Endpoint encryptedEndpoint);
 
         /**
-         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using advisory peer information, it
+         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using advisory peer information. It
          * requires an existing {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a
          * network socket).
          * <p>
          * Applications using this method are providing hints for an internal session reuse strategy.
          * <p>
-         * Some cipher suites (such as Kerberos) require remote hostname information, in which case peerHost needs to be
-         * specified.
+         * Some cipher suites (such as Kerberos) require remote peer information, in which case {@code peerHost} needs
+         * to be specified.
          *
          * @param peerHost the non-authoritative name of the host.
          * @param peerPort the non-authoritative port.
@@ -211,7 +211,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         void setEnabledProtocols(final @NonNull List<@NonNull Protocol> protocols);
 
         /**
-         * @return the list of enabled {@linkplain TlsVersion TLS versions} (TLSv1.3, TLSv1.2 etc.) to secure the
+         * @return the list of enabled {@linkplain TlsVersion TLS versions} (TLSv1.3, TLSv1.2, etc.) to secure the
          * connection. The chosen TLS version will vary, depending on protocols and cipher suites negotiated with the
          * peer.
          */
@@ -219,7 +219,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         List<@NonNull TlsVersion> getEnabledTlsVersions();
 
         /**
-         * Sets the list of enabled {@linkplain TlsVersion TLS versions} (TLSv1.3, TLSv1.2 etc.) to secure the
+         * Sets the list of enabled {@linkplain TlsVersion TLS versions} (TLSv1.3, TLSv1.2, etc.) to secure the
          * connection. The chosen TLS version will vary, depending on protocols and cipher suites negotiated with the
          * peer.
          */
@@ -232,7 +232,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         List<@NonNull CipherSuite> getSupportedCipherSuites();
 
         /**
-         * @return the list of enabled {@linkplain CipherSuite TLS cipher suites}, it must be a sub-list of
+         * @return the list of enabled {@linkplain CipherSuite TLS cipher suites}, it is a sub-list of
          * {@link #getSupportedCipherSuites()}.
          */
         @NonNull

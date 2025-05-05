@@ -17,8 +17,8 @@ multiRelease {
     targetVersions(17, 21)
 }
 
-// Temporary workaround for https://github.com/melix/mrjar-gradle-plugin/issues/3
-// Remove this block when https://github.com/melix/mrjar-gradle-plugin/pull/10 is released
+// Temporary workaround for https://github.com/melix/mrjar-gradle-plugin/issues/3.
+// Remove this block when https://github.com/melix/mrjar-gradle-plugin/pull/10 is released.
 configurations.matching { config -> config.name.startsWith("java21") }
     .configureEach {
         val noPrefix = this.name.replace("java21", "")

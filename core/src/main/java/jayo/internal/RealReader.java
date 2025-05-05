@@ -22,6 +22,7 @@
 package jayo.internal;
 
 import jayo.*;
+import jayo.bytestring.Ascii;
 import jayo.bytestring.ByteString;
 import jayo.bytestring.Utf8;
 import jayo.scheduling.TaskRunner;
@@ -104,7 +105,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull Utf8 readAscii() {
+    public @NonNull Ascii readAscii() {
         if (segmentQueue.closed) {
             throw new JayoClosedResourceException();
         }
@@ -113,7 +114,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public @NonNull Utf8 readAscii(final long byteCount) {
+    public @NonNull Ascii readAscii(final long byteCount) {
         require(byteCount);
         return segmentQueue.buffer.readAscii(byteCount);
     }

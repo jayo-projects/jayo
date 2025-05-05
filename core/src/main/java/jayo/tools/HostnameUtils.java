@@ -23,6 +23,7 @@ package jayo.tools;
 
 import org.jspecify.annotations.NonNull;
 
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 public final class HostnameUtils {
@@ -34,20 +35,18 @@ public final class HostnameUtils {
      * Quick and dirty pattern to differentiate IP addresses from hostnames. This is an approximation of Android's
      * private InetAddress#isNumeric API.
      * <p>
-     * This matches IPv6 addresses as a hex string containing at least one colon, and possibly including dots after the
+     * This matches IPv6 addresses as a hex string containing at least one colon and possibly including dots after the
      * first colon. It matches IPv4 addresses as strings containing only decimal digits and dots. This pattern matches
-     * strings like "a:.23" and "54" that are neither IP addresses nor hostnames; they will be verified as IP addresses
-     * (which is a stricter verification).
+     * strings like "a:.23" and "54" that are neither IP addresses nor hostnames.
      */
-    private static final Pattern VERIFY_AS_IP_ADDRESS = Pattern.compile(
+    private static final @NonNull Pattern VERIFY_AS_IP_ADDRESS = Pattern.compile(
             "([0-9a-fA-F]*:[0-9a-fA-F:.]*)|([\\d.]+)");
 
     /**
      * @return true if this string is not a host name and might be an IP address.
      */
     public static boolean canParseAsIpAddress(final @NonNull String maybeIpAddress) {
-        assert maybeIpAddress != null;
-
+        Objects.requireNonNull(maybeIpAddress);
         return VERIFY_AS_IP_ADDRESS.matcher(maybeIpAddress).matches();
     }
 }

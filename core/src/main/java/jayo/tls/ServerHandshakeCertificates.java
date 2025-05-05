@@ -45,10 +45,10 @@ import java.util.Objects;
  * <li>The {@linkplain ServerHandshakeCertificates server's handshake certificates} must have a
  * {@linkplain HeldCertificate held certificate} (a certificate and its private key). The
  * {@linkplain HeldCertificate.Builder#addSubjectAlternativeName(String) certificate's subject alternative names} must
- * match the server's hostname. The server must also have a (possibly-empty) chain of intermediate certificates to
+ * match the server's hostname. The server must also have a (possibly empty) chain of intermediate certificates to
  * establish trust from a root certificate to the server's certificate. The
  * {@linkplain ServerHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) root certificate} is not
- * included in this chain.
+ * included in this chain, see below.
  * <li>The {@linkplain ClientHandshakeCertificates client's handshake certificates} must include a set of trusted root
  * certificates. They will be used to authenticate the server's certificate chain. Typically, this is a
  * {@linkplain ClientHandshakeCertificates.Builder#addPlatformTrustedCertificates(boolean) set of well-known root
@@ -63,11 +63,11 @@ import java.util.Objects;
  * <ul>
  * <li>The {@linkplain ClientHandshakeCertificates client's handshake certificates} must have a
  * {@linkplain HeldCertificate held certificate} (a certificate and its private key). The client must also have a
- * (possibly-empty) chain of intermediate certificates to establish trust from a root certificate to the client's
+ * (possibly empty) chain of intermediate certificates to establish trust from a root certificate to the client's
  * certificate. The {@linkplain ClientHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) root
- * certificate} is not included in this chain.
+ * certificate} is not included in this chain, see above.
  * <li>The {@linkplain ServerHandshakeCertificates server's handshake certificates} must include a set of trusted root
- * certificates. They will be used to authenticate the client's certificate chain. This is not the same set of root
+ * certificates. They will be used to authenticate the client's certificate chain. This is a different set of root
  * certificates used in server authentication. Instead, it will be a
  * {@linkplain ServerHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) small set of roots private to
  * an organization or service}.
@@ -77,7 +77,7 @@ import java.util.Objects;
  */
 public sealed interface ServerHandshakeCertificates permits RealHandshakeCertificates {
     /**
-     * Creates a {@linkplain ServerHandshakeCertificates server's handshake certificates} from a
+     * Creates a {@linkplain ServerHandshakeCertificates server handshake certificates} from a
      * {@link KeyManagerFactory}. This server will not be able to authenticate to the client.
      */
     static @NonNull ServerHandshakeCertificates create(final @NonNull KeyManagerFactory kmf) {
@@ -85,7 +85,7 @@ public sealed interface ServerHandshakeCertificates permits RealHandshakeCertifi
     }
 
     /**
-     * Creates a {@linkplain ServerHandshakeCertificates server's handshake certificates} from a
+     * Creates a {@linkplain ServerHandshakeCertificates server handshake certificates} from a
      * {@link KeyManagerFactory}. This server will also be able to authenticate to the client thanks to the
      * {@link TrustManagerFactory}.
      */
@@ -96,14 +96,14 @@ public sealed interface ServerHandshakeCertificates permits RealHandshakeCertifi
     }
 
     /**
-     * @return a builder to craft a {@linkplain ServerHandshakeCertificates server's handshake certificates}.
+     * @return a builder to craft a {@linkplain ServerHandshakeCertificates server handshake certificates}.
      * <p>
      * It is required to configure the certificate chain to use when being authenticated. The first certificate is the
      * held certificate, further certificates are included in the handshake so the peer can build a trusted path to a
      * trusted root certificate.
      * <p>
      * The chain should include all intermediate certificates but does not need the root certificate that we expect
-     * to be known by the remote peer. The peer already has that certificate so transmitting it is unnecessary.
+     * to be known by the remote peer. The peer already has that certificate, so transmitting it is unnecessary.
      */
     static @NonNull Builder builder(final @NonNull HeldCertificate heldCertificate,
                                     final @NonNull X509Certificate @NonNull ... intermediates) {

@@ -17,7 +17,7 @@ import java.util.function.Function;
 
 /**
  * The server-side TLS (Transport Layer Security) end of a TLS connection between two peers. {@link ServerTlsEndpoint}
- * guarantee that the TLS connection is established and its <b>initial handshake was done</b> upon creation.
+ * guarantee that the TLS connection is established and the <b>initial handshake was done</b> upon creation.
  *
  * @see TlsEndpoint
  * @see ClientTlsEndpoint
@@ -33,7 +33,7 @@ public sealed interface ServerTlsEndpoint extends TlsEndpoint permits RealServer
 
     /**
      * Create a new {@link Builder} for a server-side TLS endpoint using a custom {@link ServerHandshakeCertificates}
-     * factory, which will be used to create the handshake certificates, as a function of the SNI received at the TLS
+     * factory, which will be used to create the handshake certificates as a function of the SNI received at the TLS
      * connection start.
      *
      * @param handshakeCertificatesFactory a function to select the correct {@link ServerHandshakeCertificates} based on

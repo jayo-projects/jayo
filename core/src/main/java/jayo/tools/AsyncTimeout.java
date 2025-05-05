@@ -26,7 +26,6 @@ import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.internal.RealAsyncTimeout;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -36,15 +35,15 @@ import java.util.function.Supplier;
  * implement timeouts where they aren't supported natively, such as to sockets or channels that are blocked on
  * writing.
  * <p>
- * Subclasses must call {@link #create} to implement the action that will be called when a timeout occurs. This method
- * will be invoked by the shared watchdog thread, so it should not do any long-running operations. Otherwise, we risk
- * starving other timeouts from being triggered.
+ * Subclasses must call {@link #create(long, long, Runnable)} to implement the action that will be called when a timeout
+ * occurs. This method will be invoked by the shared watchdog thread, so it should not do any long-running operations.
+ * Otherwise, we risk starving other timeouts from being triggered.
  * <p>
- * Use {@link #writer} and {@link #reader} to apply this timeout to a stream. The returned value will apply the
- * timeout to each operation on the wrapped stream.
+ * Use {@link #writer(RawWriter)} and {@link #reader(RawReader)} to apply this timeout to a stream. The returned value
+ * will apply the timeout to each operation on the wrapped stream.
  * <p>
- * Callers should call {@link #enter} before doing work that is subject to timeouts, and {@link #exit} afterward.
- * The return value of {@link #exit} indicates whether a timeout was triggered.
+ * Callers should call {@link #enter(long)} before doing work that is subject to timeouts, and {@link #exit()}
+ * afterward. The return value of {@link #exit()} indicates whether a timeout was triggered.
  */
 public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
@@ -55,7 +54,7 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
      *                                 each write operation, only if no timeout is present in the cancellable context.
      *                                 It must be non-negative. A timeout of zero is interpreted as an infinite timeout.
      * @param onTimeout                this code block will be invoked by the watchdog thread when the time between
-     *                                 calls to {@link #enter} and {@link #exit} has exceeded the timeout.
+     *                                 calls to {@link #enter(long)} and {@link #exit()} has exceeded the timeout.
      * @return a new {@link AsyncTimeout}
      */
     static @NonNull AsyncTimeout create(final long defaultReadTimeoutNanos,
@@ -72,22 +71,25 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     }
 
     /**
-     * Call this method before doing work that is subject to timeouts.
+     * Call this method when starting doing work that is subject to timeouts.
      *
-     * @param cancelToken    the {@code cancelToken} obtained by calling {@link CancelToken#getCancelToken()}.
-     * @param defaultTimeout the default timeout (in nanoseconds). It will be used as a fallback for this operation,
-     *                       only if {@code cancelToken} is null = no timeout is present. A timeout of zero is
-     *                       interpreted as an infinite timeout.
+     * @param defaultTimeout the default timeout (in nanoseconds). It will be used as a fallback for this operation only
+     *                       if no timeout is present in the cancellable context. It must be non-negative. A timeout of
+     *                       zero is interpreted as an infinite timeout.
+     * @see #exit()
      */
-    void enter(final @Nullable CancelToken cancelToken, final long defaultTimeout);
+    void enter(final long defaultTimeout);
 
     /**
+     * Call this method when ending doing work that is subject to timeouts.
+     *
      * @return {@code true} if the timeout occurred.
+     * @see #enter(long)
      */
     boolean exit();
 
     /**
-     * Surrounds {@code block} with calls to {@link #enter} and {@link #exit}, throwing a
+     * Surrounds {@code block} with calls to {@link #enter(long)} and {@link #exit()}, throwing a
      * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a timeout occurred. You must provide a
      * {@code cancelToken} obtained by calling {@link CancelToken#getCancelToken()}.
      */

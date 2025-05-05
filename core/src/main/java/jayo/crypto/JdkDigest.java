@@ -26,7 +26,7 @@ public enum JdkDigest implements Digest {
      * <p>
      * SHA-1 has been vulnerable to collisions since 2017. <b>It should not be used in new code.</b>
      * <p>
-     * Consider upgrading from SHA-1 to SHA-256 ! This hash is offered because it is popular and convenient for use in
+     * Consider upgrading from SHA-1 to SHA-256! This hash is offered because it is popular and convenient for use in
      * legacy systems that are not security-sensitive.
      */
     SHA_1("SHA-1"),
@@ -52,12 +52,12 @@ public enum JdkDigest implements Digest {
     SHA_512("SHA-512"),
 
     /**
-     * 224-bit SHA-512/224 hash algorithm, a truncated variant of SHA-512.
+     * 224-bit SHA-512/224 hash algorithm, a truncated variant of {@link #SHA_512}.
      */
     SHA_512_224("SHA-512/224"),
 
     /**
-     * 256-bit SHA-512/256 hash algorithm, a truncated variant of SHA-512.
+     * 256-bit SHA-512/256 hash algorithm, a truncated variant of {@link #SHA_512}.
      */
     SHA_512_256("SHA-512/256"),
 

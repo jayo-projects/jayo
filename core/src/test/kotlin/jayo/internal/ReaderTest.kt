@@ -555,7 +555,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         data.write("Hello")
         data.write("e".repeat(Segment.SIZE))
 
-        val expected = data.copy().readByteArray()
+        val expected = data.clone().readByteArray()
         writer.write(data, data.bytesAvailable())
         writer.emit()
 

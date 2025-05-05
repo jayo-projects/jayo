@@ -37,21 +37,6 @@ import java.util.function.Supplier;
 
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
-/**
- * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to implement
- * timeouts where they aren't supported natively, such as to sockets or channels that are blocked on writing.
- * <p>
- * Subclasses should provide {@link #onTimeout} to take action when a timeout occurs. This method will be invoked by
- * the shared watchdog thread, so it should not do any long-running operations. Otherwise, we risk starving other
- * timeouts from being triggered.
- * <p>
- * Use {@link #writer(RawWriter)} and {@link #reader(RawReader)} to apply this timeout to a stream. The returned value
- * will apply the timeout to each operation on the wrapped stream.
- * <p>
- * Callers should call {@link #enter(CancelToken, long)} before doing work that is subject to timeouts, and
- * {@link #exit()} afterward. The return value of {@link #exit()} indicates whether a timeout was triggered. Note that
- * the call to {@link #onTimeout} is asynchronous, and may be called after {@link #exit()}.
- */
 public final class RealAsyncTimeout implements AsyncTimeout {
     /**
      * Don't write more than 4 full segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer
@@ -146,11 +131,12 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public void enter(final @Nullable CancelToken cancelToken, final long defaultTimeout) {
+    public void enter(final long defaultTimeout) {
         if (defaultTimeout < 0L) {
             throw new IllegalArgumentException("defaultTimeout < 0: " + defaultTimeout);
         }
 
+        final var cancelToken = CancellableUtils.getCancelToken();
         // A timeout is already defined, use it
         if (cancelToken != null) {
             enter(cancelToken);
@@ -169,13 +155,10 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         enter(tmpCancelToken);
     }
 
-    private void enter(final @NonNull CancelToken cancelToken) {
-        if (!(Objects.requireNonNull(cancelToken) instanceof RealCancelToken _cancelToken)) {
-            throw new IllegalArgumentException("cancelToken must be an instance of CancelToken");
-        }
+    private void enter(final @NonNull RealCancelToken cancelToken) {
         // CancelToken is finished, shielded, or there is no timeout and no deadline: don't bother with the queue.
-        if (_cancelToken.finished || _cancelToken.shielded ||
-                (_cancelToken.deadlineNanoTime == 0L && _cancelToken.timeoutNanos == 0L)) {
+        if (cancelToken.finished || cancelToken.shielded ||
+                (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
             return;
         }
 
@@ -185,7 +168,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 throw new IllegalStateException("Unbalanced enter/exit");
             }
             state = STATE_IN_QUEUE;
-            insertIntoQueue(this, _cancelToken.timeoutNanos, _cancelToken.deadlineNanoTime);
+            insertIntoQueue(this, cancelToken.timeoutNanos, cancelToken.deadlineNanoTime);
         } finally {
             LOCK.unlock();
         }
@@ -405,7 +388,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         }
 
         var throwOnTimeout = false;
-        enter(cancelToken);
+        enter(_cancelToken);
         try {
             final var result = block.get();
             throwOnTimeout = true;
@@ -452,7 +435,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      * null if the queue is empty. The head is null until the watchdog thread is started and also after being idle for
      * {@link #IDLE_TIMEOUT_MILLIS}.
      */
-    private static @Nullable RealAsyncTimeout head = null;
+    private static @Nullable RealAsyncTimeout HEAD = null;
 
     private static final ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
             JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#", false);
@@ -464,8 +447,8 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         assert timeoutNanos >= 0L || deadlineNanoTime >= 0L;
 
         // Start the watchdog thread and create the head node when the first timeout is scheduled.
-        if (head == null) {
-            head = new RealAsyncTimeout(() -> {
+        if (HEAD == null) {
+            HEAD = new RealAsyncTimeout(() -> {
             });
             ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(new Watchdog()).start();
         }
@@ -479,13 +462,13 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
         // Insert the node in sorted order.
         final var remainingNanos = node.remainingNanos(now);
-        var prev = head;
+        var prev = HEAD;
         // Insert the node in sorted order.
         while (true) {
             if (prev.next == null || remainingNanos < prev.next.remainingNanos(now)) {
                 node.next = prev.next;
                 prev.next = node;
-                if (prev == head) {
+                if (prev == HEAD) {
                     // Wake up the watchdog when inserting at the front.
                     CONDITION.signal();
                 }
@@ -500,7 +483,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      */
     private static void removeFromQueue(final @NonNull RealAsyncTimeout node) {
         // Remove the node from the linked list.
-        var prev = head;
+        var prev = HEAD;
         while (prev != null) {
             if (prev.next == node) {
                 prev.next = node.next;
@@ -515,21 +498,21 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
     /**
      * Removes and returns the node at the head of the list, waiting for it to time out if necessary. This returns
-     * {@link #head} if there was no node at the head of the list when starting, and there continues to be no node after
+     * {@link #HEAD} if there was no node at the head of the list when starting, and there continues to be no node after
      * waiting {@link #IDLE_TIMEOUT_NANOS}. It returns null if a new node was inserted while waiting. Otherwise, this
      * returns the node being waited on that has been removed.
      */
     private static @Nullable RealAsyncTimeout awaitTimeout() throws InterruptedException {
-        assert head != null;
+        assert HEAD != null;
         // Get the next eligible node.
-        final var node = head.next;
+        final var node = HEAD.next;
 
         // The queue is empty. Wait until either something is enqueued or the idle timeout elapses.
         if (node == null) {
             final var startNanos = System.nanoTime();
             final var ignored = CONDITION.await(IDLE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-            return (head.next == null && System.nanoTime() - startNanos >= IDLE_TIMEOUT_NANOS)
-                    ? head // The idle timeout elapsed.
+            return (HEAD.next == null && System.nanoTime() - startNanos >= IDLE_TIMEOUT_NANOS)
+                    ? HEAD // The idle timeout elapsed.
                     : null; // The situation has changed.
         }
 
@@ -542,7 +525,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         }
 
         // The head of the queue has timed out. Remove it.
-        head.next = node.next;
+        HEAD.next = node.next;
         node.next = null;
         node.state = STATE_TIMED_OUT;
         return node;
@@ -560,8 +543,8 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
                         // The queue is completely empty. Let this thread exit and let another watchdog thread be
                         // created on the next call to scheduleTimeout().
-                        if (timedOut == head) {
-                            head = null;
+                        if (timedOut == HEAD) {
+                            HEAD = null;
                             return;
                         }
                     } finally {

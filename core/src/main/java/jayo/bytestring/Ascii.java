@@ -55,7 +55,8 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii, Segm
 
     /**
      * @param data a byte buffer from which we will copy the remaining bytes.
-     * @return a new ASCII byte string containing a copy of the remaining ASCII bytes of {@code data}.
+     * @return a new ASCII byte string containing a copy of the {@linkplain ByteBuffer#remaining() remaining} ASCII
+     * bytes of {@code data}.
      */
     static @NonNull Ascii of(final @NonNull ByteBuffer data) {
         Objects.requireNonNull(data);
@@ -73,7 +74,7 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii, Segm
     }
 
     /**
-     * Reads {@code byteCount} ASCII bytes from {@code in} and wraps them into an ASCII byte string.
+     * Reads {@code byteCount} ASCII bytes from {@code in} stream and wraps them into an ASCII byte string.
      *
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
@@ -93,8 +94,8 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii, Segm
 
     /**
      * @return an ASCII byte string equal to this ASCII byte string, but with the bytes 'A' through 'Z' replaced with
-     * the corresponding byte in 'a' through 'z'. Returns this ASCII byte string if it contains no bytes in 'A' through
-     * 'Z'.
+     * the corresponding byte in 'a' through 'z'. Returns this ASCII byte string if it contains no bytes in the 'A'
+     * through 'Z' range.
      */
     @Override
     @NonNull
@@ -102,16 +103,16 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii, Segm
 
     /**
      * @return an ASCII byte string equal to this ASCII byte string, but with the bytes 'a' through 'z' replaced with
-     * the corresponding byte in 'A' through 'Z'. Returns this ASCII byte string if it contains no bytes in 'a' through
-     * 'z'.
+     * the corresponding byte in 'A' through 'Z'. Returns this ASCII byte string if it contains no bytes in the 'a'
+     * through 'z' range.
      */
     @Override
     @NonNull
     Ascii toAsciiUppercase();
 
     /**
-     * Returns an ASCII byte string that is a subsequence of the bytes of this ASCII byte string. The substring begins
-     * with the byte at {@code startIndex} and extends to the end of this byte string.
+     * Returns an ASCII byte string that is a subsequence of this ASCII byte string. The substring begins with the byte
+     * at {@code startIndex} and extends to the end of this byte string.
      *
      * @param startIndex the start index (inclusive) of a subsequence to copy.
      * @return the specified substring. If {@code startIndex} is 0, this byte string is returned.
@@ -122,8 +123,8 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii, Segm
     Ascii substring(final int startIndex);
 
     /**
-     * Returns an ASCII byte string that is a subsequence of the bytes of this ASCII byte string. The substring begins
-     * with the byte at {@code startIndex} and ends at {@code endIndex}.
+     * Returns an ASCII byte string that is a subsequence of this ASCII byte string. The substring begins with the byte
+     * at {@code startIndex} and ends at {@code endIndex}.
      *
      * @param startIndex the start index (inclusive) of a subsequence to copy.
      * @param endIndex   the end index (exclusive) of a subsequence to copy.
@@ -146,6 +147,6 @@ public sealed interface Ascii extends Utf8, CharSequence permits RealAscii, Segm
 
     @Override
     default @NonNull IntStream chars() {
-        return codePoints();
+        return codePoints(); // in ASCII encoding, chars are the same as code points (no surrogates).
     }
 }

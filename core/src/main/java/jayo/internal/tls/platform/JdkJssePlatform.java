@@ -22,7 +22,6 @@
 package jayo.internal.tls.platform;
 
 import jayo.tls.JssePlatform;
-import jayo.tls.Protocol;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -34,7 +33,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -49,7 +47,7 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
         try {
             return SSLContext.getInstance("TLS");
         } catch (NoSuchAlgorithmException e) {
-            // The system has no TLS. Just give up.
+            // The system has no TLS. Give up.
             throw new AssertionError("'TLS' is not supported: " + e.getMessage(), e);
         }
     }
@@ -80,8 +78,8 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
 
         try {
             final var protocol = sslEngine.getApplicationProtocol();
-            // SSLEngine.getApplicationProtocol() returns "" if application protocols values will not be used. Observed
-            // if you didn't specify SSLParameters.setApplicationProtocols
+            // SSLEngine.getApplicationProtocol() returns "" if application protocols values are not used. Observed if
+            // you didn't specify SSLParameters.setApplicationProtocols
             if (protocol == null || protocol.isEmpty()) {
                 return null;
             }
@@ -90,15 +88,6 @@ public sealed class JdkJssePlatform implements JssePlatform permits BouncyCastle
             // https://docs.oracle.com/en/java/javase/21/docs/api/java.base/javax/net/ssl/SSLEngine.html#getApplicationProtocol()
             return null;
         }
-    }
-
-    public static @NonNull List<String> alpnProtocolNames(final @NonNull List<Protocol> protocols) {
-        assert protocols != null;
-
-        return protocols.stream()
-                .filter(p -> !Protocol.HTTP_1_0.equals(p))
-                .map(Object::toString)
-                .toList();
     }
 
     @Override

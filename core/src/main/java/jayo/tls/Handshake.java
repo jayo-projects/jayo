@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A record of a TLS handshake.
+ * A record of a TLS handshake on a secured connection.
  * <ul>
  *     <li>For HTTPS clients, the client is <b>local</b> and the remote server is its <b>peer</b>.
  *     <li>For HTTPS servers, the server is <b>local</b> and the remote client is its <b>peer</b>.
@@ -70,31 +70,31 @@ public sealed interface Handshake permits RealHandshake {
     }
 
     /**
-     * @return the protocol used for this connection.
+     * @return the protocol used for this TLS connection.
      */
     @NonNull
     Protocol getProtocol();
 
     /**
-     * @return the TLS version used for this connection.
+     * @return the TLS version used for this TLS connection.
      */
     @NonNull
     TlsVersion getTlsVersion();
 
     /**
-     * @return the cipher suite used for the connection.
+     * @return the cipher suite used for this TLS connection.
      */
     @NonNull
     CipherSuite getCipherSuite();
 
     /**
-     * @return a possibly-empty list of certificates that identify this peer.
+     * @return a possibly empty list of certificates that identify this peer.
      */
     @NonNull
     List<Certificate> getLocalCertificates();
 
     /**
-     * @return a possibly-empty list of certificates that identify the remote peer.
+     * @return a possibly empty list of certificates that identify the remote peer.
      */
     @NonNull
     List<Certificate> getPeerCertificates();

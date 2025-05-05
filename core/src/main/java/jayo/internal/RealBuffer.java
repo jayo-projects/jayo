@@ -1326,7 +1326,7 @@ public final class RealBuffer implements Buffer {
                         data[limit++] = (byte) (c & 0x3f | 0x80); // 10xxxxxx
                         i.value++;
                     } else {
-                        // c is a surrogate. Mac successor is a low surrogate. If not, the UTF-16 is invalid, in which
+                        // c is a surrogate. Its successor is a low surrogate. If not, the UTF-16 is invalid, in which
                         // case we emit a replacement character.
                         final int low = (i.value + 1 < endIndex) ? charSequence.charAt(i.value + 1) : 0;
                         if (c > 0xdbff || low < 0xdc00 || low > 0xdfff) {
@@ -2243,8 +2243,9 @@ public final class RealBuffer implements Buffer {
         return "Buffer(size=" + currentSize + " hex=" + builder + ")";
     }
 
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
-    public @NonNull Buffer copy() {
+    public @NonNull Buffer clone() {
         final var out = new RealBuffer();
         if (segmentQueue.size() == 0L) {
             return out;
@@ -2257,12 +2258,6 @@ public final class RealBuffer implements Buffer {
             out.segmentQueue.incrementSize(segmentCopy.limit - segmentCopy.pos);
         });
         return out;
-    }
-
-    @SuppressWarnings("MethodDoesntCallSuperMethod")
-    @Override
-    public @NonNull Buffer clone() {
-        return copy();
     }
 
     @Override

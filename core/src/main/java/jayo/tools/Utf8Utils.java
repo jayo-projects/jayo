@@ -32,7 +32,7 @@ import org.jspecify.annotations.NonNull;
 import java.util.Objects;
 
 /**
- * Jayo assumes most applications use UTF-8 exclusively, and offers optimized implementations of common operations on
+ * Jayo assumes most applications use UTF-8 exclusively and offers optimized implementations of common operations on
  * UTF-8 strings.
  * <table border="1">
  * <tr>

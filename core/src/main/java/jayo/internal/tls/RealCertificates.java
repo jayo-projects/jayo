@@ -27,7 +27,6 @@ import org.jspecify.annotations.NonNull;
 
 import java.security.cert.Certificate;
 import java.security.cert.*;
-import java.util.Objects;
 
 public final class RealCertificates {
     // un-instantiable
@@ -35,7 +34,7 @@ public final class RealCertificates {
     }
 
     public static @NonNull X509Certificate decodeCertificatePem(final @NonNull String certificatePem) {
-        Objects.requireNonNull(certificatePem);
+        assert certificatePem != null;
 
         try {
             final var certificateFactory = CertificateFactory.getInstance("X.509");
@@ -49,7 +48,7 @@ public final class RealCertificates {
     }
 
     public static @NonNull String certificatePem(final @NonNull X509Certificate certificate) {
-        Objects.requireNonNull(certificate);
+        assert certificate != null;
 
         final var certificatePemSb = new StringBuilder();
         certificatePemSb.append("-----BEGIN CERTIFICATE-----\n");
@@ -64,6 +63,9 @@ public final class RealCertificates {
     }
 
     static void encodeBase64Lines(final @NonNull StringBuilder sb, final @NonNull ByteString data) {
+        assert sb != null;
+        assert data != null;
+
         final var base64 = data.base64();
         for (var i = 0; i < base64.length(); i += 64) {
             sb.append(base64, i, Math.min(i + 64, base64.length())).append('\n');
@@ -71,6 +73,8 @@ public final class RealCertificates {
     }
 
     static @NonNull X509Certificate single(final @NonNull Iterable<? extends Certificate> iterable) {
+        assert iterable != null;
+
         final var iterator = iterable.iterator();
         if (!iterator.hasNext()) {
             throw new IllegalArgumentException("failed to decode certificate, certificate collection is empty.");

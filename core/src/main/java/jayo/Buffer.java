@@ -46,38 +46,40 @@ import java.nio.charset.Charset;
  * Internally, the buffer consists of a queue of data segments, and the buffer's capacity grows and shrinks in units of
  * data segments instead of individual bytes. Each data segment stores binary data in a fixed-sized {@code byte[]}.
  * <ul>
- * <li><b>Moving data from one buffer to another is fast.</b> The buffer was designed to reduce memory allocations when
- * possible. Instead of copying bytes from one place in memory to another, this class just changes ownership of the
- * underlying data segments.
+ * <li><b>Moving data from one buffer to another is fast.</b> The {@code Buffer} was designed to reduce memory
+ * allocations when possible. Instead of copying bytes from one place in memory to another, this class just changes
+ * ownership of the underlying data segments.
  * <li><b>This buffer grows with your data.</b> Just like an {@code ArrayList}, each buffer starts small. It consumes
  * only the memory it needs to.
  * <li><b>This buffer pools its byte arrays.</b> When you allocate a byte array in Java, the runtime must zero-fill the
  * requested array before returning it to you. Even if you're going to write over that space anyway. This class avoids
  * zero-fill and GC churn by pooling byte arrays.
+ * <li><b>This buffer supports limited concurrent access.</b> A buffer is a SPSC Single Producer Single Consumer data
+ * structure. In the Jayo world this means that a single thread can write data using all the {@link Writer} methods, and
+ * another single thread can read data using all the {@link Reader} methods concurrently.
  * </ul>
  * Read and write methods on numbers use the big-endian order. If you need little-endian order, use
  * <i>reverseBytes()</i>, for example {@code Short.reverseBytes(buffer.readShort())} and
  * {@code buffer.writeShort(Short.reverseBytes(myShortValue))}. Jayo provides Kotlin extension functions that support
  * little-endian and unsigned numbers.
  * <p>
- * Please read {@link UnsafeCursor} javadoc for a detailed description of how a buffer works.
+ * Please read {@link UnsafeCursor} javadoc for a detailed description of how a {@code Buffer} works.
  *
  * @implNote {@link Buffer} implements both {@link Reader} and {@link Writer} and could be used as a reader or a writer,
  * but unlike regular writers and readers its {@link #close}, {@link #flush}, {@link #emit},
- * {@link #emitCompleteSegments()} does not affect buffer's state and {@link #exhausted} only indicates that a buffer is
- * empty.
+ * {@link #emitCompleteSegments()} are no-op and {@link #exhausted} only indicates that a buffer is empty.
  */
 public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuffer {
     /**
-     * @return a new {@link Buffer}
+     * @return a new {@link Buffer}.
      */
     static @NonNull Buffer create() {
         return new RealBuffer();
     }
 
     /**
-     * @return the current number of bytes that can be read (or skipped over) from this buffer, which may be 0. Ongoing
-     * or future write operations may increase the number of available bytes.
+     * @return the current number of bytes that can be read (or skipped over) immediately from this buffer, which may be
+     * 0. Ongoing or future write operations may increase the number of available bytes.
      */
     @Override
     long bytesAvailable();
@@ -112,8 +114,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     Buffer copyTo(final @NonNull OutputStream out);
 
     /**
-     * Copy {@code (getSize() - offset)} bytes from this buffer, starting at {@code offset}, to {@code out} stream. This
-     * method does not consume data from this buffer.
+     * Copy {@code (bytesAvailable() - offset)} bytes from this buffer, starting at {@code offset}, to {@code out}
+     * stream. This method does not consume data from this buffer.
      *
      * @param out    the stream to copy data into.
      * @param offset the start offset (inclusive) in this buffer of the first byte to copy.
@@ -137,7 +139,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @NonNull
     Buffer copyTo(final @NonNull OutputStream out,
-                  final long offset, final long byteCount);
+                  final long offset,
+                  final long byteCount);
 
     /**
      * Copy all bytes from this buffer to {@code out} buffer. This method does not consume data from this buffer.
@@ -149,8 +152,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     Buffer copyTo(final @NonNull Buffer out);
 
     /**
-     * Copy {@code (getSize() - offset)} bytes from this buffer, starting at {@code offset}, to {@code out} buffer. This
-     * method does not consume data from this buffer.
+     * Copy {@code (bytesAvailable() - offset)} bytes from this buffer, starting at {@code offset}, to {@code out}
+     * buffer. This method does not consume data from this buffer.
      *
      * @param out    the destination buffer to copy data into.
      * @param offset the start offset (inclusive) in this buffer of the first byte to copy.
@@ -174,7 +177,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @NonNull
     Buffer copyTo(final @NonNull Buffer out,
-                  final long offset, final long byteCount);
+                  final long offset,
+                  final long byteCount);
 
     /**
      * Consumes all bytes from this buffer and writes them to {@code out} stream.
@@ -238,8 +242,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     /**
      * Discards all bytes in this buffer.
      * <p>
-     * Call to this method is equivalent to {@link #skip(long)} with {@code byteCount = buffer.bytesAvailable()}, call
-     * this method when you're done with a buffer, its segments will return to the pool.
+     * Calling this method is equivalent to {@code buffer.skip(buffer.bytesAvailable());}. Call this method when you're
+     * done with a buffer, its segments will return to the pool to be reused.
      */
     void clear();
 
@@ -358,7 +362,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key);
 
     /**
-     * Returns a new byte channel that read from and writes to this buffer.
+     * Returns a new {@link ByteChannel} that read from and writes to this buffer.
      */
     @NonNull
     ByteChannel asByteChannel();
@@ -367,19 +371,13 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @return a deep copy of this buffer.
      */
     @NonNull
-    Buffer copy();
-
-    /**
-     * @return a deep copy of this buffer. This is the same as {@link #copy()}
-     */
-    @NonNull
     Buffer clone();
 
     /**
-     * @return a human-readable string that describes the contents of this buffer. For buffers containing
-     * few bytes, this is a string like {@code Buffer(size=4 hex=0000ffff)}. However, if the buffer is too large,
-     * a string will contain its size and only a prefix of data, like {@code Buffer(size=1024 hex=01234…)}.
-     * Thus, the returned string of this method cannot be used to compare buffers or verify buffer's content.
+     * @return a human-readable string that describes the contents of this buffer. For buffers containing few bytes,
+     * this is a string like {@code Buffer(size=4 hex=0000ffff)}. However, if the buffer is too large, a string will
+     * contain its size and only a prefix of data, like {@code Buffer(size=1024 hex=01234…)}.
+     * Thus, the returned string of this method cannot be used to compare buffers or verify the buffer's content.
      */
     @Override
     @NonNull
@@ -404,7 +402,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
 
     /**
      * @return an unsafe cursor to only read this buffer's data. Always call {@link UnsafeCursor#close} when done with
-     * the cursor. This is convenient with Java try-with-resource and Kotlin's {@code use} extension function.
+     * the cursor. This is convenient with Java try-with-resource and Kotlin's {@code use} function.
      * @apiNote {@link UnsafeCursor} exposes privileged access to the internal memory segments of a buffer. This handle
      * is unsafe because it does not enforce its own invariants. Instead, it assumes a careful user who has studied
      * Jayo's implementation details and their consequences.
@@ -459,18 +457,18 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <li><b>Fast Resize:</b> A buffer's capacity can change without copying its contents.
      * <li><b>Fast Move:</b> Memory ownership can be reassigned from one buffer to another.
      * <li><b>Fast Copy:</b> Multiple buffers can share the same underlying memory.
-     * <li><b>Fast Encoding and Decoding:</b> Common operations like UTF-8 encoding and decimal decoding do not require
-     * intermediate objects to be allocated.
-     * <li><b>Concurrency:</b> A buffer is a SPSC Single Producer Single Consumer lock-free data structure. In the Jayo
-     * world this means that a thread can write data using all the {@link Writer} methods, and another thread can read
-     * data using all the {@link Reader} methods concurrently.
+     * <li><b>Fast Encoding and Decoding:</b> Common operations like UTF-8 / ISO-8859-1 encoding and decimal decoding do
+     * not require intermediate objects to be allocated.
+     * <li><b>Concurrency:</b> A buffer is a SPSC Single Producer Single Consumer data structure. In the Jayo world this
+     * means that a single thread can write data using all the {@link Writer} methods, and another single thread can
+     * read data using all the {@link Reader} methods concurrently.
      * </ul>
-     * These optimizations all leverage the way Jayo stores data internally. Jayo buffers are implemented using a
-     * singly linked queue of segments. Each segment holds a {@code bye[]} of 16_709 bytes. Each segment has two
-     * indexes: {@code pos}, the offset of the first byte of the first byte of the array containing application data,
-     * and {@code limit}, the offset of the first byte beyond {@code pos} whose data is undefined.
+     * These optimizations all leverage the way Jayo stores data internally. Jayo buffers are implemented using a singly
+     * linked queue of segments. Each segment holds a {@code bye[]} of 16_709 bytes. Each segment has two indexes:
+     * {@code pos}, the offset of the first byte in the array containing application data, and {@code limit}, the offset
+     * of the first byte beyond {@code pos} whose data is undefined.
      * <p>
-     * New buffers are empty and have no segments:
+     * New buffers are created empty and have no segments:
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create();
@@ -488,21 +486,21 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * }
      * </pre>
      * When we read 4 bytes of data from the buffer, it finds its first segment and returns that data to us. As bytes
-     * are read, the data is consumed. The segment tracks this by adjusting its internal indices.
+     * are read, the data is consumed. The segment tracks this by adjusting its internal indexes.
      * <pre>
      * {@code
-     * buffer.readUtf8(4); // "seal"
+     * buffer.readString(4); // "unic"
      *
      * // [ 'u', 'n', 'i', 'c', 'o', 'r', 'n', '?', '?', '?', ...]
      * //                        ^              ^
      * //                     pos = 4      limit = 7
      * }
      * </pre>
-     * As we write data into a buffer we fill up its internal segments. When a write operation doesn't fit into a
-     * buffer's last segment, an additional segment is obtained from the internal segment pool and appended to the queue
-     * so the write operation continues in this new segment. The segment pool may return a segment from the pool if one
-     * is available, or allocate a brand-new segment with its fresh new byte array. Each segment has its own pos and
-     * limit indexes tracking where the user's data begins and ends.
+     * As we write data into a buffer, we fill up its internal segments. When a write operation doesn't fit into a
+     * buffer's last segment, an additional segment is obtained from the internal segment pool and appended to the
+     * queue, so the write operation continues in this new segment. The segment pool may return an existing segment from
+     * the pool if one is available or allocate a brand-new segment with its fresh new byte array. Each segment has its
+     * own {@code pos} and {@code limit} indexes tracking where the user's data begins and ends.
      * Let's illustrate that with a Kotlin sample
      * <pre>
      * {@code
@@ -518,13 +516,13 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * // pos = 0                               limit = 3_291
      * }
      * </pre>
-     * The pos index is always <b>inclusive</b> and the limit index is always <b>exclusive</b>. The data preceding the
-     * pos index is undefined, and the data at and following the limit index is undefined.
+     * The {@code pos} index is always <b>inclusive</b> and the {@code limit} index is always <b>exclusive</b>. The data
+     * preceding the {@code pos} index is undefined, and the data at and following the {@code limit} index is undefined.
      * <p>
      * After the last byte of a segment has been read, that segment may be returned to the segment pool. In addition to
      * reducing the need to do garbage collection, segment pooling also saves the JVM from needing to zero-fill byte
      * arrays. Jayo doesn't need to zero-fill its arrays because it always writes memory before it reads it. But if you
-     * look at a segment in a debugger you may see its effects. In the example below, let's assume that one of the
+     * look at a segment in a debugger, you may see its effects. In the example below, let's assume that one of the
      * "xoxo" segments above is reused in an unrelated buffer:
      * <pre>
      * {@code
@@ -536,18 +534,18 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * // pos = 0     limit = 3
      * }
      * </pre>
-     * There is an optimization in {@link Buffer#copy()} and other methods that allows two segments to share a slice of
-     * the same underlying byte array. Clones can't write to the shared byte array; instead they allocate a new
+     * There is an optimization in {@link Buffer#clone()} and other methods that allows two segments to share a slice of
+     * the same underlying byte array. Clones can't write to the shared byte array; instead, they allocate a new
      * (private) segment early.
      * <pre>
      * {@code
      * val nana = Buffer()
      * nana.write("na".repeat(2_500))
-     * nana.readUtf8(2) // reads "na"
+     * nana.readString(2) // reads "na"
      *
      * // [ 'n', 'a', 'n', 'a', ..., 'n', 'a', 'n', 'a', '?', '?', '?', ...]
      * //              ^                                  ^
-     * //           pos = 2                         limit = 5000
+     * //           pos = 2                         limit = 5_000
      *
      * nana2 = nana.clone()
      * nana2.write("batman")
@@ -556,14 +554,16 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * //                                 ↓
      * // [ 'n', 'a', 'n', 'a', ..., 'n', 'a', 'n', 'a', '?', '?', '?', ...]
      * //              ^                                  ^
-     * //           pos = 2                         limit = 5000
+     * //           pos = 2                         limit = 5_000
      * //
+     * // nana2 buffer also has a second segment that contain its own byte[] written after the initial clone
+     * //                                 ↓
      * // [ 'b', 'a', 't', 'm', 'a', 'n', '?', '?', '?', ...]
      * //    ^                             ^
      * //  pos = 0                    limit = 6
      * }
      * </pre>
-     * Segments are not shared when the shared region is small (i.e. less than 1 KiB). This is intended to prevent
+     * Segments are not shared when the shared region is small (i.e., less than 1 KiB). This is intended to prevent
      * fragmentation in sharing-heavy use cases.
      *
      * <h2>Unsafe Cursor API</h2>
@@ -581,8 +581,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * <p>
      * Use {@link Buffer#readUnsafe()} to create a cursor to read buffer data and {@link Buffer#readAndWriteUnsafe()} to
      * create a cursor to read and write buffer data. In either case, always call {@link UnsafeCursor#close()} when done
-     * with a cursor. This is convenient with Java try-with-resource and Kotlin's {@code use} extension function. In
-     * this Kotlin example we read all the bytes in a buffer into a byte array:
+     * with a cursor. This is convenient with Java try-with-resource and Kotlin's {@code use} function.
+     * In this Kotlin example we read all the bytes in a buffer into a byte array:
      * <pre>
      * {@code
      * val bufferBytes = ByteArray(buffer.size.toInt())
@@ -599,7 +599,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * read+write cursors. The buffer's size always changes from the end: shrinking it removes bytes from the end;
      * growing it adds capacity to the end.
      * <h2>Warnings</h2>
-     * Most application developers should avoid this API. Those that must use this API should respect these warnings.
+     * Most application developers should avoid this API! Those that must use this API should respect these warnings.
      * <ul>
      * <li><b>Don't mutate a cursor.</b> This class has public, non-final fields because that is convenient for
      * low-level I/O frameworks. Never assign values to these fields; instead use the cursor API to adjust these.
@@ -610,7 +610,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * private or sensitive data from other parts of your process.
      * <li><b>Always fill the new capacity when you grow a buffer.</b> New capacity is not zero-filled and may contain
      * data from other parts of your process. Avoid leaking this information by always writing something to the
-     * newly-allocated capacity. Do not assume that new capacity will be filled with {@code 0}; it will not be.
+     * newly allocated capacity. Do not assume that new capacity will be filled with {@code 0}; it will not be.
      * <li><b>Do not access a buffer while it is being accessed by a cursor.</b> Even simple read-only operations like
      * {@link Buffer#clone()} are unsafe because they mark segments as shared.
      * <li><b>Do not hard-code the segment size in your application.</b> It is possible that segment sizes will change
@@ -619,8 +619,8 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * These warnings are intended to help you to use this API safely. It's here for developers that need absolutely the
      * most throughput.
      * <p>
-     * Since that's you, here's one final performance tip. You can reuse instances of this class if you like. Use the
-     * overloads of {@link Buffer#readUnsafe(UnsafeCursor)} and {@link Buffer#readAndWriteUnsafe(UnsafeCursor)} that
+     * Note: Since that's you, here's one final performance tip. You can reuse instances of this class if you like. Use
+     * the overloads of {@link Buffer#readUnsafe(UnsafeCursor)} and {@link Buffer#readAndWriteUnsafe(UnsafeCursor)} that
      * take a cursor parameter and close it after use.
      */
     sealed abstract class UnsafeCursor implements AutoCloseable permits RealBuffer.RealUnsafeCursor {
@@ -641,15 +641,16 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
         /**
          * Seeks to the next range of bytes, advancing the offset by {@code limit - pos}.
          *
-         * @return the size of the readable range (at least 1), or -1 if we have reached the end of the buffer and there
-         * are no more bytes to read.
+         * @return the size of the readable range (at least 1), or {@code -1} if we have reached the end of the buffer
+         * and there are no more bytes to read.
          */
         public abstract int next();
 
         /**
          * Reposition the cursor so that the data at {@code offset} is readable at {@code data.get(pos)}.
          *
-         * @return the number of bytes readable in {@link #data} (at least 1), or -1 if there are no data to read.
+         * @return the number of bytes readable in {@link #data} (at least 1), or {@code -1} if there are no data to
+         * read.
          */
         public abstract int seek(final long offset);
 
@@ -657,15 +658,16 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
          * Change the size of the buffer so that it equals {@code newSize} by either adding new capacity at the end or
          * truncating the buffer at the end. Newly added capacity may span multiple segments.
          * <p>
-         * As a side effect this cursor will {@link #seek(long)}. If the buffer is being enlarged it will move
-         * {@link #offset} to the first byte of newly-added capacity. This is the size of the buffer prior to the
-         * {@code resizeBuffer()} call. If the buffer is being shrunk it will move {@link #offset} to the end of the
-         * buffer.
-         * <p>
-         * Warning: it is the caller’s responsibility to write new data to every byte of the newly-allocated capacity.
-         * Failure to do so may cause serious security problems as the data in the returned buffers is not zero filled.
-         * Buffers may contain dirty pooled segments that hold very sensitive data from other parts of the current
-         * process.
+         * As a side effect this cursor will {@link #seek(long)}.
+         * <ul>
+         * <li>If the buffer is being enlarged it will move {@link #offset} to the first byte of newly added capacity.
+         * This is the size of the buffer prior to the {@code resizeBuffer()} call.
+         * <li>If the buffer is being shrunk it will move {@link #offset} to the end of the buffer.
+         * </ul>
+         * <b>Warning:</b> it is the caller’s responsibility to write new data to every byte of the newly allocated
+         * capacity. Failure to do so may cause serious security problems as the data in the returned buffers is not
+         * zero-filled. Buffers may contain dirty pooled segments that hold very sensitive data from other parts of the
+         * current process.
          *
          * @return the previous size of the buffer.
          */
@@ -676,25 +678,25 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
          * {@code minByteCount} bytes but may add up to a full segment of additional capacity.
          * <p>
          * As a side effect this cursor will {@link #seek(long)}. It will move {@link #offset} to the first byte of
-         * newly-added capacity. This is the size of the buffer prior to the {@code expandBuffer()} call.
+         * newly added capacity. This is the size of the buffer prior to the {@code expandBuffer()} call.
          * <p>
          * If {@code minByteCount} bytes are available in the buffer's current tail segment that will be used; otherwise
-         * another segment will be allocated and appended. In either case this returns the number of bytes of capacity
-         * added to this buffer.
+         * another segment will be allocated and appended. In either case this returns the number of bytes added to this
+         * buffer.
          * <p>
-         * Warning: it is the caller’s responsibility to either write new data to every byte of the newly-allocated
-         * capacity, or to {@linkplain UnsafeCursor#resizeBuffer shrink} the buffer to the data written. Failure to do
-         * so may cause serious security problems as the data in the returned buffers is not zero filled. Buffers may
-         * contain dirty pooled segments that hold very sensitive data from other parts of the current process.
+         * Warning: it is the caller’s responsibility to either write new data to every byte of the newly allocated
+         * capacity, or to {@linkplain UnsafeCursor#resizeBuffer(long) shrink} the buffer to the data written. Failure
+         * to do so may cause serious security problems as the data in the returned buffers is not zero-filled. Buffers
+         * may contain dirty pooled segments that hold very sensitive data from other parts of the current process.
          *
          * @param minByteCount the size of the contiguous capacity. Must be positive and not greater than the capacity
-         *                     size of a single segment (8 KiB).
+         *                     size of a single segment (16_709 bytes as of now).
          * @return the number of bytes expanded by. Not less than {@code minByteCount}.
          */
         public abstract long expandBuffer(final int minByteCount);
 
         /**
-         * Reset this UnsafeCursor
+         * Reset this UnsafeCursor.
          */
         @Override
         public abstract void close();
