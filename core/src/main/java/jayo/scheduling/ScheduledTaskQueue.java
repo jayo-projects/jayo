@@ -27,7 +27,8 @@ import org.jspecify.annotations.NonNull;
 import java.util.function.LongSupplier;
 
 /**
- * A {@link TaskQueue} with an additional method to schedule a task, it may have an initial delay and run several times.
+ * A {@link TaskQueue} with an additional method to {@linkplain #schedule(String, long, LongSupplier) schedule} a task,
+ * it may have an initial delay and run several times.
  */
 public sealed interface ScheduledTaskQueue extends TaskQueue permits RealTaskQueue.ScheduledQueue {
     /**

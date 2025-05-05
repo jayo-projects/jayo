@@ -25,6 +25,7 @@ import jayo.internal.tls.RealCertificates;
 import org.jspecify.annotations.NonNull;
 
 import java.security.cert.X509Certificate;
+import java.util.Objects;
 
 public final class CertificateUtils {
     // un-instantiable
@@ -50,6 +51,7 @@ public final class CertificateUtils {
      * </pre>
      */
     public static @NonNull X509Certificate decodeCertificatePem(final @NonNull String certificatePem) {
+        Objects.requireNonNull(certificatePem);
         return RealCertificates.decodeCertificatePem(certificatePem);
     }
 
@@ -57,6 +59,7 @@ public final class CertificateUtils {
      * @return the certificate encoded in <a href="https://tools.ietf.org/html/rfc7468">PEM format</a>.
      */
     public static @NonNull String certificatePem(final @NonNull X509Certificate certificate) {
+        Objects.requireNonNull(certificate);
         return RealCertificates.certificatePem(certificate);
     }
 }

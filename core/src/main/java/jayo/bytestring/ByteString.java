@@ -42,6 +42,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 import static jayo.internal.Base64Utils.decodeBase64ToArray;
 
@@ -55,9 +56,9 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * ByteString is a good fit for untyped binary data that could not be represented as {@link String}, like hashes,
  * payload of network packets, encrypted data, etc.
  * <p>
- * <b>Immutability is guaranteed:</b> ByteString copies data on creation as well as on conversion back to {@code byte[]}
- * , thus guaranteeing that subsequent modification of source data or data returned from {@link #toByteArray()} won't
- * mutate the byte string itself.
+ * <b>Immutability is guaranteed:</b> ByteString copies data on creation as well as on conversion back to
+ * {@code byte[]}, thus guaranteeing that later modification of source data or data returned from {@link #toByteArray()}
+ * won't mutate the byte string itself.
  *
  * @see Utf8
  * @see Ascii
@@ -65,7 +66,7 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
         permits BaseByteString, RealByteString, SegmentedByteString, Utf8 {
     /**
-     * The empty byte string
+     * The empty byte string.
      */
     @NonNull
     ByteString EMPTY = new RealByteString(new byte[0]);
@@ -83,20 +84,22 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @param byteCount the number of bytes to copy.
      * @return a new byte string containing a copy of {@code byteCount} bytes of {@code data} starting at
      * {@code offset}.
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
-     *                                   {@code data} indices.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code data} indices.
      */
     static @NonNull ByteString of(final byte @NonNull [] data,
                                   final int offset,
                                   final int byteCount) {
+        Objects.requireNonNull(data);
         return new RealByteString(data, offset, byteCount);
     }
 
     /**
      * @param data a byte buffer from which we will copy the remaining bytes.
-     * @return a new byte string containing a copy of the remaining bytes of {@code data}.
+     * @return a new byte string containing a copy of the {@linkplain ByteBuffer#remaining() remaining} bytes of
+     * {@code data}.
      */
     static @NonNull ByteString of(final @NonNull ByteBuffer data) {
+        Objects.requireNonNull(data);
         final var copy = new byte[data.remaining()];
         data.get(copy);
         return new RealByteString(copy);
@@ -106,6 +109,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * Encodes {@code string} using UTF-8 and wraps these bytes into a byte string.
      */
     static @NonNull ByteString encode(final @NonNull String string) {
+        Objects.requireNonNull(string);
         return new RealByteString(string.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -113,6 +117,8 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * Encodes {@code string} using the provided {@code charset} and wraps these bytes into a byte string.
      */
     static @NonNull ByteString encode(final @NonNull String string, final @NonNull Charset charset) {
+        Objects.requireNonNull(string);
+        Objects.requireNonNull(charset);
         return new RealByteString(string.getBytes(charset));
     }
 
@@ -125,6 +131,8 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @param charSequence the char sequence to decode Base64-encoded bytes from.
      */
     static @Nullable ByteString decodeBase64(final @NonNull CharSequence charSequence) {
+        Objects.requireNonNull(charSequence);
+
         final var decoded = decodeBase64ToArray(charSequence);
         return (decoded != null) ? new RealByteString(decoded) : null;
     }
@@ -136,6 +144,8 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @throws IllegalArgumentException if {@code charSequence} is not a valid hexadecimal-encoded char sequence.
      */
     static @NonNull ByteString decodeHex(final @NonNull CharSequence charSequence) {
+        Objects.requireNonNull(charSequence);
+
         if (charSequence.length() % 2 != 0) {
             throw new IllegalArgumentException("Unexpected hexadecimal-encoded char sequence: " + charSequence);
         }
@@ -149,13 +159,26 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
         return new RealByteString(result);
     }
 
+    private static int decodeHexDigit(char c) {
+        if (c >= '0' && c <= '9') {
+            return c - '0';
+        } else if (c >= 'a' && c <= 'f') {
+            return c - 'a' + 10;
+        } else if (c >= 'A' && c <= 'F') {
+            return c - 'A' + 10;
+        } else {
+            throw new IllegalArgumentException("Unexpected hexadecimal-encoded digit: " + c);
+        }
+    }
+
     /**
-     * Reads {@code byteCount} bytes from {@code in} and wraps them into a byte string.
+     * Reads {@code byteCount} bytes from {@code in} stream and wraps them into a byte string.
      *
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
     static @NonNull ByteString read(final @NonNull InputStream in, final int byteCount) {
+        Objects.requireNonNull(in);
         if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
@@ -227,22 +250,24 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key);
 
     /**
-     * @return a byte string equal to this byte string, but with the bytes 'A' through 'Z' replaced with the
-     * corresponding byte in 'a' through 'z'. Returns this byte string if it contains no bytes in 'A' through 'Z'.
+     * @return a byte string equal to this byte string, but with the ASCII bytes 'A' through 'Z' replaced with the
+     * corresponding byte in 'a' through 'z'. Returns this byte string if it contains no bytes in the 'A' through 'Z'
+     * range.
      */
     @NonNull
     ByteString toAsciiLowercase();
 
     /**
-     * @return a byte string equal to this byte string, but with the bytes 'a' through 'z' replaced with the
-     * corresponding byte in 'A' through 'Z'. Returns this byte string if it contains no bytes in 'a' through 'z'.
+     * @return a byte string equal to this byte string, but with the ASCII bytes 'a' through 'z' replaced with the
+     * corresponding byte in 'A' through 'Z'. Returns this byte string if it contains no bytes in the 'a' through 'z'
+     * range.
      */
     @NonNull
     ByteString toAsciiUppercase();
 
     /**
-     * Returns a byte string that is a subsequence of the bytes of this byte string. The substring begins with the byte
-     * at {@code startIndex} and extends to the end of this byte string.
+     * Returns a byte string that is a subsequence of this byte string. The substring begins with the byte at
+     * {@code startIndex} and extends to the end of this byte string.
      *
      * @param startIndex the start index (inclusive) of a subsequence to copy.
      * @return the specified substring. If {@code startIndex} is 0, this byte string is returned.
@@ -252,8 +277,8 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     ByteString substring(final int startIndex);
 
     /**
-     * Returns a byte string that is a subsequence of the bytes of this byte string. The substring begins with the byte
-     * at {@code startIndex} and ends at {@code endIndex}.
+     * Returns a byte string that is a subsequence of this byte string. The substring begins with the byte at
+     * {@code startIndex} and ends at {@code endIndex}.
      *
      * @param startIndex the start index (inclusive) of a subsequence to copy.
      * @param endIndex   the end index (exclusive) of a subsequence to copy.
@@ -295,7 +320,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     ByteBuffer asByteBuffer();
 
     /**
-     * Writes all the bytes of this byte string to {@code out}.
+     * Writes all the bytes of this byte string to {@code out} stream.
      */
     void write(final @NonNull OutputStream out);
 
@@ -333,14 +358,14 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     /**
      * @param prefix the prefix to check for.
      * @return true if this byte string starts with the {@code prefix}.
-     * @implNote Behavior of this method is compatible with {@link String#startsWith(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#startsWith(String)}.
      */
     boolean startsWith(final @NonNull ByteString prefix);
 
     /**
      * @param prefix the prefix to check for.
      * @return true if this byte string starts with the {@code prefix}.
-     * @implNote Behavior of this method is compatible with {@link String#startsWith(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#startsWith(String)}.
      */
     boolean startsWith(final byte @NonNull [] prefix);
 
@@ -354,7 +379,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
     /**
      * @param suffix the suffix to check for.
      * @return true if this byte string ends with the {@code suffix}.
-     * @implNote Behavior of this method is compatible with {@link String#endsWith(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#endsWith(String)}.
      */
     boolean endsWith(final byte @NonNull [] suffix);
 
@@ -362,7 +387,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @param other the sequence of bytes to find within this byte string.
      * @return the index of {@code other} first occurrence in this byte string, or {@code -1} if it doesn't contain
      * {@code other}.
-     * @implNote Behavior of this method is compatible with {@link String#indexOf(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#indexOf(String)}.
      */
     int indexOf(final @NonNull ByteString other);
 
@@ -372,7 +397,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @return the index of {@code other} first occurrence in this byte string at or after {@code startIndex}, or
      * {@code -1} if it doesn't contain {@code other}.
      * @throws IllegalArgumentException if {@code startIndex} is negative.
-     * @implNote Behavior of this method is compatible with {@link String#indexOf(String, int)}.
+     * @implNote the behavior of this method is compatible with {@link String#indexOf(String, int)}.
      */
     int indexOf(final @NonNull ByteString other, final int startIndex);
 
@@ -380,7 +405,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @param other the sequence of bytes to find within this byte string.
      * @return the index of {@code other} first occurrence in this byte string, or {@code -1} if it doesn't contain
      * {@code other}.
-     * @implNote Behavior of this method is compatible with {@link String#indexOf(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#indexOf(String)}.
      */
     int indexOf(final byte @NonNull [] other);
 
@@ -390,7 +415,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @return the index of {@code other} first occurrence in this byte string at or after {@code startIndex}, or
      * {@code -1} if it doesn't contain {@code other}.
      * @throws IllegalArgumentException if {@code startIndex} is negative.
-     * @implNote Behavior of this method is compatible with {@link String#indexOf(String, int)}.
+     * @implNote the behavior of this method is compatible with {@link String#indexOf(String, int)}.
      */
     int indexOf(final byte @NonNull [] other, final int startIndex);
 
@@ -398,7 +423,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @param other the sequence of bytes to find within this byte string.
      * @return the index of {@code other} last occurrence in this byte string, or {@code -1} if it doesn't contain
      * {@code other}.
-     * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#lastIndexOf(String)}.
      */
     int lastIndexOf(final @NonNull ByteString other);
 
@@ -408,7 +433,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @return the index of {@code other} last occurrence in this byte string at or after {@code startIndex}, or
      * {@code -1} if it doesn't contain {@code other}.
      * @throws IllegalArgumentException if {@code startIndex} is negative.
-     * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
+     * @implNote the behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
      */
     int lastIndexOf(final @NonNull ByteString other, final int startIndex);
 
@@ -416,7 +441,7 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @param other the sequence of bytes to find within this byte string.
      * @return the index of {@code other} last occurrence in this byte string, or {@code -1} if it doesn't contain
      * {@code other}.
-     * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#lastIndexOf(String)}.
      */
     int lastIndexOf(final byte @NonNull [] other);
 
@@ -426,33 +451,22 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      * @return the index of {@code other} last occurrence in this byte string at or after {@code startIndex}, or
      * {@code -1} if it doesn't contain {@code other}.
      * @throws IllegalArgumentException if {@code startIndex} is negative.
-     * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
+     * @implNote the behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
      */
     int lastIndexOf(final byte @NonNull [] other, final int startIndex);
 
     /**
-     * @return a string representation of this byte string. A string representation consists of {@code size} and a
-     * hexadecimal-encoded string of the bytes wrapped by this byte string.
+     * @return a string representation of this byte string. A string representation consists of {@code size} followed by
+     * a hexadecimal-encoded string of all the bytes wrapped by this byte string.
      * <p>
-     * The string representation has the following format {@code ByteString(size=3 hex=ABCDEF)}, for empty strings it's
+     * The string representation has the following format {@code ByteString(size=3 hex=ABCDEF)}. For empty strings it's
      * always {@code ByteString(size=0)}.
      * <p>
-     * Note that a string representation includes the whole byte string content encoded. Due to limitations exposed for
-     * the maximum string length, an attempt to return a string representation of a too long byte string may fail.
+     * Note: As this string representation includes the whole byte string content encoded. Due to limitations exposed
+     * for the maximum string length of {@link Integer#MAX_VALUE}, an attempt to return a string representation of a too
+     * long byte string may fail.
      */
     @Override
     @NonNull
     String toString();
-
-    private static int decodeHexDigit(char c) {
-        if (c >= '0' && c <= '9') {
-            return c - '0';
-        } else if (c >= 'a' && c <= 'f') {
-            return c - 'a' + 10;
-        } else if (c >= 'A' && c <= 'F') {
-            return c - 'A' + 10;
-        } else {
-            throw new IllegalArgumentException("Unexpected hexadecimal-encoded digit: " + c);
-        }
-    }
 }

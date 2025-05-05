@@ -20,7 +20,7 @@ import java.util.stream.IntStream;
 
 /**
  * A specific {@link ByteString} that contains UTF-8 encoded bytes, and provides additional features like
- * {@link #length()}, {@link #codePoints()}.
+ * {@link #length()}, {@link #codePoints()}, {@link #indexOf(String)} etc.
  *
  * @see ByteString
  * @see Ascii
@@ -56,7 +56,8 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
 
     /**
      * @param data a byte buffer from which we will copy the remaining bytes.
-     * @return a new UTF-8 byte string containing a copy of the remaining UTF-8 bytes of {@code data}.
+     * @return a new UTF-8 byte string containing a copy of the {@linkplain ByteBuffer#remaining() remaining} UTF-8
+     * bytes of {@code data}.
      */
     static @NonNull Utf8 of(final @NonNull ByteBuffer data) {
         Objects.requireNonNull(data);
@@ -74,7 +75,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
     }
 
     /**
-     * Reads {@code byteCount} UTF-8 bytes from {@code in} and wraps them into a UTF-8 byte string.
+     * Reads {@code byteCount} UTF-8 bytes from {@code in} stream and wraps them into a UTF-8 byte string.
      *
      * @throws JayoEOFException         if {@code in} has fewer than {@code byteCount} bytes to read.
      * @throws IllegalArgumentException if {@code byteCount} is negative.
@@ -102,13 +103,15 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
 
     /**
      * @return a stream of Unicode code point values from this UTF-8 bytes sequence.
+     * @implNote the behavior of this method is compatible with {@link CharSequence#codePoints()}.
      */
     @NonNull
     IntStream codePoints();
 
     /**
      * @return a UTF-8 byte string equal to this UTF-8 byte string, but with the bytes 'A' through 'Z' replaced with the
-     * corresponding byte in 'a' through 'z'. Returns this UTF-8 byte string if it contains no bytes in 'A' through 'Z'.
+     * corresponding byte in 'a' through 'z'. Returns this UTF-8 byte string if it contains no bytes in the 'A' through
+     * 'Z' range.
      */
     @Override
     @NonNull
@@ -116,15 +119,16 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
 
     /**
      * @return a UTF-8 byte string equal to this UTF-8 byte string, but with the bytes 'a' through 'z' replaced with the
-     * corresponding byte in 'A' through 'Z'. Returns this UTF-8 byte string if it contains no bytes in 'a' through 'z'.
+     * corresponding byte in 'A' through 'Z'. Returns this UTF-8 byte string if it contains no bytes in the 'a' through
+     * 'z' range.
      */
     @Override
     @NonNull
     Utf8 toAsciiUppercase();
 
     /**
-     * Returns a UTF-8 byte string that is a subsequence of the bytes of this UTF-8 byte string. The substring begins
-     * with the byte at {@code startIndex} and extends to the end of this byte string.
+     * Returns a UTF-8 byte string that is a subsequence of this UTF-8 byte string. The substring begins with the byte
+     * at {@code startIndex} and extends to the end of this byte string.
      *
      * @param startIndex the start index (inclusive) of a subsequence to copy.
      * @return the specified substring. If {@code startIndex} is 0, this byte string is returned.
@@ -135,8 +139,8 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
     Utf8 substring(final int startIndex);
 
     /**
-     * Returns a UTF-8 byte string that is a subsequence of the bytes of this UTF-8 byte string. The substring begins
-     * with the byte at {@code startIndex} and ends at {@code endIndex}.
+     * Returns a UTF-8 byte string that is a subsequence of this UTF-8 byte string. The substring begins with the byte
+     * at {@code startIndex} and ends at {@code endIndex}.
      *
      * @param startIndex the start index (inclusive) of a subsequence to copy.
      * @param endIndex   the end index (exclusive) of a subsequence to copy.
@@ -154,6 +158,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
      * @return either a new String by decoding all the bytes from this byte string using UTF-8, or the cached one if
      * available.The {@link String#length()} of the obtained string will be the {@link #length()} of this UTF-8 byte
      * string.
+     * @implNote the behavior of this method is compatible with {@link CharSequence#toString()}.
      */
     @Override
     @NonNull
@@ -162,7 +167,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
     /**
      * @param prefix the prefix to check for.
      * @return true if this UTF-8 byte string starts with the {@code prefix}.
-     * @implNote Behavior of this method is compatible with {@link String#startsWith(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#startsWith(String)}.
      */
     default boolean startsWith(final @NonNull String prefix) {
         Objects.requireNonNull(prefix);
@@ -174,7 +179,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
     /**
      * @param suffix the suffix to check for.
      * @return true if this UTF-8 byte string ends with the {@code suffix}.
-     * @implNote Behavior of this method is compatible with {@link String#endsWith(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#endsWith(String)}.
      */
     default boolean endsWith(final @NonNull String suffix) {
         Objects.requireNonNull(suffix);
@@ -185,7 +190,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
      * @param other the string to find within this UTF-8 byte string.
      * @return the index of {@code other} first occurrence in this byte string, or {@code -1} if it doesn't contain
      * {@code other}.
-     * @implNote Behavior of this method is compatible with {@link String#indexOf(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#indexOf(String)}.
      */
     default int indexOf(final @NonNull String other) {
         Objects.requireNonNull(other);
@@ -198,7 +203,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
      * @return the index of {@code other} first occurrence in this byte string at or after {@code startIndex}, or
      * {@code -1} if it doesn't contain {@code other}.
      * @throws IllegalArgumentException if {@code startIndex} is negative.
-     * @implNote Behavior of this method is compatible with {@link String#indexOf(String, int)}.
+     * @implNote the behavior of this method is compatible with {@link String#indexOf(String, int)}.
      */
     default int indexOf(final @NonNull String other, final int startIndex) {
         Objects.requireNonNull(other);
@@ -209,7 +214,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
      * @param other the string to find within this UTF-8 byte string.
      * @return the index of {@code other} last occurrence in this byte string, or {@code -1} if it doesn't contain
      * {@code other}.
-     * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String)}.
+     * @implNote the behavior of this method is compatible with {@link String#lastIndexOf(String)}.
      */
     default int lastIndexOf(final @NonNull String other) {
         Objects.requireNonNull(other);
@@ -222,7 +227,7 @@ public sealed interface Utf8 extends ByteString permits Ascii, RealUtf8, Segment
      * @return the index of {@code other} last occurrence in this byte string at or after {@code startIndex}, or
      * {@code -1} if it doesn't contain {@code other}.
      * @throws IllegalArgumentException if {@code startIndex} is negative.
-     * @implNote Behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
+     * @implNote the behavior of this method is compatible with {@link String#lastIndexOf(String, int)}
      */
     default int lastIndexOf(final @NonNull String other, final int startIndex) {
         Objects.requireNonNull(other);

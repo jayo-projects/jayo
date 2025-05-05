@@ -28,7 +28,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * @author Alexander Y. Kleymenov
@@ -47,7 +46,8 @@ public final class Base64Utils {
             .data;
 
     public static byte @Nullable [] decodeBase64ToArray(final @NonNull CharSequence charSequence) {
-        Objects.requireNonNull(charSequence);
+        assert charSequence != null;
+
         // Ignore trailing '=' padding and whitespace from the input.
         var limit = charSequence.length();
         while (limit > 0) {

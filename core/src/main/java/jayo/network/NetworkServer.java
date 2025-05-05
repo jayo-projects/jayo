@@ -25,8 +25,10 @@ import java.time.Duration;
  * <p>
  * The {@link #getLocalAddress()} method returns the local address that the socket is bound to, the
  * {@link #getOption(SocketOption)} method is used to query socket options and the {@link #getUnderlying()} method
- * returns the underlying socket itself : an {@linkplain java.net.ServerSocket IO ServerSocket} or a
+ * returns the underlying socket itself: an {@linkplain java.net.ServerSocket IO ServerSocket} or a
  * {@linkplain java.nio.channels.ServerSocketChannel NIO ServerSocketChannel}.
+ * <p>
+ * Call {@link #accept()} to block until a request is received and the resulting connection is established.
  * <p>
  * Please read {@link Endpoint} javadoc for the endpoint rationale.
  */
@@ -55,8 +57,9 @@ public sealed interface NetworkServer extends Closeable
     }
 
     /**
-     * @return a new server-side {@link NetworkEndpoint} that was created after an incoming client request. The server
-     * loop task blocks until a request is received and then the resulting connection is established or an error occurs.
+     * @return a new server-side {@link NetworkEndpoint} that was created after an incoming client request. The
+     * executing thread blocks until a request is received and the resulting connection is established or an error
+     * occurs.
      * <h3>Timeouts</h3>
      * <ul>
      *     <li>The specified {@linkplain Builder#readTimeout(Duration) read timeout value} will be used as default for
@@ -64,7 +67,6 @@ public sealed interface NetworkServer extends Closeable
      *     <li>The specified {@linkplain Builder#writeTimeout(Duration) write timeout value} will be used as default for
      *     each write operation of the {@linkplain jayo.Endpoint#getWriter() Endpoint's writer}.
      * </ul>
-     * A timeout of zero is interpreted as an infinite timeout.
      * @throws UnsupportedOperationException If one of the socket options you set with
      *                                       {@link Builder#option(SocketOption, Object)} is not supported by the
      *                                       network endpoint.
@@ -83,7 +85,7 @@ public sealed interface NetworkServer extends Closeable
      * <p>
      * Any thread currently blocked in {@link #accept()} will throw a {@link JayoClosedResourceException}.
      * <p>
-     * If this server endpoint is already closed then invoking this method has no effect.
+     * It is safe to close a network server more than once, but only the first call has an effect.
      *
      * @throws jayo.JayoException If an I/O error occurs.
      */
@@ -91,25 +93,25 @@ public sealed interface NetworkServer extends Closeable
 
     /**
      * @return the local address that this network server's underlying socket is bound to.
-     * @throws JayoClosedResourceException If this network endpoint is closed.
+     * @throws JayoClosedResourceException If this network server is closed.
      * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
     InetSocketAddress getLocalAddress();
 
     /**
-     * @param <T>  The type of the socket option value
-     * @param name The socket option
+     * @param <T>  The type of the socket option value.
+     * @param name The socket option.
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
-     * @throws UnsupportedOperationException If the socket option is not supported by this channel
-     * @throws JayoClosedResourceException   If this network endpoint is closed.
+     * @throws UnsupportedOperationException If this network server does not support the socket option.
+     * @throws JayoClosedResourceException   If this network server is closed.
      * @throws jayo.JayoException            If an I/O error occurs.
      * @see java.net.StandardSocketOptions
      */
     <T> @Nullable T getOption(final @NonNull SocketOption<T> name);
 
     /**
-     * @return the underlying IO resource. For example a {@linkplain java.net.ServerSocket IO Socket} or a
+     * @return the underlying IO resource. For example, a {@linkplain java.net.ServerSocket IO Socket} or a
      * {@linkplain java.nio.channels.ServerSocketChannel NIO ServerSocketChannel}.
      */
     @NonNull
@@ -121,32 +123,30 @@ public sealed interface NetworkServer extends Closeable
     sealed interface Builder extends Cloneable permits NetworkServerBuilder {
         /**
          * Sets the default read timeout of all read operations of the
-         * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer}
-         * built using this configuration. Default is zero. A timeout of zero is interpreted as an infinite timeout.
+         * {@linkplain NetworkServer#accept() accepted network endpoints}. Default is zero. A timeout of zero is
+         * interpreted as an infinite timeout.
          */
         @NonNull
         Builder readTimeout(final @NonNull Duration readTimeout);
 
         /**
          * Sets the default write timeout of all write operations of the
-         * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer}
-         * built using this configuration. Default is zero. A timeout of zero is interpreted as an infinite timeout.
+         * {@linkplain NetworkServer#accept() accepted network endpoints}. Default is zero. A timeout of zero is
+         * interpreted as an infinite timeout.
          */
         @NonNull
         Builder writeTimeout(final @NonNull Duration writeTimeout);
 
         /**
-         * Read and write operations on the {@linkplain NetworkServer#accept() accepted network endpoints} by the
-         * {@link NetworkServer} built using this configuration are seamlessly processed <b>asynchronously</b> in
-         * distinct runnable tasks using the provided {@code taskRunner}.
+         * Read and write operations on the {@linkplain NetworkServer#accept() accepted network endpoints} are
+         * seamlessly processed <b>asynchronously</b> in distinct runnable tasks using the provided {@code taskRunner}.
          */
         @NonNull
         Builder bufferAsync(final @NonNull TaskRunner taskRunner);
 
         /**
          * Sets the value of a socket option to set on the
-         * {@linkplain NetworkServer#accept() accepted network endpoints} by the {@link NetworkServer} built using this
-         * configuration.
+         * {@linkplain NetworkServer#accept() accepted network endpoints}.
          *
          * @param <T>   The type of the socket option value
          * @param name  The socket option
@@ -157,7 +157,8 @@ public sealed interface NetworkServer extends Closeable
         <T> @NonNull Builder option(final @NonNull SocketOption<T> name, final @Nullable T value);
 
         /**
-         * Sets the value of a socket option to set on the {@link NetworkServer} built using this configuration.
+         * Sets the value of a socket option to set on the {@link NetworkServer} that will be built using this
+         * builder.
          *
          * @param <T>   The type of the socket option value
          * @param name  The socket option
@@ -168,17 +169,18 @@ public sealed interface NetworkServer extends Closeable
         <T> @NonNull Builder serverOption(final @NonNull SocketOption<T> name, final @Nullable T value);
 
         /**
-         * Sets the maximum number of pending connections on the {@link NetworkServer} built by using this
-         * configuration. Default is zero. If the value is zero, an implementation specific default is used.
+         * Sets the maximum number of pending connections on the {@link NetworkServer} that will be built using this
+         *  builder. Default is zero. If the value is zero, an implementation-specific default is used.
          */
         @NonNull
         Builder maxPendingConnections(final int maxPendingConnections);
 
         /**
-         * Sets the {@link NetworkProtocol network protocol} to use when opening the underlying NIO server sockets. The
-         * default protocol is platform (and possibly configuration) dependent and therefore unspecified.
+         * Sets the {@link NetworkProtocol network protocol} to use when opening the underlying NIO server sockets:
+         * {@code IPv4} or {@code IPv6}. The default protocol is platform (and possibly configuration) dependent and
+         * therefore unspecified.
          * <p>
-         * <b>This option is only available for Java NIO</b>, so Java NIO mode is forced when this parameter is set !
+         * This option <b>is only available for Java NIO</b>, so Java NIO mode is forced when this parameter is set!
          *
          * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6">
          * java.net.preferIPv4Stack</a> system property
@@ -187,7 +189,7 @@ public sealed interface NetworkServer extends Closeable
         Builder protocol(final @NonNull NetworkProtocol protocol);
 
         /**
-         * If true the underlying server sockets will be Java NIO ones, if false they will be Java IO ones. Default is
+         * If true, the underlying server sockets will be Java NIO ones. If false, they will be Java IO ones. Default is
          * {@code true}.
          */
         @NonNull

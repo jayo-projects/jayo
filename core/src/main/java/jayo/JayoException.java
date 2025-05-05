@@ -24,6 +24,9 @@ import java.nio.file.NoSuchFileException;
 import java.util.Objects;
 
 /**
+ * This is the parent type of all exceptions in Jayo. It extends {@link UncheckedIOException} to avoid Java's checked
+ * exception complexity.
+ * <p>
  * Wraps an {@link IOException} with an unchecked exception.
  */
 public class JayoException extends UncheckedIOException {

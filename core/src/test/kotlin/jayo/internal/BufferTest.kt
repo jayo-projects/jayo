@@ -720,7 +720,7 @@ class BufferTest {
     @Test
     fun cloneDoesNotObserveWritesToOriginal() {
         val original = RealBuffer()
-        val clone: Buffer = original.copy()
+        val clone: Buffer = original.clone()
         original.write("abc")
         assertEquals(0, clone.bytesAvailable())
     }
@@ -729,7 +729,7 @@ class BufferTest {
     fun cloneDoesNotObserveReadsFromOriginal() {
         val original = RealBuffer()
         original.write("abc")
-        val clone: Buffer = original.copy()
+        val clone: Buffer = original.clone()
         assertEquals("abc", original.readString(3))
         assertEquals(3, clone.bytesAvailable())
         assertEquals("ab", clone.readString(2))
@@ -738,7 +738,7 @@ class BufferTest {
     @Test
     fun originalDoesNotObserveWritesToClone() {
         val original = RealBuffer()
-        val clone: Buffer = original.copy()
+        val clone: Buffer = original.clone()
         clone.write("abc")
         assertEquals(0, original.bytesAvailable())
     }
@@ -747,7 +747,7 @@ class BufferTest {
     fun originalDoesNotObserveReadsFromClone() {
         val original = RealBuffer()
         original.write("abc")
-        val clone: Buffer = original.copy()
+        val clone: Buffer = original.clone()
         assertEquals("abc", clone.readString(3))
         assertEquals(3, original.bytesAvailable())
         assertEquals("ab", original.readString(2))
@@ -757,7 +757,7 @@ class BufferTest {
     fun cloneMultipleSegments() {
         val original = RealBuffer()
         original.write("a".repeat(Segment.SIZE * 3))
-        val clone: Buffer = original.copy()
+        val clone: Buffer = original.clone()
         original.write("b".repeat(Segment.SIZE * 3))
         clone.write("c".repeat(Segment.SIZE * 3))
 
@@ -786,9 +786,9 @@ class BufferTest {
     }
 
     @Test
-    fun transferCopy() {
+    fun transferClone() {
         val buffer = RealBuffer().also { it.writeByte(42) }
-        val copy = buffer.copy()
+        val copy = buffer.clone()
         copy.transferTo(buffer)
         assertArrayEquals(byteArrayOf(42, 42), buffer.readByteArray())
     }

@@ -49,7 +49,7 @@ import java.time.Instant;
  * endorse a certificate. Third parties should only endorse certificates once they've confirmed that the owner of the
  * private key is also the owner of the certificate's other properties.
  * </ul>
- * Certificates are signed by other certificates and a sequence of them is called a certificate chain. The chain
+ * Certificates are signed by other certificates, and a sequence of them is called a certificate chain. The chain
  * terminates in a self-signed "root" certificate. Signing certificates in the middle of the chain are called
  * "intermediates". Organizations that offer certificate signing are called certificate authorities (CAs).
  * <p>
@@ -57,8 +57,8 @@ import java.time.Instant;
  * certificates are managed by either the HTTP client (like Firefox), or the host platform (like Android). In July 2018
  * Android had 134 trusted root certificates for its HTTP clients to trust.
  * <p>
- * For example, in order to establish a secure connection to {@code https://www.squareup.com/}, these three certificates
- * are used.
+ * For example, to establish a secure connection to {@code https://www.squareup.com/}, these three certificates are
+ * used.
  * <pre>
  * {@code
  * www.squareup.com certificate:
@@ -186,7 +186,7 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
         Builder addSubjectAlternativeName(final @NonNull String altName);
 
         /**
-         * Set this certificate's common name (CN). If unset a random string will be used.
+         * Set this certificate's common name (CN). If unset, a random string will be used.
          * <p>
          * Historically this held the hostname of TLS certificate, but that practice was deprecated by
          * <a href="https://tools.ietf.org/html/rfc2818">RFC 2818</a> and replaced with
@@ -196,37 +196,37 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
         Builder commonName(final @NonNull String cn);
 
         /**
-         * Sets the certificate's organizational unit (OU). If unset this field will be omitted.
+         * Sets the certificate's organizational unit (OU). If unset, this field will be omitted.
          */
         @NonNull
         Builder organizationalUnit(final @NonNull String ou);
 
         /**
-         * Sets this certificate's serial number. If unset the serial number will be 1.
+         * Sets this certificate's serial number. If unset, the serial number will be {@code 1}.
          */
         @NonNull
         Builder serialNumber(final long serialNumber);
 
         /**
-         * Sets this certificate's serial number. If unset the serial number will be 1.
+         * Sets this certificate's serial number. If unset, the serial number will be {@code 1}.
          */
         @NonNull
         Builder serialNumber(final @NonNull BigInteger serialNumber);
 
         /**
-         * Sets the public/private key pair used for this certificate. If unset a key pair will be generated.
+         * Sets the public/private key pair used for this certificate. If unset, a key pair will be generated.
          */
         @NonNull
         Builder keyPair(final @NonNull KeyPair keyPair);
 
         /**
-         * Sets the public/private key pair used for this certificate. If unset a key pair will be generated.
+         * Sets the public/private key pair used for this certificate. If unset, a key pair will be generated.
          */
         @NonNull
         Builder keyPair(final @NonNull PublicKey publicKey, final @NonNull PrivateKey privateKey);
 
         /**
-         * Set the certificate that will issue this certificate. If unset the certificate will be self-signed.
+         * Set the certificate that will issue this certificate. If unset, the certificate will be self-signed.
          */
         @NonNull
         Builder signedBy(final @Nullable HeldCertificate signedBy);
@@ -235,10 +235,10 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
          * Set this certificate to be a signing certificate, with up to {@code maxIntermediateCas} intermediate signing
          * certificates beneath it.
          * <p>
-         * By default, this certificate cannot sign other certificates. Set this to 0 so this certificate can sign
-         * other certificates (but those certificates cannot themselves sign certificates). Set this to 1 so this
-         * certificate can sign intermediate certificates that can themselves sign certificates. Add one for each
-         * additional layer of intermediates to permit.
+         * By default, this certificate cannot sign other certificates. Set this to {@code 0} so this certificate can
+         * sign other certificates (but those certificates cannot themselves sign certificates). Set this to {@code 1}
+         * so this certificate can sign intermediate certificates that can themselves sign certificates. Add one for
+         * each additional layer of intermediates to permit.
          */
         @NonNull
         Builder certificateAuthority(final int maxIntermediateCas);
@@ -265,7 +265,7 @@ public sealed interface HeldCertificate permits RealHeldCertificate {
 
         /**
          * Configure the certificate to generate a 2048-bit RSA key, which provides about 112 bits of security. RSA keys
-         * are interoperable with very old clients that don't support ECDSA.
+         * are interoperable with old clients that don't support ECDSA.
          */
         RSA_2048("RSA", 2048);
 

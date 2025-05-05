@@ -8,7 +8,7 @@ package jayo.crypto;
 import org.jspecify.annotations.NonNull;
 
 /**
- * JVM included macs. There is no guaranty that all JVM provides all these algorithms.
+ * JVM included MACs. There is no guaranty that all JVM provides all these algorithms.
  */
 public enum JdkHmac implements Hmac {
     /**
@@ -26,7 +26,7 @@ public enum JdkHmac implements Hmac {
      * <p>
      * SHA-1 has been vulnerable to collisions since 2017. <b>It should not be used in new code.</b>
      * <p>
-     * Consider upgrading from SHA-1 to SHA-256 ! This hash is offered because it is popular and convenient for use in
+     * Consider upgrading from SHA-1 to SHA-256! This hash is offered because it is popular and convenient for use in
      * legacy systems that are not security-sensitive.
      */
     HMAC_SHA_1("HmacSHA1"),
@@ -52,12 +52,12 @@ public enum JdkHmac implements Hmac {
     HMAC_SHA_512("HmacSHA512"),
 
     /**
-     * 224-bit SHA-512/224 "Message Authentication Code" (MAC) algorithm, a truncated variant of SHA-512.
+     * 224-bit SHA-512/224 "Message Authentication Code" (MAC) algorithm, a truncated variant of {@link #HMAC_SHA_512}.
      */
     HMAC_SHA_512_224("HmacSHA512/224"),
 
     /**
-     * 256-bit SHA-512/256 "Message Authentication Code" (MAC) algorithm, a truncated variant of SHA-512.
+     * 256-bit SHA-512/256 "Message Authentication Code" (MAC) algorithm, a truncated variant of {@link #HMAC_SHA_512}.
      */
     HMAC_SHA_512_256("HmacSHA512/256"),
 

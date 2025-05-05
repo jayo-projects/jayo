@@ -28,7 +28,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.function.Function;
 
 /**
- * Defines a scope for cancellable blocks. Every <b>cancellable builder</b> like
+ * Defines a scope linked to a cancellable block. Every <b>cancellable builder</b> like
  * {@linkplain Cancellable#call(Function) call} creates a {@code CancelScope} implementation that is
  * available to manually {@link #cancel} code execution, or {@link #shield()} its content from outside existing
  * cancellations.

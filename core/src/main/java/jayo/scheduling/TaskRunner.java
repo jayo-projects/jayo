@@ -31,19 +31,19 @@ import java.util.concurrent.ExecutorService;
 /**
  * A set of worker threads that are shared among a set of task queues.
  * <p>
- * Most applications should share a process-wide {@link TaskRunner}, and create queues for per-client work with
- * {@link #newQueue()}.
+ * Note: Most applications should share a process-wide {@link TaskRunner}, and create queues for per-client work with
+ * {@link #newQueue()} and {@link #newScheduledQueue()}.
  *
  * @implNote The task runner is also responsible for releasing held threads when the library is unloaded. This is for
  * the benefit of container environments that implement code unloading.
  */
 public sealed interface TaskRunner permits RealTaskRunner {
     /**
-     * Create a new {@link TaskRunner}. The threads it will use will start with the provided {@code name}.
+     * Create a new {@link TaskRunner}. The threads it will use will start with the provided {@code prefix}.
      */
-    static TaskRunner create(final @NonNull String name) {
-        Objects.requireNonNull(name);
-        return new RealTaskRunner(name);
+    static TaskRunner create(final @NonNull String prefix) {
+        Objects.requireNonNull(prefix);
+        return new RealTaskRunner(prefix);
     }
 
     /**
@@ -55,14 +55,27 @@ public sealed interface TaskRunner permits RealTaskRunner {
         return new RealTaskRunner(executor);
     }
 
+    /**
+     * @return a new {@link TaskQueue} that will execute tasks sequentially.
+     */
     @NonNull
     TaskQueue newQueue();
 
+    /**
+     * @return a new {@link ScheduledTaskQueue} that will execute and/or schedule tasks sequentially.
+     */
     @NonNull
     ScheduledTaskQueue newScheduledQueue();
 
+    /**
+     * Execute once on a task runner thread.
+     */
     void execute(final boolean cancellable, final @NonNull Runnable block);
 
+    /**
+     * Schedules immediate cancellation on all currently enqueued tasks. These calls will not be made until any
+     * currently executing task has completed. All cancellable tasks will be removed from the execution schedule.
+     */
     void shutdown();
 
     @NonNull

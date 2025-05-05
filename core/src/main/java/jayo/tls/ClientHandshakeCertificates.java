@@ -44,10 +44,10 @@ import java.util.Objects;
  * <li>The {@linkplain ServerHandshakeCertificates server's handshake certificates} must have a
  * {@linkplain HeldCertificate held certificate} (a certificate and its private key). The
  * {@linkplain HeldCertificate.Builder#addSubjectAlternativeName(String) certificate's subject alternative names} must
- * match the server's hostname. The server must also have a (possibly-empty) chain of intermediate certificates to
+ * match the server's hostname. The server must also have a (possibly empty) chain of intermediate certificates to
  * establish trust from a root certificate to the server's certificate. The
  * {@linkplain ServerHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) root certificate} is not
- * included in this chain.
+ * included in this chain, see below.
  * <li>The {@linkplain ClientHandshakeCertificates client's handshake certificates} must include a set of trusted root
  * certificates. They will be used to authenticate the server's certificate chain. Typically, this is a
  * {@linkplain ClientHandshakeCertificates.Builder#addPlatformTrustedCertificates(boolean) set of well-known root
@@ -62,11 +62,11 @@ import java.util.Objects;
  * <ul>
  * <li>The {@linkplain ClientHandshakeCertificates client's handshake certificates} must have a
  * {@linkplain HeldCertificate held certificate} (a certificate and its private key). The client must also have a
- * (possibly-empty) chain of intermediate certificates to establish trust from a root certificate to the client's
+ * (possibly empty) chain of intermediate certificates to establish trust from a root certificate to the client's
  * certificate. The {@linkplain ClientHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) root
- * certificate} is not included in this chain.
+ * certificate} is not included in this chain, see above.
  * <li>The {@linkplain ServerHandshakeCertificates server's handshake certificates} must include a set of trusted root
- * certificates. They will be used to authenticate the client's certificate chain. This is not the same set of root
+ * certificates. They will be used to authenticate the client's certificate chain. This is a different set of root
  * certificates used in server authentication. Instead, it will be a
  * {@linkplain ServerHandshakeCertificates.Builder#addTrustedCertificate(X509Certificate) small set of roots private to
  * an organization or service}.
@@ -76,7 +76,7 @@ import java.util.Objects;
  */
 public sealed interface ClientHandshakeCertificates permits RealHandshakeCertificates {
     /**
-     * Creates a default {@linkplain ClientHandshakeCertificates client's handshake certificates} to secure TLS
+     * Creates a default {@linkplain ClientHandshakeCertificates client handshake certificates} to secure TLS
      * connections. It provides good security based on the System's default trust manager.
      */
     static @NonNull ClientHandshakeCertificates create() {
@@ -84,12 +84,12 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
     }
 
     /**
-     * Creates a {@linkplain ClientHandshakeCertificates client's handshake certificates} from a
-     * {@link TrustManagerFactory}. This client will be able to authenticate to the server, and does not support
+     * Creates a {@linkplain ClientHandshakeCertificates client handshake certificates} from a
+     * {@link TrustManagerFactory}. This client will be able to authenticate to the server and does not support
      * authentication back from the server.
      * <p>
-     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
-     * as it includes special optimizations that can be lost if the implementations are decorated.
+     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults}, as it
+     * includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf) {
         Objects.requireNonNull(tmf);
@@ -97,12 +97,12 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
     }
 
     /**
-     * Creates a {@linkplain ClientHandshakeCertificates client's handshake certificates} from a
+     * Creates a {@linkplain ClientHandshakeCertificates client handshake certificates} from a
      * {@link TrustManagerFactory} and a {@link KeyManagerFactory}. This client will be able to authenticate to the
-     * server, and supports authentication back from the server.
+     *  server and supports authentication back from the server.
      * <p>
-     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
-     * as it includes special optimizations that can be lost if the implementations are decorated.
+     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults}, as it
+     * includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull ClientHandshakeCertificates create(final @NonNull TrustManagerFactory tmf,
                                                        final @NonNull KeyManagerFactory kmf) {
@@ -112,10 +112,10 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
     }
 
     /**
-     * @return a builder to craft a {@linkplain ClientHandshakeCertificates client's handshake certificates}.
+     * @return a builder to craft a {@linkplain ClientHandshakeCertificates client handshake certificates}.
      * <p>
-     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults},
-     * as it includes special optimizations that can be lost if the implementations are decorated.
+     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults}, as it
+     * includes special optimizations that can be lost if the implementations are decorated.
      */
     static @NonNull Builder builder() {
         return new RealHandshakeCertificates.ClientBuilder();
@@ -139,7 +139,7 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
          * Otherwise, it is necessary to {@linkplain #addTrustedCertificate(X509Certificate) manually prepare a
          * comprehensive set of trusted roots}.
          * <p>
-         * If the host platform is compromised or misconfigured this may contain untrustworthy root certificates.
+         * If the host platform is compromised or misconfigured, it may contain untrustworthy root certificates.
          * Applications that connect to a known set of servers may be able to mitigate this problem with certificate
          * pinning.
          */
@@ -159,7 +159,7 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
          * trusted root certificate.
          * <p>
          * The chain should include all intermediate certificates but does not need the root certificate that we expect
-         * to be known by the remote peer. The peer already has that certificate so transmitting it is unnecessary.
+         * to be known by the remote peer. The peer already has that certificate, so transmitting it is unnecessary.
          */
         @NonNull
         Builder heldCertificate(final @NonNull HeldCertificate heldCertificate,
@@ -170,17 +170,17 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
          * to man-in-the-middle attacks and should only be used only in private development environments and only to
          * carry test data.
          * <p>
-         * The server’s TLS certificate <b>does not need to be signed</b> by a trusted certificate authority. Instead,
-         * it will trust any well-formed certificate, even if it is self-signed. This is necessary for testing against
-         * localhost or in development environments where a certificate authority is not possible.
+         * In this scenario, the server’s TLS certificate <b>does not need to be signed</b> by a trusted certificate
+         * authority. Instead, it will trust any well-formed certificate, even if it is self-signed. This is necessary
+         * for testing against localhost or in development environments where a certificate authority is not possible.
          * <p>
          * The server’s TLS certificate still must match the requested hostname. For example, if the certificate is
          * issued to {@code example.com} and the request is to {@code localhost}, the connection will fail. Use a custom
          * {@linkplain javax.net.ssl.HostnameVerifier HostnameVerifier} to ignore such problems.
          * <p>
-         * Other TLS features are still used but provide no security benefits in absence of the above gaps. For example,
-         * an insecure TLS connection is capable of negotiating HTTP/2 with ALPN, and it also has a regular-looking
-         * handshake.
+         * Other TLS features are still used but provide no security benefits in the absence of the above gaps. For
+         * example, an insecure TLS connection is capable of negotiating HTTP/2 with ALPN, and it also has a
+         * regular-looking handshake.
          *
          * @param hostname the exact hostname from the URL for insecure connections.
          */

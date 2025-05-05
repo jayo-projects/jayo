@@ -32,15 +32,15 @@ public interface InflaterRawReader extends RawReader {
     /**
      * Consume deflated bytes from the underlying reader, and write any inflated bytes to {@code writer}.
      * <p>
-     * Use this instead of [read] when it is useful to consume the deflated stream even when doing so doesn't yield
-     * inflated bytes.
+     * Use this instead of {@link #readAtMostTo(Buffer, long)} when it is useful to consume the deflated stream even
+     * when doing so doesn't yield inflated bytes.
      *
      * @param writer    the destination to write the data from this reader.
      * @param byteCount the number of bytes to read.
-     * @return the number of inflated bytes written to {@code writer}. This may return 0L, though it will always consume 1
-     * or more bytes from the underlying reader if it is not exhausted.
-     * @throws IllegalArgumentException when {@code byteCount} is negative.
-     * @throws IllegalStateException    when the reader is closed.
+     * @return the number of inflated bytes written to {@code writer}. This may return {@code 0L}, though it will always
+     * consume 1 or more bytes from the underlying reader if it is not exhausted.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     long readOrInflateAtMostTo(final @NonNull Buffer writer, final long byteCount);
 

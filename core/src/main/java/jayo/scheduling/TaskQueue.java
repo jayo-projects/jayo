@@ -41,7 +41,8 @@ public sealed interface TaskQueue permits RealTaskQueue, ScheduledTaskQueue {
     String getName();
 
     /**
-     * Execute a task once on a task runner thread.
+     * Execute a task once on a task runner thread, this task is guaranteed to be executed after all previous tasks
+     * enqueued in this queue.
      */
     void execute(final @NonNull String name,
                  final boolean cancellable,
@@ -54,14 +55,14 @@ public sealed interface TaskQueue permits RealTaskQueue, ScheduledTaskQueue {
     CountDownLatch idleLatch();
 
     /**
-     * Schedules immediate cancellation on all currently-enqueued tasks. These calls will not be made until any
-     * currently-executing task has completed. All cancellable tasks will be removed from the execution schedule.
+     * Schedules immediate cancellation on all currently enqueued tasks. These calls will not be made until any
+     * currently executing task has completed. All cancellable tasks will be removed from the execution schedule.
      */
     void cancelAll();
 
     /**
-     * First initiates an orderly shutdown, no new tasks will be accepted. Then schedules immediate cancellation on all
-     * currently-enqueued tasks by calling {@link #cancelAll()}.
+     * First, initiates an orderly shutdown; no new tasks will be accepted. Then schedules immediate cancellation on all
+     * currently enqueued tasks by calling {@link #cancelAll()}.
      */
     void shutdown();
 }

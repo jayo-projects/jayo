@@ -33,7 +33,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.internal.tls.platform.JdkJssePlatform.alpnProtocolNames;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class RealTlsEndpoint {
@@ -641,15 +640,14 @@ public final class RealTlsEndpoint {
                     "Async task needed, running it in the current thread immediately. Task: {0}", task);
         }
         task.run();
-        // todo : should we provide a way to execute async task in a Virtual Thread Executor or by throwing an Exception
-        //  like in the tls-channel library ? It would be useful for async NIO, but is there any use case for sync IO ?
+        // todo : should we provide a way to execute async task in an Executor or by throwing an Exception like in the
+        //  tls-channel library ? It would be useful for async NIO, but is there any use case for sync IO ?
     }
 
     /**
      * Used to signal EOF conditions from the reader.
      *
-     * @implNote Not be a {@linkplain JayoException JayoException} to avoid being caught when catching
-     * JayoException
+     * @implNote Not a {@linkplain JayoException JayoException} to avoid being caught when catching JayoException
      */
     private static final class TlsEOFException extends Exception {
         @Serial
@@ -712,6 +710,15 @@ public final class RealTlsEndpoint {
             final var names = alpnProtocolNames(protocols);
             sslParameters.setApplicationProtocols(names.toArray(String[]::new));
             engine.setSSLParameters(sslParameters);
+        }
+
+        private static @NonNull List<String> alpnProtocolNames(final @NonNull List<Protocol> protocols) {
+            assert protocols != null;
+
+            return protocols.stream()
+                    .filter(p -> !Protocol.HTTP_1_0.equals(p))
+                    .map(Object::toString)
+                    .toList();
         }
 
         @Override

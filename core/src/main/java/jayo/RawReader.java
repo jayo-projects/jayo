@@ -37,17 +37,18 @@ import java.io.InputStream;
  * in memory. Readers may be layered to transform supplied data, such as to decompress, decrypt, or remove protocol
  * framing.
  * <p>
- * <b>Most applications shouldn't operate on a raw reader directly</b>, but rather on a {@link Reader} which is both
- * more efficient and more convenient. Use {@link Jayo#buffer(RawReader)} to wrap any reader with a buffer.
+ * <b>Most applications shouldn't operate on a {@code RawReader} directly</b>, but rather on a
+ * {@linkplain Reader jayo.Reader} which is both more efficient and more convenient. Use {@link Jayo#buffer(RawReader)}
+ * to wrap any reader with a buffer.
  * <p>
- * Readers are easy to test: just use a {@link Buffer} in your tests, and fill it with the data your application needs
- * to read.
+ * Note: Readers are straightforward to test: use a {@link Buffer} in your tests, and fill it with the data your
+ * application needs to read.
  * <h3>Comparison with InputStream</h3>
  * This interface is functionally equivalent to {@link java.io.InputStream}.
  * <p>
  * {@code InputStream} requires multiple layers when consumed data is heterogeneous: a {@code java.io.DataInputStream}
  * for primitive values, a {@code java.io.BufferedInputStream} for buffering, and {@code java.io.InputStreamReader} for
- * strings. This library uses {@link Reader} for all of the above.
+ * strings. This library uses {@linkplain Reader jayo.Reader} for all of the above.
  * <p>
  * Reader is also easier to layer: it avoids the impossible-to-implement {@link InputStream#available()} method.
  * Instead, callers specify how many bytes they {@linkplain Reader#require(long) require}.
@@ -55,16 +56,15 @@ import java.io.InputStream;
  * Reader omits the unsafe-to-compose {@link java.io.InputStream#mark(int)} state that is tracked by {@code InputStream}
  * and the associated {@link InputStream#reset()} method; instead, callers just buffer what they need.
  * <p>
- * When implementing a reader, you don't need to worry about the {@link InputStream#read()} method that is awkward to
- * implement efficiently and returns one of 257 possible values.
+ * When implementing a {@code RawReader}, you don't need to worry about the {@link InputStream#read()} method that is
+ * awkward to implement efficiently and returns one of 257 possible values.
  * <p>
  * Reader has a stronger {@code skip} method: {@link Reader#skip(long)} won't return prematurely.
  * <h3>Interop with InputStream</h3>
- * Use {@link Jayo#reader(InputStream)} to adapt an {@code InputStream} to a reader. Use {@link Reader#asInputStream()}
- * to adapt a reader to an {@code InputStream}.
+ * Use {@link Jayo#reader(InputStream)} to adapt an {@code InputStream} to a {@code RawReader}. Use
+ * {@link Reader#asInputStream()} to adapt a {@code RawReader} to an {@code InputStream}.
  *
- * @implSpec Implementors should abstain from throwing exceptions other than those that are documented for RawReader
- * methods.
+ * @implSpec Implementors should abstain from throwing exceptions other than those that are documented below.
  */
 public interface RawReader extends Closeable {
     /**
@@ -81,9 +81,11 @@ public interface RawReader extends Closeable {
 
     /**
      * Closes this reader and releases the resources held by this reader. Trying to read in a closed reader will throw a
-     * {@link JayoClosedResourceException}. It is safe to close a reader more than once.
+     * {@link JayoClosedResourceException}.
+     * <p>
+     * It is safe to close a reader more than once, but only the first call has an effect.
      *
-     * @throws JayoException if an I/O error occurs.
+     * @throws JayoException if an I/O error occurs during the closing phase.
      */
     @Override
     void close();

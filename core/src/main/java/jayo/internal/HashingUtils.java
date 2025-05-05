@@ -28,6 +28,7 @@ public final class HashingUtils {
     public static @NonNull ByteString hash(final @NonNull RawReader rawReader, final @NonNull Digest digest) {
         Objects.requireNonNull(rawReader);
         Objects.requireNonNull(digest);
+
         final MessageDigest messageDigest;
         try {
             messageDigest = MessageDigest.getInstance(digest.toString());
@@ -62,6 +63,7 @@ public final class HashingUtils {
         Objects.requireNonNull(rawReader);
         Objects.requireNonNull(hMac);
         Objects.requireNonNull(key);
+
         final javax.crypto.Mac javaMac;
         try {
             javaMac = javax.crypto.Mac.getInstance(hMac.toString());

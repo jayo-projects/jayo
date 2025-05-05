@@ -15,14 +15,14 @@ import java.util.Objects;
 
 /**
  * The client-side TLS (Transport Layer Security) end of a TLS connection between two peers. {@link ClientTlsEndpoint}
- * guarantee that the TLS connection is established and its <b>initial handshake was done</b> upon creation.
+ * guarantee that the TLS connection is established and the <b>initial handshake was done</b> upon creation.
  *
  * @see TlsEndpoint
  * @see ServerTlsEndpoint
  */
 public sealed interface ClientTlsEndpoint extends TlsEndpoint permits RealClientTlsEndpoint {
     /**
-     * Create a new default client-side TLS endpoint, it requires an existing {@link Endpoint} for encrypted bytes
+     * Create a new default client-side TLS endpoint. It requires an existing {@link Endpoint} for encrypted bytes
      * (typically, but not necessarily associated with a network socket). A system default
      * {@link ClientHandshakeCertificates} will be used to secure TLS connections.
      * <p>

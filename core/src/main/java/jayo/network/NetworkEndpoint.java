@@ -20,7 +20,7 @@ import java.net.SocketOption;
 import java.time.Duration;
 
 /**
- * A network endpoint, either the client-side or server-side end of a socket-based connection between two peers.
+ * A network endpoint is either the client-side or server-side end of a socket-based connection between two peers.
  * {@link NetworkEndpoint} guarantee that its underlying socket is <b>open and connected</b> to a peer upon creation.
  * <p>
  * The {@link #getLocalAddress()} method returns the local address that the socket is bound to, the
@@ -29,8 +29,8 @@ import java.time.Duration;
  * returns the underlying socket itself: an {@linkplain java.net.Socket IO Socket} or a
  * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel}.
  * <p>
- * Network endpoints honor timeout. When a read or write operation times out, the socket is asynchronously closed by a
- * watchdog thread.
+ * Note: {@link NetworkEndpoint} honors timeout. When a read or write operation times out, the socket is asynchronously
+ * closed by a watchdog thread.
  *
  * @see Endpoint
  */
@@ -85,7 +85,7 @@ public sealed interface NetworkEndpoint extends Endpoint
      * @param <T>  The type of the socket option value.
      * @param name The socket option.
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
-     * @throws UnsupportedOperationException If this channel does not support the socket option.
+     * @throws UnsupportedOperationException If this network endpoint does not support the socket option.
      * @throws JayoClosedResourceException   If this network endpoint is closed.
      * @throws jayo.JayoException            If an I/O error occurs.
      * @see java.net.StandardSocketOptions
@@ -104,30 +104,28 @@ public sealed interface NetworkEndpoint extends Endpoint
         Builder connectTimeout(final @NonNull Duration connectTimeout);
 
         /**
-         * Sets the default read timeout that will apply on each low-level read operation of the underlying socket of
-         * the network endpoints that uses this configuration. Default is zero. A timeout of zero is interpreted as an
-         * infinite timeout.
+         * Sets the default read timeout that will apply on each low-level read operation of the network endpoint.
+         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
          */
         @NonNull
         Builder readTimeout(final @NonNull Duration readTimeout);
 
         /**
-         * Sets the default write timeout that will apply on each low-level write operation on the underlying socket of
-         * the network endpoints that uses this configuration. Default is zero. A timeout of zero is interpreted as an
-         * infinite timeout.
+         * Sets the default write timeout that will apply on each low-level write operation of the network endpoint.
+         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
          */
         @NonNull
         Builder writeTimeout(final @NonNull Duration writeTimeout);
 
         /**
-         * Read and write operations on the underlying socket of the network endpoints that uses this configuration are
-         * seamlessly processed <b>asynchronously</b> in distinct runnable tasks using the provided {@code taskRunner}.
+         * Read and write operations of the network endpoint will seamlessly process <b>asynchronously</b> in distinct
+         * runnable tasks executed by the provided {@code taskRunner}.
          */
         @NonNull
         Builder bufferAsync(final @NonNull TaskRunner taskRunner);
 
         /**
-         * Sets the value of a socket option to set on the network endpoints that uses this configuration.
+         * Sets the value of a socket option to set on the network endpoint.
          *
          * @param <T>   The type of the socket option value.
          * @param name  The socket option.
@@ -138,10 +136,11 @@ public sealed interface NetworkEndpoint extends Endpoint
         <T> @NonNull Builder option(final @NonNull SocketOption<T> name, final @Nullable T value);
 
         /**
-         * Sets the {@link NetworkProtocol network protocol} to use when opening the underlying NIO sockets. The default
-         * protocol is platform (and possibly configuration) dependent and therefore unspecified.
+         * Sets the {@link NetworkProtocol network protocol} to use when opening the underlying NIO sockets:
+         * {@code IPv4} or {@code IPv6}. The default protocol is platform (and possibly configuration) dependent and
+         * therefore unspecified.
          * <p>
-         * <b>This option is only available for Java NIO</b>, so Java NIO mode is forced when this parameter is set !
+         * This option <b>is only available for Java NIO</b>, so Java NIO mode is forced when this parameter is set!
          *
          * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6">
          * java.net.preferIPv4Stack</a> system property
@@ -150,7 +149,8 @@ public sealed interface NetworkEndpoint extends Endpoint
         Builder protocol(final @NonNull NetworkProtocol protocol);
 
         /**
-         * If true, the socket will be a Java NIO one. If false, it will be a Java IO one. Default is {@code true}.
+         * If true, the underlying socket will be a Java NIO one. If false, it will be a Java IO one. Default is
+         * {@code true}.
          */
         @NonNull
         Builder useNio(final boolean useNio);

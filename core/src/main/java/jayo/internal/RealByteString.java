@@ -48,13 +48,14 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     final byte @NonNull [] data;
 
     public RealByteString(final byte @NonNull [] data) {
-        this.data = Objects.requireNonNull(data);
+        assert data != null;
+        this.data = data;
     }
 
     public RealByteString(final byte @NonNull [] data,
                           final int offset,
                           final int byteCount) {
-        Objects.requireNonNull(data);
+        assert data != null;
         checkOffsetAndCount(data.length, offset, byteCount);
         this.data = Arrays.copyOfRange(data, offset, offset + byteCount);
     }

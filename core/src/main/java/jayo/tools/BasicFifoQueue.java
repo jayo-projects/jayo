@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  * All other methods throw {@code UnsupportedOperationException}.
  * <p>
  * <b>Be careful</b>, the returned boolean of our {@link #offer(Object)} method does not respect the
- * {@link Queue#offer(Object)} rationale, it has been adapted to our need. Read its javadoc for details.
+ * {@link Queue#offer(Object)} rationale, it has been adapted to our need. Read its Javadoc for details.
  */
 public sealed interface BasicFifoQueue<T> extends Queue<T> permits SinglyLinkedBasicFifoQueue {
     static <T> BasicFifoQueue<T> create() {
@@ -33,9 +33,9 @@ public sealed interface BasicFifoQueue<T> extends Queue<T> permits SinglyLinkedB
     /**
      * Inserts the specified element into this queue.
      *
-     * @return true if element is alone in this queue, meaning this queue was empty before that.
+     * @return true if {@code item} is alone in this queue, meaning this queue was empty before that.
      * @apiNote This operation's result differs from the {@link Queue#offer(Object)} rationale. Our offer operation
-     * always succeed.
+     * always succeeds.
      */
     @Override
     boolean offer(final @NonNull T item);

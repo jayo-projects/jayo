@@ -11,22 +11,24 @@ import jayo.internal.RealCancelToken;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A cancellable token that may be present in Thread local. This interface is provided for implementors, so you can call
- * {@link #throwIfReached(CancelToken)} regularly to ensure Jayo's cancellation support in your APIs.
+ * A cancellable token that may be present in the thread context (either thread local or scoped value). This interface
+ * is provided for implementors, so you can call {@link #throwIfReached(CancelToken)} regularly to ensure Jayo's
+ * cancellation support in your APIs.
  */
 public interface CancelToken {
     /**
-     * @return the current CancelToken, if at least one is present in Thread local.
+     * @return the current CancelToken, if at least one is present in the thread context.
      */
     static @Nullable CancelToken getCancelToken() {
         return CancellableUtils.getCancelToken();
     }
 
     /**
-     * Throws a {@link JayoInterruptedIOException} if a manual cancellation was done, a deadline has been reached or if the
-     * current thread has been interrupted.
+     * Throws a {@link JayoInterruptedIOException} if a manual cancellation was done, a deadline has been reached or if
+     * the current thread has been interrupted.
      * <p>
-     * This method doesn't detect timeouts; that should be implemented to asynchronously abort an in-progress operation.
+     * Note: this method doesn't detect timeouts; that should be implemented to asynchronously abort an in-progress
+     * operation.
      *
      * @see AsyncTimeout
      */

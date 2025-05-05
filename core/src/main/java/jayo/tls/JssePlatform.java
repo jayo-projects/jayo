@@ -29,10 +29,9 @@ import org.jspecify.annotations.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509TrustManager;
-import java.util.List;
 
 /**
- * Access to platform-specific Java Secure Socket Extension (JSSE) features.
+ * Access to platform-specific <b>J</b>ava <b>S</b>ecure <b>S</b>ocket <b>E</b>xtension (JSSE) features.
  * <p>
  * <b>Note:</b> Conscrypt adds Session Tickets support.
  */
@@ -48,7 +47,7 @@ public sealed interface JssePlatform permits JdkJssePlatform {
     X509TrustManager getDefaultTrustManager();
 
     /**
-     * Configure the {@code sslEngine} to the platform = Conscrypt adds Session Tickets support.
+     * CMay configure the {@code sslEngine} to the platform. Conscrypt adds Session Tickets support.
      */
     void adaptSslEngine(final @NonNull SSLEngine sslEngine);
 

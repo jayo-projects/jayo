@@ -34,30 +34,30 @@ import java.io.OutputStream;
 /**
  * Receives a stream of bytes. RawWriter is a base interface for Jayo data receivers.
  * <p>
- * This interface should be implemented to write data wherever it's needed: to the network, storage, or a buffer in
+ * This interface should be implemented to write data wherever it's necessary: to the network, storage, or a buffer in
  * memory. Writers may be layered to transform received data, such as to compress, encrypt, throttle, or add protocol
  * framing.
  * <p>
- * <b>Most application code shouldn't operate on a raw writer directly</b>, but rather on a {@link Writer} which is both
- * more efficient and more convenient. Use {@link Jayo#buffer(RawWriter)} to wrap any writer with a buffer.
+ * <b>Most application code shouldn't operate on a {@code RawWriter} directly</b>, but rather on a
+ * {@linkplain Writer jayo.Writer} which is both more efficient and more convenient. Use {@link Jayo#buffer(RawWriter)}
+ * to wrap any writer with a buffer.
  * <p>
- * Writers are easy to test: just use a {@link Buffer} in your tests, and read from it to confirm it received the data
- * that was expected.
+ * Writers are easy to test: use a {@link Buffer} in your tests, and read from it to confirm it received the data that
+ * was expected.
  * <h3>Comparison with OutputStream</h3>
  * This interface is functionally equivalent to {@link java.io.OutputStream}.
  * <p>
  * {@code OutputStream} requires multiple layers when emitted data is heterogeneous: a {@code java.io.DataOutputStream}
  * for primitive values, a {@code java.io.BufferedOutputStream} for buffering, and {@code java.io.OutputStreamWriter}
- * for charset encoding. This library uses {@link Writer} for all of the above.
+ * for charset encoding. This library uses {@linkplain Writer jayo.Writer} for all of the above.
  * <p>
  * Writer is also easier to layer: there is no {@link OutputStream#write(int)} method that is awkward to implement
  * efficiently.
  * <h3>Interop with OutputStream</h3>
- * Use {@link Jayo#writer(OutputStream)} to adapt an {@code OutputStream} to a writer. Use {@link Writer#asOutputStream()} to
- * adapt a writer to an {@code OutputStream}.
+ * Use {@link Jayo#writer(OutputStream)} to adapt an {@code OutputStream} to a {@code RawWriter}. Use
+ * {@link Writer#asOutputStream()} to adapt a {@code RawWriter} to an {@code OutputStream}.
  *
- * @implSpec Implementors should abstain from throwing exceptions other than those that are documented for RawWriter
- * methods.
+ * @implSpec Implementors should abstain from throwing exceptions other than those that are documented below.
  */
 public interface RawWriter extends Closeable, Flushable {
     /**
@@ -65,9 +65,9 @@ public interface RawWriter extends Closeable, Flushable {
      *
      * @param reader    the reader to read data from.
      * @param byteCount the number of bytes to write.
-     * @throws IndexOutOfBoundsException   if the {@code reader}'s size is below {@code byteCount} or {@code byteCount}
-     *                                     is negative.
-     * @throws JayoClosedResourceException when this writer is closed.
+     * @throws IndexOutOfBoundsException   if the {@code reader}'s byte size is below {@code byteCount} or
+     *                                     {@code byteCount} is negative.
+     * @throws JayoClosedResourceException if this writer is closed.
      * @throws JayoException               if an I/O error occurs.
      */
     void write(final @NonNull Buffer reader, final long byteCount);
@@ -83,10 +83,11 @@ public interface RawWriter extends Closeable, Flushable {
 
     /**
      * Pushes all buffered bytes to their final destination and releases the resources held by this writer. Trying to
-     * write to a closed writer will throw a {@link JayoClosedResourceException}. It is safe to close a writer more than
-     * once.
+     * write to a closed writer will throw a {@link JayoClosedResourceException}.
+     * <p>
+     * It is safe to close a writer more than once, but only the first call has an effect.
      *
-     * @throws JayoException if an I/O error occurs.
+     * @throws JayoException if an I/O error occurs during the closing phase.
      */
     @Override
     void close();

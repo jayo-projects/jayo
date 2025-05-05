@@ -60,7 +60,7 @@ public final class Jayo {
      * <p>
      * Write operations to the raw {@code writer} are processed <b>synchronously</b>.
      * <p>
-     * Use this wherever you synchronously write to a raw writer to get an ergonomic and efficient access to data.
+     * Use this wherever you synchronously write to a raw writer to get ergonomic and efficient access to data.
      */
     public static @NonNull Writer buffer(final @NonNull RawWriter writer) {
         return new RealWriter(writer, null);
@@ -72,9 +72,9 @@ public final class Jayo {
      * segment(s), if any.
      * <p>
      * Write operations to the raw {@code writer} are seamlessly processed <b>asynchronously</b> in a distinct runnable
-     * task using the provided {@code taskRunner}.
+     * task executed by {@code taskRunner}.
      * <p>
-     * Use this wherever you asynchronously write to a raw writer to get an ergonomic and efficient access to data.
+     * Use this wherever you asynchronously write to a raw writer to get ergonomic and efficient access to data.
      */
     public static @NonNull Writer bufferAsync(final @NonNull RawWriter writer, final @NonNull TaskRunner taskRunner) {
         return new RealWriter(writer, taskRunner);
@@ -86,7 +86,7 @@ public final class Jayo {
      * <p>
      * Read operations from the raw {@code reader} are processed <b>synchronously</b>.
      * <p>
-     * Use this wherever you synchronously read from a raw reader to get an ergonomic and efficient access to data.
+     * Use this wherever you synchronously read from a raw reader to get ergonomic and efficient access to data.
      */
     public static @NonNull Reader buffer(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
@@ -98,9 +98,9 @@ public final class Jayo {
      * into its underlying buffer.
      * <p>
      * Read operations from the raw {@code reader} are seamlessly processed <b>asynchronously</b> in a distinct runnable
-     * task using the provided {@code taskRunner}.
+     * task executed by {@code taskRunner}.
      * <p>
-     * Use this wherever you asynchronously read from a raw reader to get an ergonomic and efficient access to data.
+     * Use this wherever you asynchronously read from a raw reader to get ergonomic and efficient access to data.
      */
     public static @NonNull Reader bufferAsync(final @NonNull RawReader reader, final @NonNull TaskRunner taskRunner) {
         Objects.requireNonNull(reader);
@@ -110,8 +110,8 @@ public final class Jayo {
 
     /**
      * @return a raw writer that writes to {@code socket}. Prefer this over {@link #writer(OutputStream)} because this
-     * method honors timeouts. When the socket write times out, the socket is asynchronously closed by a watchdog
-     * thread.
+     * method honors timeouts. When a socket write operation times out, this socket is asynchronously closed by a
+     * watchdog thread.
      * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawWriter writer(final @NonNull Socket socket) {
@@ -132,8 +132,8 @@ public final class Jayo {
 
     /**
      * @return a raw reader that reads from {@code socket}. Prefer this over {@link #reader(InputStream)} because this
-     * method honors timeouts. When the socket read times out, the socket is asynchronously closed by a watchdog
-     * thread.
+     * method honors timeouts. When a socket read operation times out, this socket is asynchronously closed by a
+     * watchdog thread.
      * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawReader reader(final @NonNull Socket socket) {
@@ -170,8 +170,8 @@ public final class Jayo {
 
     /**
      * @return a raw writer that writes to {@code socketChannel}. Prefer this over {@link #writer(GatheringByteChannel)}
-     * because this method honors timeouts. When the socket channel write times out, the socket is asynchronously closed
-     * by a watchdog thread.
+     * because this method honors timeouts. When a socket channel write operation times out, this socket is
+     * asynchronously closed by a watchdog thread.
      * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawWriter writer(final @NonNull SocketChannel socketChannel) {
@@ -188,8 +188,8 @@ public final class Jayo {
 
     /**
      * @return a raw reader that reads from {@code socketChannel}. Prefer this over {@link #reader(ReadableByteChannel)}
-     * because this method honors timeouts. When the socket channel read times out, the socket is asynchronously closed
-     * by a watchdog thread.
+     * because this method honors timeouts. When a socket channel read operation times out, this socket is
+     * asynchronously closed by a watchdog thread.
      * @see jayo.network.NetworkEndpoint
      */
     public static @NonNull RawReader reader(final @NonNull SocketChannel socketChannel) {
@@ -292,7 +292,7 @@ public final class Jayo {
     /**
      * @return a raw writer that writes to {@code file}.
      * <p>
-     * If you need specific options, please use {@link #writer(Path, OpenOption...)} instead.
+     * If you need specific open options, please use {@link #writer(Path, OpenOption...)} instead.
      */
     public static @NonNull RawWriter writer(final @NonNull File file) {
         Objects.requireNonNull(file);
@@ -306,7 +306,7 @@ public final class Jayo {
     /**
      * @return a raw reader that reads from {@code file}.
      * <p>
-     * If you need specific options, please use {@link #reader(Path, OpenOption...)} instead.
+     * If you need specific open options, please use {@link #reader(Path, OpenOption...)} instead.
      */
     public static @NonNull RawReader reader(final @NonNull File file) {
         Objects.requireNonNull(file);
@@ -350,9 +350,12 @@ public final class Jayo {
     }
 
     /**
-     * @return a {@link RawWriter} that DEFLATE-compresses data to this {@code writer} while writing.
+     * @return a {@link RawWriter} that DEFLATE-compresses data to this {@code writer} while writing, using the provided
+     * {@code deflater}.
      */
     public static @NonNull RawWriter deflate(final @NonNull Writer writer, final @NonNull Deflater deflater) {
+        Objects.requireNonNull(writer);
+        Objects.requireNonNull(deflater);
         return new DeflaterRawWriter(writer, deflater);
     }
 
@@ -364,10 +367,13 @@ public final class Jayo {
     }
 
     /**
-     * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading.
+     * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading, using the
+     * provided {@code inflater}.
      */
     public static @NonNull InflaterRawReader inflate(final @NonNull Reader reader,
                                                      final @NonNull Inflater inflater) {
+        Objects.requireNonNull(reader);
+        Objects.requireNonNull(inflater);
         return new RealInflaterRawReader(reader, inflater);
     }
 
@@ -375,6 +381,7 @@ public final class Jayo {
      * @return a {@link RawReader} that gzip-decompresses this {@code reader} while reading.
      */
     public static @NonNull RawReader gzip(final @NonNull Reader reader) {
+        Objects.requireNonNull(reader);
         return new GzipRawReader(reader);
     }
 
@@ -397,10 +404,12 @@ public final class Jayo {
 
         @Override
         public void flush() {
+            // no-op
         }
 
         @Override
         public void close() {
+            // no-op
         }
     }
 }
