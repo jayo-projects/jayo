@@ -26,6 +26,7 @@ import jayo.RawReader;
 import jayo.RawWriter;
 import jayo.internal.RealAsyncTimeout;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -42,8 +43,8 @@ import java.util.function.Supplier;
  * Use {@link #writer(RawWriter)} and {@link #reader(RawReader)} to apply this timeout to a stream. The returned value
  * will apply the timeout to each operation on the wrapped stream.
  * <p>
- * Callers should call {@link #enter(long)} before doing work that is subject to timeouts, and {@link #exit()}
- * afterward. The return value of {@link #exit()} indicates whether a timeout was triggered.
+ * Callers should call {@link #enter(long)} before doing work that is subject to timeouts, and {@link #exit(Node)}
+ * afterward. The return value of {@link #exit(Node)} indicates whether a timeout was triggered.
  */
 public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
@@ -54,7 +55,7 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
      *                                 each write operation, only if no timeout is present in the cancellable context.
      *                                 It must be non-negative. A timeout of zero is interpreted as an infinite timeout.
      * @param onTimeout                this code block will be invoked by the watchdog thread when the time between
-     *                                 calls to {@link #enter(long)} and {@link #exit()} has exceeded the timeout.
+     *                                 calls to {@link #enter(long)} and {@link #exit(Node)} has exceeded the timeout.
      * @return a new {@link AsyncTimeout}
      */
     static @NonNull AsyncTimeout create(final long defaultReadTimeoutNanos,
@@ -71,25 +72,28 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     }
 
     /**
-     * Call this method when starting doing work that is subject to timeouts.
+     * Call this method when starting doing work that is subject to timeouts, and get a node that can be passed to
+     * {@link #exit(Node)}.
      *
      * @param defaultTimeout the default timeout (in nanoseconds). It will be used as a fallback for this operation only
      *                       if no timeout is present in the cancellable context. It must be non-negative. A timeout of
      *                       zero is interpreted as an infinite timeout.
-     * @see #exit()
+     * @see #exit(Node)
      */
-    void enter(final long defaultTimeout);
+    @Nullable
+    Node enter(final long defaultTimeout);
 
     /**
-     * Call this method when ending doing work that is subject to timeouts.
+     * Call this method when ending doing work that is subject to timeouts, pass the node returned by
+     * {@link #enter(long)} as an argument.
      *
      * @return {@code true} if the timeout occurred.
      * @see #enter(long)
      */
-    boolean exit();
+    boolean exit(final @Nullable Node node);
 
     /**
-     * Surrounds {@code block} with calls to {@link #enter(long)} and {@link #exit()}, throwing a
+     * Surrounds {@code block} with calls to {@link #enter(long)} and {@link #exit(Node)} , throwing a
      * {@linkplain JayoInterruptedIOException JayoInterruptedIOException} if a timeout occurred. You must provide a
      * {@code cancelToken} obtained by calling {@link CancelToken#getCancelToken()}.
      */
@@ -110,4 +114,14 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
      */
     @NonNull
     RawReader reader(final @NonNull RawReader reader);
+
+    /**
+     * A node in the AsyncTimeout queue.
+     */
+    sealed interface Node permits RealAsyncTimeout.TimeoutNode {
+        /**
+         * If scheduled, this is the time that the watchdog should time this out.
+         */
+        long getTimeoutAt();
+    }
 }
