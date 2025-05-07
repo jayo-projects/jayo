@@ -51,13 +51,13 @@ public final class AsyncTimeoutTest {
         AsyncTimeout timeout = recordingAsyncTimeout();
         // with cancel scope but no timeout
         Cancellable.run(cancelScope -> {
-            timeout.enter(0L);
+            var node = timeout.enter(0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertFalse(timeout.exit());
+            assertFalse(timeout.exit(node));
             assertTimedOut();
         });
     }
@@ -68,13 +68,13 @@ public final class AsyncTimeoutTest {
         // with cancel scope but no timeout
         Cancellable.call(cancelScope -> {
             // provide a defaultTimeout to check it is ignored
-            timeout.enter(1L);
+            var node = timeout.enter(1L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertFalse(timeout.exit());
+            assertFalse(timeout.exit(node));
             assertTimedOut();
             return true;
         });
@@ -83,13 +83,13 @@ public final class AsyncTimeoutTest {
     @Test
     public void singleInstanceTimedOutRun() {
         Cancellable.run(Duration.ofMillis(25), cancelScope -> {
-            a.enter(0L);
+            var node = a.enter(0L);
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertTrue(a.exit());
+            assertTrue(a.exit(node));
             assertTimedOut(a);
         });
     }
@@ -97,13 +97,13 @@ public final class AsyncTimeoutTest {
     @Test
     public void singleInstanceTimedOutCall() {
         Cancellable.call(Duration.ofMillis(25), cancelScope -> {
-            a.enter(0L);
+            var node = a.enter(0L);
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertTrue(a.exit());
+            assertTrue(a.exit(node));
             assertTimedOut(a);
             return true;
         });
@@ -112,14 +112,13 @@ public final class AsyncTimeoutTest {
     @Test
     public void singleInstanceNotTimedOutRun() {
         Cancellable.run(Duration.ofMillis(50), cancelScope -> {
-            b.enter(0L);
+            var node = b.enter(0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            b.exit();
-            assertFalse(b.exit());
+            assertFalse(b.exit(node));
             assertTimedOut();
         });
     }
@@ -127,10 +126,10 @@ public final class AsyncTimeoutTest {
     @Test
     public void instancesAddedAtEnd() {
         Cancellable.run(Duration.ofMillis(100), cancelScope1 -> {
-            a.enter(0L);
-            b.enter(0L);
-            c.enter(0L);
-            d.enter(0L);
+            var nodeA = a.enter(0L);
+            var nodeB = b.enter(0L);
+            var nodeC = c.enter(0L);
+            var nodeD = d.enter(0L);
             Cancellable.run(Duration.ofMillis(75), cancelScope2 ->
                     Cancellable.run(Duration.ofMillis(50), cancelScope3 ->
                             Cancellable.run(Duration.ofMillis(25), cancelScope4 -> {
@@ -140,60 +139,51 @@ public final class AsyncTimeoutTest {
                                     throw new RuntimeException(e);
                                 }
                             })));
+            assertTrue(a.exit(nodeA));
+            assertTrue(b.exit(nodeB));
+            assertTrue(c.exit(nodeC));
+            assertTrue(d.exit(nodeD));
+            assertTimedOut(a, b, c, d);
         });
-        assertTrue(a.exit());
-        assertTrue(b.exit());
-        assertTrue(c.exit());
-        assertTrue(d.exit());
-        assertTimedOut(a, b, c, d);
     }
 
     @Test
     public void instancesRemovedAtFront() {
         Cancellable.run(cancelScope -> {
-            a.enter(0L);
-            b.enter(0L);
-            c.enter(0L);
-            d.enter(0L);
-        });
-        assertFalse(a.exit());
-        assertFalse(b.exit());
-        assertFalse(c.exit());
-        assertFalse(d.exit());
-        assertTimedOut();
-    }
-
-    @Test
-    public void doubleEnter() {
-        Cancellable.run(Duration.ofMillis(25), cancelScope -> {
-            a.enter(0L);
-            assertThatThrownBy(() -> a.enter(0L))
-                    .isInstanceOf(IllegalStateException.class);
+            var nodeA = a.enter(0L);
+            var nodeB = b.enter(0L);
+            var nodeC = c.enter(0L);
+            var nodeD = d.enter(0L);
+            assertFalse(a.exit(nodeA));
+            assertFalse(b.exit(nodeB));
+            assertFalse(c.exit(nodeC));
+            assertFalse(d.exit(nodeD));
+            assertTimedOut();
         });
     }
 
     @Test
     public void reEnter() {
         Cancellable.run(Duration.ofSeconds(1), cancelScope -> {
-            a.enter(0L);
-            assertFalse(a.exit());
-            a.enter(0L);
-            assertFalse(a.exit());
+            var node = a.enter(0L);
+            assertFalse(a.exit(node));
+            node = a.enter(0L);
+            assertFalse(a.exit(node));
         });
     }
 
     @Test
     public void reEnterAfterTimeout() {
         Cancellable.run(Duration.ofSeconds(1), cancelScope -> {
-            a.enter(0L);
+            var node = a.enter(0L);
             try {
                 assertSame(a, timedOut.take());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertTrue(a.exit());
-            a.enter(0L);
-            assertFalse(a.exit());
+            assertTrue(a.exit(node));
+            node = a.enter(0L);
+            assertFalse(a.exit(node));
         });
     }
 
@@ -201,13 +191,13 @@ public final class AsyncTimeoutTest {
     public void timeout() {
         Cancellable.run(Duration.ofMillis(25), cancelScope -> {
             final var timeout = recordingAsyncTimeout();
-            timeout.enter(0L);
+            var node = timeout.enter(0L);
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertTrue(timeout.exit());
+            assertTrue(timeout.exit(node));
             assertTimedOut(timeout);
         });
     }
@@ -221,13 +211,13 @@ public final class AsyncTimeoutTest {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            timeout.enter(0L);
+            var node = timeout.enter(0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertTrue(timeout.exit());
+            assertTrue(timeout.exit(node));
             assertTimedOut(timeout);
         });
     }
@@ -236,38 +226,38 @@ public final class AsyncTimeoutTest {
     public void shortTimeoutReached() {
         final var timeout = recordingAsyncTimeout();
         Cancellable.run(Duration.ofNanos(1), cancelScope -> {
-            timeout.enter(0L);
+            var node = timeout.enter(0L);
             try {
                 Thread.sleep(25);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertTrue(timeout.exit());
+            assertTrue(timeout.exit(node));
             assertTimedOut(timeout);
         });
     }
 
     @Test
     public void defaultTimeout() {
-        a.enter(25_000_000L);
+        var node = a.enter(25_000_000L);
         try {
             Thread.sleep(50);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        assertTrue(a.exit());
+        assertTrue(a.exit(node));
         assertTimedOut(a);
     }
 
     @Test
     public void defaultTimeoutNoTimeout() {
-        a.enter(100_000_000L);
+        var node = a.enter(100_000_000L);
         try {
             Thread.sleep(50);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        assertFalse(a.exit());
+        assertFalse(a.exit(node));
         assertTimedOut();
     }
 
