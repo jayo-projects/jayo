@@ -102,11 +102,7 @@ tasks {
     }
 }
 
-java {
-    withSourcesJar()
-}
-
-// Generate javadoc jar for Java and Kotlin code in jvm artefacts.
+// Generate a javadoc jar for Java and Kotlin code in jvm artifacts.
 val dokkaJavadocJar by tasks.registering(Jar::class) {
     description = "A Javadoc JAR containing Dokka Javadoc for Java and Kotlin"
     from(tasks.dokkaGeneratePublicationJavadoc.flatMap { it.outputDirectory })

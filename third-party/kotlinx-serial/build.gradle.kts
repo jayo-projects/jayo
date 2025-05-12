@@ -19,9 +19,11 @@ dependencies {
 kotlin {
     compilerOptions {
         allWarningsAsErrors = false
-        freeCompilerArgs.add(
-            "-opt-in=kotlinx.serialization.json.internal.JsonFriendModuleApi",
-        )
+        freeCompilerArgs.add("-opt-in=kotlinx.serialization.json.internal.JsonFriendModuleApi")
     }
     jvmToolchain(17)
+}
+
+java {
+    withSourcesJar()
 }
