@@ -55,13 +55,13 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
     final Queue<T> futureTasks;
 
     /**
-     * This queue's currently waiting for execution task in the {@link RealTaskRunner}, or null if no future tasks.
+     * This queue's task currently waiting for execution in the {@link RealTaskRunner}, or null if no future tasks.
      */
     @Nullable
     T scheduledTask = null;
 
     /**
-     * This queue's currently-executing task, or null if none is currently executing.
+     * This queue's task currently executing, or null if none is currently executing.
      */
     @Nullable
     T activeTask = null;

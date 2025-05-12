@@ -42,10 +42,10 @@ import java.lang.reflect.Method
 import java.security.Security
 
 /**
- * Marks a test as Platform aware, before the test runs a consistent Platform will be established e.g. SecurityProvider
+ * Marks a test as Platform aware, before the test runs a consistent Platform will be established e.g., SecurityProvider
  * for Conscrypt installed.
  *
- * Also allows a test file to state general platform assumptions, or for individual test.
+ * Also allows a test file to state general platform assumptions or for individual test.
  */
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 open class PlatformRule

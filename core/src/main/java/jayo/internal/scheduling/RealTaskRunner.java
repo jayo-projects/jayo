@@ -53,6 +53,15 @@ public final class RealTaskRunner implements TaskRunner {
     final @NonNull Condition scheduledCondition = scheduledLock.newCondition();
     private boolean scheduledCoordinatorWaiting = false;
     private long scheduledCoordinatorWakeUpAt = 0L;
+
+    /**
+     * When we need a new thread to run tasks, we call {@link Backend#execute(RealTaskRunner, Runnable)}. A few
+     * microseconds later we expect a newly started thread to call {@link Runnable#run()}. We shouldn't request new
+     * threads until the already-requested ones are in service, otherwise we might create more threads than we need.
+     * <p>
+     * We use {@code #scheduledExecuteCallCount} and {@link #scheduledRunCallCount} to defend against starting more
+     * threads than we need. Both fields are guarded by {@link #scheduledLock}.
+     */
     private int scheduledExecuteCallCount = 0;
     private int scheduledRunCallCount = 0;
 
@@ -127,7 +136,7 @@ public final class RealTaskRunner implements TaskRunner {
                     }
                 }
             } catch (Throwable thrown) {
-                // A task failed. Update execution state and re-throw the exception.
+                // A task failed. Update the execution state and re-throw the exception.
                 scheduledLock.lock();
                 try {
                     assert task != null;
@@ -197,7 +206,7 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     /**
-     * Start another thread, unless a new thread is already scheduled to start.
+     * Start another thread unless a new thread is already scheduled to start.
      */
     private void startAnotherScheduledThread() {
         if (scheduledExecuteCallCount > scheduledRunCallCount) {
@@ -224,7 +233,7 @@ public final class RealTaskRunner implements TaskRunner {
             if (futureTasks.poll() != runnableTask) {
                 throw new IllegalStateException();
             }
-            // Also start another thread if there's more work or scheduling to do.
+            // Also, start another thread if there's more work or scheduling to do.
             if (!futureTasks.isEmpty()) {
                 startAnotherThread();
             }
@@ -233,7 +242,7 @@ public final class RealTaskRunner implements TaskRunner {
             if (futureScheduledTasks.poll() != scheduledTask) {
                 throw new IllegalStateException();
             }
-            // Also start another thread if there's more work or scheduling to do.
+            // Also, start another thread if there's more work or scheduling to do.
             if (!futureScheduledTasks.isEmpty()) {
                 startAnotherScheduledThread();
             }
@@ -286,7 +295,7 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     /**
-     * Returns an immediately-executable task for the calling thread to execute, sleeping as necessary until one is
+     * Returns an immediately executable task for the calling thread to execute, sleeping as necessary until one is
      * ready. If there are no ready task, or if other threads can execute it this will return null. If there is more
      * than a single task ready to execute immediately this will start another thread to handle that work.
      */
@@ -472,54 +481,47 @@ public final class RealTaskRunner implements TaskRunner {
         void shutdown();
     }
 
-    static final class RealBackend implements Backend {
-        final @NonNull ExecutorService executor;
+    record RealBackend(@NonNull ExecutorService executor) implements Backend {
+            @Override
+            public long nanoTime() {
+                return System.nanoTime();
+            }
 
-        RealBackend(final @NonNull ExecutorService executor) {
-            assert executor != null;
-            this.executor = executor;
-        }
+            @Override
+            public @NonNull <T> BlockingQueue<T> decorate(final @NonNull BlockingQueue<T> queue) {
+                Objects.requireNonNull(queue);
+                return queue;
+            }
 
-        @Override
-        public long nanoTime() {
-            return System.nanoTime();
-        }
+            @Override
+            public void coordinatorNotify(final @NonNull RealTaskRunner taskRunner) {
+                assert taskRunner != null;
+                taskRunner.scheduledCondition.signal();
+            }
 
-        @Override
-        public @NonNull <T> BlockingQueue<T> decorate(final @NonNull BlockingQueue<T> queue) {
-            Objects.requireNonNull(queue);
-            return queue;
-        }
+            /**
+             * Wait a duration in nanoseconds.
+             *
+             * @return true if wait was fully completed, false if it has been signalled before ending the wait phase.
+             */
+            @Override
+            public boolean coordinatorWait(final @NonNull RealTaskRunner taskRunner,
+                                           final long nanos) throws InterruptedException {
+                assert taskRunner != null;
+                assert nanos > 0;
+                return taskRunner.scheduledCondition.awaitNanos(nanos) <= 0;
+            }
 
-        @Override
-        public void coordinatorNotify(final @NonNull RealTaskRunner taskRunner) {
-            assert taskRunner != null;
-            taskRunner.scheduledCondition.signal();
-        }
+            @Override
+            public void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable) {
+                assert taskRunner != null;
+                assert runnable != null;
+                executor.execute(runnable);
+            }
 
-        /**
-         * Wait a duration in nanoseconds.
-         *
-         * @return true if wait was fully completed, false if it has been signalled before ending the wait phase.
-         */
-        @Override
-        public boolean coordinatorWait(final @NonNull RealTaskRunner taskRunner,
-                                       final long nanos) throws InterruptedException {
-            assert taskRunner != null;
-            assert nanos > 0;
-            return taskRunner.scheduledCondition.awaitNanos(nanos) <= 0;
+            @Override
+            public void shutdown() {
+                executor.shutdown();
+            }
         }
-
-        @Override
-        public void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable) {
-            assert taskRunner != null;
-            assert runnable != null;
-            executor.execute(runnable);
-        }
-
-        @Override
-        public void shutdown() {
-            executor.shutdown();
-        }
-    }
 }

@@ -22,12 +22,12 @@ public sealed class JayoInterruptedIOException extends JayoException permits Jay
         super(Objects.requireNonNull(message), new InterruptedIOException(message));
     }
 
-    public JayoInterruptedIOException(final @NonNull String message, final @NonNull SocketTimeoutException cause) {
-        super(Objects.requireNonNull(message), cause);
-    }
-
     public JayoInterruptedIOException(final @NonNull InterruptedIOException cause) {
         super(Objects.requireNonNull(cause));
+    }
+
+    JayoInterruptedIOException(final @NonNull String message, final @NonNull SocketTimeoutException cause) {
+        super(Objects.requireNonNull(message), cause);
     }
 
     public final void initCause(final @NonNull JayoException cause) {
