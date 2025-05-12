@@ -482,8 +482,10 @@ class TaskRunnerTest {
         }
 
         assertThat(redQueue.scheduledTasks.toString())
-            .isEqualTo("[ScheduledTask{name='task one', cancellable=true, queue=Q10000', nextExecuteNanoTime=100000}," +
-                    " ScheduledTask{name='task two', cancellable=true, queue=Q10000', nextExecuteNanoTime=200000}]")
+            .isEqualTo(
+                "[ScheduledTask{name='task one', cancellable=true, queue=Q10000', nextExecuteNanoTime=100000}," +
+                        " ScheduledTask{name='task two', cancellable=true, queue=Q10000', nextExecuteNanoTime=200000}]"
+            )
 
         assertThat(testLogHandler.takeAll()).containsExactly(
             "TRACE: Q10000 scheduled after 100 µs: task one",
@@ -559,6 +561,41 @@ class TaskRunnerTest {
             "TRACE: Q10000 finished run in   0 µs: task two",
             "TRACE: Q10000 starting              : task one",
             "TRACE: Q10000 finished run in   0 µs: task one",
+        )
+    }
+
+    /**
+     * The runner doesn't hold references to its queues! Otherwise, we'd need a mechanism to clean them up when they're
+     * no longer needed, and that's annoying. Instead, the task runner only tracks which queues have work scheduled.
+     */
+    @Test
+    fun activeQueuesContainsOnlyQueuesWithScheduledTasks() {
+        redQueue.schedule("task one", 100.µs) {
+            -1L // Do nothing.
+        }
+
+        blueQueue.schedule("task two", 200.µs) {
+            -1L// Do nothing.
+        }
+
+        taskFaker.advanceUntil(0.µs)
+        assertThat(taskRunner.activeQueues()).containsExactly(redQueue, blueQueue)
+
+        taskFaker.advanceUntil(100.µs)
+        assertThat(taskRunner.activeQueues()).containsExactly(blueQueue)
+
+        taskFaker.advanceUntil(200.µs)
+        assertThat(taskRunner.activeQueues()).isEmpty()
+
+        taskFaker.assertNoMoreTasks()
+
+        assertThat(testLogHandler.takeAll()).containsExactly(
+            "TRACE: Q10000 scheduled after 100 µs: task one",
+            "TRACE: Q10001 scheduled after 200 µs: task two",
+            "TRACE: Q10000 starting              : task one",
+            "TRACE: Q10000 finished run in   0 µs: task one",
+            "TRACE: Q10001 starting              : task two",
+            "TRACE: Q10001 finished run in   0 µs: task two",
         )
     }
 
