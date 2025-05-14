@@ -38,7 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 /**
- * A set of tools provided and used internally by Jayo that can be useful to other libraries that depend on Jayo.
+ * A set of tools provided and used internally by Jayo and Jayo HTTP that can be useful to other libraries.
  */
 @SuppressWarnings("unused")
 public final class JayoUtils {

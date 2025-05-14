@@ -26,7 +26,7 @@ import jayo.tls.HeldCertificate
 import jayo.tls.HeldCertificate.CertificateKeyFormat.ECDSA_256
 import jayo.tls.HeldCertificate.CertificateKeyFormat.RSA_2048
 import jayo.tls.HeldCertificate.decode
-import jayo.tls.PlatformRule
+import jayo.tls.JssePlatformRule
 import jayo.tls.build
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Offset.offset
@@ -47,7 +47,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class HeldCertificateTest {
     @RegisterExtension
-    var platform = PlatformRule()
+    var platform = JssePlatformRule()
 
     @Test
     fun defaultCertificate() {
@@ -73,7 +73,8 @@ class HeldCertificateTest {
         val heldCertificate =
             HeldCertificate.builder()
                 .validityInterval(
-                    Instant.ofEpochMilli(5000L), Instant.ofEpochMilli(10000L))
+                    Instant.ofEpochMilli(5000L), Instant.ofEpochMilli(10000L)
+                )
                 .build()
         val certificate = heldCertificate.certificate
         assertThat(certificate.notBefore.time).isEqualTo(5000L)
@@ -579,9 +580,12 @@ class HeldCertificateTest {
             )
             fail<Any>()
         } catch (expected: IllegalArgumentException) {
-            if (!platform.isConscrypt()) {
-                assertThat(expected.message).isEqualTo("failed to decode certificate")
+            val expectedMessage = if (platform.isConscrypt()) {
+                "failed to decode certificate, certificate collection is empty."
+            } else {
+                "failed to decode certificate"
             }
+            assertThat(expected.message).isEqualTo(expectedMessage)
         }
         try {
             decode(
@@ -604,9 +608,7 @@ class HeldCertificateTest {
             )
             fail<Any>()
         } catch (expected: IllegalArgumentException) {
-            if (!platform.isConscrypt()) {
-                assertThat(expected.message).isEqualTo("failed to decode private key")
-            }
+            assertThat(expected.message).isEqualTo("failed to decode private key")
         }
     }
 }
