@@ -46,7 +46,6 @@ dependencies {
     compileOnly("org.conscrypt:conscrypt-openjdk-uber:${catalogVersion("conscrypt")}")
 
     testFixturesApi("org.junit.jupiter:junit-jupiter:${catalogVersion("junit")}")
-    testFixturesApi("org.hamcrest:hamcrest:${catalogVersion("hamcrest")}")
     testFixturesApi("org.bouncycastle:bcprov-jdk18on:${catalogVersion("bouncycastle")}")
     testFixturesApi("org.conscrypt:conscrypt-openjdk-uber:${catalogVersion("conscrypt")}")
 

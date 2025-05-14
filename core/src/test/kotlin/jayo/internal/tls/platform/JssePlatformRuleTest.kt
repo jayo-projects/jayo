@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-present, pull-vert and Jayo contributors.
+ * Copyright (c) 2025-present, pull-vert and Jayo contributors.
  * Use of this source code is governed by the Apache 2.0 license.
  *
  * Forked from OkHttp (https://github.com/square/okhttp), original copyright is below
@@ -19,41 +19,32 @@
  * limitations under the License.
  */
 
-package jayo.internal.tls
+package jayo.internal.tls.platform
 
 import jayo.tls.JssePlatform
-import jayo.tls.PlatformRule
-import jayo.tls.PlatformVersion
+import jayo.tls.JssePlatformRule
+import org.assertj.core.api.Assertions.assertThat
+import org.conscrypt.Conscrypt
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 
 /**
- * Validates which environment is used by the IDE.
+ * Validates Conscrypt and BouncyCastle are working.
  */
-class PlatformRuleTest {
-    @RegisterExtension
+class JssePlatformRuleTest {
     @JvmField
-    val platform = PlatformRule()
+    @RegisterExtension
+    val platform = JssePlatformRule()
 
     @Test
-    fun testMode() {
-        println(PlatformRule.getPlatformSystemProperty())
-        println(JssePlatform.get().javaClass.simpleName)
+    fun testConscryptTrustManager() {
+        platform.assumeConscrypt()
+        assertThat(Conscrypt.isConscrypt(JssePlatform.get().defaultTrustManager)).isTrue()
     }
 
     @Test
-    fun testGreenCase() {
-    }
-
-    @Test
-    fun testGreenCaseFailingOnLater() {
-        platform.expectFailureFromJdkVersion(PlatformVersion.majorVersion + 1)
-    }
-
-    @Test
-    fun failureCase() {
-        platform.expectFailureFromJdkVersion(PlatformVersion.majorVersion)
-
-        check(false)
+    fun testBouncyCastle() {
+        platform.assumeBouncyCastle()
+        assertThat(Conscrypt.isConscrypt(JssePlatform.get().defaultTrustManager)).isFalse()
     }
 }

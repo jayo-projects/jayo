@@ -25,10 +25,10 @@ import jayo.bytestring.toByteString
 import jayo.internal.JavaVersionUtils.threadFactory
 import jayo.tls.*
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.RegisterExtension
+import org.junit.jupiter.api.extension.ExtendWith
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
@@ -40,24 +40,26 @@ import javax.net.ServerSocketFactory
 import javax.net.SocketFactory
 import javax.net.ssl.SSLSocket
 
+@ExtendWith(JssePlatformRule::class)
 class HandshakeCertificatesTest {
-    @RegisterExtension
-    var platform = PlatformRule()
+    companion object {
+        private var serverSocket: ServerSocket? = null
+        private lateinit var executorService: ExecutorService
 
-    private lateinit var executorService: ExecutorService
+        @BeforeAll
+        @JvmStatic
+        fun setUp() {
+            executorService = Executors.newCachedThreadPool(
+                threadFactory("HandshakeCertificatesTest", true)
+            )
+        }
 
-    private var serverSocket: ServerSocket? = null
-
-    @BeforeEach
-    fun setUp() {
-        executorService = Executors.newCachedThreadPool(
-            threadFactory("HandshakeCertificatesTest", true))
-    }
-
-    @AfterEach
-    fun tearDown() {
-        executorService.shutdown()
-        serverSocket?.close()
+        @AfterAll
+        @JvmStatic
+        fun tearDown() {
+            executorService.shutdown()
+            serverSocket?.close()
+        }
     }
 
     @Test
@@ -116,9 +118,6 @@ class HandshakeCertificatesTest {
 
     @Test
     fun clientAndServer() {
-        platform.assumeNotConscrypt()
-        platform.assumeNotBouncyCastle()
-
         val clientRoot =
             HeldCertificate.builder()
                 .certificateAuthority(1)
