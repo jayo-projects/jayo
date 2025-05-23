@@ -114,6 +114,7 @@ streams are not safe for concurrent use.
 * A nice usage of java `Stream<T>` can be found in Spring's `ResultSetSpliterator` in the `JdbcTemplate` class
 * [Timeouts and cancellation for humans](https://vorpus.org/blog/timeouts-and-cancellation-for-humans/) inspiration for
 the cancellation mechanism in Jayo
+* [From reactive streams to virtual threads](https://javapro.io/2025/04/04/from-reactive-streams-to-virtual-threads/)
 
 ### Reminder : Kotlin operators :
 For performing bitwise operations, Kotlin provides the following methods that work for Int and Long types

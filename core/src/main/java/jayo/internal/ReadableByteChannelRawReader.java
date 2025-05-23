@@ -27,20 +27,18 @@ public final class ReadableByteChannelRawReader implements RawReader {
     }
 
     /**
-     * Execute a single read from the ReadableByteChannel, that reads up to byteCount bytes of data from the readable
+     * Execute a single read from the ReadableByteChannel, which reads up to byteCount bytes of data from the readable
      * channel. A smaller number may be read.
      *
      * @return the number of bytes actually read.
      */
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
-        Objects.requireNonNull(writer);
+    public long readAtMostTo(final @NonNull Buffer destination, final long byteCount) {
+        Objects.requireNonNull(destination);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        if (!(writer instanceof RealBuffer _writer)) {
-            throw new IllegalArgumentException("writer must be an instance of RealBuffer");
-        }
+        final var writer = (RealBuffer) destination;
 
         final var cancelToken = CancellableUtils.getCancelToken();
         CancelToken.throwIfReached(cancelToken);
@@ -52,10 +50,10 @@ public final class ReadableByteChannelRawReader implements RawReader {
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "ReadableByteChannelRawReader: Start reading up to {0} bytes from the" +
                             "ReadableByteChannel to {1}Buffer(SegmentQueue={2}){3}",
-                    byteCount, System.lineSeparator(), _writer.segmentQueue, System.lineSeparator());
+                    byteCount, System.lineSeparator(), writer.segmentQueue, System.lineSeparator());
         }
 
-        final var bytesRead = _writer.segmentQueue.withWritableTail(1, tail -> {
+        final var bytesRead = writer.segmentQueue.withWritableTail(1, tail -> {
             final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
             final int read;
             try {
@@ -72,7 +70,7 @@ public final class ReadableByteChannelRawReader implements RawReader {
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "ReadableByteChannelRawReader: Finished reading {0}/{1} bytes from the " +
                             "ReadableByteChannel to {2}Buffer(SegmentQueue={3}){4}",
-                    bytesRead, byteCount, System.lineSeparator(), _writer.segmentQueue, System.lineSeparator());
+                    bytesRead, byteCount, System.lineSeparator(), writer.segmentQueue, System.lineSeparator());
         }
 
         return bytesRead;

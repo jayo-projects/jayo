@@ -68,16 +68,16 @@ import java.io.InputStream;
  */
 public interface RawReader extends Closeable {
     /**
-     * Removes at least 1, and up to {@code byteCount} bytes from this and appends them to {@code writer}.
+     * Removes at least 1, and up to {@code byteCount} bytes from this and appends them to {@code destination}.
      *
-     * @param writer    the destination to write the data from this reader.
-     * @param byteCount the number of bytes to read.
+     * @param destination the destination to write the data from this reader.
+     * @param byteCount   the number of bytes to read.
      * @return the number of bytes read, or {@code -1L} if this reader is exhausted.
      * @throws IllegalArgumentException    if {@code byteCount} is negative.
      * @throws JayoClosedResourceException if this reader is closed.
      * @throws JayoException               if an I/O error occurs.
      */
-    long readAtMostTo(final @NonNull Buffer writer, final long byteCount);
+    long readAtMostTo(final @NonNull Buffer destination, final long byteCount);
 
     /**
      * Closes this reader and releases the resources held by this reader. Trying to read in a closed reader will throw a
