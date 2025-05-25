@@ -76,9 +76,9 @@ open class BufferUtf8Benchmark {
 
         // Prepare a string and ByteString for encoding and decoding with Okio and Jayo
         jayoBuffer = Buffer()
-        val tempJayoIo = Buffer()
-        tempJayoIo.write(encode)
-        jayoDecode = tempJayoIo.snapshot()
+        val tempJayo = Buffer()
+        tempJayo.write(encode)
+        jayoDecode = tempJayo.snapshot()
 
         okioBuffer = okio.Buffer()
         val tempOkio = okio.Buffer()
@@ -93,9 +93,10 @@ open class BufferUtf8Benchmark {
     }
 
     @Benchmark
-    fun readUtf8Okio(): Int {
+    fun readUtf8Okio() {
         okioBuffer.write(okioDecode)
-        return okioBuffer.readUtf8().length
+        val length = okioBuffer.readUtf8().length
+        check(length == encode.length)
     }
 
     @Benchmark
@@ -111,14 +112,16 @@ open class BufferUtf8Benchmark {
     }
 
     @Benchmark
-    fun readUtf8StringJayo(): Int {
+    fun readUtf8StringJayo() {
         jayoBuffer.write(jayoDecode)
-        return jayoBuffer.readString().length
+        val length = jayoBuffer.readString().length
+        check(length == encode.length)
     }
 
     @Benchmark
-    fun readUtf8Jayo(): Int {
+    fun readUtf8Jayo() {
         jayoBuffer.write(jayoDecode)
-        return jayoBuffer.readUtf8().length()
+        val length = jayoBuffer.readUtf8().length()
+        check(length == encode.length)
     }
 }
