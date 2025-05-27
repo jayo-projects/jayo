@@ -64,7 +64,7 @@ See the project website (*coming soon*) for documentation and APIs.
 Jayo is a Multi-Release JAR with base Java version set to 17. Its Java 21 sources activate internal use of virtual
 threads.
 
-*Contributions are very welcome, simply clone this repo and submit a PR when your fix, new feature or optimization is
+*Contributions are very welcome, simply clone this repo and submit a PR when your fix, new feature, or optimization is
 ready !*
 
 ## Main concepts
@@ -78,13 +78,13 @@ ready !*
 * `NetworkEndpoint` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
 
 Jayo also provides some useful tools for TLS
-* `ClientTlsEndpoint` and `ServerTlsEndpoint` are easy-to-use APIs based on Jayo's reader and writer, that allows to
+* `ClientTlsEndpoint` and `ServerTlsEndpoint` are easy-to-use APIs based on Jayo's reader and writer, that allow to
 secure JVM applications with minimal added complexity.
 * `JssePlatform` eases access to platform-specific Java Secure Socket Extension (JSSE) features.
 
 When used within Java 21+ virtual threads (see [Project Loom](https://openjdk.org/projects/loom/)), synchronous I/O will
-use non-blocking network APIs and trigger very fast context switches between a few platform OS-level threads instead of
-blocking them like they did before Loom. Virtual threads allow to run as many threads as we need without requiring
+use non-blocking network APIs and trigger rapid context switches between a few platform OS-level threads instead of
+blocking them like they did before Loom. Virtual threads allow running as many threads as we need without requiring
 thread pools or event-loop.
 
 You can also read [concepts](CONCEPT.md) and [draft ideas](DRAFT_IDEAS.md).
