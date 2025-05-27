@@ -13,6 +13,12 @@ import java.util.concurrent.TimeUnit
 @BenchmarkMode(Mode.Throughput)
 @Fork(value = 1)
 open class BufferUtf8Benchmark {
+    @Param("20", "2000", "200000")
+    private var length = 0
+
+    @Param("ascii", "latin1", "utf8MostlyAscii", "utf8", "2bytes"/*, "3bytes", "4bytes", "bad"*/)
+    private lateinit var encoding: String
+
     companion object {
         private val strings = java.util.Map.of(
             "ascii",
@@ -31,6 +37,14 @@ open class BufferUtf8Benchmark {
                     "génies pour accomplir quelque chose aussi vite que tu pouvais, et avant même " +
                     "de savoir ce que tu avais, tu l'as breveté, et l'as emballé, et tu l'as mis sur une boîte " +
                     "à lunch en plastique, et maintenant tu le vends, tu veux le vendre",
+            "utf8MostlyAscii",
+            "Սｍ, I'll tell you the problem with the scientific power that you're using here, "
+                    + "it didn't require any discipline to attain it. You read what others had done and you "
+                    + "took the next step. You didn't earn the knowledge for yourselves, so you don't take any "
+                    + "responsibility for it. You stood on the shoulders of geniuses to accomplish something "
+                    + "as fast as you could, and before you even knew what you had, you patented it, and "
+                    + "packaged it, and slapped it on a plastic lunchbox, and now you're selling it, you wanna "
+                    + "sell it.",
             "utf8",
             "Սｍ, I'll 𝓽𝖾ll ᶌօ𝘂 ᴛℎ℮ 𝜚𝕣०ｂl𝖾ｍ ｗі𝕥𝒽 𝘵𝘩𝐞 𝓼𝙘𝐢𝔢𝓷𝗍𝜄𝚏𝑖ｃ 𝛠𝝾ｗ𝚎𝑟 𝕥ｈ⍺𝞃 𝛄𝓸𝘂'𝒓𝗲 υ𝖘𝓲𝗇ɡ 𝕙𝚎𝑟ｅ, "
                     + "𝛊𝓽 ⅆ𝕚𝐝𝝿'𝗍 𝔯𝙚𝙦ᴜ𝜾𝒓𝘦 𝔞𝘯𝐲 ԁ𝜄𝑠𝚌ι𝘱lι𝒏ｅ 𝑡𝜎 𝕒𝚝𝖙𝓪і𝞹 𝔦𝚝. 𝒀ο𝗎 𝔯𝑒⍺𝖉 ｗ𝐡𝝰𝔱 𝞂𝞽һ𝓮𝓇ƽ հ𝖺𝖉 ⅾ𝛐𝝅ⅇ 𝝰πԁ 𝔂ᴑᴜ 𝓉ﮨ၀𝚔 "
@@ -49,12 +63,6 @@ open class BufferUtf8Benchmark {
             "\ud800\u0061\udc00\u0061"
         )
     }
-
-    @Param("20", "2000", "200000")
-    private var length = 0
-
-    @Param("ascii", "latin1", "utf8", "2bytes"/*, "3bytes", "4bytes", "bad"*/)
-    private lateinit var encoding: String
 
     private lateinit var jayoBuffer: Buffer
     private lateinit var jayoDecode: ByteString
