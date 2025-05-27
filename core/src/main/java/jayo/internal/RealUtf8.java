@@ -259,7 +259,7 @@ public final class RealUtf8 extends BaseByteString implements Utf8 {
 
         var isAscii = true;
         while (byteIndex < data.length) {
-            if ((data[byteIndex] & 0x80) != 0) {
+            if (data[byteIndex] < 0) {
                 isAscii = false;
                 break;
             }
@@ -268,14 +268,14 @@ public final class RealUtf8 extends BaseByteString implements Utf8 {
 
         this.isAscii = isAscii;
         if (isAscii) {
-            length = data.length;
+            this.length = data.length;
             return;
         }
 
         var length = byteIndex;
         while (byteIndex < data.length) {
             final var b0 = data[byteIndex];
-            if ((b0 & 0x80) == 0) {
+            if (b0 >= 0) {
                 // 0xxxxxxx : 7 bits (ASCII).
                 byteIndex++;
                 length++;

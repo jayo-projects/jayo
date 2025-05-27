@@ -248,13 +248,13 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
         var nextSegmentOffset = directory[0];
         var isAscii = true;
         while (true) {
-            if ((segments[segmentIndex].data[byteIndexInSegment] & 0x80) != 0) {
+            if (segments[segmentIndex].data[byteIndexInSegment] < 0) {
                 isAscii = false;
                 break;
             }
             byteIndex++;
             if (byteIndex < nextSegmentOffset) {
-                // we stay in current segment
+                // we stay in the current segment
                 byteIndexInSegment++;
                 continue;
             }
@@ -276,7 +276,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
         while (true) {
             final var b0 = segments[segmentIndex].data[byteIndexInSegment];
             final int increment;
-            if ((b0 & 0x80) == 0) {
+            if (b0 >= 0) {
                 // 0xxxxxxx : 7 bits (ASCII).
                 increment = 1;
                 length++;
@@ -300,7 +300,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
 
             byteIndex += increment;
             if (byteIndex < nextSegmentOffset) {
-                // we stay in current segment
+                // we stay in the current segment
                 byteIndexInSegment += increment;
                 continue;
             }
@@ -312,7 +312,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
                 throw new JayoCharacterCodingException("malformed input: partial character at end");
             }
 
-            // we must switch to next segment until the expected increment
+            // we must switch to the next segment until the expected increment
             while (byteIndex > nextSegmentOffset) {
                 nextSegmentOffset = directory[++segmentIndex];
             }
