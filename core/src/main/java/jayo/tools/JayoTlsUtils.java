@@ -21,10 +21,14 @@
 
 package jayo.tools;
 
+import jayo.internal.tls.RealHandshakeCertificates;
 import jayo.tls.ClientHandshakeCertificates;
 import jayo.tls.HeldCertificate;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+
+import javax.net.ssl.SSLContext;
+import java.util.Objects;
 
 public final class JayoTlsUtils {
     // un-instantiable
@@ -47,5 +51,11 @@ public final class JayoTlsUtils {
                     .build();
         }
         return LOCALHOST;
+    }
+
+    public static @NonNull SSLContext handshakeCertSSLContext(
+            final @NonNull ClientHandshakeCertificates clientCertificates) {
+        Objects.requireNonNull(clientCertificates);
+        return ((RealHandshakeCertificates) clientCertificates).getSslContext();
     }
 }

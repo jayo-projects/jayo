@@ -38,7 +38,7 @@ public final class RealHandshakeCertificates
         implements ClientHandshakeCertificates, ServerHandshakeCertificates {
     private final @Nullable X509KeyManager keyManager;
     private final @Nullable X509TrustManager trustManager;
-    final @NonNull SSLContext sslContext;
+    private final @NonNull SSLContext sslContext;
 
     /**
      * A client-side no-arg constructor with system default. Should be used by most users.
@@ -104,6 +104,10 @@ public final class RealHandshakeCertificates
     @Override
     public @Nullable X509TrustManager getTrustManager() {
         return trustManager;
+    }
+
+    public @NonNull SSLContext getSslContext() {
+        return sslContext;
     }
 
     public static sealed abstract class Builder {

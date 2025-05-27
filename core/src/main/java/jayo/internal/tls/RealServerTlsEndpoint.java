@@ -238,7 +238,7 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
             final var handshakeCertificates = handshakeCertificatesStrategy.getHandshakeCertificates(() ->
                     getServerNameIndication(encryptedEndpoint));
 
-            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext.createSSLEngine();
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext().createSSLEngine();
             engine.setUseClientMode(false);
             return new RealServerTlsEndpoint(
                     encryptedEndpoint,
@@ -253,7 +253,7 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
 
             final var handshakeCertificates = handshakeCertificatesStrategy.getHandshakeCertificates(() ->
                     getServerNameIndication(encryptedEndpoint));
-            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine();
             engine.setUseClientMode(false);
             return new Parameterizer(encryptedEndpoint, handshakeCertificates, engine);
@@ -269,7 +269,7 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
 
             final var handshakeCertificates = handshakeCertificatesStrategy.getHandshakeCertificates(() ->
                     getServerNameIndication(encryptedEndpoint));
-            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine(peerHost, peerPort);
             engine.setUseClientMode(false);
             return new Parameterizer(encryptedEndpoint, handshakeCertificates, engine);

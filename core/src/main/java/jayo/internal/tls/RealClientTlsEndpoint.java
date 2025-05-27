@@ -151,7 +151,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
         public @NonNull ClientTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint) {
             Objects.requireNonNull(encryptedEndpoint);
 
-            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext.createSSLEngine();
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext().createSSLEngine();
             engine.setUseClientMode(true);
             return new RealClientTlsEndpoint(
                     encryptedEndpoint,
@@ -163,7 +163,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
         @Override
         public @NonNull Parameterizer createParameterizer(final @NonNull Endpoint encryptedEndpoint) {
             Objects.requireNonNull(encryptedEndpoint);
-            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine();
             engine.setUseClientMode(true);
             return new Parameterizer(encryptedEndpoint, engine);
@@ -177,7 +177,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
             Objects.requireNonNull(peerHost);
             assert peerPort > 0;
 
-            final var engine = ((RealHandshakeCertificates) handshakeCertificates).sslContext
+            final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine(peerHost, peerPort);
             engine.setUseClientMode(true);
             return new Parameterizer(encryptedEndpoint, engine);
