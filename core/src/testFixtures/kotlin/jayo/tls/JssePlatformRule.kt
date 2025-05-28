@@ -126,9 +126,13 @@ open class JssePlatformRule() : InvocationInterceptor {
 
     fun assumeBouncyCastle() = assumeTrue(isBouncyCastle())
 
+    fun assumeNotBouncyCastle() = assumeFalse(isBouncyCastle())
+
     fun isConscrypt() = CONSCRYPT_PROVIDER == currentProvider
 
     fun assumeConscrypt() = assumeTrue(isConscrypt())
+
+    fun assumeNotConscrypt() = assumeFalse(isConscrypt())
 
     fun isGraalVMImage() = JayoTestUtil.isGraalVmImage
 
