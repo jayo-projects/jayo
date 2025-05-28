@@ -141,10 +141,10 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         Objects.requireNonNull(writer);
         return new RawWriter() {
             @Override
-            public void write(final @NonNull Buffer reader, final long byteCount) {
-                Objects.requireNonNull(reader);
-                checkOffsetAndCount(reader.bytesAvailable(), 0, byteCount);
-                if (!(reader instanceof RealBuffer _reader)) {
+            public void write(final @NonNull Buffer source, final long byteCount) {
+                Objects.requireNonNull(source);
+                checkOffsetAndCount(source.bytesAvailable(), 0, byteCount);
+                if (!(source instanceof RealBuffer _reader)) {
                     throw new IllegalArgumentException("reader must be an instance of RealBuffer");
                 }
 
@@ -162,7 +162,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
                 // no need for cancellation
                 if (defaultWriteTimeoutNanos == 0L) {
-                    writer.write(reader, byteCount);
+                    writer.write(source, byteCount);
                     return;
                 }
 

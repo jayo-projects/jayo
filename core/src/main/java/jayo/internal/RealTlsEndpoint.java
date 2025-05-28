@@ -357,11 +357,11 @@ public final class RealTlsEndpoint {
 
     // write
 
-    public void write(final @NonNull Buffer reader, final long byteCount) {
-        Objects.requireNonNull(reader);
-        checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
+    public void write(final @NonNull Buffer source, final long byteCount) {
+        Objects.requireNonNull(source);
+        checkOffsetAndCount(source.bytesAvailable(), 0L, byteCount);
 
-        if (!(reader instanceof RealBuffer _reader)) {
+        if (!(source instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
 
@@ -412,7 +412,7 @@ public final class RealTlsEndpoint {
     }
 
     private @NonNull SSLEngineResult wrap(final @NonNull ByteBuffer @NonNull [] sources) {
-        // Force tail to be large enough to handle any valid record in the current SSL session, to avoid BUFFER_OVERFLOW
+        // Force tail to be large enough to handle any valid record in the current SSL session to avoid BUFFER_OVERFLOW
         return encryptedWriterSegmentQueue.withWritableTail(MAX_ENCRYPTED_PACKET_BYTE_SIZE, tail -> {
             final var destination = tail.asWriteByteBuffer(Segment.SIZE - tail.limit);
             try {

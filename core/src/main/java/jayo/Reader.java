@@ -559,8 +559,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     String readString(final long byteCount);
 
     /**
-     * Removes all bytes from this reader, decodes them as {@code charset}, and returns the string. Returns the empty
-     * string if this reader is empty.
+     * Removes all bytes from this reader, decodes them using the {@code charset} encoding, and returns the string.
+     * Returns the empty string if this reader is empty.
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()
@@ -582,7 +582,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     String readString(final @NonNull Charset charset);
 
     /**
-     * Removes {@code byteCount} bytes from this reader, decodes them as {@code charset}, and returns the string.
+     * Removes {@code byteCount} bytes from this reader, decodes them using the {@code charset} encoding, and returns
+     * the string.
      * <pre>
      * {@code
      * Buffer buffer = Buffer.create()

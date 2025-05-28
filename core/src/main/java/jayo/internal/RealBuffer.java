@@ -1491,11 +1491,11 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public long transferFrom(final @NonNull RawReader reader) {
-        Objects.requireNonNull(reader);
+    public long transferFrom(final @NonNull RawReader source) {
+        Objects.requireNonNull(source);
         var totalBytesRead = 0L;
         while (true) {
-            final var readCount = reader.readAtMostTo(this, Segment.SIZE);
+            final var readCount = source.readAtMostTo(this, Segment.SIZE);
             if (readCount == -1L) {
                 break;
             }
@@ -1505,14 +1505,14 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull RawReader reader, final long byteCount) {
-        Objects.requireNonNull(reader);
+    public @NonNull Buffer write(final @NonNull RawReader source, final long byteCount) {
+        Objects.requireNonNull(source);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         var _byteCount = byteCount;
         while (_byteCount > 0L) {
-            final var read = reader.readAtMostTo(this, _byteCount);
+            final var read = source.readAtMostTo(this, _byteCount);
             if (read == -1L) {
                 throw new JayoEOFException();
             }
@@ -1700,7 +1700,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final long byteCount) {
+    public void write(final @NonNull Buffer source, final long byteCount) {
         // Move bytes from the head of the reader buffer to the tail of this buffer in the most possible effective way !
         // This method is the most crucial part of the Jayo concept based on Buffer = a queue of segments.
         //
@@ -1746,14 +1746,14 @@ public final class RealBuffer implements Buffer {
         // an equivalent buffer [30%, 62%, 82%] and then move the head segment, yielding writer [51%, 91%, 30%] and reader
         // [62%, 82%].
 
-        if (Objects.requireNonNull(reader) == this) {
+        if (Objects.requireNonNull(source) == this) {
             throw new IllegalArgumentException("reader == this, cannot write in itself");
         }
-        checkOffsetAndCount(reader.bytesAvailable(), 0, byteCount);
+        checkOffsetAndCount(source.bytesAvailable(), 0, byteCount);
         if (byteCount == 0L) {
             return;
         }
-        if (!(reader instanceof RealBuffer _reader)) {
+        if (!(source instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
 

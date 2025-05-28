@@ -53,10 +53,10 @@ public final class DeflaterRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final long byteCount) {
-        Objects.requireNonNull(reader);
-        checkOffsetAndCount(reader.bytesAvailable(), 0, byteCount);
-        if (!(reader instanceof RealBuffer _reader)) {
+    public void write(final @NonNull Buffer source, final long byteCount) {
+        Objects.requireNonNull(source);
+        checkOffsetAndCount(source.bytesAvailable(), 0, byteCount);
+        if (!(source instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
 

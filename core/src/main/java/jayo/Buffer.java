@@ -319,7 +319,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @Override
     @NonNull
-    Buffer write(final @NonNull RawReader reader, final long byteCount);
+    Buffer write(final @NonNull RawReader source, final long byteCount);
 
     @Override
     @NonNull

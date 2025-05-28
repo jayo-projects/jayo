@@ -29,14 +29,14 @@ public final class WritableByteChannelRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(final @NonNull Buffer reader, final long byteCount) {
-        Objects.requireNonNull(reader);
-        checkOffsetAndCount(reader.bytesAvailable(), 0L, byteCount);
-        if (!(reader instanceof RealBuffer _reader)) {
+    public void write(final @NonNull Buffer source, final long byteCount) {
+        Objects.requireNonNull(source);
+        checkOffsetAndCount(source.bytesAvailable(), 0L, byteCount);
+        if (!(source instanceof RealBuffer _reader)) {
             throw new IllegalArgumentException("reader must be an instance of RealBuffer");
         }
 
-        // get cancel token immediately, if present it will be used in all I/O calls
+        // get the cancel token immediately, if present it will be used in all I/O calls
         final var cancelToken = CancellableUtils.getCancelToken();
 
         if (byteCount == 0L) {

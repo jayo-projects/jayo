@@ -394,10 +394,11 @@ public final class Jayo {
 
     private static final class DiscardingWriter implements RawWriter {
         @Override
-        public void write(final @NonNull Buffer reader, final long byteCount) {
-            Objects.requireNonNull(reader);
+        public void write(final @NonNull Buffer source, final long byteCount) {
+            Objects.requireNonNull(source);
+
             try {
-                reader.skip(byteCount);
+                source.skip(byteCount);
             } catch (IllegalStateException ignored) {
             }
         }

@@ -238,19 +238,19 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     Writer writeUtf8CodePoint(final int codePoint);
 
     /**
-     * Removes {@code byteCount} bytes from {@code reader} and appends them to this writer.
+     * Removes {@code byteCount} bytes from {@code source} and appends them to this writer.
      * <p>
-     * If {@code reader} will be exhausted before reading {@code byteCount} from it, then an exception thrown on an
+     * If {@code source} will be exhausted before reading {@code byteCount} from it, then an exception thrown on an
      * attempt to read remaining bytes will be propagated to the caller of this method.
      *
-     * @param reader    the reader to consume data from.
-     * @param byteCount the number of bytes to consume from {@code reader} and to write into this writer.
+     * @param source    the source to consume data from.
+     * @param byteCount the number of bytes to consume from {@code source} and to write into this writer.
      * @return {@code this}
      * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this writer or {@code reader} is closed.
+     * @throws JayoClosedResourceException if this writer or {@code source} is closed.
      */
     @NonNull
-    Writer write(final @NonNull RawReader reader, final long byteCount);
+    Writer write(final @NonNull RawReader source, final long byteCount);
 
     /**
      * Writes a byte to this writer.
@@ -407,13 +407,13 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     int transferFrom(final @NonNull ByteBuffer source);
 
     /**
-     * Removes all bytes from {@code reader} and writes them to this writer.
+     * Removes all bytes from {@code source} raw reader and writes them to this writer.
      *
-     * @param reader the reader to consume data from.
-     * @return the number of bytes read, which will be {@code 0L} if {@code reader} is exhausted.
-     * @throws JayoClosedResourceException if this writer or {@code reader} is closed.
+     * @param source the source to consume data from.
+     * @return the number of bytes read, which will be {@code 0L} if {@code source} is exhausted.
+     * @throws JayoClosedResourceException if this writer or {@code source} is closed.
      */
-    long transferFrom(final @NonNull RawReader reader);
+    long transferFrom(final @NonNull RawReader source);
 
     /**
      * Ensures to write all the buffered data written until this call to the upstream. Then the upstream is explicitly
