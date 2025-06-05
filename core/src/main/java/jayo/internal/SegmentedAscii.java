@@ -38,7 +38,7 @@ import static jayo.internal.Utf8Utils.ASCII_REPLACEMENT_CHARACTER;
 import static jayo.internal.Utf8Utils.ASCII_REPLACEMENT_CODE_POINT;
 
 public final class SegmentedAscii extends SegmentedUtf8 implements Ascii {
-    SegmentedAscii(final @NonNull Segment[] segments, final int @NonNull [] directory) {
+    SegmentedAscii(final byte @NonNull [] @NonNull [] segments, final int @NonNull [] directory) {
         super(segments, directory, true);
         length = byteSize();
     }
@@ -87,7 +87,7 @@ public final class SegmentedAscii extends SegmentedUtf8 implements Ascii {
             }
 
             private byte currentByte() {
-                return segments[segmentIndex].data[byteIndexInSegment];
+                return segments[segmentIndex][byteIndexInSegment];
             }
 
             private void advance() {

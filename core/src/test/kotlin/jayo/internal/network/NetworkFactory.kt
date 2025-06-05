@@ -9,7 +9,6 @@ import jayo.network.NetworkEndpoint
 import jayo.network.NetworkProtocol
 import jayo.network.NetworkServer
 import jayo.network.kotlin
-import jayo.scheduling.TaskRunner
 import java.net.StandardSocketOptions
 import kotlin.time.Duration.Companion.seconds
 
@@ -36,30 +35,6 @@ enum class NetworkFactory {
 
         override val isIo get() = false
     },
-    TCP_NIO_ASYNC {
-        override fun networkServerBuilder() =
-            NetworkServer.builder().kotlin {
-                bufferAsync = TaskRunner.create("NetworkFactory-")
-                protocol = NetworkProtocol.IPv6
-                readTimeout = 10.seconds
-                writeTimeout = 10.seconds
-                maxPendingConnections = 2
-                option(StandardSocketOptions.SO_REUSEADDR, true)
-                serverOption(StandardSocketOptions.SO_REUSEADDR, true)
-            }
-
-        override fun networkEndpointBuilder() =
-            NetworkEndpoint.builder().kotlin {
-                bufferAsync = TaskRunner.create("NetworkFactory-")
-                protocol = NetworkProtocol.IPv6
-                connectTimeout = 10.seconds
-                readTimeout = 10.seconds
-                writeTimeout = 10.seconds
-                option(StandardSocketOptions.SO_REUSEADDR, true)
-            }
-
-        override val isIo get() = false
-    },
     TCP_IO {
         override fun networkServerBuilder() =
             NetworkServer.builder().kotlin {
@@ -74,30 +49,6 @@ enum class NetworkFactory {
         override fun networkEndpointBuilder() =
             NetworkEndpoint.builder().kotlin {
                 useNio = false
-                connectTimeout = 10.seconds
-                readTimeout = 10.seconds
-                writeTimeout = 10.seconds
-                option(StandardSocketOptions.SO_REUSEADDR, true)
-            }
-
-        override val isIo get() = true
-    },
-    TCP_IO_ASYNC {
-        override fun networkServerBuilder() =
-            NetworkServer.builder().kotlin {
-                useNio = false
-                bufferAsync = TaskRunner.create("NetworkFactory-")
-                readTimeout = 10.seconds
-                writeTimeout = 10.seconds
-                maxPendingConnections = 2
-                option(StandardSocketOptions.SO_REUSEADDR, true)
-                serverOption(StandardSocketOptions.SO_REUSEADDR, true)
-            }
-
-        override fun networkEndpointBuilder() =
-            NetworkEndpoint.builder().kotlin {
-                useNio = false
-                bufferAsync = TaskRunner.create("NetworkFactory-")
                 connectTimeout = 10.seconds
                 readTimeout = 10.seconds
                 writeTimeout = 10.seconds

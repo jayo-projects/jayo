@@ -144,16 +144,14 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             public void write(final @NonNull Buffer source, final long byteCount) {
                 Objects.requireNonNull(source);
                 checkOffsetAndCount(source.bytesAvailable(), 0, byteCount);
-                if (!(source instanceof RealBuffer _reader)) {
-                    throw new IllegalArgumentException("reader must be an instance of RealBuffer");
-                }
 
+                final var src = (RealBuffer) source;
                 // get the cancel token immediately; if present, it will be used in all IO calls of this write operation
                 var cancelToken = CancellableUtils.getCancelToken();
                 if (cancelToken != null) {
                     cancelToken.timeoutNanos = defaultWriteTimeoutNanos;
                     try {
-                        writeCancellable(_reader, byteCount, cancelToken);
+                        writeCancellable(src, byteCount, cancelToken);
                         return;
                     } finally {
                         cancelToken.timeoutNanos = 0L;
@@ -170,22 +168,21 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 cancelToken = new RealCancelToken(defaultWriteTimeoutNanos, 0L, false);
                 CancellableUtils.addCancelToken(cancelToken);
                 try {
-                    writeCancellable(_reader, byteCount, cancelToken);
+                    writeCancellable(src, byteCount, cancelToken);
                 } finally {
                     CancellableUtils.finishCancelToken(cancelToken);
                 }
             }
 
-            private void writeCancellable(RealBuffer reader, long byteCount, RealCancelToken cancelToken) {
+            private void writeCancellable(RealBuffer src, long byteCount, RealCancelToken cancelToken) {
                 var remaining = byteCount;
                 while (remaining > 0L) {
                     // Count how many bytes to write. This loop guarantees we split on a segment boundary.
                     var _toWrite = 0L;
-                    var segment = reader.segmentQueue.head();
+                    var segment = src.head;
                     while (_toWrite < TIMEOUT_WRITE_SIZE) {
                         assert segment != null;
-                        final var segmentSize = segment.limit - segment.pos;
-                        _toWrite += segmentSize;
+                        _toWrite += (segment.limit - segment.pos);
                         if (_toWrite >= remaining) {
                             _toWrite = remaining;
                             break;
@@ -196,7 +193,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                     final var toWrite = _toWrite;
                     // Emit one write operation. Only this section is subject to the timeout.
                     withTimeout(cancelToken, () -> {
-                        writer.write(reader, toWrite);
+                        writer.write(src, toWrite);
                         return null;
                     });
                     remaining -= _toWrite;

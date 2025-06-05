@@ -24,14 +24,10 @@
 package jayo
 
 import jayo.internal.RealWriter
-import jayo.scheduling.TaskRunner
 
 /**
  * @return a new writer that buffers writes to the raw `writer`. The returned writer will batch writes to `writer`.
  *
- * If you provide a [taskRunner], actual write operations to the raw `writer` are seamlessly processed
- * **asynchronously**.
- *
- * Use this wherever you write to a writer to get an ergonomic and efficient access to data.
+ * Use this wherever you write to a writer to get ergonomic and efficient access to data.
  */
-public fun RawWriter.buffered(taskRunner: TaskRunner? = null): Writer = RealWriter(this, taskRunner)
+public fun RawWriter.buffered(): Writer = RealWriter(this)

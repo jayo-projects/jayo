@@ -28,9 +28,7 @@ class NetworkTest {
         fun parameters(): Stream<Arguments>? {
             return Stream.of(
                 Arguments.of(NetworkFactory.TCP_NIO, "NetworkFactoryTcpNio"),
-                Arguments.of(NetworkFactory.TCP_NIO_ASYNC, "NetworkFactoryTcpNioAsync"),
                 Arguments.of(NetworkFactory.TCP_IO, "NetworkFactoryTcpIo"),
-                Arguments.of(NetworkFactory.TCP_IO_ASYNC, "NetworkFactoryTcpIoAsync"),
             )
         }
 

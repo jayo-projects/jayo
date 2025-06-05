@@ -5,9 +5,7 @@
 
 package jayo.internal
 
-import jayo.Jayo
 import jayo.buffered
-import jayo.scheduling.TaskRunner
 import jayo.writer
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.RepeatedTest
@@ -15,15 +13,13 @@ import java.io.OutputStream
 import kotlin.random.Random
 import kotlin.test.fail
 
-// these tests are a good race-condition test, do them several times !
+// these tests are a good race-condition test, do them several times!
 class WriterAsyncTests {
     companion object {
         private const val CHUNKS = 32
         const val CHUNKS_BYTE_SIZE = 64 * 1024
         const val EXPECTED_SIZE = CHUNKS * CHUNKS_BYTE_SIZE
         val ARRAY = ByteArray(EXPECTED_SIZE) { 0x61 }
-
-        val TASK_RUNNER: TaskRunner = TaskRunner.create("WriterAsyncTests-")
     }
 
     @RepeatedTest(10)
@@ -31,17 +27,6 @@ class WriterAsyncTests {
         val outputStream = outputStream(true)
 
         outputStream.writer().buffered().use { writer ->
-            writer.write('a'.repeat(EXPECTED_SIZE))
-        }
-        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-        assertThat(outputStream.bytes).isEqualTo(ARRAY)
-    }
-
-    @RepeatedTest(10)
-    fun asyncWriterFastProducerSlowEmitter() {
-        val outputStream = outputStream(true)
-
-        Jayo.bufferAsync(outputStream.writer(), TASK_RUNNER).use { writer ->
             writer.write('a'.repeat(EXPECTED_SIZE))
         }
         assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
@@ -68,49 +53,11 @@ class WriterAsyncTests {
     }
 
     @RepeatedTest(10)
-    fun asyncWriterSlowProducerFastEmitter() {
-        val outputStream = outputStream(false)
-
-        var written = 0
-        outputStream.writer().buffered(TASK_RUNNER).use { writer ->
-            val toWrite = CHUNKS_BYTE_SIZE
-            val bytes = ByteArray(toWrite)
-            while (written < EXPECTED_SIZE) {
-                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
-                ARRAY.copyInto(bytes, 0, 0, toWrite)
-                writer.write(bytes)
-                written += toWrite
-            }
-        }
-        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-        assertThat(outputStream.bytes).isEqualTo(ARRAY)
-    }
-
-    @RepeatedTest(10)
     fun writerSlowProducerSlowEmitter() {
         val outputStream = outputStream(true)
 
         var written = 0
         outputStream.writer().buffered().use { writer ->
-            val toWrite = CHUNKS_BYTE_SIZE
-            val bytes = ByteArray(toWrite)
-            while (written < EXPECTED_SIZE) {
-                Thread.sleep(0, Random.nextInt(5) /*in nanos*/)
-                ARRAY.copyInto(bytes, 0, 0, toWrite)
-                writer.write(bytes)
-                written += toWrite
-            }
-        }
-        assertThat(outputStream.bytes).hasSize(EXPECTED_SIZE)
-        assertThat(outputStream.bytes).isEqualTo(ARRAY)
-    }
-
-    @RepeatedTest(30)
-    fun asyncWriterSlowProducerSlowEmitter() {
-        val outputStream = outputStream(true)
-
-        var written = 0
-        outputStream.writer().buffered(TASK_RUNNER).use { writer ->
             val toWrite = CHUNKS_BYTE_SIZE
             val bytes = ByteArray(toWrite)
             while (written < EXPECTED_SIZE) {

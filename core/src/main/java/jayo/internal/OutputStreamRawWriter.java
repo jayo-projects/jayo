@@ -48,56 +48,46 @@ public final class OutputStreamRawWriter implements RawWriter {
     public void write(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
         checkOffsetAndCount(source.bytesAvailable(), 0L, byteCount);
-        if (!(source instanceof RealBuffer _reader)) {
-            throw new IllegalArgumentException("reader must be an instance of RealBuffer");
+
+        if (byteCount == 0L) {
+            return;
         }
 
         // get cancel token immediately, if present it will be used in all I/O calls
         final var cancelToken = CancellableUtils.getCancelToken();
 
-        if (byteCount == 0L) {
-            CancelToken.throwIfReached(cancelToken);
-            return;
-        }
-
         if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "OutputStreamRawWriter: Start writing {0} bytes from Buffer(SegmentQueue#{1}; " +
-                            "size={2}) to the OutputStream{3}",
-                    byteCount, _reader.segmentQueue.hashCode(), _reader.bytesAvailable(), System.lineSeparator());
+            LOGGER.log(TRACE, "OutputStreamRawWriter: Start writing {0} bytes from Buffer#{1} (size={2}) to " +
+                            "the OutputStream{3}",
+                    byteCount, source.hashCode(), source.bytesAvailable(), System.lineSeparator());
         }
 
+        final var src = (RealBuffer) source;
         var remaining = byteCount;
-        var head = _reader.segmentQueue.head();
-        assert head != null;
-        var headLimit = head.limit;
         while (remaining > 0L) {
-            if (head.pos == headLimit) {
-                head = _reader.segmentQueue.removeHead(head, true);
-                assert head != null;
-                headLimit = head.limit;
-            }
-
             CancelToken.throwIfReached(cancelToken);
-
-            final var toWrite = (int) Math.min(remaining, headLimit - head.pos);
+            final var head = src.head;
+            assert head != null;
+            final var toWrite = (int) Math.min(remaining, head.limit - head.pos);
             try {
                 out.write(head.data, head.pos, toWrite);
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }
             head.pos += toWrite;
-            _reader.segmentQueue.decrementSize(toWrite);
+            src.byteSize -= toWrite;
             remaining -= toWrite;
-        }
-        if (head.pos == head.limit) {
-            _reader.segmentQueue.removeHead(head, false);
+
+            if (head.pos == head.limit) {
+                src.head = head.pop();
+                SegmentPool.recycle(head);
+            }
         }
 
         if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "OutputStreamRawWriter: Finished writing {0}/{1} bytes from " +
-                            "Buffer(SegmentQueue={2}{3}) to the OutputStream{4}",
-                    byteCount - remaining, byteCount, System.lineSeparator(), _reader.segmentQueue,
-                    System.lineSeparator());
+            LOGGER.log(TRACE,"OutputStreamRawWriter: Finished writing {0} bytes from Buffer#{1} (size={2}) to " +
+                            "the OutputStream{3}",
+                    byteCount, source.hashCode(), source.bytesAvailable(), System.lineSeparator());
         }
     }
 
@@ -110,7 +100,7 @@ public final class OutputStreamRawWriter implements RawWriter {
             }
 
             out.flush();
-            // File specific : opinionated action to force to synchronize with the underlying device when calling
+            // File specific: opinionated action to force to synchronize with the underlying device when calling
             // rawWriter.flush()
             if (out instanceof FileOutputStream fileOutputStream) {
                 fileOutputStream.getFD().sync();

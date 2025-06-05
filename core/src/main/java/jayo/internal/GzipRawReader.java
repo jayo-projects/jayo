@@ -43,8 +43,7 @@ public final class GzipRawReader implements RawReader {
      * Our reader should yield a GZIP header (which we consume directly), followed by deflated bytes (which we consume
      * via an InflaterReader), followed by a GZIP trailer (which we also consume directly).
      */
-    private final @NonNull Reader reader;
-    private final @NonNull SegmentQueue segmentQueue;
+    private final @NonNull RealReader reader;
 
     /**
      * The inflater used to decompress the deflated body.
@@ -61,22 +60,19 @@ public final class GzipRawReader implements RawReader {
      */
     private final @NonNull CRC32 crc = new CRC32();
 
-    public GzipRawReader(final @NonNull Reader reader) {
-        assert reader != null;
-        this.reader = reader;
-        this.segmentQueue = Utils.getSegmentQueueFromReader(reader);
-        inflaterReader = new RealInflaterRawReader(segmentQueue, inflater);
+    public GzipRawReader(final @NonNull RawReader rawReader) {
+        assert rawReader != null;
+        this.reader = new RealReader(rawReader);
+        inflaterReader = new RealInflaterRawReader(reader, inflater);
     }
 
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
-        Objects.requireNonNull(writer);
+    public long readAtMostTo(final @NonNull Buffer destination, final long byteCount) {
+        Objects.requireNonNull(destination);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        if (!(writer instanceof RealBuffer _writer)) {
-            throw new IllegalArgumentException("writer must be an instance of RealBuffer");
-        }
+
         if (byteCount == 0L) {
             return 0L;
         }
@@ -87,12 +83,14 @@ public final class GzipRawReader implements RawReader {
             section = SECTION_BODY;
         }
 
+        final var dst = (RealBuffer) destination;
+
         // Attempt to read at least a byte of the body. If we do, we're done.
         if (section == SECTION_BODY) {
-            final var offset = _writer.bytesAvailable();
-            final var result = inflaterReader.readAtMostTo(_writer, byteCount);
+            final var offset = dst.byteSize;
+            final var result = inflaterReader.readAtMostTo(dst, byteCount);
             if (result != -1L) {
-                updateCrc(_writer.segmentQueue, offset, result);
+                updateCrc(dst, offset, result);
                 return result;
             }
             section = SECTION_TRAILER;
@@ -128,10 +126,10 @@ public final class GzipRawReader implements RawReader {
         // |ID1|ID2|CM |FLG|     MTIME     |XFL|OS | (more-->)
         // +---+---+---+---+---+---+---+---+---+---+
         reader.require(10);
-        final var flags = (int) Utils.getBufferFromReader(reader).getByte(3);
+        final var flags = (int) reader.buffer.getByte(3);
         final var fhcrc = getBit(flags, FHCRC);
         if (fhcrc) {
-            updateCrc(segmentQueue, 0, 10);
+            updateCrc(reader.buffer, 0, 10);
         }
 
         final var id1id2 = (int) reader.readShort();
@@ -145,12 +143,12 @@ public final class GzipRawReader implements RawReader {
         if (getBit(flags, FEXTRA)) {
             reader.require(2);
             if (fhcrc) {
-                updateCrc(segmentQueue, 0, 2);
+                updateCrc(reader.buffer, 0, 2);
             }
             final var xlen = (long) (((int) Short.reverseBytes(reader.readShort())) & 0xffff);
             reader.require(xlen);
             if (fhcrc) {
-                updateCrc(segmentQueue, 0, xlen);
+                updateCrc(reader.buffer, 0, xlen);
             }
             reader.skip(xlen);
         }
@@ -165,7 +163,7 @@ public final class GzipRawReader implements RawReader {
                 throw new JayoEOFException();
             }
             if (fhcrc) {
-                updateCrc(segmentQueue, 0, index + 1);
+                updateCrc(reader.buffer, 0, index + 1);
             }
             reader.skip(index + 1);
         }
@@ -180,7 +178,7 @@ public final class GzipRawReader implements RawReader {
                 throw new JayoEOFException();
             }
             if (fhcrc) {
-                updateCrc(segmentQueue, 0, index + 1);
+                updateCrc(reader.buffer, 0, index + 1);
             }
             reader.skip(index + 1);
         }
@@ -204,15 +202,18 @@ public final class GzipRawReader implements RawReader {
         checkEqual("ISIZE", Integer.reverseBytes(reader.readInt()), (int) inflater.getBytesWritten());
     }
 
-    private void updateCrc(final @NonNull SegmentQueue segmentQueue,
+    /**
+     * Updates the CRC with the given bytes.
+     */
+    private void updateCrc(final RealBuffer buffer,
                            final long offset,
                            final long byteCount) {
-        assert segmentQueue != null;
+        assert buffer != null;
 
         var _offset = offset;
         var _byteCount = byteCount;
         // Skip segments that we aren't checksumming.
-        var segment = segmentQueue.head();
+        var segment = buffer.head;
         assert segment != null;
         while (_offset >= segment.limit - segment.pos) {
             _offset -= (segment.limit - segment.pos);
@@ -222,13 +223,13 @@ public final class GzipRawReader implements RawReader {
 
         // Checksum one segment at a time.
         while (_byteCount > 0) {
-            assert segment != null;
             final var pos = (int) (segment.pos + _offset);
             final var toUpdate = (int) Math.min(segment.limit - pos, _byteCount);
             crc.update(segment.data, pos, toUpdate);
             _byteCount -= toUpdate;
             _offset = 0;
             segment = segment.next;
+            assert segment != null;
         }
     }
 

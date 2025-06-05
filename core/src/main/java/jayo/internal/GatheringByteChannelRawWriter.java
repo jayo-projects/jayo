@@ -26,37 +26,30 @@ import static jayo.tools.JayoUtils.checkOffsetAndCount;
 public final class GatheringByteChannelRawWriter implements RawWriter {
     private static final System.Logger LOGGER = System.getLogger("jayo.ScatteringByteChannelRawWriter");
 
-    private final @NonNull GatheringByteChannel out;
+    private final @NonNull GatheringByteChannel gbc;
 
-    public GatheringByteChannelRawWriter(final @NonNull GatheringByteChannel out) {
-        this.out = Objects.requireNonNull(out);
+    public GatheringByteChannelRawWriter(final @NonNull GatheringByteChannel gbc) {
+        this.gbc = Objects.requireNonNull(gbc);
     }
 
     @Override
     public void write(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
         checkOffsetAndCount(source.bytesAvailable(), 0L, byteCount);
-        if (!(source instanceof RealBuffer _reader)) {
-            throw new IllegalArgumentException("reader must be an instance of RealBuffer");
-        }
-        if (!out.isOpen()) {
+        if (!gbc.isOpen()) {
             throw new JayoClosedResourceException();
         }
 
         // get the cancel token immediately, if present it will be used in all I/O calls
         final var cancelToken = CancellableUtils.getCancelToken();
 
-        if (byteCount == 0L) {
-            CancelToken.throwIfReached(cancelToken);
-            return;
-        }
-
         if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "WritableByteChannelRawWriter: Start writing {0} bytes from " +
-                            "Buffer(SegmentQueue#{1}; size={2}) to the WritableByteChannel{3}",
-                    byteCount, _reader.segmentQueue.hashCode(), _reader.bytesAvailable(), System.lineSeparator());
+            LOGGER.log(TRACE, "GatheringByteChannelRawWriter: Start writing {0} bytes from Buffer#{1} " +
+                            "(size={2}) to the WritableByteChannel{3}",
+                    byteCount, source.hashCode(), source.bytesAvailable(), System.lineSeparator());
         }
 
+        final var src = (RealBuffer) source;
         var remaining = byteCount;
         while (remaining > 0L) {
             /*
@@ -65,41 +58,42 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
              * succeed on a sufficiently slow connection.
              */
             final var toWrite = (int) Math.min(remaining, TIMEOUT_WRITE_SIZE);
-            write(_reader.segmentQueue, toWrite, cancelToken);
+            write(src, toWrite, cancelToken);
             remaining -= toWrite;
         }
 
         if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "WritableByteChannelRawWriter: Finished writing {0}/{1} bytes from " +
-                            "Buffer(SegmentQueue={2}{3}) to the WritableByteChannel{4}",
-                    byteCount - remaining, byteCount, System.lineSeparator(), _reader.segmentQueue,
-                    System.lineSeparator());
+            LOGGER.log(TRACE, "GatheringByteChannelRawWriter: Finished writing {0} bytes from Buffer#{2} " +
+                            "(size={2}) to the WritableByteChannel{3}",
+                    byteCount, source.hashCode(), source.bytesAvailable(), System.lineSeparator());
         }
     }
 
-    private void write(final @NonNull SegmentQueue segmentQueue,
+    private void write(final @NonNull RealBuffer src,
                        final int byteCount,
                        final @Nullable RealCancelToken cancelToken) {
-        segmentQueue.withHeadsAsByteBuffers(byteCount, sources -> {
+        assert src != null;
+
+        src.withHeadsAsByteBuffers(byteCount, sources -> {
             var remaining = byteCount;
-            var firstSourceIndex = 0; // index of the first source in the sources array with remaining bytes to write
-            var finished = false;
-            while (!finished) {
+            var firstSourceIndex = 0; // index of the first source in the array of sources with remaining bytes to write
+            while (true) {
                 CancelToken.throwIfReached(cancelToken);
                 int written;
                 try {
-                    written = (int) out.write(sources, firstSourceIndex, sources.length - firstSourceIndex);
+                    written = (int) gbc.write(sources, firstSourceIndex, sources.length - firstSourceIndex);
                 } catch (IOException e) {
                     throw JayoException.buildJayoException(e);
                 }
                 remaining -= written;
-                finished = remaining == 0;
-                if (!finished) {
-                    // we must ignore the X first fully written byteArrays in the next iteration's write call
-                    firstSourceIndex = (int) Arrays.stream(sources)
-                            .takeWhile(byteBuffer -> !byteBuffer.hasRemaining())
-                            .count();
+                if (remaining == 0) {
+                    break; // done
                 }
+
+                // we must ignore the X first fully written byteArrays in the next iteration's writing call
+                firstSourceIndex = (int) Arrays.stream(sources)
+                        .takeWhile(byteBuffer -> !byteBuffer.hasRemaining())
+                        .count();
             }
             return byteCount;
         });
@@ -110,7 +104,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
         try {
             // File specific: opinionated action to force to synchronize with the underlying device when calling
             // rawWriter.flush()
-            if (out instanceof FileChannel fileChannel) {
+            if (gbc instanceof FileChannel fileChannel) {
                 fileChannel.force(false);
             }
         } catch (IOException e) {
@@ -121,7 +115,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
     @Override
     public void close() {
         try {
-            out.close();
+            gbc.close();
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -129,6 +123,6 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
 
     @Override
     public String toString() {
-        return "writer(" + out + ")";
+        return "writer(" + gbc + ")";
     }
 }

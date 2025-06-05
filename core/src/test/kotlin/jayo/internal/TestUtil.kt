@@ -154,11 +154,15 @@ object TestUtil {
             throw IllegalArgumentException()
         }
 
-        original.segmentQueue.forEach { segment ->
-            val bufferTailNode = result.segmentQueue.tail
-            result.segmentQueue.addWritableTail(bufferTailNode, segment.unsharedCopy(), false)
+        result.head = original.head!!.unsharedCopy()
+        result.head!!.prev = result.head
+        result.head!!.next = result.head!!.prev
+        var s = original.head!!.next
+        while (s !== original.head) {
+            result.head!!.prev!!.push(s!!.unsharedCopy())
+            s = s.next
         }
-        result.segmentQueue.incrementSize(original.bytesAvailable())
+        result.byteSize = original.byteSize
 
         return result
     }

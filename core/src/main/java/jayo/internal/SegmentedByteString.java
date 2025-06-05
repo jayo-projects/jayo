@@ -63,13 +63,16 @@ import static jayo.tools.JayoUtils.checkOffsetAndCount;
  * binary search. We use one array rather than two for the directory as a micro-optimization.
  */
 public sealed class SegmentedByteString extends BaseByteString implements ByteString permits SegmentedUtf8 {
-    transient final @NonNull Segment @NonNull [] segments;
+    transient final byte @NonNull [] @NonNull [] segments;
     transient final int @NonNull [] directory;
 
-    SegmentedByteString(final @NonNull Segment @NonNull [] segments, final int @NonNull [] directory) {
+    SegmentedByteString(final byte @NonNull [] @NonNull [] segments, final int @NonNull [] directory) {
         super(((RealByteString) EMPTY).data);
-        this.segments = Objects.requireNonNull(segments);
-        this.directory = Objects.requireNonNull(directory);
+        assert segments != null;
+        assert directory != null;
+
+        this.segments = segments;
+        this.directory = directory;
     }
 
     @Override
@@ -94,21 +97,27 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
 
     @Override
     public final @NonNull ByteString hash(final @NonNull Digest digest) {
+        Objects.requireNonNull(digest);
+
         final var messageDigest = messageDigest(digest);
-        forEachSegment((s, offset, byteCount) -> messageDigest.update(s.data, offset, byteCount));
+        forEachSegment(messageDigest::update);
         return new RealByteString(messageDigest.digest());
     }
 
     @Override
     public final @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
+        Objects.requireNonNull(hMac);
+        Objects.requireNonNull(key);
+
         final var javaMac = mac(hMac, key);
-        forEachSegment((s, offset, byteCount) -> javaMac.update(s.data, offset, byteCount));
+        forEachSegment(javaMac::update);
         return new RealByteString(javaMac.doFinal());
     }
 
     @Override
     public @NonNull ByteString substring(final int startIndex, final int endIndex) {
         checkSubstringParameters(startIndex, endIndex, byteSize());
+
         if (startIndex == 0 && endIndex == byteSize()) {
             return this;
         } else if (startIndex == endIndex) {
@@ -137,10 +146,11 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     @Override
     public final byte getByte(final int index) {
         checkOffsetAndCount(directory[segments.length - 1], index, 1);
+
         final var segment = segment(index);
         final var segmentOffset = (segment == 0) ? 0 : directory[segment - 1];
         final var segmentPos = directory[segment + segments.length];
-        return segments[segment].data[index - segmentOffset + segmentPos];
+        return segments[segment][index - segmentOffset + segmentPos];
     }
 
     @Override
@@ -152,8 +162,8 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     public final byte @NonNull [] toByteArray() {
         final var result = new byte[byteSize()];
         final var resultPos = new Wrapper.Int();
-        forEachSegment((s, offset, byteCount) -> {
-            System.arraycopy(s.data, offset, result, resultPos.value, byteCount);
+        forEachSegment((data, offset, byteCount) -> {
+            System.arraycopy(data, offset, result, resultPos.value, byteCount);
             resultPos.value += byteCount;
         });
         return result;
@@ -162,9 +172,10 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     @Override
     public final void write(final @NonNull OutputStream out) {
         Objects.requireNonNull(out);
-        forEachSegment((s, offset, byteCount) -> {
+
+        forEachSegment((data, offset, byteCount) -> {
             try {
-                out.write(s.data, offset, byteCount);
+                out.write(data, offset, byteCount);
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }
@@ -175,16 +186,25 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     final void write(final @NonNull RealBuffer buffer,
                      final int offset,
                      final int byteCount) {
-        Objects.requireNonNull(buffer);
-        forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
-            s.pos = _offset;
-            s.limit = _offset + _byteCount;
-            final var copy = s.sharedCopy();
-            final var bufferTail = buffer.segmentQueue.nonRemovedTailOrNull();
-            buffer.segmentQueue.addWritableTail(bufferTail, copy, true);
-            buffer.segmentQueue.incrementSize(_byteCount);
+        assert buffer != null;
+
+        forEachSegment(offset, offset + byteCount, (data, _offset, _byteCount) -> {
+            // build a new  shared segment from the current segment
+            final var ct = new Segment.CopyTracker();
+            ct.addCopy();
+            final var segment = new Segment(data, _offset, _offset + _byteCount, ct, false);
+
+            if (buffer.head == null) {
+                segment.prev = segment;
+                segment.next = segment.prev;
+                buffer.head = segment.next;
+            } else {
+                assert buffer.head.prev != null;
+                buffer.head.prev.push(segment);
+            }
             return true;
         });
+        buffer.byteSize += byteCount;
     }
 
     @Override
@@ -196,10 +216,11 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
         if (offset < 0 || offset > byteSize() - byteCount) {
             return false;
         }
+
         // Go segment-by-segment through this, passing arrays to other's rangeEquals().
         final var _otherOffset = new Wrapper.Int(otherOffset);
-        return forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
-            if (!other.rangeEquals(_otherOffset.value, s.data, _offset, _byteCount)) {
+        return forEachSegment(offset, offset + byteCount, (data, _offset, _byteCount) -> {
+            if (!other.rangeEquals(_otherOffset.value, data, _offset, _byteCount)) {
                 return false;
             }
             _otherOffset.value += _byteCount;
@@ -218,10 +239,11 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
         ) {
             return false;
         }
+
         // Go segment-by-segment through this, comparing ranges of arrays.
         final var _otherOffset = new Wrapper.Int(otherOffset);
-        return forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
-            if (!arrayRangeEquals(s.data, _offset, other, _otherOffset.value, _byteCount)) {
+        return forEachSegment(offset, offset + byteCount, (data, _offset, _byteCount) -> {
+            if (!arrayRangeEquals(data, _offset, other, _otherOffset.value, _byteCount)) {
                 return false;
             }
             _otherOffset.value += _byteCount;
@@ -239,8 +261,8 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
         checkOffsetAndCount(target.length, targetOffset, byteCount);
         // Go segment-by-segment through this, copying ranges of arrays.
         var _targetOffset = new Wrapper.Int(targetOffset);
-        forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
-            System.arraycopy(s.data, _offset, target, _targetOffset.value, _byteCount);
+        forEachSegment(offset, offset + byteCount, (data, _offset, _byteCount) -> {
+            System.arraycopy(data, _offset, target, _targetOffset.value, _byteCount);
             _targetOffset.value += _byteCount;
             return true;
         });
@@ -289,11 +311,11 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
 
         // Equivalent to Arrays.hashCode(toByteArray()).
         final var result = new Wrapper.Int(1);
-        forEachSegment((s, offset, byteCount) -> {
+        forEachSegment((data, offset, byteCount) -> {
             var i = offset;
             final var limit = offset + byteCount;
             while (i < limit) {
-                result.value = (31 * result.value + s.data[i]);
+                result.value = (31 * result.value + data[i]);
                 i++;
             }
         });
@@ -312,8 +334,9 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
      */
     final boolean forEachSegment(final int beginIndex,
                                  final int endIndex,
-                                 final @NonNull TriPredicate<Segment, Integer, Integer> action) {
-        Objects.requireNonNull(action);
+                                 final @NonNull TriPredicate<byte @NonNull [], Integer, Integer> action) {
+        assert action != null;
+
         var segmentIndex = segment(beginIndex);
         var pos = beginIndex;
         while (pos < endIndex) {
@@ -335,8 +358,9 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     /**
      * Processes all segments, invoking `action` with the ByteArray and range of valid data.
      */
-    private void forEachSegment(final @NonNull TriConsumer<Segment, Integer, Integer> action) {
-        Objects.requireNonNull(action);
+    private void forEachSegment(final @NonNull TriConsumer<byte @NonNull [], Integer, Integer> action) {
+        assert action != null;
+
         var segmentIndex = 0;
         var pos = 0;
         while (segmentIndex < segments.length) {

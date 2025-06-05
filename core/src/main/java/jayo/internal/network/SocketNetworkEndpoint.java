@@ -27,7 +27,6 @@ import jayo.internal.OutputStreamRawWriter;
 import jayo.internal.RealAsyncTimeout;
 import jayo.network.NetworkEndpoint;
 import jayo.network.Proxy;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -54,7 +53,6 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             final @Nullable Duration connectTimeout,
             final long readTimeoutNanos,
             final long writeTimeoutNanos,
-            final @Nullable TaskRunner taskRunner,
             final Proxy.@Nullable Socks proxy,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions
     ) {
@@ -74,10 +72,10 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             final NetworkEndpoint networkEndpoint;
             if (connectTimeout != null) {
                 networkEndpoint = Cancellable.call(connectTimeout, ignored ->
-                        connect(socket, peerAddress, connectTimeout, asyncTimeout, taskRunner, proxy)
+                        connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy)
                 );
             } else {
-                networkEndpoint = connect(socket, peerAddress, null, asyncTimeout, taskRunner, proxy);
+                networkEndpoint = connect(socket, peerAddress, null, asyncTimeout, proxy);
             }
 
             if (LOGGER.isLoggable(DEBUG)) {
@@ -100,13 +98,12 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
                                            final @NonNull InetSocketAddress peerAddress,
                                            final @Nullable Duration connectTimeout,
                                            final @NonNull RealAsyncTimeout asyncTimeout,
-                                           final @Nullable TaskRunner taskRunner,
                                            final Proxy.@Nullable Socks proxy) {
         try {
             if (proxy != null) {
                 // connect to the proxy and use it to reach peer
                 connect(socket, new InetSocketAddress(proxy.getHost(), proxy.getPort()), connectTimeout);
-                final var proxyNetEndpoint = new SocketNetworkEndpoint(socket, asyncTimeout, taskRunner);
+                final var proxyNetEndpoint = new SocketNetworkEndpoint(socket, asyncTimeout);
                 if (!(proxy instanceof RealSocksProxy socksProxy)) {
                     throw new IllegalArgumentException("proxy is not a RealSocksProxy");
                 }
@@ -114,7 +111,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             }
             // connect to peer
             connect(socket, peerAddress, connectTimeout);
-            return new SocketNetworkEndpoint(socket, asyncTimeout, taskRunner);
+            return new SocketNetworkEndpoint(socket, asyncTimeout);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -150,29 +147,22 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
 
     private final @NonNull Socket socket;
     private final @NonNull RealAsyncTimeout asyncTimeout;
-    private final @Nullable TaskRunner taskRunner;
 
     private Reader reader = null;
     private Writer writer = null;
 
     SocketNetworkEndpoint(final @NonNull Socket socket,
                           final long defaultReadTimeoutNanos,
-                          final long defaultWriteTimeoutNanos,
-                          final @Nullable TaskRunner taskRunner) {
-        this(socket,
-                buildAsyncTimeout(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos),
-                taskRunner);
+                          final long defaultWriteTimeoutNanos) {
+        this(socket, buildAsyncTimeout(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos));
     }
 
-    private SocketNetworkEndpoint(final @NonNull Socket socket,
-                                  final @NonNull RealAsyncTimeout asyncTimeout,
-                                  final @Nullable TaskRunner taskRunner) {
+    private SocketNetworkEndpoint(final @NonNull Socket socket, final @NonNull RealAsyncTimeout asyncTimeout) {
         assert socket != null;
         assert asyncTimeout != null;
 
         this.socket = socket;
         this.asyncTimeout = asyncTimeout;
-        this.taskRunner = taskRunner;
     }
 
     @Override
@@ -182,7 +172,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             final var in = socket.getInputStream();
             if (reader == null) {
                 final var rawReader = asyncTimeout.reader(new InputStreamRawReader(in));
-                reader = (taskRunner != null) ? Jayo.bufferAsync(rawReader, taskRunner) : Jayo.buffer(rawReader);
+                reader = Jayo.buffer(rawReader);
             }
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
@@ -197,7 +187,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             final var out = socket.getOutputStream();
             if (writer == null) {
                 final var rawWriter = asyncTimeout.writer(new OutputStreamRawWriter(out));
-                writer = (taskRunner != null) ? Jayo.bufferAsync(rawWriter, taskRunner) : Jayo.buffer(rawWriter);
+                writer = Jayo.buffer(rawWriter);
             }
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);

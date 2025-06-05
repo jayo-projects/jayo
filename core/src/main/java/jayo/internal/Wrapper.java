@@ -22,19 +22,7 @@ final class Wrapper {
         }
     }
 
-    static final class Long {
-        long value;
-
-        Long(final long value) {
-            this.value = value;
-        }
-    }
-
     static final class Boolean {
         boolean value = false;
-    }
-
-    static final class SSLEngineResult {
-        javax.net.ssl.SSLEngineResult value;
     }
 }

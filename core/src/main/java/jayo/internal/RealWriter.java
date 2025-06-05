@@ -23,9 +23,7 @@ package jayo.internal;
 
 import jayo.*;
 import jayo.bytestring.ByteString;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -35,26 +33,25 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
-import static jayo.internal.WriterSegmentQueue.newWriterSegmentQueue;
-
 @SuppressWarnings("resource")
 public final class RealWriter implements Writer {
-    final @NonNull WriterSegmentQueue segmentQueue;
+    private final @NonNull RawWriter writer;
+    final @NonNull RealBuffer buffer = new RealBuffer();
+    private boolean closed = false;
 
-    public RealWriter(final @NonNull RawWriter writer, final @Nullable TaskRunner taskRunner) {
-        Objects.requireNonNull(writer);
-        segmentQueue = newWriterSegmentQueue(writer, taskRunner);
+    public RealWriter(final @NonNull RawWriter writer) {
+        assert writer != null;
+        this.writer = writer;
     }
 
     @Override
     public void write(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
-
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(source, byteCount);
+
+        buffer.write(source, byteCount);
         emitCompleteSegments();
     }
 
@@ -62,11 +59,11 @@ public final class RealWriter implements Writer {
     public @NonNull Writer write(final @NonNull ByteString byteString) {
         Objects.requireNonNull(byteString);
 
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(byteString);
+
+        buffer.write(byteString);
         return emitCompleteSegments();
     }
 
@@ -75,38 +72,22 @@ public final class RealWriter implements Writer {
                                  final int offset,
                                  final int byteCount) {
         Objects.requireNonNull(byteString);
-
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(byteString, offset, byteCount);
+
+        buffer.write(byteString, offset, byteCount);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer write(final @NonNull String string) {
         Objects.requireNonNull(string);
-
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(string);
-        return emitCompleteSegments();
-    }
 
-    @Override
-    public @NonNull Writer write(final @NonNull String string,
-                                 final int startIndex,
-                                 final int endIndex) {
-        Objects.requireNonNull(string);
-
-        if (segmentQueue.closed) {
-            throw new JayoClosedResourceException();
-        }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(string, startIndex, endIndex);
+        buffer.write(string);
         return emitCompleteSegments();
     }
 
@@ -114,49 +95,32 @@ public final class RealWriter implements Writer {
     public @NonNull Writer write(final @NonNull String string, final @NonNull Charset charset) {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
-
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(string, charset);
-        return emitCompleteSegments();
-    }
 
-    @Override
-    public @NonNull Writer write(final @NonNull String string,
-                                 final int startIndex,
-                                 final int endIndex,
-                                 final @NonNull Charset charset) {
-        Objects.requireNonNull(string);
-        Objects.requireNonNull(charset);
-
-        if (segmentQueue.closed) {
-            throw new JayoClosedResourceException();
-        }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(string, startIndex, endIndex, charset);
+        buffer.write(string, charset);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeUtf8CodePoint(final int codePoint) {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeUtf8CodePoint(codePoint);
+
+        buffer.writeUtf8CodePoint(codePoint);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer write(final byte @NonNull [] source) {
         Objects.requireNonNull(source);
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(source);
+
+        buffer.write(source);
         return emitCompleteSegments();
     }
 
@@ -165,34 +129,33 @@ public final class RealWriter implements Writer {
                                  final int offset,
                                  final int byteCount) {
         Objects.requireNonNull(source);
-
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
+
         return writePrivate(source, offset, byteCount);
     }
 
     private @NonNull Writer writePrivate(final byte @NonNull [] source,
                                          final int offset,
                                          final int byteCount) {
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.write(source, offset, byteCount);
+        Objects.requireNonNull(source);
+        if (closed) {
+            throw new JayoClosedResourceException();
+        }
+
+        buffer.write(source, offset, byteCount);
         return emitCompleteSegments();
     }
 
     @Override
     public int transferFrom(final @NonNull ByteBuffer source) {
         Objects.requireNonNull(source);
-
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        return transferFromPrivate(source);
-    }
 
-    private int transferFromPrivate(final @NonNull ByteBuffer reader) {
-        segmentQueue.pauseIfFull();
-        final var totalBytesRead = segmentQueue.buffer.transferFrom(reader);
+        final var totalBytesRead = buffer.transferFrom(source);
         emitCompleteSegments();
         return totalBytesRead;
     }
@@ -203,11 +166,11 @@ public final class RealWriter implements Writer {
 
         var totalBytesRead = 0L;
         while (true) {
-            if (segmentQueue.closed) {
+            if (closed) {
                 throw new JayoClosedResourceException();
             }
-            segmentQueue.pauseIfFull();
-            final var readCount = source.readAtMostTo(segmentQueue.buffer, Segment.SIZE);
+
+            final var readCount = source.readAtMostTo(buffer, Segment.SIZE);
             if (readCount == -1L) {
                 break;
             }
@@ -226,11 +189,11 @@ public final class RealWriter implements Writer {
         }
         var _byteCount = byteCount;
         while (_byteCount > 0L) {
-            if (segmentQueue.closed) {
+            if (closed) {
                 throw new JayoClosedResourceException();
             }
-            segmentQueue.pauseIfFull();
-            final var read = source.readAtMostTo(segmentQueue.buffer, _byteCount);
+
+            final var read = source.readAtMostTo(buffer, _byteCount);
             if (read == -1L) {
                 throw new JayoEOFException();
             }
@@ -242,102 +205,131 @@ public final class RealWriter implements Writer {
 
     @Override
     public @NonNull Writer writeByte(final byte b) {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        return writeBytePrivate(b);
-    }
 
-    private @NonNull Writer writeBytePrivate(final byte b) {
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeByte(b);
+        buffer.writeByte(b);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeShort(final short s) {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeShort(s);
+
+        buffer.writeShort(s);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeInt(final int i) {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeInt(i);
+
+        buffer.writeInt(i);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeLong(final long l) {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeLong(l);
+
+        buffer.writeLong(l);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeDecimalLong(final long l) {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeDecimalLong(l);
+
+        buffer.writeDecimalLong(l);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer writeHexadecimalUnsignedLong(final long l) {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.pauseIfFull();
-        segmentQueue.buffer.writeHexadecimalUnsignedLong(l);
+
+        buffer.writeHexadecimalUnsignedLong(l);
         return emitCompleteSegments();
     }
 
     @Override
     public @NonNull Writer emitCompleteSegments() {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.emitCompleteSegments();
+        final var byteCount = buffer.completeSegmentByteCount();
+        if (byteCount > 0L) {
+            writer.write(buffer, byteCount);
+        }
         return this;
     }
 
     @Override
     public @NonNull Writer emit() {
-        if (segmentQueue.closed) {
+        if (closed) {
             throw new JayoClosedResourceException();
         }
-        segmentQueue.emit(false);
+        if (buffer.byteSize > 0L) {
+            writer.write(buffer, buffer.byteSize);
+        }
         return this;
     }
 
     @Override
     public void flush() {
-        if (segmentQueue.closed) {
-            throw new JayoClosedResourceException();
-        }
-        segmentQueue.emit(true);
+        emit();
+        writer.flush();
     }
 
     @Override
     public void close() {
-        segmentQueue.close();
+        if (closed) {
+            return;
+        }
+
+        // Emit buffered data to the underlying writer. If this fails, we still need to close the writer; otherwise we
+        // risk leaking resources.
+        Throwable thrown = null;
+        try {
+            if (buffer.byteSize > 0L) {
+                writer.write(buffer, buffer.byteSize);
+            }
+        } catch (Throwable e) {
+            thrown = e;
+        }
+
+        try {
+            writer.close();
+        } catch (Throwable e) {
+            if (thrown == null) {
+                thrown = e;
+            }
+        }
+
+        closed = true;
+
+        if (thrown != null) {
+            if (thrown instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw (Error) thrown;
+        }
     }
 
     @Override
     public String toString() {
-        return "buffered(" + segmentQueue.writer + ")";
+        return "buffered(" + writer + ")";
     }
 
     @Override
@@ -345,11 +337,11 @@ public final class RealWriter implements Writer {
         return new OutputStream() {
             @Override
             public void write(final int b) throws IOException {
-                if (segmentQueue.closed) {
+                if (closed) {
                     throw new IOException("Underlying writer is closed.");
                 }
                 try {
-                    writeBytePrivate((byte) b);
+                    writeByte((byte) b);
                 } catch (JayoException e) {
                     throw e.getCause();
                 }
@@ -359,7 +351,7 @@ public final class RealWriter implements Writer {
             public void write(final byte @NonNull [] data, final int offset, final int byteCount) throws IOException {
                 Objects.requireNonNull(data);
 
-                if (segmentQueue.closed) {
+                if (closed) {
                     throw new IOException("Underlying writer is closed.");
                 }
                 try {
@@ -371,11 +363,11 @@ public final class RealWriter implements Writer {
 
             @Override
             public void flush() throws IOException {
-                if (segmentQueue.closed) {
+                if (closed) {
                     throw new IOException("Underlying writer is closed.");
                 }
                 try {
-                    segmentQueue.emit(true);
+                    RealWriter.this.flush();
                 } catch (JayoException e) {
                     throw e.getCause();
                 }
@@ -404,11 +396,11 @@ public final class RealWriter implements Writer {
             public int write(final @NonNull ByteBuffer reader) throws IOException {
                 Objects.requireNonNull(reader);
 
-                if (segmentQueue.closed) {
+                if (closed) {
                     throw new ClosedChannelException();
                 }
                 try {
-                    return transferFromPrivate(reader);
+                    return transferFrom(reader);
                 } catch (JayoException e) {
                     throw e.getCause();
                 }
@@ -416,7 +408,7 @@ public final class RealWriter implements Writer {
 
             @Override
             public boolean isOpen() {
-                return !segmentQueue.closed;
+                return !closed;
             }
 
             @Override

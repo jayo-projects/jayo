@@ -11,7 +11,6 @@ import jayo.internal.network.NetworkEndpointBuilder;
 import jayo.internal.network.SocketChannelNetworkEndpoint;
 import jayo.internal.network.SocketNetworkEndpoint;
 import jayo.internal.network.SocksNetworkEndpoint;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -116,13 +115,6 @@ public sealed interface NetworkEndpoint extends Endpoint
          */
         @NonNull
         Builder writeTimeout(final @NonNull Duration writeTimeout);
-
-        /**
-         * Read and write operations of the network endpoint will seamlessly process <b>asynchronously</b> in distinct
-         * runnable tasks executed by the provided {@code taskRunner}.
-         */
-        @NonNull
-        Builder bufferAsync(final @NonNull TaskRunner taskRunner);
 
         /**
          * Sets the value of a socket option to set on the network endpoint.

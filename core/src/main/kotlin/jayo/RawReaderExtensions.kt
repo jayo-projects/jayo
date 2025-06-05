@@ -27,18 +27,14 @@ import jayo.bytestring.ByteString
 import jayo.crypto.Digest
 import jayo.crypto.Hmac
 import jayo.internal.RealReader
-import jayo.scheduling.TaskRunner
 
 /**
  * @return a new reader that buffers reads from the raw `reader`. The returned reader will perform bulk reads into its
  * underlying buffer.
  *
- * If you provide a [taskRunner], actual read operations from the raw `reader` are seamlessly processed
- * **asynchronously** by a virtual thread.
- *
- * Use this wherever you read a reader to get an ergonomic and efficient access to data.
+ * Use this wherever you read a reader to get ergonomic and efficient access to data.
  */
-public fun RawReader.buffered(taskRunner: TaskRunner? = null): Reader = RealReader(this, taskRunner)
+public fun RawReader.buffered(): Reader = RealReader(this)
 
 /**
  * Consumes all this reader and return its hash.

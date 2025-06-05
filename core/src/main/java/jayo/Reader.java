@@ -613,70 +613,72 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     String readString(final long byteCount, final @NonNull Charset charset);
 
     /**
-     * Removes up to {@code writer.length} bytes from this reader and copies them into {@code writer}.
+     * Removes up to {@code destination.length} bytes from this reader and copies them into {@code destination}.
      *
-     * @param writer the array to which data will be written from this reader.
+     * @param destination the array to which data will be written from this reader.
      * @return the number of bytes read, or {@code -1} if this reader is exhausted.
      * @throws JayoClosedResourceException if this reader is closed.
      */
-    int readAtMostTo(final byte @NonNull [] writer);
+    int readAtMostTo(final byte @NonNull [] destination);
 
     /**
-     * Removes up to {@code byteCount} bytes from this reader and copies them into {@code writer} at {@code offset}.
+     * Removes up to {@code byteCount} bytes from this reader and copies them into {@code destination} at
+     * {@code offset}.
      *
-     * @param writer    the byte array to which data will be written from this reader.
-     * @param offset    the start offset (inclusive) in the {@code writer} of the first byte to copy.
-     * @param byteCount the number of bytes to copy.
+     * @param destination the byte array to which data will be written from this reader.
+     * @param offset      the start offset (inclusive) in the {@code destination} of the first byte to copy.
+     * @param byteCount   the number of bytes to copy.
      * @return the number of bytes read, or {@code -1} if this reader is exhausted.
-     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code writer}
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code destination}
      *                                   indices.
      * @throws IllegalStateException     if this reader is closed.
      */
-    int readAtMostTo(final byte @NonNull [] writer, final int offset, final int byteCount);
+    int readAtMostTo(final byte @NonNull [] destination, final int offset, final int byteCount);
 
     /**
-     * Removes exactly {@code writer.length} bytes from this reader and copies them into {@code writer}.
+     * Removes exactly {@code destination.length} bytes from this reader and copies them into {@code destination}.
      *
-     * @param writer the byte array to which data will be written from this reader.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code writer.length} bytes of
-     *                                     data.
+     * @param destination the byte array to which data will be written from this reader.
+     * @throws JayoEOFException            if this reader is exhausted before containing {@code destination.length}
+     *                                     bytes of data.
      * @throws JayoClosedResourceException if this reader is closed.
      */
-    void readTo(final byte @NonNull [] writer);
+    void readTo(final byte @NonNull [] destination);
 
     /**
-     * Removes exactly {@code byteCount} bytes from this reader and copies them into {@code writer} at {@code offset}.
+     * Removes exactly {@code byteCount} bytes from this reader and copies them into {@code destination} at
+     * {@code offset}.
      *
-     * @param writer    the byte array to which data will be written from this reader.
-     * @param offset    the start offset (inclusive) in the {@code writer} of the first byte to copy.
-     * @param byteCount the number of bytes to copy.
-     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of {@code writer}
+     * @param destination the byte array to which data will be written from this reader.
+     * @param offset      the start offset (inclusive) in the {@code destination} of the first byte to copy.
+     * @param byteCount   the number of bytes to copy.
+     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of {@code destination}
      *                                     indices.
      * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
      *                                     data.
      * @throws JayoClosedResourceException if this reader is closed.
      */
-    void readTo(final byte @NonNull [] writer, final int offset, final int byteCount);
+    void readTo(final byte @NonNull [] destination, final int offset, final int byteCount);
 
     /**
-     * Removes exactly {@code byteCount} bytes from this and appends them to {@code writer}.
+     * Removes exactly {@code byteCount} bytes from this and appends them to {@code destination}.
      *
-     * @param writer    the writer to which data will be written from this reader.
-     * @param byteCount the number of bytes to copy.
+     * @param destination the destination to which data will be written from this reader.
+     * @param byteCount   the number of bytes to copy.
      * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
      *                                     data.
-     * @throws JayoClosedResourceException if this reader or {@code writer} is closed.
+     * @throws JayoClosedResourceException if this reader or {@code destination} is closed.
      */
-    void readTo(final @NonNull RawWriter writer, final long byteCount);
+    void readTo(final @NonNull RawWriter destination, final long byteCount);
 
     /**
-     * Removes all bytes from this reader and appends them to {@code writer}.
+     * Removes all bytes from this reader and appends them to {@code destination}.
      *
-     * @param writer the writer to which data will be written from this reader.
-     * @return the total number of bytes written to {@code writer} which will be {@code 0L} if this reader is exhausted.
-     * @throws JayoClosedResourceException if this reader or {@code writer} is closed.
+     * @param destination the destination to which data will be written from this reader.
+     * @return the total number of bytes written to {@code destination} which will be {@code 0L} if this reader is exhausted.
+     * @throws JayoClosedResourceException if this reader or {@code destination} is closed.
      */
-    long transferTo(final @NonNull RawWriter writer);
+    long transferTo(final @NonNull RawWriter destination);
 
     /**
      * Returns the index of {@code b} first occurrence in this reader, or {@code -1} if it doesn't contain {@code b}.
@@ -770,6 +772,23 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @throws JayoClosedResourceException if this reader is closed.
      */
     long indexOf(final @NonNull ByteString byteString, final long startIndex);
+
+    /**
+     * Returns the index of the first match for {@code byteString} in this reader in the range of {@code startIndex} to
+     * {@code endIndex}, or {@code -1} if it doesn't contain {@code byteString}.
+     * <p>
+     * If {@code byteString} is not found in the buffered data, {@code endIndex} is yet to be reached, and the
+     * downstream is not yet exhausted, then new data will be requested from the downstream. The scan terminates at
+     * either {@code endIndex} or reader's exhaustion, whichever comes first. The maximum number of bytes scanned is
+     * {@code endIndex - startIndex}.
+     *
+     * @param byteString the sequence of bytes to find within this reader.
+     * @param startIndex the start of the range (inclusive) to find {@code byteString}.
+     * @param endIndex   the end of the range (exclusive) to find {@code byteString}.
+     * @throws IllegalArgumentException    if {@code startIndex} is negative.
+     * @throws JayoClosedResourceException if this reader is closed.
+     */
+    long indexOf(final @NonNull ByteString byteString, final long startIndex, final long endIndex);
 
     /**
      * Returns the first index in this reader that contains any of the bytes in {@code targetBytes}, or {@code -1} if
@@ -908,13 +927,13 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     InputStream asInputStream();
 
     /**
-     * Consumes up to {@link ByteBuffer#remaining} bytes from this reader and writes them to the {@code writer} byte
-     * buffer.
+     * Consumes up to {@link ByteBuffer#remaining} bytes from this reader and writes them to the {@code destination}
+     * byte buffer.
      *
-     * @param writer the byte buffer to write data into.
+     * @param destination the byte buffer to write data into.
      * @return the number of bytes written.
      */
-    int readAtMostTo(final @NonNull ByteBuffer writer);
+    int readAtMostTo(final @NonNull ByteBuffer destination);
 
     /**
      * Returns a new readable byte channel that reads from this reader. Closing the byte channel will also close this

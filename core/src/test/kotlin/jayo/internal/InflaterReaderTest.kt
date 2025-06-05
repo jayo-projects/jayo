@@ -22,7 +22,6 @@
 package jayo.internal
 
 import jayo.*
-import jayo.JayoEOFException
 import jayo.bytestring.ByteString
 import jayo.bytestring.decodeBase64
 import jayo.bytestring.encodeToUtf8
@@ -30,7 +29,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.assertThrows
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.Inflater
@@ -40,8 +38,6 @@ import kotlin.test.assertEquals
 class BufferInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.BUFFER)
 
 class RealInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.REAL_SOURCE)
-
-class RealAsyncInflaterReaderTest : AbstractInflaterReaderTest(ReaderFactory.REAL_ASYNC_SOURCE)
 
 class PeekInflaterBufferTest : AbstractInflaterReaderTest(ReaderFactory.PEEK_BUFFER)
 
@@ -55,9 +51,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
 
     @BeforeEach
     fun before() {
-        val pipe = bufferFactory.pipe()
-        deflatedWriter = pipe.writer
-        deflatedReader = pipe.reader
+        resetDeflatedSourceAndSink()
     }
 
     @AfterEach
@@ -67,6 +61,12 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
             deflatedWriter.close()
         } catch (_: Exception) { /*ignored*/
         }
+    }
+
+    private fun resetDeflatedSourceAndSink() {
+        val pipe = bufferFactory.pipe()
+        deflatedWriter = pipe.writer
+        deflatedReader = pipe.reader
     }
 
     @Test
@@ -117,10 +117,9 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
     }
 
     @Test
-    @Disabled // todo
     fun inflateIntoNonemptyWriter() {
         for (i in 0 until 1024) {
-            before()
+            resetDeflatedSourceAndSink()
             val inflated = Buffer().write("a".repeat(i))
             deflate("God help us, we're in the hands of engineers.".encodeToUtf8())
             val reader = deflatedReader.inflate()

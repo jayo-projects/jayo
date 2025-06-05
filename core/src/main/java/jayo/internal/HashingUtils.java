@@ -5,8 +5,9 @@
 
 package jayo.internal;
 
-import jayo.bytestring.ByteString;
 import jayo.RawReader;
+import jayo.Reader;
+import jayo.bytestring.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import org.jspecify.annotations.NonNull;
@@ -35,21 +36,21 @@ public final class HashingUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalArgumentException("Algorithm is not available : " + digest, e);
         }
-        try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
-            var remaining = segmentQueue.expectSize(Long.MAX_VALUE);
-            var head = segmentQueue.head();
-            while (remaining > 0L) {
-                assert head != null;
-                final var currentLimit = head.limit;
-                final var toRead = (int) Math.min(remaining, currentLimit - head.pos);
-                messageDigest.update(head.data, head.pos, toRead);
-                head.pos += toRead;
-                segmentQueue.decrementSize(toRead);
-                remaining -= toRead;
-                if (head.pos == currentLimit) {
-                    head = segmentQueue.removeHead(head, true);
-                }
+        try (final var reader = (rawReader instanceof Reader _reader) ? _reader : new RealReader(rawReader)) {
+            // exhaust the Reader
+            reader.request(Long.MAX_VALUE);
+            final var buffer = Utils.internalBuffer(reader);
+
+            var segment = buffer.head;
+            while (segment != null) {
+                messageDigest.update(segment.data, segment.pos, segment.limit - segment.pos);
+                final var removed = segment;
+                segment = segment.pop();
+                SegmentPool.recycle(removed);
             }
+
+            buffer.byteSize = 0L;
+            buffer.head = null;
         }
         return new RealByteString(messageDigest.digest());
     }
@@ -75,21 +76,22 @@ public final class HashingUtils {
         } catch (InvalidKeyException e) {
             throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
         }
-        try (rawReader; final var segmentQueue = new ReaderSegmentQueue(rawReader)) {
-            var remaining = segmentQueue.expectSize(Long.MAX_VALUE);
-            var head = segmentQueue.head();
-            while (remaining > 0L) {
-                assert head != null;
-                final var currentLimit = head.limit;
-                final var toRead = (int) Math.min(remaining, currentLimit - head.pos);
-                javaMac.update(head.data, head.pos, toRead);
-                head.pos += toRead;
-                segmentQueue.decrementSize(toRead);
-                remaining -= toRead;
-                if (head.pos == currentLimit) {
-                    head = segmentQueue.removeHead(head, true);
-                }
+        try (final var reader = (rawReader instanceof Reader _reader) ? _reader : new RealReader(rawReader)) {
+            // exhaust the Reader
+            reader.request(Long.MAX_VALUE);
+            final var buffer = Utils.internalBuffer(reader);
+
+            var segment = buffer.head;
+            while (segment != null) {
+                assert segment != null;
+                javaMac.update(segment.data, segment.pos, segment.limit - segment.pos);
+                final var removed = segment;
+                segment = segment.pop();
+                SegmentPool.recycle(removed);
             }
+
+            buffer.byteSize = 0L;
+            buffer.head = null;
         }
         return new RealByteString(javaMac.doFinal());
     }
