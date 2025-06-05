@@ -285,16 +285,6 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     @NonNull
     Buffer write(final @NonNull String string);
 
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalArgumentException  {@inheritDoc}
-     */
-    @Override
-    @NonNull
-    Buffer write(final @NonNull String string,
-                 final int startIndex,
-                 final int endIndex);
-
     @Override
     @NonNull
     Buffer writeUtf8CodePoint(final int codePoint);
@@ -302,17 +292,6 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
     @Override
     @NonNull
     Buffer write(final @NonNull String string, final @NonNull Charset charset);
-
-    /**
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalArgumentException  {@inheritDoc}
-     */
-    @Override
-    @NonNull
-    Buffer write(final @NonNull String string,
-                 final int startIndex,
-                 final int endIndex,
-                 final @NonNull Charset charset);
 
     /**
      * @throws IllegalArgumentException {@inheritDoc}

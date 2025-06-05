@@ -21,9 +21,8 @@
 
 package jayo.internal;
 
-import jayo.Buffer;
-import jayo.bytestring.ByteString;
 import jayo.Reader;
+import jayo.bytestring.ByteString;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLEngineResult;
@@ -41,19 +40,28 @@ public final class Utils {
     static final char[] HEX_DIGIT_CHARS =
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-    static final @NonNull SegmentRef NULL_SEGMENT_REF = new SegmentRef.Immediate(null);
-
     /**
-     * Returns the index of a final value in options that is a prefix of this buffer. Returns -1 if no final value is
+     * @param selectTruncated true to return -2 if a possible result is present but truncated. For example, this will
+     *                        return -2 if the buffer contains [ab] and the options are [abc, abd]. Note that this is
+     *                        made complicated by the fact that options are listed in preference order, and one option
+     *                        may be a prefix of another. For example, this returns -2 if the buffer contains [ab] and
+     *                        the options are [abc, a].
+     * @return the index of a final value in options that is a prefix of this buffer. Returns -1 if no final value is
      * found. This method does two simultaneous iterations: it iterates the trie, and it iterates this buffer. It
      * returns when it reaches a result in the trie, when it mismatches in the trie, and when the buffer is exhausted.
      */
-    static int selectPrefix(final RealBuffer buffer, final RealOptions options) {
-        var segment = buffer.segmentQueue.head();
-        if (segment == null) {
-            return -1;
+    static int selectPrefix(final @NonNull RealBuffer buffer,
+                            final @NonNull RealOptions options,
+                            final boolean selectTruncated) {
+        assert buffer != null;
+        assert options != null;
+
+        final var head = buffer.head;
+        if (head == null) {
+            return (selectTruncated) ? -2 : -1;
         }
 
+        var segment = head;
         var data = segment.data;
         var pos = segment.pos;
         var limit = segment.limit;
@@ -90,15 +98,15 @@ public final class Utils {
                     // Advance to the next buffer segment if this one is exhausted.
                     if (pos == limit) {
                         segment = segment.next;
-                        if (segment != null) {
-                            pos = segment.pos;
-                            data = segment.data;
-                            limit = segment.limit;
-                        } else {
+                        assert segment != null;
+                        pos = segment.pos;
+                        data = segment.data;
+                        limit = segment.limit;
+                        if (segment == head) {
                             if (!scanComplete) {
                                 break navigateTrie; // We were exhausted before the scan completed.
                             }
-                            // We were exhausted at the end of the scan.
+                            segment = null; // We were exhausted at the end of the scan.
                         }
                     }
 
@@ -127,12 +135,13 @@ public final class Utils {
                 // Advance to the next buffer segment if this one is exhausted.
                 if (pos == limit) {
                     segment = segment.next;
-                    if (segment != null) {
-                        pos = segment.pos;
-                        data = segment.data;
-                        limit = segment.limit;
+                    assert segment != null;
+                    pos = segment.pos;
+                    data = segment.data;
+                    limit = segment.limit;
+                    if (segment == head) {
+                        segment = null; // no more segments! The next trie node will be our last.
                     }
-                    // else : no more segments! The next trie node will be our last.
                 }
             }
 
@@ -142,27 +151,20 @@ public final class Utils {
             triePos = -nextStep; // Found another node to continue the search.
         }
 
+        // We break out of the loop above when we've exhausted the buffer without exhausting the trie.
+        if (selectTruncated) {
+            return -2; // The buffer is a prefix of at least one option.
+        }
         return prefixIndex; // Return any matches we encountered while searching for a deeper match.
     }
 
-    public static @NonNull Buffer getBufferFromReader(final @NonNull Reader reader) {
+    static @NonNull RealBuffer internalBuffer(final @NonNull Reader reader) {
         assert reader != null;
 
         if (reader instanceof RealReader _reader) {
-            return _reader.segmentQueue.buffer;
+            return _reader.buffer;
         }
-
-        return (Buffer) reader;
-    }
-
-    static @NonNull SegmentQueue getSegmentQueueFromReader(final @NonNull Reader reader) {
-        assert reader != null;
-
-        if (reader instanceof RealReader _reader) {
-            return _reader.segmentQueue;
-        }
-
-        return ((RealBuffer) reader).segmentQueue;
+        return (RealBuffer) reader;
     }
 
     static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {

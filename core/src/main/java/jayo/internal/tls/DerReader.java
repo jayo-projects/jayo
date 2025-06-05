@@ -23,7 +23,6 @@ package jayo.internal.tls;
 
 import jayo.*;
 import jayo.bytestring.ByteString;
-import jayo.internal.Utils;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -71,7 +70,7 @@ final class DerReader {
     }
 
     private long byteCount() {
-        return countingReader.bytesRead - Utils.getBufferFromReader(reader).bytesAvailable();
+        return countingReader.bytesRead - reader.bytesAvailable();
     }
 
     /**

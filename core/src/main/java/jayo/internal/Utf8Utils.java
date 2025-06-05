@@ -24,8 +24,6 @@ package jayo.internal;
 import jayo.Buffer;
 import org.jspecify.annotations.NonNull;
 
-import java.util.Objects;
-
 final class Utf8Utils {
     // un-instantiable
     private Utf8Utils() {
@@ -37,7 +35,8 @@ final class Utf8Utils {
     static final int ASCII_REPLACEMENT_CODE_POINT = ASCII_REPLACEMENT_CHARACTER;
 
     static String readUtf8Line(final @NonNull Buffer buffer, final long newline) {
-        Objects.requireNonNull(buffer);
+        assert buffer != null;
+
         if (newline > 0L && buffer.getByte(newline - 1) == (byte) ((int) '\r')) {
             // Read everything until '\r\n', then skip the '\r\n'.
             final var result = buffer.readString(newline - 1L);

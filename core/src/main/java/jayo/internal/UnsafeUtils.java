@@ -45,10 +45,9 @@ final class UnsafeUtils {
         // attempt to access field Unsafe#theUnsafe
         final var maybeUnsafe = maybeUnsafe();
 
-        // the conditional check here can not be replaced with checking that maybeUnsafe
-        // is an instanceof Unsafe and reversing the if and else blocks; this is because an
-        // instanceof check against Unsafe will trigger a class load, and we might not have
-        // the runtime permission accessClassInPackage.sun.misc
+        // the conditional check here cannot be replaced with checking that maybeUnsafe is an instance of Unsafe and
+        // reversing the if and else blocks; this is because an instanceof check against Unsafe will trigger a class
+        // load, and we might not have the runtime permission accessClassInPackage.sun.misc
         if (maybeUnsafe instanceof Throwable) {
             UNSAFE = null;
             if (LOGGER.isLoggable(DEBUG)) {
@@ -89,13 +88,13 @@ final class UnsafeUtils {
     private static Object maybeUnsafe() {
         try {
             final var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-            // We always want to try using Unsafe as the access still works on java9 as well and
-            // we need it for out native-transports and many optimizations.
+            // We always want to try using Unsafe as the access still works on java9 as well, and we benefit from it for
+            // many optimizations.
             unsafeField.setAccessible(true);
-            // the unsafe instance
-            return unsafeField.get(null);
+            return unsafeField.get(null); // the unsafe instance
         } catch (NoSuchFieldException | SecurityException | IllegalAccessException
-                 // Also catch NoClassDefFoundError in case someone uses for example OSGI and it made Unsafe unloadable.
+                 // Also catch NoClassDefFoundError in case someone uses, for example, OSGI, and it made Unsafe
+                 // unloadable.
                  | NoClassDefFoundError e) {
             return e;
         }

@@ -9,7 +9,6 @@ import jayo.JayoClosedResourceException;
 import jayo.JayoException;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkServer;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -33,13 +32,11 @@ public final class ServerSocketNetworkServer implements NetworkServer {
     private final @NonNull ServerSocket serverSocket;
     private final long defaultReadTimeoutNanos;
     private final long defaultWriteTimeoutNanos;
-    private final @Nullable TaskRunner taskRunner;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
     ServerSocketNetworkServer(final @NonNull SocketAddress localAddress,
                               final long defaultReadTimeoutNanos,
                               final long defaultWriteTimeoutNanos,
-                              final @Nullable TaskRunner taskRunner,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                               final int maxPendingConnections) {
@@ -73,7 +70,6 @@ public final class ServerSocketNetworkServer implements NetworkServer {
 
         this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
         this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
-        this.taskRunner = taskRunner;
         this.socketOptions = socketOptions;
     }
 
@@ -91,7 +87,7 @@ public final class ServerSocketNetworkServer implements NetworkServer {
                         defaultWriteTimeoutNanos, System.lineSeparator(), socketOptions);
             }
 
-            return new SocketNetworkEndpoint(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos, taskRunner);
+            return new SocketNetworkEndpoint(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos);
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG, "ServerSocketNetworkServer failed to accept a client connection", e);

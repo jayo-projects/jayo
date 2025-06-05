@@ -40,7 +40,7 @@ import static jayo.internal.RealUtf8.decodeToUtf8;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 
 public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 permits SegmentedAscii {
-    SegmentedUtf8(final @NonNull Segment[] segments, final int @NonNull [] directory, final boolean isAscii) {
+    SegmentedUtf8(final byte @NonNull [] @NonNull [] segments, final int @NonNull [] directory, final boolean isAscii) {
         super(segments, directory);
         this.isAscii = isAscii;
     }
@@ -144,7 +144,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
             }
 
             private byte currentByte() {
-                return segments[segmentIndex].data[byteIndexInSegment];
+                return segments[segmentIndex][byteIndexInSegment];
             }
 
             private void advance(final int increment) {
@@ -248,7 +248,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
         var nextSegmentOffset = directory[0];
         var isAscii = true;
         while (true) {
-            if (segments[segmentIndex].data[byteIndexInSegment] < 0) {
+            if (segments[segmentIndex][byteIndexInSegment] < 0) {
                 isAscii = false;
                 break;
             }
@@ -274,7 +274,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
 
         var length = byteIndex;
         while (true) {
-            final var b0 = segments[segmentIndex].data[byteIndexInSegment];
+            final var b0 = segments[segmentIndex][byteIndexInSegment];
             final int increment;
             if (b0 >= 0) {
                 // 0xxxxxxx : 7 bits (ASCII).

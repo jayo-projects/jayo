@@ -20,8 +20,8 @@ fun catalogVersion(lib: String) =
 val isCI = providers.gradleProperty("isCI")
 
 val koverage = mapOf(
-    "jayo" to if (isCI.isPresent) 85 else 86,
-    "jayo-3p-kotlinx-serialization" to 55,
+    "jayo" to if (isCI.isPresent) 83 else 84,
+    "jayo-3p-kotlinx-serialization" to 54,
 )
 
 kotlin {

@@ -25,7 +25,6 @@ import jayo.bytestring.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.internal.*;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
@@ -58,54 +57,22 @@ public final class Jayo {
      * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
      * segment(s), if any.
      * <p>
-     * Write operations to the raw {@code writer} are processed <b>synchronously</b>.
-     * <p>
-     * Use this wherever you synchronously write to a raw writer to get ergonomic and efficient access to data.
+     * Use this wherever you write to a raw writer to get ergonomic and efficient access to data.
      */
     public static @NonNull Writer buffer(final @NonNull RawWriter writer) {
-        return new RealWriter(writer, null);
-    }
-
-    /**
-     * @return a new writer that buffers writes to the raw {@code writer}. The returned writer will batch writes to
-     * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
-     * segment(s), if any.
-     * <p>
-     * Write operations to the raw {@code writer} are seamlessly processed <b>asynchronously</b> in a distinct runnable
-     * task executed by {@code taskRunner}.
-     * <p>
-     * Use this wherever you asynchronously write to a raw writer to get ergonomic and efficient access to data.
-     */
-    public static @NonNull Writer bufferAsync(final @NonNull RawWriter writer, final @NonNull TaskRunner taskRunner) {
-        return new RealWriter(writer, taskRunner);
+        Objects.requireNonNull(writer);
+        return new RealWriter(writer);
     }
 
     /**
      * @return a new reader that buffers reads from the raw {@code reader}. The returned reader will perform bulk reads
      * into its underlying buffer.
      * <p>
-     * Read operations from the raw {@code reader} are processed <b>synchronously</b>.
-     * <p>
-     * Use this wherever you synchronously read from a raw reader to get ergonomic and efficient access to data.
+     * Use this wherever you read from a raw reader to get ergonomic and efficient access to data.
      */
     public static @NonNull Reader buffer(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
-        return new RealReader(reader, null);
-    }
-
-    /**
-     * @return a new reader that buffers reads from the raw {@code reader}. The returned reader will perform bulk reads
-     * into its underlying buffer.
-     * <p>
-     * Read operations from the raw {@code reader} are seamlessly processed <b>asynchronously</b> in a distinct runnable
-     * task executed by {@code taskRunner}.
-     * <p>
-     * Use this wherever you asynchronously read from a raw reader to get ergonomic and efficient access to data.
-     */
-    public static @NonNull Reader bufferAsync(final @NonNull RawReader reader, final @NonNull TaskRunner taskRunner) {
-        Objects.requireNonNull(reader);
-        Objects.requireNonNull(taskRunner);
-        return new RealReader(reader, taskRunner);
+        return new RealReader(reader);
     }
 
     /**
@@ -345,7 +312,7 @@ public final class Jayo {
     /**
      * @return a {@link RawWriter} that DEFLATE-compresses data to this {@code writer} while writing.
      */
-    public static @NonNull RawWriter deflate(final @NonNull Writer writer) {
+    public static @NonNull RawWriter deflate(final @NonNull RawWriter writer) {
         return deflate(writer, new Deflater());
     }
 
@@ -353,7 +320,7 @@ public final class Jayo {
      * @return a {@link RawWriter} that DEFLATE-compresses data to this {@code writer} while writing, using the provided
      * {@code deflater}.
      */
-    public static @NonNull RawWriter deflate(final @NonNull Writer writer, final @NonNull Deflater deflater) {
+    public static @NonNull RawWriter deflate(final @NonNull RawWriter writer, final @NonNull Deflater deflater) {
         Objects.requireNonNull(writer);
         Objects.requireNonNull(deflater);
         return new DeflaterRawWriter(writer, deflater);
@@ -362,7 +329,7 @@ public final class Jayo {
     /**
      * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading.
      */
-    public static @NonNull InflaterRawReader inflate(final @NonNull Reader reader) {
+    public static @NonNull InflaterRawReader inflate(final @NonNull RawReader reader) {
         return inflate(reader, new Inflater());
     }
 
@@ -370,7 +337,7 @@ public final class Jayo {
      * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading, using the
      * provided {@code inflater}.
      */
-    public static @NonNull InflaterRawReader inflate(final @NonNull Reader reader,
+    public static @NonNull InflaterRawReader inflate(final @NonNull RawReader reader,
                                                      final @NonNull Inflater inflater) {
         Objects.requireNonNull(reader);
         Objects.requireNonNull(inflater);
@@ -380,7 +347,7 @@ public final class Jayo {
     /**
      * @return a {@link RawReader} that gzip-decompresses this {@code reader} while reading.
      */
-    public static @NonNull RawReader gzip(final @NonNull Reader reader) {
+    public static @NonNull RawReader gzip(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
         return new GzipRawReader(reader);
     }

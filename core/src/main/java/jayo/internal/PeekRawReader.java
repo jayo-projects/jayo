@@ -30,30 +30,28 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
-import static jayo.internal.Utils.getBufferFromReader;
-
 /**
  * A {@link RawReader} which peeks into an upstream {@link Reader} and allows reading and expanding of the buffered data
  * without consuming it. Does this by requesting additional data from the upstream reader if needed and copying out of
  * the internal buffer of the upstream reader if possible.
  * <p>
- * This reader also maintains a snapshot of the starting location of the upstream buffer which it validates against on
- * every read. If the upstream buffer is read from, this reader will become invalid and throw
- * {@link IllegalStateException} on any future reads.
+ * This reader also maintains a snapshot of the upstream's buffer starting location which it validates against on every
+ * read. If the upstream buffer is read from, this reader will become invalid and throw {@link IllegalStateException} on
+ * any future reads.
  */
 final class PeekRawReader implements RawReader {
     private final @NonNull Reader upstream;
     private final @NonNull RealBuffer buffer;
     private @Nullable Segment expectedSegment;
     private int expectedPos;
+
     private boolean closed = false;
     private long pos = 0L;
 
     public PeekRawReader(final @NonNull Reader upstream) {
         this.upstream = Objects.requireNonNull(upstream);
-        buffer = (RealBuffer) getBufferFromReader(upstream);
-        buffer.segmentQueue.expectSize(1L);
-        final var bufferHead = buffer.segmentQueue.head();
+        buffer = Utils.internalBuffer(upstream);
+        final var bufferHead = buffer.head;
         if (bufferHead != null) {
             this.expectedSegment = bufferHead;
             this.expectedPos = bufferHead.pos;
@@ -73,32 +71,31 @@ final class PeekRawReader implements RawReader {
             throw new JayoClosedResourceException();
         }
 
-        final var bufferHead = buffer.segmentQueue.head();
-        // Reader becomes invalid if there is an expected Segment and the expected position does not match the
-        // current head and head position of the upstream buffer
+        final var bufferHead = buffer.head;
+        // Reader becomes invalid if there is an expected Segment and the expected position does not match the current
+        // head and head position of the upstream buffer
         if (expectedSegment != null &&
                 (bufferHead == null || expectedSegment != bufferHead || expectedPos != bufferHead.pos)) {
-            throw new IllegalStateException("Peek reader is invalid because upstream reader was used");
+            throw new IllegalStateException("Peek reader is invalid because the upstream reader was used");
         }
+
         if (byteCount == 0L) {
             return 0L;
         }
+
         if (!upstream.request(pos + 1)) {
             return -1L;
         }
 
-        if (expectedSegment == null && bufferHead != null) {
-            // Only once the buffer actually holds data should an expected Segment and position be recorded.
+        if (expectedSegment == null && buffer.head != null) {
+            // Only once the buffer actually holds data, should an expected Segment and position be recorded.
             // This allows reads from the peek reader to repeatedly return -1 and for data to be added later.
             // Unit tests depend on this behavior.
-            expectedSegment = bufferHead;
-            expectedPos = bufferHead.pos;
+            expectedSegment = buffer.head;
+            expectedPos = buffer.head.pos;
         }
 
-        final var toCopy = Math.min(byteCount, buffer.bytesAvailable() - pos);
-        if ((pos | toCopy) < 0) {
-            throw new IllegalStateException("Peek reader is invalid because upstream reader was used");
-        }
+        final var toCopy = Math.min(byteCount, buffer.byteSize - pos);
         buffer.copyTo(writer, pos, toCopy);
         pos += toCopy;
         return toCopy;

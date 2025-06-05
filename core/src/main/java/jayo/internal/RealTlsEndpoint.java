@@ -58,7 +58,7 @@ public final class RealTlsEndpoint {
 
     private final @NonNull Endpoint encryptedEndpoint;
     private final @NonNull RealReader encryptedReader;
-    private final @NonNull WriterSegmentQueue encryptedWriterSegmentQueue;
+    private final @NonNull RealWriter encryptedWriter;
     private final @NonNull SSLEngine engine;
     private final boolean waitForCloseConfirmation;
     private final @NonNull SSLSession tlsSession;
@@ -108,18 +108,11 @@ public final class RealTlsEndpoint {
         assert encryptedEndpoint != null;
         assert engine != null;
 
-        if (!(encryptedEndpoint.getReader() instanceof RealReader reader)) {
-            throw new IllegalArgumentException("encryptedEndpoint.reader must be an instance of RealReader");
-        }
-        if (!(encryptedEndpoint.getWriter() instanceof RealWriter writer)) {
-            throw new IllegalArgumentException("encryptedEndpoint.writer must be an instance of RealWriter");
-        }
-
         JssePlatform.get().adaptSslEngine(engine);
 
         this.encryptedEndpoint = encryptedEndpoint;
-        this.encryptedReader = reader;
-        this.encryptedWriterSegmentQueue = writer.segmentQueue;
+        this.encryptedReader = (RealReader) encryptedEndpoint.getReader();
+        this.encryptedWriter = (RealWriter) encryptedEndpoint.getWriter();
         this.engine = engine;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
 
@@ -242,15 +235,21 @@ public final class RealTlsEndpoint {
         final var destination = (suppliedDecryptedBuffer != null) ? suppliedDecryptedBuffer : decryptedBuffer;
 
         final var toRead = Math.min(remainingBytesToRead, Segment.SIZE);
-        final var result = new Wrapper.SSLEngineResult();
-        encryptedReader.segmentQueue.withCompactedHeadAsByteBuffer(toRead, source -> {
-            result.value = callEngineUnwrap(source, destination);
-            final var bytesConsumed = result.value.bytesConsumed();
-            remainingBytesToRead -= bytesConsumed;
-            return bytesConsumed;
-        });
+        final var head = encryptedReader.buffer.aggregatedHead(toRead);
+        final var sourceByteBuffer = head.asByteBuffer(head.pos, toRead);
 
-        return result.value;
+        final var result = callEngineUnwrap(sourceByteBuffer, destination);
+        final var bytesConsumed = result.bytesConsumed();
+        head.pos += bytesConsumed;
+        encryptedReader.buffer.byteSize -= bytesConsumed;
+        remainingBytesToRead -= bytesConsumed;
+
+        if (head.pos == head.limit) {
+            encryptedReader.buffer.head = head.pop();
+            SegmentPool.recycle(head);
+        }
+
+        return result;
     }
 
     private @NonNull SSLEngineResult callEngineUnwrap(final @NonNull ByteBuffer source,
@@ -266,34 +265,37 @@ public final class RealTlsEndpoint {
     private @Nullable SSLEngineResult callEngineUnwrap(final @NonNull ByteBuffer source,
                                                        final int minimumCapacity,
                                                        final @NonNull RealBuffer destination) {
-        final var decryptedReaderQueue = destination.segmentQueue;
-        return decryptedReaderQueue.withWritableTail(minimumCapacity, tail -> {
-            final var dst = tail.asWriteByteBuffer(Segment.SIZE - tail.limit);
-            try {
-                final var result = engine.unwrap(source, dst);
-                if (LOGGER.isLoggable(TRACE)) {
-                    LOGGER.log(TRACE,
-                            "engine.unwrap() result [{0}]. engine status: {1}; source {2};{3}" +
-                                    "decryptedReaderQueue {4}{5}",
-                            Utils.resultToString(result), engine.getHandshakeStatus(), source, System.lineSeparator(),
-                            decryptedReaderQueue, System.lineSeparator());
-                }
-                // Note that data can be returned (produced) even in case of overflow, in that case,
-                // just return the data.
-                final var written = result.bytesProduced();
-                if (written > 0) {
-                    tail.limit += written;
-                } else if (result.getStatus() == Status.BUFFER_OVERFLOW) {
-                    assert result.bytesConsumed() == 0;
-                    // must retry with bigger destination tail ByteBuffer
-                    return null;
-                }
-                return result;
-            } catch (SSLException e) {
-                invalid = true;
-                throw new JayoTlsException(e);
+        final var dstTail = destination.writableTail(minimumCapacity);
+        final var dst = dstTail.asByteBuffer(dstTail.limit, Segment.SIZE - dstTail.limit);
+        try {
+            final var result = engine.unwrap(source, dst);
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE,
+                        "engine.unwrap() result [{0}]. engine status: {1}; source {2};{3}" +
+                                "decryptedBuffer {4}{5}",
+                        Utils.resultToString(result), engine.getHandshakeStatus(), source, System.lineSeparator(),
+                        destination, System.lineSeparator());
             }
-        });
+            // Note that data can be returned (produced) even in case of overflow, in that case,
+            // just return the data.
+            final var written = result.bytesProduced();
+            if (written > 0) {
+                dstTail.limit += written;
+                destination.byteSize += written;
+                return result;
+            }
+
+            if (result.getStatus() == Status.BUFFER_OVERFLOW) {
+                assert result.bytesConsumed() == 0;
+                // must retry with bigger destination tail ByteBuffer
+                return null;
+            }
+
+            return result;
+        } catch (SSLException e) {
+            invalid = true;
+            throw new JayoTlsException(e);
+        }
     }
 
     /**
@@ -313,7 +315,7 @@ public final class RealTlsEndpoint {
      */
     private int callReadFromReader() throws TlsEOFException {
         try {
-            final var encryptedReaderBuffer = encryptedReader.segmentQueue.buffer;
+            final var encryptedReaderBuffer = encryptedReader.buffer;
             if (isTls == null) {
                 if (!encryptedReader.request(1L)) {
                     throw new TlsEOFException();
@@ -367,7 +369,7 @@ public final class RealTlsEndpoint {
 
         /*
          * Note that we should enter the write loop even in the case that the reader buffer has no remaining bytes,
-         * as it could be the case, that the user is forced to call write again, just to write pending encrypted bytes.
+         * as it could be the case that the user is forced to call write again, just to write pending encrypted bytes.
          */
         writeLock.lock();
         try {
@@ -396,7 +398,7 @@ public final class RealTlsEndpoint {
             }
 
             final var toRead = (int) Math.min(MAX_DATA_SIZE, remaining);
-            final var read = source.segmentQueue.withHeadsAsByteBuffers(toRead, sources -> {
+            final var read = source.withHeadsAsByteBuffers(toRead, sources -> {
                 final var result = wrap(sources);
                 if (result.getStatus() == Status.CLOSED) {
                     return -2;
@@ -413,36 +415,36 @@ public final class RealTlsEndpoint {
 
     private @NonNull SSLEngineResult wrap(final @NonNull ByteBuffer @NonNull [] sources) {
         // Force tail to be large enough to handle any valid record in the current SSL session to avoid BUFFER_OVERFLOW
-        return encryptedWriterSegmentQueue.withWritableTail(MAX_ENCRYPTED_PACKET_BYTE_SIZE, tail -> {
-            final var destination = tail.asWriteByteBuffer(Segment.SIZE - tail.limit);
-            try {
-                final var result = engine.wrap(sources, destination);
-                if (LOGGER.isLoggable(TRACE)) {
-                    LOGGER.log(TRACE, "engine.wrap() result: [{0}]; engine status: {1}; sources: {2}, " +
-                                    "encryptedWriterQueue: {3}", Utils.resultToString(result),
-                            result.getHandshakeStatus(), Arrays.toString(sources), encryptedWriterSegmentQueue);
-                }
-                return switch (result.getStatus()) {
-                    case OK, CLOSED -> {
-                        final var written = result.bytesProduced();
-                        if (written > 0) {
-                            tail.limit += written;
-                        }
-                        yield result;
-                    }
-                    case BUFFER_OVERFLOW, BUFFER_UNDERFLOW -> throw new IllegalStateException();
-                };
-            } catch (SSLException e) {
-                invalid = true;
-                throw new JayoTlsException(e);
+        final var dstTail = encryptedWriter.buffer.writableTail(MAX_ENCRYPTED_PACKET_BYTE_SIZE);
+        final var destination = dstTail.asByteBuffer(dstTail.limit, Segment.SIZE - dstTail.limit);
+        try {
+            final var result = engine.wrap(sources, destination);
+            if (LOGGER.isLoggable(TRACE)) {
+                LOGGER.log(TRACE, "engine.wrap() result: [{0}]; engine status: {1}; sources: {2}, " +
+                                "encryptedWriterQueue: {3}", Utils.resultToString(result),
+                        result.getHandshakeStatus(), Arrays.toString(sources), encryptedWriter);
             }
-        });
+            return switch (result.getStatus()) {
+                case OK, CLOSED -> {
+                    final var written = result.bytesProduced();
+                    if (written > 0) {
+                        dstTail.limit += written;
+                        encryptedWriter.buffer.byteSize += written;
+                    }
+                    yield result;
+                }
+                case BUFFER_OVERFLOW, BUFFER_UNDERFLOW -> throw new IllegalStateException();
+            };
+        } catch (SSLException e) {
+            invalid = true;
+            throw new JayoTlsException(e);
+        }
     }
 
     private void writeToWriter() {
         try {
             LOGGER.log(TRACE, "Writing to encryptedWriter");
-            encryptedWriterSegmentQueue.emit(true); // maybe IO block
+            encryptedWriter.flush(); // maybe IO block
         } catch (JayoException e) {
             invalid = true;
             throw e;
@@ -522,7 +524,7 @@ public final class RealTlsEndpoint {
     public void close() {
         tryShutdown();
 
-        encryptedWriterSegmentQueue.close();
+        //encryptedWriter.close();
         encryptedReader.close();
 
         /*

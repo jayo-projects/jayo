@@ -39,59 +39,64 @@ public final class InputStreamRawReader implements RawReader {
     private final @NonNull InputStream in;
 
     public InputStreamRawReader(final @NonNull InputStream in) {
-        this.in = Objects.requireNonNull(in);
+        assert in != null;
+        this.in = in;
     }
 
     /**
-     * Execute a single read from the InputStream, that reads up to byteCount bytes of data from the input stream.
+     * Execute a single read from the InputStream, which reads up to byteCount bytes of data from the input stream.
      * A smaller number may be read.
      *
      * @return the number of bytes actually read.
      */
     @Override
-    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
-        Objects.requireNonNull(writer);
+    public long readAtMostTo(final @NonNull Buffer destination, final long byteCount) {
+        Objects.requireNonNull(destination);
         if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
-        }
-        if (!(writer instanceof RealBuffer _writer)) {
-            throw new IllegalArgumentException("writer must be an instance of RealBuffer");
+            throw new IllegalArgumentException("byteCount < 0 : " + byteCount);
         }
 
-        final var cancelToken = CancellableUtils.getCancelToken();
-        CancelToken.throwIfReached(cancelToken);
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, "InputStreamRawReader: Start reading up to {0} bytes from the InputStream to " +
+                            "Buffer#{1} (size={2}){3}",
+                    byteCount, destination.hashCode(), destination.bytesAvailable(), System.lineSeparator());
+        }
 
         if (byteCount == 0L) {
             return 0L;
         }
 
-        if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "InputStreamRawReader: Start reading up to {0} bytes from the InputStream to " +
-                            "{1}Buffer(SegmentQueue={2}){3}",
-                    byteCount, System.lineSeparator(), _writer.segmentQueue, System.lineSeparator());
-        }
+        final var cancelToken = CancellableUtils.getCancelToken();
+        CancelToken.throwIfReached(cancelToken);
 
-        final var bytesRead = _writer.segmentQueue.withWritableTail(1, tail -> {
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
-            final int read;
-            try {
-                read = in.read(tail.data, tail.limit, toRead);
-            } catch (IOException e) {
-                throw JayoException.buildJayoException(e);
+        final var dst = (RealBuffer) destination;
+
+        final var dstTail = dst.writableTail(1);
+        final var toRead = (int) Math.min(byteCount, Segment.SIZE - dstTail.limit);
+        final int read;
+        try {
+            read = in.read(dstTail.data, dstTail.limit, toRead);
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
+        if (read > 0) {
+            dstTail.limit += read;
+            dst.byteSize += read;
+        } else {
+            if (dstTail.pos == dstTail.limit) {
+                // We allocated a tail segment, but didn't end up needing it. Recycle!
+                dst.head = dstTail.pop();
+                SegmentPool.recycle(dstTail);
             }
-            if (read > 0) {
-                tail.limit += read;
-            }
-            return read;
-        });
+        }
 
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "InputStreamRawReader: Finished reading {0}/{1} bytes from the InputStream to " +
-                            "{2}Buffer(SegmentQueue={3}){4}",
-                    bytesRead, byteCount, System.lineSeparator(), _writer.segmentQueue, System.lineSeparator());
+                            "Buffer#{2} (size={3}){4}",
+                    read, byteCount, destination.hashCode(), destination.bytesAvailable(), System.lineSeparator());
         }
 
-        return bytesRead;
+        return read;
     }
 
     @Override

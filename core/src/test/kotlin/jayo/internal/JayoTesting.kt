@@ -28,13 +28,13 @@ import jayo.bytestring.Utf8
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)
-    var segment: Segment? = buffer.segmentQueue.head() ?: return emptyList()
+    var segment = buffer.head ?: return emptyList()
 
-    val sizes = mutableListOf(segment!!.limit - segment.pos)
-    segment = segment.next
-    while (segment != null) {
+    val sizes = mutableListOf(segment.limit - segment.pos)
+    segment = segment.next!!
+    while (segment !== buffer.head) {
         sizes.add(segment.limit - segment.pos)
-        segment = segment.next
+        segment = segment.next!!
     }
     return sizes
 }
@@ -42,8 +42,7 @@ fun segmentSizes(buffer: Buffer): List<Int> {
 fun bufferWithSegments(vararg segments: String): Buffer {
     val result = RealBuffer()
     for (s in segments) {
-        val offsetInSegment =
-            if (s.length < Segment.SIZE) (Segment.SIZE - s.length) / 2 else 0
+        val offsetInSegment = if (s.length < Segment.SIZE) (Segment.SIZE - s.length) / 2 else 0
         val buffer = RealBuffer()
         buffer.write('_'.repeat(offsetInSegment))
         buffer.write(s)
@@ -53,44 +52,39 @@ fun bufferWithSegments(vararg segments: String): Buffer {
     return result
 }
 
-fun makeSegments(reader: ByteString): ByteString {
+fun makeSegments(source: ByteString): ByteString {
     val buffer = RealBuffer()
-    for (i in 0 until reader.byteSize()) {
-        buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
-            tail.data[tail.pos] = reader.getByte(i)
-            val limit = tail.limit
-            tail.limit = limit + 1
-        }
+    for (i in 0 until source.byteSize()) {
+        val segment = buffer.writableTail(Segment.SIZE)
+        segment.data[segment.pos] = source.getByte(i)
+        segment.limit++
+        buffer.byteSize++
     }
     return buffer.snapshot()
 }
 
-fun RealBuffer.readUtf8Segmented() = readUtf8(bytesAvailable(), true)
+fun RealBuffer.readUtf8Segmented() = readUtf8(bytesAvailable())
 
-fun makeUtf8Segments(reader: Utf8): Utf8 {
+fun makeUtf8Segments(source: Utf8): Utf8 {
     val buffer = RealBuffer()
-    for (i in 0 until reader.byteSize()) {
-        buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
-            tail.data[tail.pos] = reader.getByte(i)
-            val limit = tail.limit
-            tail.limit = limit + 1
-            true
-        }
+    for (i in 0 until source.byteSize()) {
+        val segment = buffer.writableTail(Segment.SIZE)
+        segment.data[segment.pos] = source.getByte(i)
+        segment.limit++
+        buffer.byteSize++
     }
     return buffer.readUtf8Segmented()
 }
 
-fun RealBuffer.readAsciiSegmented() = readAscii(bytesAvailable(), true)
+fun RealBuffer.readAsciiSegmented() = readAscii(bytesAvailable())
 
-fun makeAsciiSegments(reader: Ascii): Ascii {
+fun makeAsciiSegments(source: Ascii): Ascii {
     val buffer = RealBuffer()
-    for (i in 0 until reader.byteSize()) {
-        buffer.segmentQueue.withWritableTail(Segment.SIZE) { tail ->
-            tail.data[tail.pos] = reader.getByte(i)
-            val limit = tail.limit
-            tail.limit = limit + 1
-            true
-        }
+    for (i in 0 until source.byteSize()) {
+        val segment = buffer.writableTail(Segment.SIZE)
+        segment.data[segment.pos] = source.getByte(i)
+        segment.limit++
+        buffer.byteSize++
     }
     return buffer.readAsciiSegmented()
 }

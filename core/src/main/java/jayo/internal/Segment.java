@@ -24,23 +24,21 @@ package jayo.internal;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
  * A segment of a buffer.
  * <p>
- * Each segment in a {@linkplain jayo.Buffer Buffer} is a singly linked queue node referencing the following segments in
- * the buffer.
+ * Each segment in a {@linkplain jayo.Buffer Buffer} is a doubly linked queue node referencing the following and
+ * preceding segments in the buffer.
  * <p>
  * Each segment in the {@link SegmentPool} is a singly linked queue node referencing the rest of segments in the pool.
  * <p>
  * The underlying byte array of segments may be shared between buffers and byte strings. When a segment's byte array
  * is shared, the segment may not be recycled, nor may its byte data be changed.
- * The lone exception is that the owner segment is allowed to append to the segment, meaning writing data at
- * {@code limit} and beyond. There is a single owning segment for each byte array. Positions, limits, and next
+ * The lone exception is that the {@link #owner} segment is allowed to append to the segment, meaning writing data at
+ * {@code limit} and beyond. There is a single owning segment for each byte array. Positions, limits, prev, and next
  * references are not shared.
  */
 final class Segment {
@@ -68,25 +66,13 @@ final class Segment {
     int pos;
 
     /**
-     * The first byte of available data ready to be written to. This field will be exclusively modified by the writer,
+     * The first byte of available data ready to be written to. This field will be exclusively modified by the writer
      * and will be read when needed by the reader.
      * <p>
-     * <b>In the segment pool:</b> if the segment is free and linked, the field contains total byte count of this and
-     * next segments.
+     * Note: <i>In the segment pool</i>, if the segment is free and linked, the field contains the total byte count of
+     * this and all next segments.
      */
     int limit;
-
-    /**
-     * A lateinit on-heap {@link ByteBuffer} associated with the underlying byte array that is created on-demand for
-     * write operations.
-     */
-    private @Nullable ByteBuffer writeByteBuffer = null;
-
-    /**
-     * A lateinit on-heap {@link ByteBuffer} associated with the underlying byte array that is created on-demand for
-     * read operations.
-     */
-    private @Nullable ByteBuffer readByteBuffer = null;
 
     /**
      * Tracks number shared copies.
@@ -99,34 +85,28 @@ final class Segment {
      */
     boolean owner;
 
-    // status
-    static final byte AVAILABLE = 1;
-    static final byte WRITING = 2;
-    static final byte TRANSFERRING = 3;
-    static final byte REMOVING = 4; // final state, cannot go back
-
-    byte status;
+    /**
+     * A reference to the next segment in the singly or circularly linked queue.
+     */
+    @Nullable
+    Segment next = null;
 
     /**
-     * A reference to the next segment in the queue.
+     * A reference to the previous segment in the circularly linked queue.
      */
-    @SuppressWarnings("FieldMayBeFinal")
-    volatile @Nullable Segment next = null;
+    @Nullable
+    Segment prev = null;
 
-    // VarHandle mechanics
-    static final VarHandle NEXT;
-
-    static {
-        try {
-            final var l = MethodHandles.lookup();
-            NEXT = l.findVarHandle(Segment.class, "next", Segment.class);
-        } catch (ReflectiveOperationException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
+    /**
+     * A lateinit on-heap {@link ByteBuffer} that wraps the underlying byte array that is created on-demand for NIO or
+     * TLS operations.
+     */
+    private @Nullable ByteBuffer byteBuffer = null;
 
     Segment() {
-        this(new byte[SIZE], 0, 0, null, true);
+        this.data = new byte[SIZE];
+        this.owner = true;
+        this.copyTracker = null;
     }
 
     Segment(final byte @NonNull [] data,
@@ -134,86 +114,12 @@ final class Segment {
             final int limit,
             final @Nullable CopyTracker copyTracker,
             final boolean owner) {
-        this(data, pos, limit, copyTracker, owner, WRITING);
-    }
-
-    private Segment(final byte @NonNull [] data,
-                    final int pos,
-                    final int limit,
-                    final @Nullable CopyTracker copyTracker,
-                    final boolean owner,
-                    final byte status) {
         assert data != null;
         this.data = data;
         this.pos = pos;
         this.limit = limit;
         this.copyTracker = copyTracker;
         this.owner = owner;
-        this.status = status;
-    }
-
-    boolean tryWrite() {
-        if (status == AVAILABLE) {
-            status = WRITING;
-            return true;
-        }
-        return false;
-    }
-
-    void finishWrite() {
-        final var currentStatus = this.status;
-        if (currentStatus == WRITING) {
-            status = AVAILABLE;
-        } else {
-            throw new IllegalStateException("Could not finish write operation, status = " + currentStatus);
-        }
-    }
-
-    boolean tryRemove() {
-        return switch (status) {
-            case AVAILABLE -> {
-                status = REMOVING;
-                yield true;
-            }
-            case REMOVING -> true;
-            default -> false;
-        };
-    }
-
-    boolean tryAndValidateRemove() {
-        if (status == AVAILABLE) {
-            status = REMOVING;
-        } else if (status != REMOVING) {
-            return false;
-        }
-
-        if (pos == limit) {
-            return true;
-        }
-
-        status = AVAILABLE;
-        return false;
-    }
-
-    public boolean startTransfer() {
-        return switch (status) {
-            case AVAILABLE -> {
-                status = TRANSFERRING;
-                yield false;
-            }
-            case WRITING -> true;
-            default -> throw new IllegalStateException("Unexpected state " + status + ". The head queue node " +
-                    "should be in 'AVAILABLE' or 'WRITING' state before transferring.");
-        };
-    }
-
-    void finishTransfer() {
-        switch (status) {
-            case TRANSFERRING -> status = AVAILABLE;
-            case AVAILABLE, WRITING -> { /*nop*/ }
-            default -> throw new IllegalStateException("Unexpected state " + status + ". The head queue node" +
-                    " should be in 'AVAILABLE', 'TRANSFERRING' or 'WRITING' state before ending the transfer.");
-        }
     }
 
     /**
@@ -224,18 +130,25 @@ final class Segment {
     }
 
     /**
-     * Returns a new segment that shares the underlying byte array with this one. Adjusting pos and limit are safe but
+     * Returns a new segment that shares the underlying byte array with this one. Adjusting pos and limit is safe, but
      * writes are forbidden. This also marks the current segment as shared, which prevents it from being pooled.
      */
-    @NonNull
-    Segment sharedCopy() {
-        CopyTracker t = copyTracker;
-        if (t == null) {
-            t = new CopyTracker();
-            copyTracker = t;
+    public @NonNull Segment sharedCopy() {
+        share();
+        return new Segment(
+                data,
+                pos,
+                limit,
+                copyTracker,
+                false
+        );
+    }
+
+    void share() {
+        if (copyTracker == null) {
+            copyTracker = new CopyTracker();
         }
-        t.addCopy();
-        return new Segment(data, pos, limit, t, false);
+        copyTracker.addCopy();
     }
 
     /**
@@ -243,7 +156,59 @@ final class Segment {
      */
     @NonNull
     Segment unsharedCopy() {
-        return new Segment(data.clone(), pos, limit, null, true, AVAILABLE);
+        return new Segment(data.clone(), pos, limit, null, true);
+    }
+
+    /**
+     * Removes this segment of a circularly linked list and returns its successor.
+     * Returns null if the list is now empty.
+     */
+    Segment pop() {
+        Segment result = (next != this) ? next : null;
+        assert prev != null;
+        prev.next = next;
+        assert next != null;
+        next.prev = prev;
+        // no cleaning, next and prev will be re-affected in recycle or when transferred to another buffer.
+        return result;
+    }
+
+    /**
+     * Appends {@code segment} after this segment in the circularly linked list. Returns the pushed segment.
+     */
+    @NonNull
+    Segment push(final @NonNull Segment segment) {
+        assert segment != null;
+
+        segment.prev = this;
+        segment.next = next;
+        assert next != null;
+        next.prev = segment;
+        next = segment;
+        return segment;
+    }
+
+    /**
+     * Moves {@code byteCount} bytes from this segment to {@code targetSegment}.
+     */
+    void writeTo(final @NonNull Segment targetSegment, final int byteCount) {
+        assert targetSegment != null;
+
+        if (targetSegment.limit + byteCount > SIZE) {
+            // We can't fit byteCount bytes at the writer's current position. Shift writer first.
+            assert targetSegment.owner;
+            final var targetSize = targetSegment.limit - targetSegment.pos;
+            if (targetSize + byteCount > SIZE) {
+                throw new IllegalArgumentException("not enough space in writer segment to write " + byteCount + " bytes");
+            }
+            System.arraycopy(targetSegment.data, targetSegment.pos, targetSegment.data, 0, targetSize);
+            targetSegment.limit = targetSize;
+            targetSegment.pos = 0;
+        }
+
+        System.arraycopy(data, pos, targetSegment.data, targetSegment.limit, byteCount);
+        targetSegment.limit += byteCount;
+        pos += byteCount;
     }
 
     /**
@@ -268,88 +233,37 @@ final class Segment {
             prefix = SegmentPool.take();
             System.arraycopy(data, pos, prefix.data, 0, byteCount);
         }
-        prefix.status = TRANSFERRING;
         prefix.limit = prefix.pos + byteCount;
         pos += byteCount;
-        assert prefix.next == null;
-        NEXT.setRelease(prefix, this);
-
-        // stop transferring the current segment = the suffix
-        finishTransfer();
 
         return prefix;
     }
 
-    /**
-     * Moves {@code byteCount} bytes from this segment to {@code targetSegment}.
-     */
-    void writeTo(final @NonNull Segment targetSegment, final int byteCount) {
-        assert targetSegment != null;
-        assert targetSegment.owner;
-
-        if (targetSegment.limit + byteCount > SIZE) {
-            // We can't fit byteCount bytes at the writer's current position. Shift writer first.
-            assert !targetSegment.isShared();
-            if (targetSegment.limit + byteCount - targetSegment.pos > SIZE) {
-                throw new IllegalArgumentException("not enough space in writer segment to write " + byteCount + " bytes");
-            }
-            final var writerSize = targetSegment.limit - targetSegment.pos;
-            System.arraycopy(targetSegment.data, targetSegment.pos, targetSegment.data, 0, writerSize);
-            targetSegment.limit = writerSize;
-            targetSegment.pos = 0;
-        }
-
-        System.arraycopy(data, pos, targetSegment.data, targetSegment.limit, byteCount);
-        targetSegment.limit += byteCount;
-        pos += byteCount;
-    }
-
     @NonNull
-    ByteBuffer asReadByteBuffer(final int byteCount) {
-        assert byteCount > 0;
-
-        if (readByteBuffer == null) {
-            readByteBuffer = JavaVersionUtils.asReadOnlyBuffer(ByteBuffer.wrap(data));
+    ByteBuffer asByteBuffer(final int pos, final int byteCount) {
+        if (byteBuffer == null) {
+            byteBuffer = ByteBuffer.wrap(data);
         }
 
-        // set position and limit, then return this ByteBuffer
-        return readByteBuffer
+        return byteBuffer
                 .limit(pos + byteCount)
                 .position(pos);
-    }
-
-    @NonNull
-    ByteBuffer asWriteByteBuffer(final int byteCount) {
-        assert byteCount > 0;
-
-        if (writeByteBuffer == null) {
-            writeByteBuffer = ByteBuffer.wrap(data);
-        }
-
-        final var currentLimit = limit;
-        // set position and limit, then return this ByteBuffer
-        return writeByteBuffer
-                .limit(currentLimit + byteCount)
-                .position(currentLimit);
     }
 
     @Override
     public String toString() {
         final var next = this.next;
-        return "Segment#" + hashCode() + " [maxSize=" + data.length + "] {" + System.lineSeparator() +
+        final var prev = this.prev;
+        return "Segment#" + hashCode() + " [maxSize=" + data.length + "] {" +
+                System.lineSeparator() +
                 ", pos=" + pos +
                 ", limit=" + limit +
                 ", shared=" + isShared() +
                 ", owner=" + owner +
-                ", status=" +
-                switch (status) {
-                    case 1 -> "AVAILABLE";
-                    case 2 -> "WRITING";
-                    case 3 -> "TRANSFERRING";
-                    case 4 -> "REMOVING";
-                    default -> throw new IllegalStateException("Unexpected status: " + status);
-                } + System.lineSeparator() +
-                ", next=" + ((next != null) ? "Segment#" + next.hashCode() : "null") + System.lineSeparator() +
+                System.lineSeparator() +
+                ", next=" + ((next != null) ? "Segment#" + next.hashCode() : "null") +
+                ", prev=" + ((prev != null) ? "Segment#" + prev.hashCode() : "null") +
+                System.lineSeparator() +
                 '}';
     }
 
@@ -381,7 +295,7 @@ final class Segment {
 
         /**
          * Records reclamation of a shared segment copy associated with this tracker.
-         * If a tracker was in unshared state, this call should not affect an internal state.
+         * If a tracker was in an unshared state, this call should not affect an internal state.
          *
          * @return {@code true} if the segment was not shared <i>before</i> this call.
          */

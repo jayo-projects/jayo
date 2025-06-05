@@ -40,10 +40,10 @@ import static java.lang.System.Logger.Level.INFO;
  * lock-free, it does use a sentinel {@link #DOOR} value to defend against races. To reduce the contention, the pool
  * consists of several buckets (see {@link #HASH_BUCKET_COUNT}), each holding a reference to its own segments cache.
  * Every {@link #take()} or {@link #recycle(Segment)} choose one of the buckets depending on a
- * {@link Thread#currentThread()}'s {@linkplain JavaVersionUtils#threadId(Thread) threadId}.
+ * {@link Thread#currentThread()}'s threadId.
  * <p>
  * On {@link #take()}, a caller swaps the Thread's corresponding segment cache with the {@link #DOOR} sentinel. If the
- * segment cache was not already locked, the caller pops the first segment from the cache.
+ * segment cache was not already locked, the caller pop the first segment from the cache.
  * <p>
  * On {@link #recycle(Segment)}, a caller swaps the head with a new node whose successor is the replaced head.
  * <p>
@@ -66,7 +66,7 @@ import static java.lang.System.Logger.Level.INFO;
  * (one of {@code #HASH_BUCKET_COUNT}).
  */
 @SuppressWarnings("unchecked")
-public final class SegmentPool {
+final class SegmentPool {
     private static final System.Logger LOGGER = System.getLogger("jayo.SegmentPool");
 
     // un-instantiable
@@ -180,11 +180,10 @@ public final class SegmentPool {
             firstRef.set(first.next);
 
             // cleanup segment to cache.
-            Segment.NEXT.setRelease(first, null);
+            first.next = null;
             first.pos = 0;
             first.owner = true;
             first.limit = 0;
-            first.status = Segment.WRITING;
 
             return first;
         }
@@ -223,11 +222,10 @@ public final class SegmentPool {
             firstRef.set(first.next);
 
             // cleanup segment to cache.
-            Segment.NEXT.setRelease(first, null);
+            first.next = null;
             first.pos = 0;
             first.owner = true;
             first.limit = 0;
-            first.status = Segment.WRITING;
 
             return first;
         }
@@ -236,11 +234,13 @@ public final class SegmentPool {
     static void recycle(final @NonNull Segment segment) {
         assert segment != null;
 
+        segment.prev = null;
+
         final var segmentCopyTracker = segment.copyTracker;
 
         // This segment cannot be recycled.
         if (segmentCopyTracker != null && segmentCopyTracker.removeCopy()) {
-            Segment.NEXT.setRelease(segment, null);
+            segment.next = null;
             return;
         }
 
@@ -258,7 +258,7 @@ public final class SegmentPool {
                 return;
             }
 
-            Segment.NEXT.setRelease(segment, first);
+            segment.next = first;
             segment.limit = firstLimit + Segment.SIZE;
 
             if (firstRef.compareAndSet(first, segment)) {
@@ -287,12 +287,13 @@ public final class SegmentPool {
                     bucketId = (bucketId + 1) & (HASH_BUCKET_COUNT_L2 - 1);
                     continue;
                 }
-                // L2 pool is full.
-                Segment.NEXT.setRelease(segment, null);
+
+                // L2 pool is also full, not recycling the segment.
+                segment.next = null;
                 return;
             }
 
-            Segment.NEXT.setRelease(segment, first);
+            segment.next = first;
             segment.limit = firstLimit + Segment.SIZE;
 
             if (firstRef.compareAndSet(first, segment)) {

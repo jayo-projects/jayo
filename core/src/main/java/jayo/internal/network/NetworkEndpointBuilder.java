@@ -8,7 +8,6 @@ package jayo.internal.network;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkProtocol;
 import jayo.network.Proxy;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -30,32 +29,28 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
     private @Nullable Duration connectTimeout;
     private long readTimeoutNanos;
     private long writeTimeoutNanos;
-    private @Nullable TaskRunner taskRunner;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
     private @Nullable ProtocolFamily protocolFamily;
     private boolean useNio;
 
     public NetworkEndpointBuilder() {
-        this(null, 0L, 0L, null, new HashMap<>(),
-                null, true);
+        this(null, 0L, 0L, new HashMap<>(), null, true);
     }
 
     /**
      * The private constructor used by {@link #clone()}.
      */
     private NetworkEndpointBuilder(final @Nullable Duration connectTimeout,
-                                  final long readTimeoutNanos,
-                                  final long writeTimeoutNanos,
-                                  final @Nullable TaskRunner taskRunner,
-                                  final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
-                                  final @Nullable ProtocolFamily protocolFamily,
-                                  final boolean useNio) {
+                                   final long readTimeoutNanos,
+                                   final long writeTimeoutNanos,
+                                   final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                                   final @Nullable ProtocolFamily protocolFamily,
+                                   final boolean useNio) {
         assert socketOptions != null;
 
         this.connectTimeout = connectTimeout;
         this.readTimeoutNanos = readTimeoutNanos;
         this.writeTimeoutNanos = writeTimeoutNanos;
-        this.taskRunner = taskRunner;
         this.socketOptions = socketOptions;
         this.protocolFamily = protocolFamily;
         this.useNio = useNio;
@@ -79,13 +74,6 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
     public @NonNull NetworkEndpointBuilder writeTimeout(final @NonNull Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout);
         writeTimeoutNanos = writeTimeout.toNanos();
-        return this;
-    }
-
-    @Override
-    public @NonNull NetworkEndpointBuilder bufferAsync(final @NonNull TaskRunner taskRunner) {
-        Objects.requireNonNull(taskRunner);
-        this.taskRunner = taskRunner;
         return this;
     }
 
@@ -146,7 +134,6 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
                     connectTimeout,
                     readTimeoutNanos,
                     writeTimeoutNanos,
-                    taskRunner,
                     proxy,
                     socketOptions,
                     protocolFamily);
@@ -157,7 +144,6 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
                 connectTimeout,
                 readTimeoutNanos,
                 writeTimeoutNanos,
-                taskRunner,
                 proxy,
                 socketOptions);
     }
@@ -165,7 +151,12 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public @NonNull NetworkEndpointBuilder clone() {
-        return new NetworkEndpointBuilder(connectTimeout, readTimeoutNanos, writeTimeoutNanos, taskRunner,
-                socketOptions, protocolFamily, useNio);
+        return new NetworkEndpointBuilder(
+                connectTimeout,
+                readTimeoutNanos,
+                writeTimeoutNanos,
+                socketOptions,
+                protocolFamily,
+                useNio);
     }
 }

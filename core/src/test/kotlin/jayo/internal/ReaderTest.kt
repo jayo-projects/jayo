@@ -26,16 +26,12 @@
 package jayo.internal
 
 import jayo.*
-import jayo.JayoEOFException
 import jayo.bytestring.ByteString
 import jayo.bytestring.encodeToUtf8
 import jayo.internal.TestUtil.assertByteArrayEquals
-import jayo.internal.Utils.getBufferFromReader
+import jayo.internal.Utils.internalBuffer
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.RepeatedTest
-import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -49,8 +45,6 @@ import java.nio.charset.Charset
 import java.util.stream.Stream
 import kotlin.test.*
 
-class RealAsyncReaderTest : AbstractReaderTest(ReaderFactory.REAL_ASYNC_SOURCE)
-
 class BufferReaderTest : AbstractReaderTest(ReaderFactory.BUFFER)
 
 class BufferedReaderTest : AbstractReaderTest(ReaderFactory.BUFFERED_SOURCE)
@@ -60,8 +54,6 @@ class RealReaderTest : AbstractReaderTest(ReaderFactory.REAL_SOURCE)
 class PeekBufferTest : AbstractReaderTest(ReaderFactory.PEEK_BUFFER)
 
 class PeekReaderTest : AbstractReaderTest(ReaderFactory.PEEK_SOURCE)
-
-class PeekAsyncReaderTest : AbstractReaderTest(ReaderFactory.PEEK_ASYNC_SOURCE)
 
 abstract class AbstractReaderTest internal constructor(private val factory: ReaderFactory) {
     companion object {
@@ -390,7 +382,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
     @Test
     fun transferTo() {
-        getBufferFromReader(reader).write("abc")
+        internalBuffer(reader).write("abc")
         writer.write("def")
         writer.emit()
 
@@ -398,13 +390,6 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertEquals(6, reader.transferTo(writer))
         assertEquals("abcdef", writer.readString())
         assertTrue(reader.exhausted())
-
-        if (reader is RealReader) {
-            reader.close()
-            assertFailsWith<JayoClosedResourceException> {
-                reader.transferTo(writer)
-            }
-        }
     }
 
     @Test
@@ -436,8 +421,6 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         val writer = RealBuffer()
         writer.write("a".repeat(10))
 
-        // Either 0 or -1 is reasonable here. For consistency with Android's
-        // ByteArrayInputStream we return 0.
         assertEquals(-1, reader.readAtMostTo(writer, 0))
         assertEquals(10, writer.bytesAvailable())
         assertTrue(reader.exhausted())
@@ -653,13 +636,6 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         assertEquals(3, read.toLong())
         val expected = byteArrayOf('a'.code.toByte(), 'b'.code.toByte(), 'c'.code.toByte())
         assertArrayEquals(expected, writer)
-
-        if (reader is RealReader) {
-            reader.close()
-            assertFailsWith<JayoClosedResourceException> {
-                reader.readAtMostTo(writer)
-            }
-        }
     }
 
     @Test
@@ -687,13 +663,6 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         val expected =
             byteArrayOf(0, 0, 'a'.code.toByte(), 'b'.code.toByte(), 'c'.code.toByte(), 0, 0)
         assertArrayEquals(expected, writer)
-
-        if (reader is RealReader) {
-            reader.close()
-            assertFailsWith<JayoClosedResourceException> {
-                reader.readAtMostTo(writer, 2, bytesToRead)
-            }
-        }
     }
 
     @Test
@@ -735,13 +704,6 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.write(string)
         writer.emit()
         assertArrayEquals(string.toByteArray(), reader.readByteArray())
-
-        if (reader is RealReader) {
-            reader.close()
-            assertFailsWith<JayoClosedResourceException> {
-                reader.readByteArray()
-            }
-        }
     }
 
     @Test
@@ -786,13 +748,6 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.emit()
         reader.skip((Segment.SIZE - 1).toLong())
         assertEquals("aa", reader.readString(2))
-
-        if (reader is RealReader) {
-            reader.close()
-            assertFailsWith<JayoClosedResourceException> {
-                reader.readString(2)
-            }
-        }
     }
 
     @Test
@@ -814,13 +769,6 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.write("a".repeat(Segment.SIZE * 2))
         writer.emit()
         assertEquals("a".repeat(Segment.SIZE * 2), reader.readString())
-
-        if (reader is RealReader) {
-            reader.close()
-            assertFailsWith<JayoClosedResourceException> {
-                reader.readString()
-            }
-        }
     }
 
     @Test
@@ -1361,7 +1309,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         val e = assertFailsWith<IllegalStateException> {
             peek.readString()
         }
-        assertEquals("Peek reader is invalid because upstream reader was used", e.message)
+        assertEquals("Peek reader is invalid because the upstream reader was used", e.message)
     }
 
     @Test
@@ -1378,7 +1326,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         reader.transferTo(discardingWriter())
 
         // Skip the rest of the buffered data
-        peek.skip(getBufferFromReader(peek).bytesAvailable())
+        peek.skip(internalBuffer(peek).bytesAvailable())
         assertFailsWith<RuntimeException> {
             peek.readByte()
         }
@@ -1397,20 +1345,20 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         // Read 3 bytes. This reads some of the buffered data.
         assertTrue(peek.request(3))
-        assertThat(getBufferFromReader(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
-        assertThat(getBufferFromReader(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
+        assertThat(internalBuffer(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
+        assertThat(internalBuffer(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
         assertEquals("abc", peek.readString(3L))
 
         // Read 3 more bytes. This exhausts the buffered data.
         assertTrue(peek.request(3))
-        assertThat(getBufferFromReader(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
-        assertThat(getBufferFromReader(peek).bytesAvailable()).isGreaterThanOrEqualTo(3L)
+        assertThat(internalBuffer(reader).bytesAvailable()).isGreaterThanOrEqualTo(6L)
+        assertThat(internalBuffer(peek).bytesAvailable()).isGreaterThanOrEqualTo(3L)
         assertEquals("def", peek.readString(3L))
 
         // Read 3 more bytes. This draws new bytes.
         assertTrue(peek.request(3))
-        assertEquals(9, getBufferFromReader(reader).bytesAvailable())
-        assertEquals(3, getBufferFromReader(peek).bytesAvailable())
+        assertEquals(9, internalBuffer(reader).bytesAvailable())
+        assertEquals(3, internalBuffer(peek).bytesAvailable())
         assertEquals("ghi", peek.readString(3L))
     }
 
@@ -1419,7 +1367,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.write("abc")
         writer.emit()
         reader.require(3)
-        assertEquals(listOf(3), segmentSizes(getBufferFromReader(reader)))
+        assertEquals(listOf(3), segmentSizes(internalBuffer(reader)))
     }
 
     @Test

@@ -37,8 +37,6 @@ class BufferDeflaterWriterTest : AbstractDeflaterWriterTest(WriterFactory.BUFFER
 
 class RealDeflaterWriterTest : AbstractDeflaterWriterTest(WriterFactory.REAL_BUFFERED_SINK)
 
-class RealAsyncDeflaterWriterTest : AbstractDeflaterWriterTest(WriterFactory.REAL_ASYNC_BUFFERED_SINK)
-
 abstract class AbstractDeflaterWriterTest internal constructor(private val factory: WriterFactory) {
 
     private val data: Buffer = RealBuffer()

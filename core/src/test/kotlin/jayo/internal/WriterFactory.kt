@@ -25,15 +25,16 @@
 
 package jayo.internal
 
-import jayo.*
-import jayo.scheduling.TaskRunner
+import jayo.Buffer
+import jayo.RawWriter
+import jayo.Writer
+import jayo.buffered
 
 internal interface WriterFactory {
 
     fun create(data: Buffer): Writer
 
     companion object {
-        val TASK_RUNNER: TaskRunner = TaskRunner.create("WriterFactory-")
 
         val BUFFER: WriterFactory = object : WriterFactory {
             override fun create(data: Buffer): Writer {
@@ -44,12 +45,6 @@ internal interface WriterFactory {
         val REAL_BUFFERED_SINK: WriterFactory = object : WriterFactory {
             override fun create(data: Buffer): Writer {
                 return (data as RawWriter).buffered()
-            }
-        }
-
-        val REAL_ASYNC_BUFFERED_SINK: WriterFactory = object : WriterFactory {
-            override fun create(data: Buffer): Writer {
-                return (data as RawWriter).buffered(TASK_RUNNER)
             }
         }
     }

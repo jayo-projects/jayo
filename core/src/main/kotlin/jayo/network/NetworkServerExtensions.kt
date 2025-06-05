@@ -8,7 +8,6 @@
 package jayo.network
 
 import jayo.JayoDslMarker
-import jayo.scheduling.TaskRunner
 import java.net.SocketOption
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -49,18 +48,6 @@ public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Bu
         get() = error("unsupported")
         set(value) {
             builder.writeTimeout(value.toJavaDuration())
-        }
-
-    /**
-     * Read and write operations on the [accepted network endpoints][NetworkServer.accept] by the [NetworkServer] built
-     * by this configuration are seamlessly processed **asynchronously** in distinct runnable tasks using the provided
-     * [TaskRunner].
-     */
-    public var bufferAsync: TaskRunner
-        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-        get() = error("unsupported")
-        set(value) {
-            builder.bufferAsync(value)
         }
 
     /**

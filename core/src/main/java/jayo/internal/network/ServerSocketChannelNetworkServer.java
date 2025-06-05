@@ -8,7 +8,6 @@ package jayo.internal.network;
 import jayo.JayoException;
 import jayo.network.NetworkEndpoint;
 import jayo.network.NetworkServer;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -33,14 +32,12 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
     private final @NonNull ServerSocketChannel serverSocketChannel;
     private final long defaultReadTimeoutNanos;
     private final long defaultWriteTimeoutNanos;
-    private final @Nullable TaskRunner taskRunner;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
     ServerSocketChannelNetworkServer(
             final @NonNull SocketAddress localAddress,
             final long defaultReadTimeoutNanos,
             final long defaultWriteTimeoutNanos,
-            final @Nullable TaskRunner taskRunner,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
             final int maxPendingConnections,
@@ -62,9 +59,8 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
                 serverSocketChannel.setOption(serverSocketOption.getKey(), serverSocketOption.getValue());
             }
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG,
-                        "new ServerSocketChannelNetworkServer bound to {0}, protocol family = {1}{2}provided " +
-                                "socket options = {3}",
+                LOGGER.log(DEBUG, "new ServerSocketChannelNetworkServer bound to {0}, protocol family = {1}{2}" +
+                                "provided socket options = {3}",
                         localAddress, family, System.lineSeparator(), serverSocketOptions);
             }
 
@@ -78,7 +74,6 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
 
         this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
         this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
-        this.taskRunner = taskRunner;
         this.socketOptions = socketOptions;
     }
 
@@ -96,11 +91,7 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
                         defaultWriteTimeoutNanos, System.lineSeparator(), socketOptions);
             }
 
-            return new SocketChannelNetworkEndpoint(
-                    socketChannel,
-                    defaultReadTimeoutNanos,
-                    defaultWriteTimeoutNanos,
-                    taskRunner);
+            return new SocketChannelNetworkEndpoint(socketChannel, defaultReadTimeoutNanos, defaultWriteTimeoutNanos);
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG, "ServerSocketChannelNetworkServer failed to accept a client connection", e);

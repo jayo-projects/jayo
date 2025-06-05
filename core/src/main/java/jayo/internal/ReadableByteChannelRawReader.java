@@ -20,10 +20,10 @@ import static java.lang.System.Logger.Level.TRACE;
 public final class ReadableByteChannelRawReader implements RawReader {
     private static final System.Logger LOGGER = System.getLogger("jayo.ReadableByteChannelRawReader");
 
-    private final @NonNull ReadableByteChannel in;
+    private final @NonNull ReadableByteChannel rbc;
 
-    public ReadableByteChannelRawReader(final @NonNull ReadableByteChannel in) {
-        this.in = Objects.requireNonNull(in);
+    public ReadableByteChannelRawReader(final @NonNull ReadableByteChannel rbc) {
+        this.rbc = Objects.requireNonNull(rbc);
     }
 
     /**
@@ -38,48 +38,54 @@ public final class ReadableByteChannelRawReader implements RawReader {
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        final var writer = (RealBuffer) destination;
 
-        final var cancelToken = CancellableUtils.getCancelToken();
-        CancelToken.throwIfReached(cancelToken);
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, "ReadableByteChannelRawReader: Start reading up to {0} bytes from the" +
+                            "ReadableByteChannel to Buffer#{1} (size={2}){3}",
+                    byteCount, destination.hashCode(), destination.bytesAvailable(), System.lineSeparator());
+        }
 
         if (byteCount == 0L) {
             return 0L;
         }
 
-        if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "ReadableByteChannelRawReader: Start reading up to {0} bytes from the" +
-                            "ReadableByteChannel to {1}Buffer(SegmentQueue={2}){3}",
-                    byteCount, System.lineSeparator(), writer.segmentQueue, System.lineSeparator());
-        }
+        final var cancelToken = CancellableUtils.getCancelToken();
+        CancelToken.throwIfReached(cancelToken);
 
-        final var bytesRead = writer.segmentQueue.withWritableTail(1, tail -> {
-            final var toRead = (int) Math.min(byteCount, Segment.SIZE - tail.limit);
-            final int read;
-            try {
-                read = in.read(tail.asWriteByteBuffer(toRead));
-            } catch (IOException e) {
-                throw JayoException.buildJayoException(e);
+        final var dst = (RealBuffer) destination;
+
+        final var dstTail = dst.writableTail(1);
+        final var toRead = (int) Math.min(byteCount, Segment.SIZE - dstTail.limit);
+        final int read;
+        try {
+            read = rbc.read(dstTail.asByteBuffer(dstTail.limit, toRead));
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
+        if (read > 0) {
+            dstTail.limit += read;
+            dst.byteSize += read;
+        } else {
+            if (dstTail.pos == dstTail.limit) {
+                // We allocated a tail segment, but didn't end up needing it. Recycle!
+                dst.head = dstTail.pop();
+                SegmentPool.recycle(dstTail);
             }
-            if (read > 0) {
-                tail.limit += read;
-            }
-            return read;
-        });
+        }
 
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "ReadableByteChannelRawReader: Finished reading {0}/{1} bytes from the " +
-                            "ReadableByteChannel to {2}Buffer(SegmentQueue={3}){4}",
-                    bytesRead, byteCount, System.lineSeparator(), writer.segmentQueue, System.lineSeparator());
+                            "ReadableByteChannel to Buffer#{2} (size={3}){4}",
+                    read, byteCount, destination.hashCode(), destination.bytesAvailable(), System.lineSeparator());
         }
 
-        return bytesRead;
+        return read;
     }
 
     @Override
     public void close() {
         try {
-            in.close();
+            rbc.close();
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -87,6 +93,6 @@ public final class ReadableByteChannelRawReader implements RawReader {
 
     @Override
     public String toString() {
-        return "reader(" + in + ")";
+        return "reader(" + rbc + ")";
     }
 }

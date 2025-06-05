@@ -43,8 +43,6 @@ class BufferWriterTest : AbstractWriterTest(WriterFactory.BUFFER)
 
 class RealWriterTest : AbstractWriterTest(WriterFactory.REAL_BUFFERED_SINK)
 
-class RealAsyncWriterTest : AbstractWriterTest(WriterFactory.REAL_ASYNC_BUFFERED_SINK)
-
 abstract class AbstractWriterTest internal constructor(private val factory: WriterFactory) {
     private val data: Buffer = RealBuffer()
     private lateinit var writer: Writer
@@ -442,23 +440,16 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     }
 
     @Test
-    fun writeUtf8FromRange() {
-        writer.write("0123456789", 4, 7)
+    fun writeUtf8String() {
+        writer.write("0123456789")
         writer.flush()
-        assertEquals("456", data.readString())
+        assertEquals("0123456789", data.readString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
-                writer.write("0123456789", 4, 7)
+                writer.write("0123456789")
             }
         }
-    }
-
-    @Test
-    fun writeUtf8WithInvalidIndexes() {
-        assertFailsWith<IndexOutOfBoundsException> { writer.write("hello", -1, 2) }
-        assertFailsWith<IndexOutOfBoundsException> { writer.write("hello", 0, 6) }
-        assertFailsWith<IllegalArgumentException> { writer.write("hello", 6, 5) }
     }
 
     @Test
@@ -668,26 +659,6 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
                 writer.write("təˈranəˌsôr", Charset.forName("utf-32be"))
             }
         }
-    }
-
-    @Test
-    fun writeSubstringWithCharset() {
-        writer.write("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
-        writer.flush()
-        assertArrayEquals("00000072000000610000006e00000259".decodeHex(), data.readByteArray())
-        if (writer is RealWriter) {
-            writer.close()
-            assertFailsWith<JayoClosedResourceException> {
-                writer.write("təˈranəˌsôr", 3, 7, Charset.forName("utf-32be"))
-            }
-        }
-    }
-
-    @Test
-    fun writeUtf8SubstringWithCharset() {
-        writer.write("təˈranəˌsôr", 3, 7, Charset.forName("utf-8"))
-        writer.flush()
-        assertArrayEquals("ranə".toByteArray(Charsets.UTF_8), data.readByteArray())
     }
 
     @Test

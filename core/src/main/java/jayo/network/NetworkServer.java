@@ -10,7 +10,6 @@ import jayo.JayoClosedResourceException;
 import jayo.internal.network.NetworkServerBuilder;
 import jayo.internal.network.ServerSocketChannelNetworkServer;
 import jayo.internal.network.ServerSocketNetworkServer;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -136,13 +135,6 @@ public sealed interface NetworkServer extends Closeable
          */
         @NonNull
         Builder writeTimeout(final @NonNull Duration writeTimeout);
-
-        /**
-         * Read and write operations on the {@linkplain NetworkServer#accept() accepted network endpoints} are
-         * seamlessly processed <b>asynchronously</b> in distinct runnable tasks using the provided {@code taskRunner}.
-         */
-        @NonNull
-        Builder bufferAsync(final @NonNull TaskRunner taskRunner);
 
         /**
          * Sets the value of a socket option to set on the

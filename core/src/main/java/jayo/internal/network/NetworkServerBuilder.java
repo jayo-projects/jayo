@@ -7,7 +7,6 @@ package jayo.internal.network;
 
 import jayo.network.NetworkProtocol;
 import jayo.network.NetworkServer;
-import jayo.scheduling.TaskRunner;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -28,7 +27,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
 
     private long readTimeoutNanos;
     private long writeTimeoutNanos;
-    private @Nullable TaskRunner taskRunner;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions;
     private int maxPendingConnections;
@@ -36,8 +34,7 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
     private boolean useNio;
 
     public NetworkServerBuilder() {
-        this(0L, 0L, null, new HashMap<>(), new HashMap<>(),
-                0, null, true);
+        this(0L, 0L, new HashMap<>(), new HashMap<>(), 0, null, true);
     }
 
     /**
@@ -45,7 +42,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
      */
     private NetworkServerBuilder(final long readTimeoutNanos,
                                  final long writeTimeoutNanos,
-                                 final @Nullable TaskRunner taskRunner,
                                  final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                                  final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                                  final int maxPendingConnections,
@@ -56,7 +52,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
 
         this.readTimeoutNanos = readTimeoutNanos;
         this.writeTimeoutNanos = writeTimeoutNanos;
-        this.taskRunner = taskRunner;
         this.socketOptions = socketOptions;
         this.serverSocketOptions = serverSocketOptions;
         this.maxPendingConnections = maxPendingConnections;
@@ -75,13 +70,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
     public @NonNull NetworkServerBuilder writeTimeout(final @NonNull Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout);
         this.writeTimeoutNanos = writeTimeout.toNanos();
-        return this;
-    }
-
-    @Override
-    public @NonNull NetworkServerBuilder bufferAsync(final @NonNull TaskRunner taskRunner) {
-        Objects.requireNonNull(taskRunner);
-        this.taskRunner = taskRunner;
         return this;
     }
 
@@ -143,7 +131,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
                     localAddress,
                     readTimeoutNanos,
                     writeTimeoutNanos,
-                    taskRunner,
                     socketOptions,
                     serverSocketOptions,
                     maxPendingConnections,
@@ -154,7 +141,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
                 localAddress,
                 readTimeoutNanos,
                 writeTimeoutNanos,
-                taskRunner,
                 socketOptions,
                 serverSocketOptions,
                 maxPendingConnections);
@@ -163,7 +149,13 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public @NonNull NetworkServerBuilder clone() {
-        return new NetworkServerBuilder(readTimeoutNanos, writeTimeoutNanos, taskRunner, socketOptions,
-                serverSocketOptions, maxPendingConnections, protocolFamily, useNio);
+        return new NetworkServerBuilder(
+                readTimeoutNanos,
+                writeTimeoutNanos,
+                socketOptions,
+                serverSocketOptions,
+                maxPendingConnections,
+                protocolFamily,
+                useNio);
     }
 }
