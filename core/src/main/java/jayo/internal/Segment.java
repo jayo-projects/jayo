@@ -25,7 +25,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * A segment of a buffer.
@@ -75,10 +75,10 @@ final class Segment {
     int limit;
 
     /**
-     * Tracks number shared copies.
+     * Tracks number of shared copies.
      */
     @Nullable
-    CopyTracker copyTracker;
+    LongAdder copyCount;
 
     /**
      * True if this segment owns the byte array and can append to it, extending `limit`.
@@ -106,19 +106,19 @@ final class Segment {
     Segment() {
         this.data = new byte[SIZE];
         this.owner = true;
-        this.copyTracker = null;
+        this.copyCount = null;
     }
 
     Segment(final byte @NonNull [] data,
             final int pos,
             final int limit,
-            final @Nullable CopyTracker copyTracker,
+            final @Nullable LongAdder copyCount,
             final boolean owner) {
         assert data != null;
         this.data = data;
         this.pos = pos;
         this.limit = limit;
-        this.copyTracker = copyTracker;
+        this.copyCount = copyCount;
         this.owner = owner;
     }
 
@@ -126,7 +126,7 @@ final class Segment {
      * True if other buffer segments or byte strings use the same byte array.
      */
     boolean isShared() {
-        return copyTracker != null && copyTracker.isShared();
+        return copyCount != null && copyCount.sum() > 0L;
     }
 
     /**
@@ -134,21 +134,45 @@ final class Segment {
      * writes are forbidden. This also marks the current segment as shared, which prevents it from being pooled.
      */
     public @NonNull Segment sharedCopy() {
-        share();
+        if (copyCount == null) {
+            copyCount = new LongAdder();
+        }
+        copyCount.increment();
+
         return new Segment(
                 data,
                 pos,
                 limit,
-                copyTracker,
+                copyCount,
                 false
         );
     }
 
-    void share() {
-        if (copyTracker == null) {
-            copyTracker = new CopyTracker();
+    /**
+     * Records reclamation of a shared segment copy associated with this tracker.
+     * If a tracker was in an unshared state, this call should not affect an internal state.
+     *
+     * @return {@code true} if the segment was not shared <i>before</i> this call.
+     */
+    boolean removeCopy() {
+        // The value could not be incremented from `0` under the race, so once it zero, it remains zero in the scope of
+        // this call.
+        if (copyCount == null) {
+            return false;
         }
-        copyTracker.addCopy();
+
+        final var valueBeforeUpdate = copyCount.sum();
+        copyCount.decrement();
+        // If there are several copies, the last decrement will update copyCount from 0 to -1. That would be the last
+        // standing copy, and we can recycle it. If, however, the decremented value falls below -1, it's an error as
+        // there were more `removeCopy` than `addCopy` calls.
+        if (valueBeforeUpdate > 0L) {
+            return true;
+        }
+        if (valueBeforeUpdate < 0L) {
+            throw new IllegalStateException("Shared copies count is negative" + (valueBeforeUpdate - 1L));
+        }
+        return false;
     }
 
     /**
@@ -265,60 +289,5 @@ final class Segment {
                 ", prev=" + ((prev != null) ? "Segment#" + prev.hashCode() : "null") +
                 System.lineSeparator() +
                 '}';
-    }
-
-    /**
-     * Reference counting SegmentCopyTracker tracking the number of shared segment copies.
-     * Every {@link #addCopy} call increments the counter, every {@link #removeCopy} decrements it.
-     * <p>
-     * After calling {@link #removeCopy} the same number of time {@link #addCopy} was called, this tracker returns to the
-     * unshared state.
-     */
-    static final class CopyTracker {
-        @SuppressWarnings("FieldMayBeFinal")
-        private volatile int copyCount = 0;
-
-        // AtomicIntegerFieldUpdater mechanics
-        private static final AtomicIntegerFieldUpdater<CopyTracker> COPY_COUNT =
-                AtomicIntegerFieldUpdater.newUpdater(CopyTracker.class, "copyCount");
-
-        boolean isShared() {
-            return copyCount > 0;
-        }
-
-        /**
-         * Track a new copy created by sharing an associated segment.
-         */
-        void addCopy() {
-            COPY_COUNT.incrementAndGet(this);
-        }
-
-        /**
-         * Records reclamation of a shared segment copy associated with this tracker.
-         * If a tracker was in an unshared state, this call should not affect an internal state.
-         *
-         * @return {@code true} if the segment was not shared <i>before</i> this call.
-         */
-        boolean removeCopy() {
-            // The value could not be incremented from `0` under the race, so once it zero, it remains zero in the scope of
-            // this call.
-            if (copyCount == 0) {
-                return false;
-            }
-
-            final var updatedValue = COPY_COUNT.decrementAndGet(this);
-            // If there are several copies, the last decrement will update copyCount from 0 to -1.
-            // That would be the last standing copy, and we can recycle it.
-            // If, however, the decremented value falls below -1, it's an error as there were more `removeCopy` than
-            // `addCopy` calls.
-            if (updatedValue >= 0) {
-                return true;
-            }
-            if (updatedValue < -1) {
-                throw new IllegalStateException("Shared copies count is negative: " + updatedValue + 1);
-            }
-            copyCount = 0;
-            return false;
-        }
     }
 }

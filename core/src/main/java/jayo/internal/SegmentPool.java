@@ -29,7 +29,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.System.Logger.Level.ERROR;
@@ -179,13 +178,8 @@ final class SegmentPool {
             // We acquired the lock and the pool was not empty. Pop the first element and return it.
             firstRef.set(first.next);
 
-            // cleanup segment to cache.
-            first.next = null;
-            first.pos = 0;
-            first.owner = true;
-            first.limit = 0;
-
-            return first;
+            // cleanup the picked segment from the cache.
+            return cleanupSegment(first);
         }
     }
 
@@ -221,14 +215,22 @@ final class SegmentPool {
             // We acquired the lock and the pool was not empty. Pop the first element and return it.
             firstRef.set(first.next);
 
-            // cleanup segment to cache.
-            first.next = null;
-            first.pos = 0;
-            first.owner = true;
-            first.limit = 0;
-
-            return first;
+            // cleanup the picked segment from the cache.
+            return cleanupSegment(first);
         }
+    }
+
+    private static @NonNull Segment cleanupSegment(final @NonNull Segment segment) {
+        assert segment != null;
+
+        segment.next = null;
+        segment.pos = 0;
+        segment.owner = true;
+        segment.limit = 0;
+        if (segment.copyCount != null) {
+            segment.copyCount.reset();
+        }
+        return segment;
     }
 
     static void recycle(final @NonNull Segment segment) {
@@ -236,10 +238,8 @@ final class SegmentPool {
 
         segment.prev = null;
 
-        final var segmentCopyTracker = segment.copyTracker;
-
         // This segment cannot be recycled.
-        if (segmentCopyTracker != null && segmentCopyTracker.removeCopy()) {
+        if (segment.removeCopy()) {
             segment.next = null;
             return;
         }
@@ -247,7 +247,7 @@ final class SegmentPool {
         final var firstRef = HASH_BUCKETS[l1BucketId(Thread.currentThread())];
 
         while (true) {
-            var first = firstRef.get();
+            final var first = firstRef.get();
             if (first == DOOR) {
                 continue; // A take() is currently in progress.
             }
@@ -273,7 +273,7 @@ final class SegmentPool {
 
         while (true) {
             final var firstRef = HASH_BUCKETS_L2[bucketId];
-            var first = firstRef.get();
+            final var first = firstRef.get();
 
             if (first == DOOR) {
                 continue; // A take() is currently in progress.
@@ -311,7 +311,7 @@ final class SegmentPool {
     }
 
     static int bucketId(final @NonNull Thread thread, final long mask) {
-        Objects.requireNonNull(thread);
+        assert thread != null;
         return (int) (JavaVersionUtils.threadId(thread) & mask);
     }
 }
