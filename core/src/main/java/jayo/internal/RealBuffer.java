@@ -616,8 +616,8 @@ public final class RealBuffer implements Buffer {
         final var segmentCount = checkAndCountSegments((int) byteCount);
 
         // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new byte[segmentCount][];
-        final var directory = new int[segmentCount * 2];
+        final var segments = new Segment[segmentCount];
+        final var directory = new int[segmentCount];
         fillSegmentsAndDirectory(segments, directory, (int) byteCount, true);
 
         return new SegmentedByteString(segments, directory);
@@ -647,8 +647,8 @@ public final class RealBuffer implements Buffer {
         final var segmentCount = checkAndCountSegments((int) byteCount);
 
         // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new byte[segmentCount][];
-        final var directory = new int[segmentCount * 2];
+        final var segments = new Segment[segmentCount];
+        final var directory = new int[segmentCount];
         fillSegmentsAndDirectory(segments, directory, (int) byteCount, true);
 
         return new SegmentedUtf8(segments, directory, false);
@@ -678,8 +678,8 @@ public final class RealBuffer implements Buffer {
         final var segmentCount = checkAndCountSegments((int) byteCount);
 
         // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new byte[segmentCount][];
-        final var directory = new int[segmentCount * 2];
+        final var segments = new Segment[segmentCount];
+        final var directory = new int[segmentCount];
         fillSegmentsAndDirectory(segments, directory, (int) byteCount, true);
 
         return new SegmentedAscii(segments, directory);
@@ -1907,8 +1907,8 @@ public final class RealBuffer implements Buffer {
         final var segmentCount = checkAndCountSegments(byteCount);
 
         // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new byte[segmentCount][];
-        final var directory = new int[segmentCount * 2];
+        final var segments = new Segment[segmentCount];
+        final var directory = new int[segmentCount];
         fillSegmentsAndDirectory(segments, directory, byteCount, false);
 
         return new SegmentedByteString(segments, directory);
@@ -1933,7 +1933,7 @@ public final class RealBuffer implements Buffer {
         return segmentCount;
     }
 
-    private void fillSegmentsAndDirectory(final byte @NonNull [] @NonNull [] segments,
+    private void fillSegmentsAndDirectory(final Segment @NonNull [] segments,
                                           final int @NonNull [] directory,
                                           final int byteCount,
                                           final boolean consume) {
@@ -1945,14 +1945,14 @@ public final class RealBuffer implements Buffer {
         var segment = head;
         while (offset < byteCount) {
             assert segment != null;
-            segments[segmentCount] = segment.data;
-            segment.share();
+            final var copy = segment.sharedCopy();
+            segments[segmentCount] = copy;
             final var segmentSize = segment.limit - segment.pos;
             offset += segmentSize;
             // Despite sharing more bytes, only report having up to byteCount.
             directory[segmentCount] = Math.min(offset, byteCount);
-            directory[segmentCount + segments.length] = segment.pos;
             segmentCount++;
+
             if (consume) {
                 if (offset > byteCount) {
                     // partial sharing of this segment

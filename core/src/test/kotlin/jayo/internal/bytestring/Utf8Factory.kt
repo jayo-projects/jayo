@@ -36,60 +36,70 @@ import jayo.internal.readUtf8Segmented
 interface Utf8Factory {
     fun encodeUtf8(s: String): Utf8
     val isAscii: Boolean
+    val isOneBytePerSegment: Boolean
 
     companion object {
         @JvmStatic
         val UTF8: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = s.encodeToUtf8()
             override val isAscii = false
+            override val isOneBytePerSegment = false
         }
 
         @JvmStatic
         val UTF8_FROM_BYTES: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = s.encodeToByteArray().toUtf8()
             override val isAscii = false
+            override val isOneBytePerSegment = false
         }
 
         @JvmStatic
         val UTF8_FROM_BYTES_NO_COMPACT_STRING: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = RealUtf8(s.encodeToByteArray(), false)
             override val isAscii = false
+            override val isOneBytePerSegment = false
         }
 
         @JvmStatic
         val SEGMENTED_UTF8: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = RealBuffer().apply { write(s) }.readUtf8Segmented()
             override val isAscii = false
+            override val isOneBytePerSegment = false
         }
 
         @JvmStatic
         val UTF8_ONE_BYTE_PER_SEGMENT: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = makeUtf8Segments(s.encodeToUtf8())
             override val isAscii = false
+            override val isOneBytePerSegment = true
         }
 
         @JvmStatic
         val ASCII: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = s.encodeToAscii()
             override val isAscii = true
+            override val isOneBytePerSegment = false
         }
 
         @JvmStatic
         val ASCII_FROM_BYTES: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = s.encodeToByteArray().toAscii()
             override val isAscii = true
+            override val isOneBytePerSegment = false
         }
 
         @JvmStatic
         val SEGMENTED_ASCII: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = RealBuffer().apply { write(s) }.readAsciiSegmented()
             override val isAscii = true
+            override val isOneBytePerSegment = false
         }
 
         @JvmStatic
         val ASCII_ONE_BYTE_PER_SEGMENT: Utf8Factory = object : Utf8Factory {
             override fun encodeUtf8(s: String) = makeAsciiSegments(s.encodeToAscii())
             override val isAscii = true
+            override val isOneBytePerSegment = true
         }
     }
 }
