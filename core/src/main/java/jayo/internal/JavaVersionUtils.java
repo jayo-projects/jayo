@@ -7,7 +7,6 @@ package jayo.internal;
 
 import org.jspecify.annotations.NonNull;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -82,15 +81,6 @@ public final class JavaVersionUtils {
     static long threadId(final @NonNull Thread thread) {
         assert thread != null;
         return thread.getId();
-    }
-
-    /**
-     * There is a problem in SSLEngine, SSLCipher or Cipher because calling {@code engine.unwrap(source, dst)} with a
-     * readonly source {@link ByteBuffer} fails in Java 17.
-     */
-    static @NonNull ByteBuffer asReadOnlyBuffer(final @NonNull ByteBuffer wrap) {
-        assert wrap != null;
-        return wrap; // truly sad!
     }
 
     private static final class PlatformThreadFactory implements ThreadFactory {
