@@ -40,7 +40,7 @@ import static jayo.internal.RealUtf8.decodeToUtf8;
 import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 
 public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 permits SegmentedAscii {
-    SegmentedUtf8(final byte @NonNull [] @NonNull [] segments, final int @NonNull [] directory, final boolean isAscii) {
+    SegmentedUtf8(final @NonNull Segment[] segments, final int @NonNull [] directory, final boolean isAscii) {
         super(segments, directory);
         this.isAscii = isAscii;
     }
@@ -144,7 +144,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
             }
 
             private byte currentByte() {
-                return segments[segmentIndex][byteIndexInSegment];
+                return segments[segmentIndex].data[byteIndexInSegment];
             }
 
             private void advance(final int increment) {
@@ -243,12 +243,12 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
     private void fullScan() {
         final var byteSize = byteSize();
         var byteIndex = 0;
-        var byteIndexInSegment = directory[segments.length];
         var segmentIndex = 0;
         var nextSegmentOffset = directory[0];
         var isAscii = true;
+        var byteIndexInSegment = segments[0].pos;
         while (true) {
-            if (segments[segmentIndex][byteIndexInSegment] < 0) {
+            if (segments[segmentIndex].data[byteIndexInSegment] < 0) {
                 isAscii = false;
                 break;
             }
@@ -262,8 +262,8 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
                 break;
             }
 
-            nextSegmentOffset = directory[++segmentIndex];
-            byteIndexInSegment = directory[segments.length + segmentIndex];
+                nextSegmentOffset = directory[++segmentIndex];
+                byteIndexInSegment = segments[segmentIndex].pos;
         }
 
         this.isAscii = isAscii;
@@ -274,7 +274,7 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
 
         var length = byteIndex;
         while (true) {
-            final var b0 = segments[segmentIndex][byteIndexInSegment];
+            final var b0 = segments[segmentIndex].data[byteIndexInSegment];
             final int increment;
             if (b0 >= 0) {
                 // 0xxxxxxx : 7 bits (ASCII).
@@ -313,12 +313,12 @@ public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 pe
             }
 
             // we must switch to the next segment until the expected increment
-            while (byteIndex > nextSegmentOffset) {
+            int offset = 0;
+            while (byteIndex >= nextSegmentOffset) {
+                offset = byteIndex - nextSegmentOffset;
                 nextSegmentOffset = directory[++segmentIndex];
             }
-            final var offset = byteIndex - nextSegmentOffset;
-            nextSegmentOffset = directory[++segmentIndex];
-            byteIndexInSegment = directory[segments.length + segmentIndex] + offset;
+            byteIndexInSegment = segments[segmentIndex].pos + offset;
         }
 
         this.length = length;
