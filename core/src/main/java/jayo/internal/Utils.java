@@ -26,6 +26,7 @@ import jayo.bytestring.ByteString;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLEngineResult;
+import java.lang.ref.Cleaner;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -36,9 +37,11 @@ public final class Utils {
 
     static final long OVERFLOW_ZONE = Long.MIN_VALUE / 10L;
     static final long OVERFLOW_DIGIT_START = Long.MIN_VALUE % 10L + 1;
-    static final byte[] HEX_DIGIT_BYTES = "0123456789abcdef".getBytes(StandardCharsets.UTF_8);
-    static final char[] HEX_DIGIT_CHARS =
+    static final byte @NonNull [] HEX_DIGIT_BYTES = "0123456789abcdef".getBytes(StandardCharsets.UTF_8);
+    static final char @NonNull [] HEX_DIGIT_CHARS =
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+    static final @NonNull Cleaner JAYO_CLEANER = JavaVersionUtils.cleaner();
 
     /**
      * @param selectTruncated true to return -2 if a possible result is present but truncated. For example, this will

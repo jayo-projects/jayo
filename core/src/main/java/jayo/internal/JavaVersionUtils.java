@@ -7,8 +7,9 @@ package jayo.internal;
 
 import org.jspecify.annotations.NonNull;
 
+import java.lang.ref.Cleaner;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -83,10 +84,17 @@ public final class JavaVersionUtils {
         return thread.getId();
     }
 
+    /**
+     * @return a default Cleaner.
+     */
+    static @NonNull Cleaner cleaner() {
+        return Cleaner.create();
+    }
+
     private static final class PlatformThreadFactory implements ThreadFactory {
         private final @NonNull String prefix;
         private final boolean isDaemon;
-        private final @NonNull AtomicLong threadCounter = new AtomicLong();
+        private final @NonNull AtomicInteger threadCounter = new AtomicInteger();
 
         private PlatformThreadFactory(final @NonNull String prefix, final boolean isDaemon) {
             assert prefix != null;
@@ -102,7 +110,7 @@ public final class JavaVersionUtils {
             final var thread = new Thread(
                     null,
                     runnable,
-                    prefix + threadCounter.incrementAndGet(),
+                    prefix + threadCounter.getAndIncrement(),
                     0,
                     true);
             thread.setDaemon(isDaemon);
