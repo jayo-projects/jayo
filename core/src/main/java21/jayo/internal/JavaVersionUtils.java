@@ -7,6 +7,7 @@ package jayo.internal;
 
 import org.jspecify.annotations.NonNull;
 
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -64,5 +65,15 @@ public final class JavaVersionUtils {
     static long threadId(final @NonNull Thread thread) {
         assert thread != null;
         return thread.threadId();
+    }
+
+    /**
+     * @return a Cleaner that uses a virtual thread factory.
+     */
+    static @NonNull Cleaner cleaner() {
+        final var cleanerThreadFactory = Thread.ofVirtual()
+                .name("Cleaner-", 0)
+                .factory();
+        return Cleaner.create(cleanerThreadFactory);
     }
 }

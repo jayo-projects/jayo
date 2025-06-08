@@ -35,6 +35,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
+import static java.lang.System.Logger.Level.TRACE;
+import static jayo.internal.Utils.JAYO_CLEANER;
 import static jayo.internal.Utils.arrayRangeEquals;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
@@ -54,7 +56,7 @@ import static jayo.tools.JayoUtils.checkOffsetAndCount;
  * 6 elements respectively, the {@code directory} contains {@code [5, 7, 13} to hold the cumulative total at each
  * position.
  * <p>
- * This structure is chosen so that the segment holding a particular offset can be found by efficient binary search.
+ * This structure is chosen so that the segment holding a particular offset can be found by an efficient binary search.
  */
 public sealed class SegmentedByteString extends BaseByteString implements ByteString permits SegmentedUtf8 {
     transient final @NonNull Segment @NonNull [] segments;
@@ -67,6 +69,7 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
 
         this.segments = segments;
         this.directory = directory;
+        JAYO_CLEANER.register(this, new SegmentsRecycler(segments));
     }
 
     @Override
@@ -400,6 +403,21 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     @FunctionalInterface
     interface TriPredicate<T, U, V> {
         boolean test(T t, U u, V v);
+    }
+
+    record SegmentsRecycler(@NonNull Segment @NonNull [] segments) implements Runnable {
+        static final System.Logger LOGGER = System.getLogger("jayo.byteString.SegmentsRecycler");
+
+        @Override
+        public void run() {
+            for (final var segment : segments) {
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE, "Recycling Segment#{0} from the cleaned segmented ByteString",
+                            segment.hashCode());
+                }
+                SegmentPool.recycle(segment);
+            }
+        }
     }
 
     // region native-jvm-serialization
