@@ -19,9 +19,9 @@
  * limitations under the License.
  */
 
-package jayo.scheduling;
+package jayo.scheduler;
 
-import jayo.internal.scheduling.RealTaskQueue;
+import jayo.scheduler.internal.RealTaskQueue;
 import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.CountDownLatch;
@@ -31,7 +31,7 @@ import java.util.concurrent.CountDownLatch;
  * <p>
  * Work within queues is not concurrent. This is equivalent to each queue having a dedicated thread for its work.
  *
- * @implNote In practice a set of queues may share a set of threads to save resources.
+ * @implNote In practice, a set of queues may share a set of threads to save resources.
  */
 public sealed interface TaskQueue permits RealTaskQueue, ScheduledTaskQueue {
     /**

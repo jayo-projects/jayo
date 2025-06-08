@@ -19,9 +19,9 @@
  * limitations under the License.
  */
 
-package jayo.scheduling;
+package jayo.scheduler;
 
-import jayo.internal.scheduling.RealTaskQueue;
+import jayo.scheduler.internal.RealTaskQueue;
 import org.jspecify.annotations.NonNull;
 
 import java.util.function.LongSupplier;

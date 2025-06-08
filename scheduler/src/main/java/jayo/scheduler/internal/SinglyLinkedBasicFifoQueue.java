@@ -3,9 +3,9 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.internal.tools;
+package jayo.scheduler.internal;
 
-import jayo.tools.BasicFifoQueue;
+import jayo.scheduler.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 

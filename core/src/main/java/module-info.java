@@ -15,7 +15,6 @@ module jayo {
     exports jayo.bytestring;
     exports jayo.crypto;
     exports jayo.network;
-    exports jayo.scheduling;
     exports jayo.tls;
     exports jayo.tools;
 }

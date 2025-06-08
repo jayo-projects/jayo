@@ -19,11 +19,11 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling;
+package jayo.scheduler.internal;
 
-import jayo.scheduling.TaskQueue;
-import jayo.scheduling.TaskRunner;
-import jayo.tools.BasicFifoQueue;
+import jayo.scheduler.TaskQueue;
+import jayo.scheduler.TaskRunner;
+import jayo.scheduler.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -36,10 +36,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static jayo.internal.JavaVersionUtils.executorService;
-
 public final class RealTaskRunner implements TaskRunner {
-    private static final System.Logger LOGGER = System.getLogger("jayo.scheduling.TaskRunner");
+    private static final System.Logger LOGGER = System.getLogger("jayo.scheduler.TaskRunner");
 
     private final @NonNull AtomicLong nextTaskIndex = new AtomicLong(10000);
     private final @NonNull AtomicInteger nextQueueIndex = new AtomicInteger(10000);
@@ -88,10 +86,6 @@ public final class RealTaskRunner implements TaskRunner {
      * Scheduled tasks ordered by {@link Task.ScheduledTask#nextExecuteNanoTime}.
      */
     final Queue<Task.ScheduledTask> futureScheduledTasks = new PriorityQueue<>();
-
-    public RealTaskRunner(final @NonNull String name) {
-        this(executorService(name + "#", true));
-    }
 
     public RealTaskRunner(final @NonNull ExecutorService executor) {
         this(new RealBackend(executor), LOGGER);
@@ -482,46 +476,46 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     record RealBackend(@NonNull ExecutorService executor) implements Backend {
-            @Override
-            public long nanoTime() {
-                return System.nanoTime();
-            }
-
-            @Override
-            public @NonNull <T> BlockingQueue<T> decorate(final @NonNull BlockingQueue<T> queue) {
-                Objects.requireNonNull(queue);
-                return queue;
-            }
-
-            @Override
-            public void coordinatorNotify(final @NonNull RealTaskRunner taskRunner) {
-                assert taskRunner != null;
-                taskRunner.scheduledCondition.signal();
-            }
-
-            /**
-             * Wait a duration in nanoseconds.
-             *
-             * @return true if wait was fully completed, false if it has been signalled before ending the wait phase.
-             */
-            @Override
-            public boolean coordinatorWait(final @NonNull RealTaskRunner taskRunner,
-                                           final long nanos) throws InterruptedException {
-                assert taskRunner != null;
-                assert nanos > 0;
-                return taskRunner.scheduledCondition.awaitNanos(nanos) <= 0;
-            }
-
-            @Override
-            public void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable) {
-                assert taskRunner != null;
-                assert runnable != null;
-                executor.execute(runnable);
-            }
-
-            @Override
-            public void shutdown() {
-                executor.shutdown();
-            }
+        @Override
+        public long nanoTime() {
+            return System.nanoTime();
         }
+
+        @Override
+        public @NonNull <T> BlockingQueue<T> decorate(final @NonNull BlockingQueue<T> queue) {
+            Objects.requireNonNull(queue);
+            return queue;
+        }
+
+        @Override
+        public void coordinatorNotify(final @NonNull RealTaskRunner taskRunner) {
+            assert taskRunner != null;
+            taskRunner.scheduledCondition.signal();
+        }
+
+        /**
+         * Wait a duration in nanoseconds.
+         *
+         * @return true if wait was fully completed, false if it has been signalled before ending the wait phase.
+         */
+        @Override
+        public boolean coordinatorWait(final @NonNull RealTaskRunner taskRunner,
+                                       final long nanos) throws InterruptedException {
+            assert taskRunner != null;
+            assert nanos > 0;
+            return taskRunner.scheduledCondition.awaitNanos(nanos) <= 0;
+        }
+
+        @Override
+        public void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable) {
+            assert taskRunner != null;
+            assert runnable != null;
+            executor.execute(runnable);
+        }
+
+        @Override
+        public void shutdown() {
+            executor.shutdown();
+        }
+    }
 }

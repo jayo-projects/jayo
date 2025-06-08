@@ -3,9 +3,9 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.internal
+package jayo.scheduler.internal
 
-import jayo.tools.BasicFifoQueue
+import jayo.scheduler.tools.BasicFifoQueue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -84,7 +84,7 @@ class BasicFifoQueueTest {
         assertThat(queue.remove(4)).isTrue
         assertThat(queue.remove(3)).isTrue
 
-        var iterator = queue.iterator()
+        val iterator = queue.iterator()
         assertThat(iterator.next()).isEqualTo(2)
         assertThat(iterator.hasNext()).isFalse
     }
@@ -151,7 +151,7 @@ class BasicFifoQueueTest {
         val queue = BasicFifoQueue.create<String>()
         queue.offer("1")
 
-        var iterator = queue.iterator()
+        val iterator = queue.iterator()
         assertThat(iterator.hasNext()).isTrue
         assertThat(iterator.next()).isEqualTo("1")
         iterator.remove()
