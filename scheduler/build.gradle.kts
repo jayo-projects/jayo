@@ -23,3 +23,15 @@ dependencies {
 kotlin {
     jvmToolchain(17)
 }
+
+// Generate a source jar for main and testFixtures in jvm artifacts.
+val sourcesJar by tasks.registering(Jar::class) {
+    description = "A Source JAR containing sources for main and testFixtures"
+    from(sourceSets.main.get().allSource, sourceSets.testFixtures.get().allSource)
+    archiveClassifier.set("sources")
+}
+
+publishing.publications.withType<MavenPublication> {
+    artifact(sourcesJar)
+}
+
