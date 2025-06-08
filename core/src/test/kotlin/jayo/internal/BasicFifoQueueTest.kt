@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025-present, pull-vert and Jayo contributors.
+ * Use of this source code is governed by the Apache 2.0 license.
+ */
+
 package jayo.internal
 
 import jayo.tools.BasicFifoQueue
