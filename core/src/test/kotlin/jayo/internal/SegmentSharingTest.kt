@@ -26,8 +26,7 @@ import jayo.bytestring.encodeToByteString
 import jayo.internal.JavaTestUtil.takeAllPoolSegments
 import jayo.internal.TestUtil.assertEquivalent
 import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 /** Tests behavior optimized by sharing segments between buffers and byte strings.  */
@@ -72,25 +71,27 @@ class SegmentSharingTest {
     }
 
     /**
-     * Snapshots share their backing byte arrays with the reader buffers. Those byte arrays must not
-     * be recycled, otherwise the new writer could corrupt the segment.
+     * Snapshots share their backing byte arrays with the reader buffers. Those byte arrays must not be recycled,
+     * otherwise the new writer could corrupt the segment.
      */
     @Test
     fun snapshotSegmentsAreNotRecycled() {
-        val buffer = bufferWithSegments(xs, ys, zs)
+        val buffer = RealBuffer()
+        buffer.write("abc")
         val snapshot = buffer.snapshot()
-        assertEquals(xs + ys + zs, snapshot.decodeToString())
 
         // Confirm that clearing the buffer doesn't release its segments.
-        val bufferHead = (buffer as RealBuffer).head!!
+        val bufferHead = buffer.head!!
         takeAllPoolSegments() // Make room for new segments.
         buffer.clear()
-        assertTrue(bufferHead !in takeAllPoolSegments())
+
+        assertEquals("abc", snapshot.decodeToString())
+        assertFalse(bufferHead in takeAllPoolSegments())
     }
 
     /**
-     * Clones share their backing byte arrays with the reader buffers. Those byte arrays must not
-     * be recycled, otherwise the new writer could corrupt the segment.
+     * Clones share their backing byte arrays with the reader buffers. Those byte arrays must not be recycled, otherwise
+     * the new writer could corrupt the segment.
      */
     @Test
     fun cloneSegmentsAreNotRecycled() {
