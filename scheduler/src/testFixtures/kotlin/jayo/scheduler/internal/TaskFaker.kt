@@ -19,10 +19,10 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling
+package jayo.scheduler.internal
 
-import jayo.Jayo
 import jayo.internal.JavaVersionUtils.threadFactory
+import jayo.scheduler.TaskRunner
 import org.assertj.core.api.Assertions.assertThat
 import java.io.Closeable
 import java.util.*
@@ -73,7 +73,8 @@ class TaskFaker : Closeable {
 
     /** Though this executor service may hold many threads, they are not executed concurrently. */
     private val tasksExecutor = Executors.newCachedThreadPool(
-        threadFactory("TaskFaker", true))
+        threadFactory("TaskFaker", true)
+    )
 
     /**
      * True if this task faker has ever had multiple tasks scheduled to run concurrently. Guarded by
@@ -434,6 +435,6 @@ class TaskFaker : Closeable {
         var instance = 0
 
         @JvmField
-        val assertionsEnabled: Boolean = Jayo::class.java.desiredAssertionStatus()
+        val assertionsEnabled: Boolean = TaskRunner::class.java.desiredAssertionStatus()
     }
 }

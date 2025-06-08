@@ -19,10 +19,10 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling
+package jayo.scheduler.internal
 
-import jayo.scheduling.TaskQueue
-import jayo.scheduling.TaskRunner
+import jayo.scheduler.TaskQueue
+import jayo.scheduler.TaskRunner
 import kotlin.concurrent.withLock
 
 /**

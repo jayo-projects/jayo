@@ -19,9 +19,9 @@
  * limitations under the License.
  */
 
-package jayo.scheduling;
+package jayo.scheduler;
 
-import jayo.internal.scheduling.RealTaskRunner;
+import jayo.scheduler.internal.RealTaskRunner;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -38,14 +38,6 @@ import java.util.concurrent.ExecutorService;
  * the benefit of container environments that implement code unloading.
  */
 public sealed interface TaskRunner permits RealTaskRunner {
-    /**
-     * Create a new {@link TaskRunner}. The threads it will use will start with the provided {@code prefix}.
-     */
-    static TaskRunner create(final @NonNull String prefix) {
-        Objects.requireNonNull(prefix);
-        return new RealTaskRunner(prefix);
-    }
-
     /**
      * Create a new {@link TaskRunner} that will use the provided {@code executor} to schedule and execute asynchronous
      * tasks.

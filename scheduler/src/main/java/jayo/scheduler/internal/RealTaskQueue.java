@@ -19,12 +19,12 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling;
+package jayo.scheduler.internal;
 
-import jayo.Jayo;
-import jayo.scheduling.ScheduledTaskQueue;
-import jayo.scheduling.TaskQueue;
-import jayo.tools.BasicFifoQueue;
+import jayo.scheduler.ScheduledTaskQueue;
+import jayo.scheduler.TaskQueue;
+import jayo.scheduler.TaskRunner;
+import jayo.scheduler.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -36,15 +36,16 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.LongSupplier;
 
-import static jayo.internal.scheduling.TaskLogger.formatDuration;
-import static jayo.tools.JayoUtils.removePrefix;
+import static jayo.scheduler.internal.TaskLogger.formatDuration;
 
 public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQueue {
     /**
-     * Returns the string "Jayo" unless the library has been shaded for inclusion in another library. In such cases
-     * it'll return a longer string like "com.example.shaded.jayo.Jayo". This makes it clear which is which.
+     * Returns the string "TaskRunner" unless the library has been shaded for inclusion in another library. In such
+     * cases, it will return a longer string like "com.example.shaded.jayo.scheduler.TaskRunner". This makes it clear
+     * which is which.
      */
-    private static final @NonNull String JAYO_NAME = removePrefix(Jayo.class.getName(), "jayo.");
+    private static final @NonNull String TASK_RUNNER_NAME =
+            removePrefix(TaskRunner.class.getName(), "jayo.scheduler");
 
     final @NonNull RealTaskRunner taskRunner;
     final @NonNull String name;
@@ -181,7 +182,7 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
             private final @NonNull CountDownLatch latch = new CountDownLatch(1);
 
             private AwaitIdleTask() {
-                super(JAYO_NAME + " awaitIdle", false);
+                super(TASK_RUNNER_NAME + " awaitIdle", false);
             }
 
             @Override
@@ -377,7 +378,7 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
             private final @NonNull CountDownLatch latch = new CountDownLatch(1);
 
             private AwaitIdleTask() {
-                super(JAYO_NAME + " awaitIdle", false);
+                super(TASK_RUNNER_NAME + " awaitIdle", false);
             }
 
             @Override
@@ -480,5 +481,19 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
                 }
             }
         }
+    }
+
+    /**
+     * If {@code string} starts with the given {@code prefix}, returns a copy of this string with the prefix removed.
+     * Otherwise, returns this string.
+     */
+    private static @NonNull String removePrefix(final @NonNull String string, final @NonNull String prefix) {
+        Objects.requireNonNull(string);
+        Objects.requireNonNull(prefix);
+
+        if (string.startsWith(prefix)) {
+            return string.substring(prefix.length());
+        }
+        return string;
     }
 }

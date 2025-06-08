@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling;
+package jayo.scheduler.internal;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

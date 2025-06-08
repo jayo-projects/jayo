@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling;
+package jayo.scheduler.internal;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -42,7 +42,7 @@ import org.jspecify.annotations.Nullable;
  * they decide not to by returning -1L.
  * <h3>Task Queues</h3>
  * Tasks are bound to the {@link RealTaskQueue} they are scheduled in. Each queue is sequential and the tasks within it
- * never execute concurrently. It is an error to use a task in multiple queues.
+ * are never executed concurrently. It is an error to use a task in multiple queues.
  */
 abstract class Task<T extends Task<T>> {
     final @NonNull String name;

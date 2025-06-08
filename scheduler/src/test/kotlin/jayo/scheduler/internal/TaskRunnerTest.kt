@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling
+package jayo.scheduler.internal
 
 import jayo.TestLogHandler
 import org.assertj.core.api.Assertions.assertThat

@@ -71,20 +71,6 @@ public final class JayoUtils {
                 : address.toString();
     }
 
-    /**
-     * If {@code string} starts with the given {@code prefix}, returns a copy of this string with the prefix removed.
-     * Otherwise, returns this string.
-     */
-    public static @NonNull String removePrefix(final @NonNull String string, final @NonNull String prefix) {
-        Objects.requireNonNull(string);
-        Objects.requireNonNull(prefix);
-
-        if (string.startsWith(prefix)) {
-            return string.substring(prefix.length());
-        }
-        return string;
-    }
-
     public static @NonNull Handshake createHandshake(
             final @NonNull Protocol protocol,
             final @NonNull TlsVersion tlsVersion,

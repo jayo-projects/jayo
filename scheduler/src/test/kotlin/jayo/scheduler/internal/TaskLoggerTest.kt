@@ -19,9 +19,9 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling
+package jayo.scheduler.internal
 
-import jayo.internal.scheduling.TaskLogger.formatDuration
+import jayo.scheduler.internal.TaskLogger.formatDuration
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 

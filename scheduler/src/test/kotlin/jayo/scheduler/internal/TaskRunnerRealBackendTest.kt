@@ -19,9 +19,9 @@
  * limitations under the License.
  */
 
-package jayo.internal.scheduling
+package jayo.scheduler.internal
 
-import jayo.scheduling.TaskRunner
+import jayo.scheduler.TaskRunner
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.offset
 import org.junit.jupiter.api.AfterEach
@@ -141,12 +141,12 @@ class TaskRunnerRealBackendTest {
     fun idleLatchAfterShutdown() {
         val queue = taskRunner.newQueue()
         queue.execute("task", true) {
-            Thread.sleep(200)
+            Thread.sleep(400)
             taskRunner.shutdown()
         }
 
         assertThat(queue.idleLatch().count).isEqualTo(1)
-        assertThat(queue.idleLatch().await(400L, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(queue.idleLatch().await(500L, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(queue.idleLatch().count).isEqualTo(0)
         assertThat(log).isEmpty()
 
