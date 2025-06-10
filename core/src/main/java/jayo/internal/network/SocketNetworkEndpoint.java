@@ -67,16 +67,8 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
 
-            final var asyncTimeout = buildAsyncTimeout(socket, readTimeoutNanos,
-                    writeTimeoutNanos);
-            final NetworkEndpoint networkEndpoint;
-            if (connectTimeout != null) {
-                networkEndpoint = Cancellable.call(connectTimeout, ignored ->
-                        connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy)
-                );
-            } else {
-                networkEndpoint = connect(socket, peerAddress, null, asyncTimeout, proxy);
-            }
+            final var asyncTimeout = buildAsyncTimeout(socket, readTimeoutNanos, writeTimeoutNanos);
+            final var networkEndpoint = connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy);
 
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG, "new client SocketNetworkEndpoint connected to {0}{1}default read timeout =" +

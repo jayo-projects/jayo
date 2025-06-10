@@ -9,6 +9,7 @@ import jayo.*;
 import jayo.internal.GatheringByteChannelRawWriter;
 import jayo.internal.ReadableByteChannelRawReader;
 import jayo.internal.RealAsyncTimeout;
+import jayo.internal.RealCancelToken;
 import jayo.network.NetworkEndpoint;
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
@@ -57,9 +58,9 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             final var asyncTimeout = buildAsyncTimeout(socketChannel, readTimeoutNanos, writeTimeoutNanos);
             final NetworkEndpoint networkEndpoint;
             if (connectTimeout != null) {
-                networkEndpoint = Cancellable.call(connectTimeout, ignored ->
-                        connect(socketChannel, peerAddress, asyncTimeout, proxy)
-                );
+                final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
+                networkEndpoint = asyncTimeout.withTimeout(cancelToken, () ->
+                        connect(socketChannel, peerAddress, asyncTimeout, proxy));
             } else {
                 networkEndpoint = connect(socketChannel, peerAddress, asyncTimeout, proxy);
             }
