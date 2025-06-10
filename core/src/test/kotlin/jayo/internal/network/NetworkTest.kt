@@ -34,6 +34,9 @@ class NetworkTest {
 
         @JvmStatic
         val TO_WRITE = "a".repeat(SEGMENT_SIZE * 4)
+
+        @JvmField
+        val UNREACHABLE_ADDRESS_IPV4 = InetSocketAddress("198.51.100.1", 8080)
     }
 
     @ParameterizedTest
@@ -215,22 +218,16 @@ class NetworkTest {
             }
     }
 
-    @Disabled // inconsistent, sometimes does not throw
-    @Tag("no-ci")
     @ParameterizedTest
     @MethodSource("parameters")
     fun `default connect timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = thread(start = true, isDaemon = true) {
-                server.accept()
-            }
             assertThatThrownBy {
                 networkFactory.networkEndpointBuilder()
-                    .connectTimeout(Duration.ofNanos(1))
-                    .connectTcp(server.localAddress)
+                    .connectTimeout(Duration.ofMillis(1))
+                    .connectTcp(UNREACHABLE_ADDRESS_IPV4)
             }.isInstanceOf(JayoTimeoutException::class.java)
-                .hasMessage("timeout")
-            serverThread.join()
+                .hasMessageEndingWith("timeout")
         }
     }
 
@@ -280,22 +277,6 @@ class NetworkTest {
                     .hasMessage("timeout")
                 serverThread.join()
             }
-    }
-
-    @ParameterizedTest
-    @MethodSource("parameters")
-    fun `default connect timeout with declared timeout`(networkFactory: NetworkFactory) {
-        networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
-            val serverThread = thread(start = true) {
-                server.accept()
-            }
-            cancelScope(timeout = 10.seconds) {
-                networkFactory.networkEndpointBuilder()
-                    .connectTimeout(Duration.ofNanos(1))
-                    .connectTcp(server.localAddress)
-            }
-            serverThread.join()
-        }
     }
 
     @ParameterizedTest

@@ -39,7 +39,7 @@ public final class RealCancelToken implements CancelScope, jayo.tools.CancelToke
     volatile boolean shielded = false;
     volatile boolean finished = false;
 
-    RealCancelToken(final long deadlineNanos) {
+    public RealCancelToken(final long deadlineNanos) {
         this(0L,
                 // the deadline is set immediately
                 (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L,

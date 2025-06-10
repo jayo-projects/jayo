@@ -137,6 +137,7 @@ class ByteStringTest {
             "d925dc48347d016fd1dc3907378c95c0c860a75332d2e673f743d970bbea89d1e77a07a4a9a64290146ba273bb262d1dd2" +
                     "37bace6761293a75dbf39f72815da8"
         )
+        Unit
     }
 
     @ParameterizedTest
@@ -173,6 +174,7 @@ class ByteStringTest {
             "9b9f9fc58cb6ae835a74d4d9ab51e1583027130315b5aaf497dd51b6dacbae7f9e141a2ecdcbfce337f031f2ce83a58fdfc" +
                     "ee27a373ff408f792326a69a900cc"
         )
+        Unit
     }
 
     @ParameterizedTest

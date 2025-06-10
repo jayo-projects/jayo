@@ -182,6 +182,7 @@ open class JssePlatformRule() : InvocationInterceptor {
                 HeldCertificate.builder()
                     .commonName("localhost")
                     .addSubjectAlternativeName("localhost")
+                    .addSubjectAlternativeName("localhost.localdomain")
                     .keyFormat(RSA_2048)
                     .build()
             return@lazy ClientHandshakeCertificates.builder()
