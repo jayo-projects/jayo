@@ -7,6 +7,7 @@ package jayo.internal.network;
 
 import jayo.*;
 import jayo.network.JayoSocketException;
+import jayo.network.JayoUnknownHostException;
 import jayo.network.NetworkEndpoint;
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;

@@ -7,6 +7,7 @@ package jayo;
 
 import jayo.network.JayoConnectException;
 import jayo.network.JayoSocketException;
+import jayo.network.JayoUnknownHostException;
 import jayo.network.JayoUnknownServiceException;
 import jayo.tls.JayoTlsException;
 import jayo.tls.JayoTlsHandshakeException;

@@ -22,7 +22,7 @@
 package jayo.internal.tls;
 
 import jayo.bytestring.ByteString;
-import jayo.JayoUnknownHostException;
+import jayo.network.JayoUnknownHostException;
 import jayo.internal.tls.Adapters.DerAdapterValue;
 import jayo.tls.HeldCertificate;
 import jayo.tools.HostnameUtils;
