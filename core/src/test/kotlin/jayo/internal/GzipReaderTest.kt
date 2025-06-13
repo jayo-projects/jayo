@@ -22,10 +22,9 @@
 package jayo.internal
 
 import jayo.*
+import jayo.bytestring.ByteString
 import jayo.bytestring.ByteString.of
 import jayo.bytestring.decodeHex
-import jayo.JayoException
-import jayo.bytestring.ByteString
 import jayo.bytestring.encodeToUtf8
 import org.junit.jupiter.api.assertThrows
 import java.util.zip.CRC32
@@ -35,6 +34,27 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 class GzipReaderTest {
+    @Test
+    fun reader() {
+        val buffer = Buffer().write("1f8b0800000000000000f3c8540400dac59e7903000000".decodeHex())
+        (buffer as RawReader).gzip().buffered().use { gzip ->
+            assertEquals("Hi!", gzip.readString())
+        }
+    }
+
+    @Test
+    fun extraLongXlen() {
+        val xlen = 0xffff
+        val buffer = Buffer()
+            .write("1f8b0804000000000000".decodeHex())
+            .writeShort(xlen.toShort())
+            .write(ByteArray(xlen))
+            .write("f3c8540400dac59e7903000000".decodeHex())
+        (buffer as RawReader).gzip().buffered().use { gzip ->
+            assertEquals("Hi!", gzip.readString())
+        }
+    }
+
     @Test
     fun gunzip() {
         val gzipped = Buffer()
@@ -177,7 +197,7 @@ class GzipReaderTest {
         val gzippedReader = Buffer()
             .write("1f8b08000000000000004b4c4a0600c241243503000000".decodeHex()) // 'abc'
         gzippedReader.writeByte('d'.code.toByte()) // This byte shouldn't be here!
-        val gunzippedReader = gzippedReader.gzip().buffered()
+        val gunzippedReader = GzipRawReader(gzippedReader).buffered()
         assertEquals('a'.code.toLong(), gunzippedReader.readByte().toLong())
         assertEquals('b'.code.toLong(), gunzippedReader.readByte().toLong())
         assertEquals('c'.code.toLong(), gunzippedReader.readByte().toLong())
@@ -208,7 +228,7 @@ class GzipReaderTest {
 
     private fun gunzip(gzipped: Buffer): Buffer {
         val result = Buffer()
-        val reader = gzipped.gzip()
+        val reader = GzipRawReader(gzipped)
         while (reader.readAtMostTo(result, Int.MAX_VALUE.toLong()) != -1L) {
         }
         return result

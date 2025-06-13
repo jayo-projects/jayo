@@ -51,7 +51,7 @@ public final class GzipRawReader implements RawReader {
     private final @NonNull Inflater inflater = new Inflater(true);
 
     /**
-     * The inflater reader takes care of moving data between compressed reader and decompressed writer buffers.
+     * The inflater reader takes care of moving data between compressed reader and decompressed destination buffers.
      */
     private final @NonNull InflaterRawReader inflaterReader;
 

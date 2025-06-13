@@ -327,15 +327,15 @@ public final class Jayo {
     }
 
     /**
-     * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading.
+     * @return an {@link InflaterRawReader} that DEFLATE-decompresses data of this {@code reader} while reading.
      */
     public static @NonNull InflaterRawReader inflate(final @NonNull RawReader reader) {
         return inflate(reader, new Inflater());
     }
 
     /**
-     * @return an {@link InflaterRawReader} that DEFLATE-decompresses this {@code reader} while reading, using the
-     * provided {@code inflater}.
+     * @return an {@link InflaterRawReader} that DEFLATE-decompresses data of this {@code reader} while reading, using
+     * the provided {@code inflater}.
      */
     public static @NonNull InflaterRawReader inflate(final @NonNull RawReader reader,
                                                      final @NonNull Inflater inflater) {
@@ -345,7 +345,15 @@ public final class Jayo {
     }
 
     /**
-     * @return a {@link RawReader} that gzip-decompresses this {@code reader} while reading.
+     * @return a {@link RawWriter} that gzip-compresses data to this {@code writer} while writing.
+     */
+    public static @NonNull RawWriter gzip(final @NonNull RawWriter writer) {
+        Objects.requireNonNull(writer);
+        return new GzipRawWriter(writer);
+    }
+
+    /**
+     * @return a {@link RawReader} that gzip-decompresses data of this {@code reader} while reading.
      */
     public static @NonNull RawReader gzip(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
