@@ -41,10 +41,17 @@ public final class DeflaterRawWriter implements RawWriter {
     private boolean closed = false;
 
     public DeflaterRawWriter(final @NonNull RawWriter rawWriter, final @NonNull Deflater deflater) {
-        assert rawWriter != null;
+        this(new RealWriter(rawWriter), deflater);
+    }
+
+    /**
+     * This internal constructor shares a buffer with its trusted caller.
+     */
+    DeflaterRawWriter(final @NonNull RealWriter writer, final @NonNull Deflater deflater) {
+        assert writer != null;
         assert deflater != null;
 
-        this.writer = new RealWriter(rawWriter);
+        this.writer = writer;
         this.deflater = deflater;
     }
 
@@ -62,7 +69,7 @@ public final class DeflaterRawWriter implements RawWriter {
             final var toDeflate = (int) Math.min(remaining, head.limit - head.pos);
             deflater.setInput(head.data, head.pos, toDeflate);
 
-            // Deflate those bytes into writer.
+            // Deflate those bytes into this writer.
             deflate(false);
 
             // Mark those bytes as read.

@@ -27,6 +27,7 @@ import jayo.bytestring.ByteString
 import jayo.crypto.Digest
 import jayo.crypto.Hmac
 import jayo.internal.RealReader
+import java.util.zip.Inflater
 
 /**
  * @return a new reader that buffers reads from the raw `reader`. The returned reader will perform bulk reads into its
@@ -52,3 +53,13 @@ public fun RawReader.hash(digest: Digest): ByteString = Jayo.hash(this, digest)
  * @return the MAC result of this reader.
  */
 public fun RawReader.hmac(hMac: Hmac, key: ByteString): ByteString = Jayo.hmac(this, hMac, key)
+
+/**
+ * @return an [InflaterRawReader] that DEFLATE-decompresses data of this [RawReader] while reading.
+ */
+public fun RawReader.inflate(inflater: Inflater = Inflater()): InflaterRawReader = Jayo.inflate(this, inflater)
+
+/**
+ * Returns a [RawReader] that gzip-decompresses data of this [RawReader] while reading.
+ */
+public fun RawReader.gzip(): RawReader = Jayo.gzip(this)
