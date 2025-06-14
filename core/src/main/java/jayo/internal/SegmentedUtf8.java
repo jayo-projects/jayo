@@ -37,7 +37,7 @@ import java.util.stream.StreamSupport;
 
 import static jayo.internal.RealUtf8.decodeToCharset;
 import static jayo.internal.RealUtf8.decodeToUtf8;
-import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
+import static jayo.internal.Utils.UTF8_REPLACEMENT_CODE_POINT;
 
 public sealed class SegmentedUtf8 extends SegmentedByteString implements Utf8 permits SegmentedAscii {
     SegmentedUtf8(final @NonNull Segment[] segments, final int @NonNull [] directory, final boolean isAscii) {
