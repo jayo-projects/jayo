@@ -40,8 +40,8 @@ import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import static jayo.internal.BaseByteString.*;
-import static jayo.internal.Utf8Utils.ASCII_REPLACEMENT_CHARACTER;
-import static jayo.internal.Utf8Utils.ASCII_REPLACEMENT_CODE_POINT;
+import static jayo.internal.Utils.ASCII_REPLACEMENT_CHARACTER;
+import static jayo.internal.Utils.ASCII_REPLACEMENT_CODE_POINT;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final /*Valhalla 'primitive class' or at least 'value class'*/ class RealAscii implements Ascii {

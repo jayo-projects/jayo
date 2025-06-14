@@ -33,7 +33,7 @@ import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import static jayo.internal.UnsafeUtils.noCopyStringFromLatin1Bytes;
-import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
+import static jayo.internal.Utils.UTF8_REPLACEMENT_CODE_POINT;
 
 public final class RealUtf8 extends BaseByteString implements Utf8 {
     public RealUtf8(final byte @NonNull [] data, final boolean isAscii) {

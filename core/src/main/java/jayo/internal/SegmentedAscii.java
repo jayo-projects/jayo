@@ -34,8 +34,8 @@ import java.util.function.IntConsumer;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static jayo.internal.Utf8Utils.ASCII_REPLACEMENT_CHARACTER;
-import static jayo.internal.Utf8Utils.ASCII_REPLACEMENT_CODE_POINT;
+import static jayo.internal.Utils.ASCII_REPLACEMENT_CHARACTER;
+import static jayo.internal.Utils.ASCII_REPLACEMENT_CODE_POINT;
 
 public final class SegmentedAscii extends SegmentedUtf8 implements Ascii {
     SegmentedAscii(final @NonNull Segment[] segments, final int @NonNull [] directory) {
