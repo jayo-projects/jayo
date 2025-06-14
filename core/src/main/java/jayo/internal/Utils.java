@@ -21,12 +21,14 @@
 
 package jayo.internal;
 
+import jayo.Buffer;
 import jayo.Reader;
 import jayo.bytestring.ByteString;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLEngineResult;
 import java.lang.ref.Cleaner;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -40,6 +42,11 @@ public final class Utils {
     static final byte @NonNull [] HEX_DIGIT_BYTES = "0123456789abcdef".getBytes(StandardCharsets.UTF_8);
     static final char @NonNull [] HEX_DIGIT_CHARS =
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+    static final char UTF8_REPLACEMENT_CHARACTER = '\ufffd';
+    static final int UTF8_REPLACEMENT_CODE_POINT = UTF8_REPLACEMENT_CHARACTER;
+    static final char ASCII_REPLACEMENT_CHARACTER = '?';
+    static final int ASCII_REPLACEMENT_CODE_POINT = ASCII_REPLACEMENT_CHARACTER;
 
     static final @NonNull Cleaner JAYO_CLEANER = JavaVersionUtils.cleaner();
 
@@ -186,6 +193,25 @@ public final class Utils {
         }
 
         throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
+    }
+
+    static String readUtf8Line(final @NonNull Buffer buffer,
+                               final long newline,
+                               final @NonNull Charset charset) {
+        assert buffer != null;
+        assert charset != null;
+
+        if (newline > 0L && buffer.getByte(newline - 1) == (byte) ((int) '\r')) {
+            // Read everything until '\r\n', then skip the '\r\n'.
+            final var result = buffer.readString(newline - 1L, charset);
+            buffer.skip(2L);
+            return result;
+        }
+
+        // Read everything until '\n', then skip the '\n'.
+        final var result = buffer.readString(newline, charset);
+        buffer.skip(1L);
+        return result;
     }
 
     static String toHexString(final byte b) {

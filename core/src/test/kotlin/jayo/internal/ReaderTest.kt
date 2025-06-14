@@ -1443,6 +1443,55 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     @Test
+    fun readLineWithCharset() {
+        writer
+            .write("I'm a hacker¡\n", Charsets.ISO_8859_1)
+            .write("That's what I said: you're a nerd.\n", Charsets.ISO_8859_1)
+            .write("I prefer to be called a hacker¡\n", Charsets.ISO_8859_1)
+            .flush()
+
+        reader.request(100)
+        assertThat(reader.bytesAvailable()).isEqualTo(81)
+        assertThat(reader.readLine(Charsets.ISO_8859_1)).isEqualTo("I'm a hacker¡")
+        assertThat(reader.bytesAvailable()).isEqualTo(67)
+
+        assertThat(reader.readLine(Charsets.ISO_8859_1)).isEqualTo("That's what I said: you're a nerd.")
+        assertThat(reader.bytesAvailable()).isEqualTo(32)
+
+        assertThat(reader.readLine(Charsets.ISO_8859_1)).isEqualTo("I prefer to be called a hacker¡")
+        assertTrue(reader.exhausted())
+
+        assertThat(reader.readLine(Charsets.ISO_8859_1)).isNull()
+        assertTrue(reader.exhausted())
+    }
+
+    @Test
+    fun readLineStrictWithCharset() {
+        writer
+            .write("There is no newline¡", Charsets.ISO_8859_1)
+            .flush()
+        assertFailsWith<JayoEOFException> { reader.readLineStrict(Charsets.ISO_8859_1) }
+        assertEquals("There is no newline¡", reader.readString(Charsets.ISO_8859_1))
+        writer
+            .write("There is a newline¡\r\n", Charsets.ISO_8859_1)
+            .flush()
+        assertEquals("There is a newline¡", reader.readLineStrict(Charsets.ISO_8859_1))
+
+        writer
+            .write("1234¡\r\n", Charsets.ISO_8859_1)
+            .flush()
+
+        reader.request(100)
+
+        // This will throw! There must be \r\n or \n at the limit or before it.
+        assertFailsWith<JayoEOFException> { reader.readLineStrict(4, Charsets.ISO_8859_1) }
+
+
+        // No bytes have been consumed so the caller can retry.
+        assertThat(reader.readLineStrict(5, Charsets.ISO_8859_1)).isEqualTo("1234¡")
+    }
+
+    @Test
     fun readUnsignedByte() {
         with(writer) {
             writeByte(0)

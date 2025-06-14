@@ -54,7 +54,6 @@ import java.util.function.ToIntFunction;
 
 import static java.lang.System.Logger.Level.TRACE;
 import static jayo.internal.UnsafeUtils.*;
-import static jayo.internal.Utf8Utils.UTF8_REPLACEMENT_CODE_POINT;
 import static jayo.internal.Utils.*;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
@@ -779,13 +778,19 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @Nullable String readLine() {
-        final var newline = indexOf((byte) ((int) '\n'));
+        return readLine(StandardCharsets.UTF_8);
+    }
 
+    @Override
+    public @Nullable String readLine(final @NonNull Charset charset) {
+        Objects.requireNonNull(charset);
+
+        final var newline = indexOf((byte) ((int) '\n'));
         if (newline != -1L) {
-            return Utf8Utils.readUtf8Line(this, newline);
+            return Utils.readUtf8Line(this, newline, charset);
         }
         if (byteSize != 0L) {
-            return readString(byteSize);
+            return readString(byteSize, charset);
         }
 
         return null;
@@ -793,26 +798,42 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull String readLineStrict() {
-        return readLineStrict(Long.MAX_VALUE);
+        return readLineStrict(Long.MAX_VALUE, StandardCharsets.UTF_8);
     }
 
     @Override
-    public @NonNull String readLineStrict(final long limit) {
+    public @NonNull String readLineStrict(final @NonNull Charset charset) {
+        return readLineStrict(Long.MAX_VALUE, charset);
+    }
+
+    @Override
+    public @NonNull String readLineStrict(long limit) {
+        return readLineStrict(limit, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public @NonNull String readLineStrict(final long limit, final @NonNull Charset charset) {
+        Objects.requireNonNull(charset);
         if (limit < 0L) {
             throw new IllegalArgumentException("limit < 0: " + limit);
         }
+
         final var scanLength = (limit == Long.MAX_VALUE) ? Long.MAX_VALUE : limit + 1L;
         final var newline = indexOf((byte) ((int) '\n'), 0L, scanLength);
+
+        // a new line was found in the scanned bytes.
         if (newline != -1L) {
-            return Utf8Utils.readUtf8Line(this, newline);
+            return Utils.readUtf8Line(this, newline, charset);
         }
+
+        // else check that the line was 'limit' bytes followed by \r\n.
         if (scanLength < byteSize &&
                 getByte(scanLength - 1) == (byte) ((int) '\r') &&
                 getByte(scanLength) == (byte) ((int) '\n')) {
-            // The line was 'limit' UTF-8 bytes followed by \r\n.
-            return Utf8Utils.readUtf8Line(this, scanLength);
+            return Utils.readUtf8Line(this, scanLength, charset);
         }
 
+        // else build and throw a JayoEOFException.
         final var data = new RealBuffer();
         copyTo(data, 0, Math.min(32, byteSize));
         throw new JayoEOFException(
