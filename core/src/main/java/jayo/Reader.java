@@ -414,7 +414,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * Removes and returns UTF-8 encoded characters up to but not including the next line break. A line break is either
      * {@code "\n"} or {@code "\r\n"}; these characters are not included in the result.
      * <p>
-     * On the end of the stream this method returns null. If the reader doesn't end with a line break, then an implicit
+     * On the end of the stream, this method returns null. If the reader doesn't end with a line break, then an implicit
      * line break is assumed. {@code null} is returned once the reader is exhausted.
      * <pre>
      * {@code
@@ -444,6 +444,39 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
     String readLine();
 
     /**
+     * Removes and returns {@code charset} encoded characters up to but not including the next line break. A line break
+     * is either {@code "\n"} or {@code "\r\n"}; these characters are not included in the result.
+     * <p>
+     * On the end of the stream, this method returns null. If the reader doesn't end with a line break, then an implicit
+     * line break is assumed. {@code null} is returned once the reader is exhausted.
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("I'm a hacker¡\n", StandardCharsets.ISO_8859_1)
+     * .write("That's what I said: you're a nerd.\n", StandardCharsets.ISO_8859_1)
+     * .write("I prefer to be called a hacker¡\n", StandardCharsets.ISO_8859_1);
+     * assertThat(buffer.bytesAvailable()).isEqualTo(81);
+     *
+     * assertThat(buffer.readLine(StandardCharsets.ISO_8859_1)).isEqualTo("I'm a hacker¡");
+     * assertThat(buffer.bytesAvailable()).isEqualTo(67);
+     *
+     * assertThat(buffer.readLine(StandardCharsets.ISO_8859_1)).isEqualTo("That's what I said: you're a nerd.");
+     * assertThat(buffer.bytesAvailable()).isEqualTo(32);
+     *
+     * assertThat(buffer.readLine(StandardCharsets.ISO_8859_1)).isEqualTo("I prefer to be called a hacker¡");
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
+     *
+     * assertThat(buffer.readLine(StandardCharsets.ISO_8859_1)).isNull();
+     * assertThat(buffer.bytesAvailable()).isEqualTo(0);
+     * }
+     * </pre>
+     *
+     * @throws JayoClosedResourceException if this reader is closed.
+     */
+    @Nullable
+    String readLine(final @NonNull Charset charset);
+
+    /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
      * {@link JayoEOFException} if a line break was not encountered. A line break is either {@code "\n"} or
      * {@code "\r\n"}; these characters are not included in the result.
@@ -455,6 +488,19 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      */
     @NonNull
     String readLineStrict();
+
+    /**
+     * Removes and returns {@code charset} encoded characters up to but not including the next line break, throwing
+     * {@link JayoEOFException} if a line break was not encountered. A line break is either {@code "\n"} or
+     * {@code "\r\n"}; these characters are not included in the result.
+     * <p>
+     * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match.
+     *
+     * @throws JayoEOFException            if a line break was not encountered.
+     * @throws JayoClosedResourceException if this reader is closed.
+     */
+    @NonNull
+    String readLineStrict(final @NonNull Charset charset);
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break, throwing
@@ -487,6 +533,38 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      */
     @NonNull
     String readLineStrict(final long limit);
+
+    /**
+     * Removes and returns {@code charset} encoded characters up to but not including the next line break, throwing
+     * {@link JayoEOFException} if a line break was not encountered. A line break is either {@code "\n"} or
+     * {@code "\r\n"}; these characters are not included in the result.
+     * <p>
+     * The returned string will have at most {@code limit} {@code charset} bytes, and the maximum number of bytes
+     * scanned is {@code limit + 2}. If {@code limit == 0} this will always throw a {@link JayoEOFException} because no
+     * bytes will be scanned.
+     * <p>
+     * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match:
+     * <pre>
+     * {@code
+     * Buffer buffer = Buffer.create()
+     * .write("1234¡\r\n", StandardCharsets.ISO_8859_1);
+     *
+     * // This will throw! There must be \r\n or \n at the limit or before it.
+     * buffer.readLineStrict(4, StandardCharsets.ISO_8859_1);
+     *
+     * // No bytes have been consumed so the caller can retry.
+     * assertThat(buffer.readLineStrict(5, StandardCharsets.ISO_8859_1)).isEqualTo("1234¡");
+     * }
+     * </pre>
+     *
+     * @param limit the maximum UTF-8 bytes constituting a returned string.
+     * @throws JayoEOFException            when this reader does not contain a string consisting with at most
+     *                                     {@code limit} bytes followed by line break characters.
+     * @throws IllegalArgumentException    when {@code limit} is negative.
+     * @throws JayoClosedResourceException if this reader is closed.
+     */
+    @NonNull
+    String readLineStrict(final long limit, final @NonNull Charset charset);
 
     /**
      * Removes and returns a single UTF-8 code point, reading between 1 and 4 bytes as necessary.
