@@ -30,8 +30,8 @@ dependencies {
     jmh("com.squareup.okio:okio:${catalogVersion("okio")}")
     jmh("com.fasterxml.jackson.module:jackson-module-kotlin:${catalogVersion("jackson")}")
 
-    jmhRuntimeOnly("org.slf4j:slf4j-simple:${catalogVersion("slf4j")}")
     jmhRuntimeOnly("org.slf4j:slf4j-jdk-platform-logging:${catalogVersion("slf4j")}")
+    jmhRuntimeOnly("ch.qos.logback:logback-classic:${catalogVersion("logback")}")
 }
 
 kotlin {
