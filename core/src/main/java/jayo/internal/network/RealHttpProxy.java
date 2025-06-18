@@ -17,4 +17,26 @@ public final class RealHttpProxy extends AbstractProxy implements Proxy.Http {
                          final char @Nullable [] password) {
         super(address, username, password);
     }
+
+    @Override
+    public boolean equals(final @Nullable Object other) {
+        if (!(other instanceof RealHttpProxy that)) {
+            return false;
+        }
+
+        return getHost().equals(that.getHost())
+                && getPort() == that.getPort();
+    }
+
+    @Override
+    public int hashCode() {
+        var result = getHost().hashCode();
+        result = 31 * result + getPort();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "HTTP @ " + getHost() + ":" + getPort();
+    }
 }
