@@ -255,7 +255,6 @@ class NetworkTest {
             }
     }
 
-    @Disabled // inconsistent, sometimes does not throw
     @Tag("no-ci")
     @ParameterizedTest
     @MethodSource("parameters")
@@ -264,17 +263,24 @@ class NetworkTest {
             .use { server ->
                 val serverThread = thread(start = true) {
                     val accepted = server.accept()
-                    accepted.writer.use { writer ->
-                        writer.write(TO_WRITE)
+                    accepted.writer.use { serverWriter ->
+                        serverWriter.writeInt(1)
+                            .flush()
+                        Thread.sleep(300)
+                        serverWriter.writeInt(2)
                     }
                 }
                 val client = networkFactory.networkEndpointBuilder()
-                    .readTimeout(Duration.ofNanos(1))
+                    .readTimeout(Duration.ofMillis(100))
                     .connectTcp(server.localAddress)
 
-                assertThatThrownBy { client.reader.readString() }
-                    .isInstanceOf(JayoTimeoutException::class.java)
-                    .hasMessage("timeout")
+                client.reader.use { clientReader ->
+                    assertThat(clientReader.readInt()).isEqualTo(1)
+
+                    assertThatThrownBy { clientReader.readInt() }
+                        .isInstanceOf(JayoTimeoutException::class.java)
+                        .hasMessage("timeout")
+                }
                 serverThread.join()
             }
     }
