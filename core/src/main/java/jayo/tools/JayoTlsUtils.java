@@ -24,12 +24,16 @@ package jayo.tools;
 import jayo.internal.tls.RealHandshakeCertificates;
 import jayo.tls.ClientHandshakeCertificates;
 import jayo.tls.HeldCertificate;
+import jayo.tls.ServerHandshakeCertificates;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
 import java.util.Objects;
 
+/**
+ * This class exposes TLS methods for test purpose
+ */
 public final class JayoTlsUtils {
     // un-instantiable
     private JayoTlsUtils() {
@@ -57,5 +61,11 @@ public final class JayoTlsUtils {
             final @NonNull ClientHandshakeCertificates clientCertificates) {
         Objects.requireNonNull(clientCertificates);
         return ((RealHandshakeCertificates) clientCertificates).getSslContext();
+    }
+
+    public static @NonNull SSLContext handshakeCertSSLContext(
+            final @NonNull ServerHandshakeCertificates serverCertificates) {
+        Objects.requireNonNull(serverCertificates);
+        return ((RealHandshakeCertificates) serverCertificates).getSslContext();
     }
 }
