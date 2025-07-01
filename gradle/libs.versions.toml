@@ -1,7 +1,7 @@
 [versions]
 # plugins
 # https://github.com/JetBrains/kotlin/releases
-kotlin = "2.1.21"
+kotlin = "2.2.0"
 # https://github.com/Kotlin/dokka/releases
 dokka = "2.0.0"
 # https://github.com/Kotlin/kotlinx-kover/releases
@@ -11,7 +11,7 @@ mrjar = "0.1.1"
 # https://github.com/melix/jmh-gradle-plugin/tags (for benchmarks)
 jmhPlugin = "0.7.3"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
-shadow = "8.3.6"
+shadow = "8.3.8"
 # https://github.com/researchgate/gradle-release/releases
 release = "3.1.0"
 
@@ -27,7 +27,7 @@ conscrypt = "2.5.2"
 
 # test + test fixtures
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-junit = "5.13.1"
+junit = "5.13.2"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
 assertj = "3.27.3"
 # https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
@@ -39,15 +39,15 @@ logback = "1.5.18"
 
 # third-parties
 # https://github.com/Kotlin/kotlinx.serialization/releases
-kotlinxSerialization = "1.8.1"
+kotlinxSerialization = "1.9.0"
 
 # benchmarks
 # https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-core
 jmh = "1.37"
 # https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
-jackson = "2.19.0"
+jackson = "2.19.1"
 # https://github.com/square/okio/tags
-okio = "3.13.0"
+okio = "3.14.0"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
