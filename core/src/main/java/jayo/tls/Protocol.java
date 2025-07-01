@@ -61,7 +61,8 @@ public enum Protocol {
      * Cleartext HTTP/2 with no "upgrade" round trip. This option requires the client to have prior knowledge that the
      * server supports cleartext HTTP/2.
      * <p>
-     * See also <a href="https://tools.ietf.org/html/rfc7540.section-3.4">RFC 7540: Starting HTTP/2 with Prior Knowledge</a>
+     * See also <a href="https://datatracker.ietf.org/doc/html/rfc7540#autoid-10">
+     * RFC 7540: Starting HTTP/2 with Prior Knowledge</a>
      */
     H2_PRIOR_KNOWLEDGE("h2_prior_knowledge"),
 
