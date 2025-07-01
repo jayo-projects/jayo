@@ -50,6 +50,33 @@ public final class Utils {
 
     static final @NonNull Cleaner JAYO_CLEANER = JavaVersionUtils.cleaner();
 
+    public static @NonNull RealBuffer internalBuffer(final @NonNull Reader reader) {
+        assert reader != null;
+
+        if (reader instanceof RealReader _reader) {
+            return _reader.buffer;
+        }
+        return (RealBuffer) reader;
+    }
+
+    static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {
+        assert byteString != null;
+
+        if (byteString instanceof RealByteString realByteString) {
+            return realByteString.data;
+        }
+
+        if (byteString instanceof RealAscii realAscii) {
+            return realAscii.data;
+        }
+
+        if (byteString instanceof BaseByteString baseByteString) {
+            return baseByteString.internalArray();
+        }
+
+        throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
+    }
+
     /**
      * @param selectTruncated true to return -2 if a possible result is present but truncated. For example, this will
      *                        return -2 if the buffer contains [ab] and the options are [abc, abd]. Note that this is
@@ -166,33 +193,6 @@ public final class Utils {
             return -2; // The buffer is a prefix of at least one option.
         }
         return prefixIndex; // Return any matches we encountered while searching for a deeper match.
-    }
-
-    static @NonNull RealBuffer internalBuffer(final @NonNull Reader reader) {
-        assert reader != null;
-
-        if (reader instanceof RealReader _reader) {
-            return _reader.buffer;
-        }
-        return (RealBuffer) reader;
-    }
-
-    static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {
-        assert byteString != null;
-
-        if (byteString instanceof RealByteString realByteString) {
-            return realByteString.data;
-        }
-
-        if (byteString instanceof RealAscii realAscii) {
-            return realAscii.data;
-        }
-
-        if (byteString instanceof BaseByteString baseByteString) {
-            return baseByteString.internalArray();
-        }
-
-        throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
     }
 
     static String readUtf8Line(final @NonNull Buffer buffer,

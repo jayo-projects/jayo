@@ -21,7 +21,10 @@
 
 package jayo.tools;
 
+import jayo.Buffer;
+import jayo.Reader;
 import jayo.internal.JavaVersionUtils;
+import jayo.internal.Utils;
 import jayo.internal.tls.RealHandshake;
 import jayo.tls.CipherSuite;
 import jayo.tls.Handshake;
@@ -90,5 +93,10 @@ public final class JayoUtils {
                 localCertificates,
                 peerCertificatesFn
         );
+    }
+
+    public static @NonNull Buffer buffer(final @NonNull Reader reader) {
+        Objects.requireNonNull(reader);
+        return Utils.internalBuffer(reader);
     }
 }
