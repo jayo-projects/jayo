@@ -23,6 +23,7 @@ package jayo.tools;
 
 import jayo.Buffer;
 import jayo.Reader;
+import jayo.Writer;
 import jayo.internal.JavaVersionUtils;
 import jayo.internal.Utils;
 import jayo.internal.tls.RealHandshake;
@@ -98,5 +99,10 @@ public final class JayoUtils {
     public static @NonNull Buffer buffer(final @NonNull Reader reader) {
         Objects.requireNonNull(reader);
         return Utils.internalBuffer(reader);
+    }
+
+    public static @NonNull Buffer buffer(final @NonNull Writer writer) {
+        Objects.requireNonNull(writer);
+        return Utils.internalBuffer(writer);
     }
 }

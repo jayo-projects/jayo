@@ -23,6 +23,7 @@ package jayo.internal;
 
 import jayo.Buffer;
 import jayo.Reader;
+import jayo.Writer;
 import jayo.bytestring.ByteString;
 import org.jspecify.annotations.NonNull;
 
@@ -57,6 +58,15 @@ public final class Utils {
             return _reader.buffer;
         }
         return (RealBuffer) reader;
+    }
+
+    public static @NonNull RealBuffer internalBuffer(final @NonNull Writer writer) {
+        assert writer != null;
+
+        if (writer instanceof RealWriter _writer) {
+            return _writer.buffer;
+        }
+        return (RealBuffer) writer;
     }
 
     static byte @NonNull [] internalArray(final @NonNull ByteString byteString) {
