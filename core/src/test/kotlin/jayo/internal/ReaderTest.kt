@@ -116,6 +116,16 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     @Test
+    fun closeIsOpen() {
+        assertTrue(reader.isOpen)
+
+        if (reader is RealReader) {
+            reader.close()
+            assertFalse(reader.isOpen)
+        }
+    }
+
+    @Test
     fun readBytes() {
         writer.write(byteArrayOf(0xab.toByte(), 0xcd.toByte()))
         writer.emit()

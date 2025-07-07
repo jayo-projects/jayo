@@ -38,6 +38,8 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class BufferWriterTest : AbstractWriterTest(WriterFactory.BUFFER)
 
@@ -55,6 +57,16 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     @AfterEach
     fun after() {
         writer.close()
+    }
+
+    @Test
+    fun closeIsOpen() {
+        assertTrue(writer.isOpen)
+
+        if (writer is RealWriter) {
+            writer.close()
+            assertFalse(writer.isOpen)
+        }
     }
 
     @Test

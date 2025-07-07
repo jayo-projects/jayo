@@ -89,6 +89,11 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
+    public boolean isOpen() {
+        return true;
+    }
+
+    @Override
     public long bytesAvailable() {
         return byteSize;
     }
@@ -2317,7 +2322,7 @@ public final class RealBuffer implements Buffer {
 
             @Override
             public boolean isOpen() {
-                return true;
+                return RealBuffer.this.isOpen();
             }
 
             @Override

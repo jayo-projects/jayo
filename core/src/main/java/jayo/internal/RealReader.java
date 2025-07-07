@@ -52,6 +52,11 @@ public final class RealReader implements Reader {
     }
 
     @Override
+    public boolean isOpen() {
+        return !closed;
+    }
+
+    @Override
     public long readAtMostTo(final @NonNull Buffer destination, final long byteCount) {
         Objects.requireNonNull(destination);
         if (byteCount < 0L) {
@@ -861,7 +866,7 @@ public final class RealReader implements Reader {
 
             @Override
             public boolean isOpen() {
-                return !closed;
+                return RealReader.this.isOpen();
             }
 
             @Override

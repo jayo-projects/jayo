@@ -82,6 +82,11 @@ import java.nio.charset.Charset;
  */
 public sealed interface Reader extends RawReader permits Buffer, RealReader {
     /**
+     * @return {@code true} if this reader is open.
+     */
+    boolean isOpen();
+
+    /**
      * @return the current number of bytes that can be read (or skipped over) immediately from the buffered data without
      * requesting it from the downstream, which may be 0, or 0 when this reader is {@linkplain #exhausted() exhausted}.
      * Ongoing or future responses received after requests sent to the downstream may increase the number of available

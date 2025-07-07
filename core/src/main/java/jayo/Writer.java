@@ -73,6 +73,11 @@ import java.nio.charset.Charset;
  */
 public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
     /**
+     * @return {@code true} if this writer is open.
+     */
+    boolean isOpen();
+
+    /**
      * Writes all bytes from {@code source} to this writer.
      *
      * @param source the byte array source.

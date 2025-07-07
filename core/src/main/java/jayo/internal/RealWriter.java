@@ -45,6 +45,11 @@ public final class RealWriter implements Writer {
     }
 
     @Override
+    public boolean isOpen() {
+        return !closed;
+    }
+
+    @Override
     public void write(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
         if (closed) {
@@ -408,7 +413,7 @@ public final class RealWriter implements Writer {
 
             @Override
             public boolean isOpen() {
-                return !closed;
+                return RealWriter.this.isOpen();
             }
 
             @Override

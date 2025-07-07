@@ -41,6 +41,14 @@ import kotlin.test.assertTrue
 
 class BufferTest {
     @Test
+    fun closeIsOpenAreNop() {
+        val buffer = RealBuffer()
+        assertThat(buffer.isOpen).isTrue()
+        buffer.close()
+        assertThat(buffer.isOpen).isTrue()
+    }
+
+    @Test
     fun copyToBuffer() {
         val reader = RealBuffer()
         reader.write("party".encodeToUtf8())
