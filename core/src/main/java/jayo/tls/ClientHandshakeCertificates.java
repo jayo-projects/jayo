@@ -99,7 +99,7 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
     /**
      * Creates a {@linkplain ClientHandshakeCertificates client handshake certificates} from a
      * {@link TrustManagerFactory} and a {@link KeyManagerFactory}. This client will be able to authenticate to the
-     *  server and supports authentication back from the server.
+     * server and supports authentication back from the server.
      * <p>
      * Most applications should not call this method, and instead use the {@linkplain #create() system defaults}, as it
      * includes special optimizations that can be lost if the implementations are decorated.
@@ -109,6 +109,18 @@ public sealed interface ClientHandshakeCertificates permits RealHandshakeCertifi
         Objects.requireNonNull(tmf);
         Objects.requireNonNull(kmf);
         return new RealHandshakeCertificates(tmf, kmf);
+    }
+
+    /**
+     * Creates a {@linkplain ClientHandshakeCertificates client handshake certificates} from a {@link X509TrustManager}.
+     * This client will be able to authenticate to the server and does not support authentication back from the server.
+     * <p>
+     * Most applications should not call this method, and instead use the {@linkplain #create() system defaults}, as it
+     * includes special optimizations that can be lost if the implementations are decorated.
+     */
+    static @NonNull ClientHandshakeCertificates create(final @Nullable X509TrustManager trustManager) {
+        Objects.requireNonNull(trustManager);
+        return new RealHandshakeCertificates(null, trustManager);
     }
 
     /**

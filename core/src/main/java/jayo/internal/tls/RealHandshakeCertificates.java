@@ -47,7 +47,7 @@ public final class RealHandshakeCertificates
         this(null, JssePlatform.get().getDefaultTrustManager());
     }
 
-    private RealHandshakeCertificates(final @Nullable X509KeyManager keyManager,
+    public RealHandshakeCertificates(final @Nullable X509KeyManager keyManager,
                                       final @Nullable X509TrustManager trustManager) {
         this.keyManager = keyManager;
         this.trustManager = trustManager;
