@@ -19,7 +19,7 @@ public class ChunkingEndpoint implements Endpoint {
     public ChunkingEndpoint(Endpoint _wrapped, int chunkSize) {
         this.wrapped = ((SocketChannelNetworkEndpoint) _wrapped);
 
-        final var rawReader = wrapped.buildRawReader();
+        final var rawReader = wrapped.rawReader;
         final var newRawReader = new RawReader() {
             @Override
             public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
@@ -34,7 +34,7 @@ public class ChunkingEndpoint implements Endpoint {
         };
         wrapped.setReader(newRawReader);
 
-        final var rawWriter = wrapped.buildRawWriter();
+        final var rawWriter = wrapped.rawWriter;
         final var newRawWriter = new RawWriter() {
             @Override
             public void write(final @NonNull Buffer source, final long byteCount) {

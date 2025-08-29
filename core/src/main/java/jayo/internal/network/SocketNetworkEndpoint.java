@@ -25,6 +25,8 @@ import jayo.*;
 import jayo.internal.InputStreamRawReader;
 import jayo.internal.OutputStreamRawWriter;
 import jayo.internal.RealAsyncTimeout;
+import jayo.internal.RealAsyncTimeout.RawReaderWithTimeout;
+import jayo.internal.RealAsyncTimeout.RawWriterWithTimeout;
 import jayo.network.NetworkEndpoint;
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
@@ -51,14 +53,10 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     static @NonNull NetworkEndpoint connect(
             final @NonNull InetSocketAddress peerAddress,
             final @Nullable Duration connectTimeout,
-            final long readTimeoutNanos,
-            final long writeTimeoutNanos,
             final Proxy.@Nullable Socks proxy,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions
     ) {
         assert peerAddress != null;
-        assert readTimeoutNanos >= 0L;
-        assert writeTimeoutNanos >= 0L;
         assert socketOptions != null;
 
         final var socket = new Socket();
@@ -67,14 +65,12 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
 
-            final var asyncTimeout = buildAsyncTimeout(socket, readTimeoutNanos, writeTimeoutNanos);
+            final var asyncTimeout = buildAsyncTimeout(socket);
             final var networkEndpoint = connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy);
 
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketNetworkEndpoint connected to {0}{1}default read timeout =" +
-                                " {2} ns, default write timeout = {3} ns{4}provided socket options = {5}",
-                        peerAddress, System.lineSeparator(), readTimeoutNanos, writeTimeoutNanos,
-                        System.lineSeparator(), socketOptions);
+                LOGGER.log(DEBUG, "new client SocketNetworkEndpoint connected to {0}, socket options = {1}",
+                        peerAddress, socketOptions);
             }
 
             return networkEndpoint;
@@ -115,7 +111,8 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
         if (connectTimeout != null) {
             final var connectTimeoutMillis = connectTimeout.toMillis();
             if (connectTimeoutMillis > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("connect timeout in millis is too large, should be <= Integer.MAX_VALUE");
+                throw new IllegalArgumentException(
+                        "connect timeout in millis is too large, should be <= Integer.MAX_VALUE");
             }
             socket.connect(inetSocketAddress, (int) connectTimeoutMillis);
         } else {
@@ -124,11 +121,9 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     }
 
     @NonNull
-    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull Socket socket,
-                                                      final long defaultReadTimeoutNanos,
-                                                      final long defaultWriteTimeoutNanos) {
+    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull Socket socket) {
         assert socket != null;
-        return new RealAsyncTimeout(defaultReadTimeoutNanos, defaultWriteTimeoutNanos, () -> {
+        return new RealAsyncTimeout(() -> {
             try {
                 socket.close();
             } catch (Exception e) {
@@ -138,15 +133,14 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     }
 
     private final @NonNull Socket socket;
-    private final @NonNull RealAsyncTimeout asyncTimeout;
 
+    private final @NonNull RawReaderWithTimeout rawReader;
     private Reader reader = null;
+    private final @NonNull RawWriterWithTimeout rawWriter;
     private Writer writer = null;
 
-    SocketNetworkEndpoint(final @NonNull Socket socket,
-                          final long defaultReadTimeoutNanos,
-                          final long defaultWriteTimeoutNanos) {
-        this(socket, buildAsyncTimeout(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos));
+    SocketNetworkEndpoint(final @NonNull Socket socket) {
+        this(socket, buildAsyncTimeout(socket));
     }
 
     private SocketNetworkEndpoint(final @NonNull Socket socket, final @NonNull RealAsyncTimeout asyncTimeout) {
@@ -154,35 +148,26 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
         assert asyncTimeout != null;
 
         this.socket = socket;
-        this.asyncTimeout = asyncTimeout;
+        try {
+            this.rawReader = asyncTimeout.reader(new InputStreamRawReader(socket.getInputStream()));
+            this.rawWriter = asyncTimeout.writer(new OutputStreamRawWriter(socket.getOutputStream()));
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
     }
 
     @Override
     public @NonNull Reader getReader() {
-        try {
-            // always get the input stream from socket that does some checks
-            final var in = socket.getInputStream();
-            if (reader == null) {
-                final var rawReader = asyncTimeout.reader(new InputStreamRawReader(in));
-                reader = Jayo.buffer(rawReader);
-            }
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
+        if (reader == null) {
+            reader = Jayo.buffer(rawReader);
         }
         return reader;
     }
 
     @Override
     public @NonNull Writer getWriter() {
-        try {
-            // always get the output stream from socket that does some checks
-            final var out = socket.getOutputStream();
-            if (writer == null) {
-                final var rawWriter = asyncTimeout.writer(new OutputStreamRawWriter(out));
-                writer = Jayo.buffer(rawWriter);
-            }
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
+        if (writer == null) {
+            writer = Jayo.buffer(rawWriter);
         }
         return writer;
     }
@@ -222,6 +207,16 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
+    }
+
+    @Override
+    public void setReadTimeout(final @NonNull Duration readTimeout) {
+        rawReader.setTimeout(readTimeout);
+    }
+
+    @Override
+    public void setWriteTimeout(final @NonNull Duration writeTimeout) {
+        Objects.requireNonNull(writeTimeout);
     }
 
     @Override

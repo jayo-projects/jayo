@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 public final class SocksNetworkEndpoint implements NetworkEndpoint {
     static final byte SOCKS_V5 = 5;
@@ -276,6 +277,16 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
     @Override
     public <T> @Nullable T getOption(final @NonNull SocketOption<T> name) {
         return delegate.getOption(name);
+    }
+
+    @Override
+    public void setReadTimeout(final @NonNull Duration readTimeout) {
+        delegate.setReadTimeout(readTimeout);
+    }
+
+    @Override
+    public void setWriteTimeout(final @NonNull Duration writeTimeout) {
+        delegate.setWriteTimeout(writeTimeout);
     }
 
     @Override

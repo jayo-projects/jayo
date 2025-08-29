@@ -14,7 +14,6 @@ import java.net.ProtocolFamily;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.net.StandardProtocolFamily;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -25,8 +24,6 @@ import static java.lang.System.Logger.Level.INFO;
 public final class NetworkServerBuilder implements NetworkServer.Builder {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkServerBuilder");
 
-    private long readTimeoutNanos;
-    private long writeTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions;
     private int maxPendingConnections;
@@ -34,15 +31,13 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
     private boolean useNio;
 
     public NetworkServerBuilder() {
-        this(0L, 0L, new HashMap<>(), new HashMap<>(), 0, null, true);
+        this(new HashMap<>(), new HashMap<>(), 0, null, true);
     }
 
     /**
      * The private constructor used by {@link #clone()}.
      */
-    private NetworkServerBuilder(final long readTimeoutNanos,
-                                 final long writeTimeoutNanos,
-                                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+    private NetworkServerBuilder(final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                                  final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                                  final int maxPendingConnections,
                                  final @Nullable ProtocolFamily protocolFamily,
@@ -50,27 +45,11 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
         assert socketOptions != null;
         assert serverSocketOptions != null;
 
-        this.readTimeoutNanos = readTimeoutNanos;
-        this.writeTimeoutNanos = writeTimeoutNanos;
         this.socketOptions = socketOptions;
         this.serverSocketOptions = serverSocketOptions;
         this.maxPendingConnections = maxPendingConnections;
         this.protocolFamily = protocolFamily;
         this.useNio = useNio;
-    }
-
-    @Override
-    public @NonNull NetworkServerBuilder readTimeout(final @NonNull Duration readTimeout) {
-        Objects.requireNonNull(readTimeout);
-        this.readTimeoutNanos = readTimeout.toNanos();
-        return this;
-    }
-
-    @Override
-    public @NonNull NetworkServerBuilder writeTimeout(final @NonNull Duration writeTimeout) {
-        Objects.requireNonNull(writeTimeout);
-        this.writeTimeoutNanos = writeTimeout.toNanos();
-        return this;
     }
 
     @Override
@@ -129,8 +108,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
         if (useNio) {
             return new ServerSocketChannelNetworkServer(
                     localAddress,
-                    readTimeoutNanos,
-                    writeTimeoutNanos,
                     socketOptions,
                     serverSocketOptions,
                     maxPendingConnections,
@@ -139,8 +116,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
 
         return new ServerSocketNetworkServer(
                 localAddress,
-                readTimeoutNanos,
-                writeTimeoutNanos,
                 socketOptions,
                 serverSocketOptions,
                 maxPendingConnections);
@@ -150,8 +125,6 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
     @Override
     public @NonNull NetworkServerBuilder clone() {
         return new NetworkServerBuilder(
-                readTimeoutNanos,
-                writeTimeoutNanos,
                 socketOptions,
                 serverSocketOptions,
                 maxPendingConnections,

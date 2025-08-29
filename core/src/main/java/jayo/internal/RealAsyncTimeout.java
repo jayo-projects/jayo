@@ -27,6 +27,7 @@ import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -48,33 +49,12 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private static final Lock LOCK = new ReentrantLock();
     private static final Condition CONDITION = LOCK.newCondition();
 
-    private final long defaultReadTimeoutNanos;
-    private final long defaultWriteTimeoutNanos;
-
     private final @NonNull Runnable onTimeout;
     private @Nullable RealCancelToken tmpCancelToken = null;
 
     public RealAsyncTimeout(final @NonNull Runnable onTimeout) {
-        this(0L, 0L, onTimeout);
-    }
-
-    /**
-     * @param defaultReadTimeoutNanos  The default read timeout (in nanoseconds). It will be used as a fallback for each
-     *                                 read operation, only if no timeout is present in the cancellable context. It must
-     *                                 be non-negative. A timeout of zero is interpreted as an infinite timeout.
-     * @param defaultWriteTimeoutNanos The default write timeout (in nanoseconds). It will be used as a fallback for
-     *                                 each write operation, only if no timeout is present in the cancellable context.
-     *                                 It must be non-negative. A timeout of zero is interpreted as an infinite timeout.
-     */
-    public RealAsyncTimeout(final long defaultReadTimeoutNanos,
-                            final long defaultWriteTimeoutNanos,
-                            final @NonNull Runnable onTimeout) {
         assert onTimeout != null;
-        assert defaultReadTimeoutNanos >= 0;
-        assert defaultWriteTimeoutNanos >= 0;
 
-        this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
-        this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
         this.onTimeout = onTimeout;
     }
 
@@ -137,159 +117,15 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public @NonNull RawWriter writer(final @NonNull RawWriter writer) {
+    public @NonNull RawWriterWithTimeout writer(final @NonNull RawWriter writer) {
         Objects.requireNonNull(writer);
-        return new RawWriter() {
-            @Override
-            public void write(final @NonNull Buffer source, final long byteCount) {
-                Objects.requireNonNull(source);
-                checkOffsetAndCount(source.bytesAvailable(), 0, byteCount);
-
-                final var src = (RealBuffer) source;
-                // get the cancel token immediately; if present, it will be used in all IO calls of this write operation
-                var cancelToken = CancellableUtils.getCancelToken();
-                if (cancelToken != null) {
-                    cancelToken.timeoutNanos = defaultWriteTimeoutNanos;
-                    try {
-                        writeCancellable(src, byteCount, cancelToken);
-                        return;
-                    } finally {
-                        cancelToken.timeoutNanos = 0L;
-                    }
-                }
-
-                // no need for cancellation
-                if (defaultWriteTimeoutNanos == 0L) {
-                    writer.write(source, byteCount);
-                    return;
-                }
-
-                // use defaultWriteTimeoutNanos to create a temporary cancel token, just for this write operation
-                cancelToken = new RealCancelToken(defaultWriteTimeoutNanos, 0L, false);
-                CancellableUtils.addCancelToken(cancelToken);
-                try {
-                    writeCancellable(src, byteCount, cancelToken);
-                } finally {
-                    CancellableUtils.finishCancelToken(cancelToken);
-                }
-            }
-
-            private void writeCancellable(RealBuffer src, long byteCount, RealCancelToken cancelToken) {
-                var remaining = byteCount;
-                while (remaining > 0L) {
-                    // Count how many bytes to write. This loop guarantees we split on a segment boundary.
-                    var _toWrite = 0L;
-                    var segment = src.head;
-                    while (_toWrite < TIMEOUT_WRITE_SIZE) {
-                        assert segment != null;
-                        _toWrite += (segment.limit - segment.pos);
-                        if (_toWrite >= remaining) {
-                            _toWrite = remaining;
-                            break;
-                        }
-                        segment = segment.next;
-                    }
-
-                    final var toWrite = _toWrite;
-                    // Emit one write operation. Only this section is subject to the timeout.
-                    withTimeout(cancelToken, () -> {
-                        writer.write(src, toWrite);
-                        return null;
-                    });
-                    remaining -= _toWrite;
-                }
-            }
-
-            @Override
-            public void flush() {
-                final var cancelToken = CancellableUtils.getCancelToken();
-                if (cancelToken != null) {
-                    withTimeout(cancelToken, () -> {
-                        writer.flush();
-                        return null;
-                    });
-                    return;
-                }
-                writer.flush();
-            }
-
-            @Override
-            public void close() {
-                final var cancelToken = CancellableUtils.getCancelToken();
-                if (cancelToken != null) {
-                    withTimeout(cancelToken, () -> {
-                        writer.close();
-                        return null;
-                    });
-                    return;
-                }
-                writer.close();
-            }
-
-            @Override
-            @NonNull
-            public String toString() {
-                return "AsyncTimeout.writer(" + writer + ")";
-            }
-        };
+        return new RawWriterWithTimeout(writer);
     }
 
     @Override
-    public @NonNull RawReader reader(final @NonNull RawReader reader) {
+    public @NonNull RawReaderWithTimeout reader(final @NonNull RawReader reader) {
         Objects.requireNonNull(reader);
-        return new RawReader() {
-            @Override
-            public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
-                Objects.requireNonNull(writer);
-                if (byteCount < 0L) {
-                    throw new IllegalArgumentException("byteCount < 0: " + byteCount);
-                }
-
-                // get the cancel token immediately; if present, it will be used in all IO calls of this read operation
-                var cancelToken = CancellableUtils.getCancelToken();
-                if (cancelToken != null) {
-                    cancelToken.timeoutNanos = defaultReadTimeoutNanos;
-                    try {
-                        return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));
-                    } finally {
-                        cancelToken.timeoutNanos = 0L;
-                    }
-                }
-
-                // no need for cancellation
-                if (defaultReadTimeoutNanos == 0L) {
-                    return reader.readAtMostTo(writer, byteCount);
-                }
-
-                // use defaultReadTimeoutNanos to create a temporary cancel token, just for this read operation
-                cancelToken = new RealCancelToken(defaultReadTimeoutNanos, 0L, false);
-                CancellableUtils.addCancelToken(cancelToken);
-                try {
-                    return withTimeout(cancelToken, () -> reader.readAtMostTo(writer, byteCount));
-                } finally {
-                    CancellableUtils.finishCancelToken(cancelToken);
-                }
-            }
-
-            @Override
-            public void close() {
-                final var cancelToken = CancellableUtils.getCancelToken();
-                if (cancelToken != null) {
-                    withTimeout(cancelToken, () -> {
-                        reader.close();
-                        return null;
-                    });
-                    return;
-                }
-                reader.close();
-            }
-
-            @Override
-            @NonNull
-            public String toString() {
-                return "AsyncTimeout.reader(" + reader + ")";
-            }
-        };
+        return new RawReaderWithTimeout(reader);
     }
 
     @Override
@@ -501,6 +337,187 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         @Override
         public long getTimeoutAt() {
             return timeoutAt;
+        }
+    }
+
+    public final class RawWriterWithTimeout implements AsyncTimeout.RawWriterWithTimeout {
+        private final @NonNull RawWriter delegate;
+        private long timeoutNanos = 0L;
+
+        public RawWriterWithTimeout(final @NonNull RawWriter delegate) {
+            assert delegate != null;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void write(final @NonNull Buffer source, final long byteCount) {
+            Objects.requireNonNull(source);
+            checkOffsetAndCount(source.bytesAvailable(), 0, byteCount);
+
+            final var src = (RealBuffer) source;
+            // get the cancel token immediately; if present, it will be used in all IO calls of this write operation
+            var cancelToken = CancellableUtils.getCancelToken();
+            if (cancelToken != null) {
+                cancelToken.timeoutNanos = timeoutNanos;
+                try {
+                    writeCancellable(src, byteCount, cancelToken);
+                    return;
+                } finally {
+                    cancelToken.timeoutNanos = 0L;
+                }
+            }
+
+            // no need for cancellation
+            if (timeoutNanos == 0L) {
+                delegate.write(source, byteCount);
+                return;
+            }
+
+            // use defaultWriteTimeoutNanos to create a temporary cancel token, just for this write operation
+            cancelToken = new RealCancelToken(timeoutNanos, 0L, false);
+            CancellableUtils.addCancelToken(cancelToken);
+            try {
+                writeCancellable(src, byteCount, cancelToken);
+            } finally {
+                CancellableUtils.finishCancelToken(cancelToken);
+            }
+        }
+
+        private void writeCancellable(final @NonNull RealBuffer src,
+                                      final long byteCount,
+                                      final @NonNull RealCancelToken cancelToken) {
+            assert src != null;
+            assert cancelToken != null;
+
+            var remaining = byteCount;
+            while (remaining > 0L) {
+                // Count how many bytes to write. This loop guarantees we split on a segment boundary.
+                var _toWrite = 0L;
+                var segment = src.head;
+                while (_toWrite < TIMEOUT_WRITE_SIZE) {
+                    assert segment != null;
+                    _toWrite += (segment.limit - segment.pos);
+                    if (_toWrite >= remaining) {
+                        _toWrite = remaining;
+                        break;
+                    }
+                    segment = segment.next;
+                }
+
+                final var toWrite = _toWrite;
+                // Emit one write operation. Only this section is subject to the timeout.
+                withTimeout(cancelToken, () -> {
+                    delegate.write(src, toWrite);
+                    return null;
+                });
+                remaining -= _toWrite;
+            }
+        }
+
+        @Override
+        public void flush() {
+            final var cancelToken = CancellableUtils.getCancelToken();
+            if (cancelToken != null) {
+                withTimeout(cancelToken, () -> {
+                    delegate.flush();
+                    return null;
+                });
+                return;
+            }
+            delegate.flush();
+        }
+
+        @Override
+        public void close() {
+            final var cancelToken = CancellableUtils.getCancelToken();
+            if (cancelToken != null) {
+                withTimeout(cancelToken, () -> {
+                    delegate.close();
+                    return null;
+                });
+                return;
+            }
+            delegate.close();
+        }
+
+        @Override
+        @NonNull
+        public String toString() {
+            return "AsyncTimeout.writer(" + delegate + ")";
+        }
+
+        @Override
+        public void setTimeout(final @NonNull Duration readTimeout) {
+            Objects.requireNonNull(readTimeout);
+            this.timeoutNanos = readTimeout.toNanos();
+        }
+    }
+
+    public final class RawReaderWithTimeout implements AsyncTimeout.RawReaderWithTimeout {
+        private final @NonNull RawReader delegate;
+        private long timeoutNanos = 0L;
+
+        public RawReaderWithTimeout(final @NonNull RawReader delegate) {
+            assert delegate != null;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
+            Objects.requireNonNull(writer);
+            if (byteCount < 0L) {
+                throw new IllegalArgumentException("byteCount < 0: " + byteCount);
+            }
+
+            // get the cancel token immediately; if present, it will be used in all IO calls of this read operation
+            var cancelToken = CancellableUtils.getCancelToken();
+            if (cancelToken != null) {
+                cancelToken.timeoutNanos = timeoutNanos;
+                try {
+                    return withTimeout(cancelToken, () -> delegate.readAtMostTo(writer, byteCount));
+                } finally {
+                    cancelToken.timeoutNanos = 0L;
+                }
+            }
+
+            // no need for cancellation
+            if (timeoutNanos == 0L) {
+                return delegate.readAtMostTo(writer, byteCount);
+            }
+
+            // use defaultReadTimeoutNanos to create a temporary cancel token, just for this read operation
+            cancelToken = new RealCancelToken(timeoutNanos, 0L, false);
+            CancellableUtils.addCancelToken(cancelToken);
+            try {
+                return withTimeout(cancelToken, () -> delegate.readAtMostTo(writer, byteCount));
+            } finally {
+                CancellableUtils.finishCancelToken(cancelToken);
+            }
+        }
+
+        @Override
+        public void close() {
+            final var cancelToken = CancellableUtils.getCancelToken();
+            if (cancelToken != null) {
+                withTimeout(cancelToken, () -> {
+                    delegate.close();
+                    return null;
+                });
+                return;
+            }
+            delegate.close();
+        }
+
+        @Override
+        @NonNull
+        public String toString() {
+            return "AsyncTimeout.reader(" + delegate + ")";
+        }
+
+        @Override
+        public void setTimeout(final @NonNull Duration readTimeout) {
+            Objects.requireNonNull(readTimeout);
+            this.timeoutNanos = readTimeout.toNanos();
         }
     }
 }

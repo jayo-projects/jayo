@@ -17,7 +17,6 @@ import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketOption;
-import java.time.Duration;
 
 /**
  * A server backed by an underlying network server socket. This socket is <b>guaranteed to be bound</b>.
@@ -59,13 +58,6 @@ public sealed interface NetworkServer extends Closeable
      * @return a new server-side {@link NetworkEndpoint} that was created after an incoming client request. The
      * executing thread blocks until a request is received and the resulting connection is established or an error
      * occurs.
-     * <h3>Timeouts</h3>
-     * <ul>
-     *     <li>The specified {@linkplain Builder#readTimeout(Duration) read timeout value} will be used as default for
-     *     each read operation of the {@linkplain jayo.Endpoint#getReader() Endpoint's reader}.
-     *     <li>The specified {@linkplain Builder#writeTimeout(Duration) write timeout value} will be used as default for
-     *     each write operation of the {@linkplain jayo.Endpoint#getWriter() Endpoint's writer}.
-     * </ul>
      * @throws UnsupportedOperationException If one of the socket options you set with
      *                                       {@link Builder#option(SocketOption, Object)} is not supported by the
      *                                       network endpoint.
@@ -120,22 +112,6 @@ public sealed interface NetworkServer extends Closeable
      * The builder used to create a {@link NetworkServer}.
      */
     sealed interface Builder extends Cloneable permits NetworkServerBuilder {
-        /**
-         * Sets the default read timeout of all read operations of the
-         * {@linkplain NetworkServer#accept() accepted network endpoints}. Default is zero. A timeout of zero is
-         * interpreted as an infinite timeout.
-         */
-        @NonNull
-        Builder readTimeout(final @NonNull Duration readTimeout);
-
-        /**
-         * Sets the default write timeout of all write operations of the
-         * {@linkplain NetworkServer#accept() accepted network endpoints}. Default is zero. A timeout of zero is
-         * interpreted as an infinite timeout.
-         */
-        @NonNull
-        Builder writeTimeout(final @NonNull Duration writeTimeout);
-
         /**
          * Sets the value of a socket option to set on the
          * {@linkplain NetworkServer#accept() accepted network endpoints}.

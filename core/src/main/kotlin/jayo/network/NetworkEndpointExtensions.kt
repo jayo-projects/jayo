@@ -38,28 +38,6 @@ public value class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoin
         }
 
     /**
-     * Sets the default read timeout of all read operations of the network endpoints produced by this builder. Default
-     * is zero. A timeout of zero is interpreted as an infinite timeout.
-     */
-    public var readTimeout: Duration
-        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-        get() = error("unsupported")
-        set(value) {
-            builder.readTimeout(value.toJavaDuration())
-        }
-
-    /**
-     * Sets the default write timeout of all write operations of the network endpoints produced by this builder. Default
-     * is zero. A timeout of zero is interpreted as an infinite timeout.
-     */
-    public var writeTimeout: Duration
-        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-        get() = error("unsupported")
-        set(value) {
-            builder.writeTimeout(value.toJavaDuration())
-        }
-
-    /**
      * Sets the value of a socket option to set on the network endpoints produced by this builder.
      *
      * @param name  The socket option
@@ -96,3 +74,13 @@ public value class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoin
             builder.useNio(value)
         }
 }
+
+public var NetworkEndpoint.readTimeout: Duration
+    @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
+    get() = error("unsupported")
+    set(value) = this.setReadTimeout(value.toJavaDuration())
+
+public var NetworkEndpoint.writeTimeout: Duration
+    @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
+    get() = error("unsupported")
+    set(value) = this.setWriteTimeout(value.toJavaDuration())

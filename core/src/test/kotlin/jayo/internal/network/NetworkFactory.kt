@@ -17,8 +17,6 @@ enum class NetworkFactory {
         override fun networkServerBuilder() =
             NetworkServer.builder().kotlin {
                 protocol = NetworkProtocol.IPv6
-                readTimeout = 30.seconds
-                writeTimeout = 30.seconds
                 maxPendingConnections = 2
                 option(StandardSocketOptions.SO_REUSEADDR, true)
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
@@ -28,8 +26,6 @@ enum class NetworkFactory {
             NetworkEndpoint.builder().kotlin {
                 protocol = NetworkProtocol.IPv6
                 connectTimeout = 30.seconds
-                readTimeout = 30.seconds
-                writeTimeout = 30.seconds
                 option(StandardSocketOptions.SO_REUSEADDR, true)
             }
 
@@ -39,8 +35,6 @@ enum class NetworkFactory {
         override fun networkServerBuilder() =
             NetworkServer.builder().kotlin {
                 useNio = false
-                readTimeout = 30.seconds
-                writeTimeout = 30.seconds
                 maxPendingConnections = 2
                 option(StandardSocketOptions.SO_REUSEADDR, true)
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
@@ -50,8 +44,6 @@ enum class NetworkFactory {
             NetworkEndpoint.builder().kotlin {
                 useNio = false
                 connectTimeout = 30.seconds
-                readTimeout = 30.seconds
-                writeTimeout = 30.seconds
                 option(StandardSocketOptions.SO_REUSEADDR, true)
             }
 

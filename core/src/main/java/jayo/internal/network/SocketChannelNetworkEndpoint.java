@@ -9,6 +9,8 @@ import jayo.*;
 import jayo.internal.GatheringByteChannelRawWriter;
 import jayo.internal.ReadableByteChannelRawReader;
 import jayo.internal.RealAsyncTimeout;
+import jayo.internal.RealAsyncTimeout.RawReaderWithTimeout;
+import jayo.internal.RealAsyncTimeout.RawWriterWithTimeout;
 import jayo.internal.RealCancelToken;
 import jayo.network.NetworkEndpoint;
 import jayo.network.Proxy;
@@ -37,14 +39,10 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     static @NonNull NetworkEndpoint connect(
             final @NonNull InetSocketAddress peerAddress,
             final @Nullable Duration connectTimeout,
-            final long readTimeoutNanos,
-            final long writeTimeoutNanos,
             final Proxy.@Nullable Socks proxy,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @Nullable ProtocolFamily family) {
         assert peerAddress != null;
-        assert readTimeoutNanos >= 0L;
-        assert writeTimeoutNanos >= 0L;
         assert socketOptions != null;
 
         try {
@@ -55,7 +53,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
                 socketChannel.setOption(socketOption.getKey(), socketOption.getValue());
             }
 
-            final var asyncTimeout = buildAsyncTimeout(socketChannel, readTimeoutNanos, writeTimeoutNanos);
+            final var asyncTimeout = buildAsyncTimeout(socketChannel);
             final NetworkEndpoint networkEndpoint;
             if (connectTimeout != null) {
                 final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
@@ -66,11 +64,8 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             }
 
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketChannelNetworkEndpoint connected to {0}{1}protocol family " +
-                                "= {2}, default read timeout = {3} ns, default write timeout = {4} ns{5}provided " +
-                                "socket options = {6}",
-                        peerAddress, System.lineSeparator(), family, readTimeoutNanos, writeTimeoutNanos,
-                        System.lineSeparator(), socketOptions);
+                LOGGER.log(DEBUG, "new client SocketChannelNetworkEndpoint connected to {0}, protocol family " +
+                        "= {1}, socket options = {2}", peerAddress, family, socketOptions);
             }
 
             return networkEndpoint;
@@ -106,11 +101,9 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     @NonNull
-    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull SocketChannel socketChannel,
-                                                      final long defaultReadTimeoutNanos,
-                                                      final long defaultWriteTimeoutNanos) {
+    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull SocketChannel socketChannel) {
         assert socketChannel != null;
-        return new RealAsyncTimeout(defaultReadTimeoutNanos, defaultWriteTimeoutNanos, () -> {
+        return new RealAsyncTimeout(() -> {
             try {
                 socketChannel.close();
             } catch (Exception e) {
@@ -120,15 +113,14 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     private final @NonNull SocketChannel socketChannel;
-    private final @NonNull RealAsyncTimeout asyncTimeout;
 
+    final @NonNull RawReaderWithTimeout rawReader;
     private Reader reader = null;
+    final @NonNull RawWriterWithTimeout rawWriter;
     private Writer writer = null;
 
-    SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel,
-                                 final long defaultReadTimeoutNanos,
-                                 final long defaultWriteTimeoutNanos) {
-        this(socketChannel, buildAsyncTimeout(socketChannel, defaultReadTimeoutNanos, defaultWriteTimeoutNanos));
+    SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel) {
+        this(socketChannel, buildAsyncTimeout(socketChannel));
     }
 
     private SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel,
@@ -137,21 +129,16 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
         assert asyncTimeout != null;
 
         this.socketChannel = socketChannel;
-        this.asyncTimeout = asyncTimeout;
+        this.rawReader = asyncTimeout.reader(new ReadableByteChannelRawReader(socketChannel));
+        this.rawWriter = asyncTimeout.writer(new GatheringByteChannelRawWriter(socketChannel));
     }
 
     @Override
     public @NonNull Reader getReader() {
         if (reader == null) {
-            final var rawReader = buildRawReader();
             setReader(rawReader);
         }
         return reader;
-    }
-
-    @NonNull
-    RawReader buildRawReader() {
-        return asyncTimeout.reader(new ReadableByteChannelRawReader(socketChannel));
     }
 
     void setReader(final @NonNull RawReader rawReader) {
@@ -162,15 +149,9 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     @Override
     public @NonNull Writer getWriter() {
         if (writer == null) {
-            final var rawWriter = buildRawWriter();
             setWriter(rawWriter);
         }
         return writer;
-    }
-
-    @NonNull
-    RawWriter buildRawWriter() {
-        return asyncTimeout.writer(new GatheringByteChannelRawWriter(socketChannel));
     }
 
     void setWriter(final @NonNull RawWriter rawWriter) {
@@ -218,6 +199,16 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
+    }
+
+    @Override
+    public void setReadTimeout(final @NonNull Duration readTimeout) {
+        rawReader.setTimeout(readTimeout);
+    }
+
+    @Override
+    public void setWriteTimeout(final @NonNull Duration writeTimeout) {
+        Objects.requireNonNull(writeTimeout);
     }
 
     @Override

@@ -29,7 +29,8 @@ import java.time.Duration;
  * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel}.
  * <p>
  * Note: {@link NetworkEndpoint} honors timeout. When a read or write operation times out, the socket is asynchronously
- * closed by a watchdog thread.
+ * closed by a watchdog thread. By default, no read nor write timeout is set, use {@link #setReadTimeout(Duration)} and
+ * {@link #setWriteTimeout(Duration)} methods to set them.
  *
  * @see Endpoint
  */
@@ -92,6 +93,18 @@ public sealed interface NetworkEndpoint extends Endpoint
     <T> @Nullable T getOption(final @NonNull SocketOption<T> name);
 
     /**
+     * Sets the read timeout that will apply on each low-level read operation of the network endpoint. Default is zero.
+     * A timeout of zero is interpreted as an infinite timeout.
+     */
+    void setReadTimeout(final @NonNull Duration readTimeout);
+
+    /**
+     * Sets the write timeout that will apply on each low-level write operation of the network endpoint. Default is
+     * zero. A timeout of zero is interpreted as an infinite timeout.
+     */
+    void setWriteTimeout(final @NonNull Duration writeTimeout);
+
+    /**
      * The builder used to create a client-side {@link NetworkEndpoint}.
      */
     sealed interface Builder extends Cloneable permits NetworkEndpointBuilder {
@@ -101,20 +114,6 @@ public sealed interface NetworkEndpoint extends Endpoint
          */
         @NonNull
         Builder connectTimeout(final @NonNull Duration connectTimeout);
-
-        /**
-         * Sets the default read timeout that will apply on each low-level read operation of the network endpoint.
-         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
-         */
-        @NonNull
-        Builder readTimeout(final @NonNull Duration readTimeout);
-
-        /**
-         * Sets the default write timeout that will apply on each low-level write operation of the network endpoint.
-         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
-         */
-        @NonNull
-        Builder writeTimeout(final @NonNull Duration writeTimeout);
 
         /**
          * Sets the value of a socket option to set on the network endpoint.

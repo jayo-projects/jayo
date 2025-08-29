@@ -30,19 +30,13 @@ public final class ServerSocketNetworkServer implements NetworkServer {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.ServerSocketNetworkServer");
 
     private final @NonNull ServerSocket serverSocket;
-    private final long defaultReadTimeoutNanos;
-    private final long defaultWriteTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
     ServerSocketNetworkServer(final @NonNull SocketAddress localAddress,
-                              final long defaultReadTimeoutNanos,
-                              final long defaultWriteTimeoutNanos,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                               final int maxPendingConnections) {
         assert localAddress != null;
-        assert defaultReadTimeoutNanos >= 0L;
-        assert defaultWriteTimeoutNanos >= 0L;
         assert socketOptions != null;
         assert serverSocketOptions != null;
         assert maxPendingConnections >= 0;
@@ -68,8 +62,6 @@ public final class ServerSocketNetworkServer implements NetworkServer {
             throw JayoException.buildJayoException(e);
         }
 
-        this.defaultReadTimeoutNanos = defaultReadTimeoutNanos;
-        this.defaultWriteTimeoutNanos = defaultWriteTimeoutNanos;
         this.socketOptions = socketOptions;
     }
 
@@ -81,13 +73,11 @@ public final class ServerSocketNetworkServer implements NetworkServer {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "accepted server SocketNetworkEndpoint connected to {0}{1}default read " +
-                                "timeout = {2} ns, default write timeout = {3} ns{4}provided socket options = {5}",
-                        socket.getRemoteSocketAddress(), System.lineSeparator(), defaultReadTimeoutNanos,
-                        defaultWriteTimeoutNanos, System.lineSeparator(), socketOptions);
+                LOGGER.log(DEBUG, "accepted server SocketNetworkEndpoint connected to {0}, socket options = {1}",
+                        socket.getRemoteSocketAddress(), socketOptions);
             }
 
-            return new SocketNetworkEndpoint(socket, defaultReadTimeoutNanos, defaultWriteTimeoutNanos);
+            return new SocketNetworkEndpoint(socket);
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG, "ServerSocketNetworkServer failed to accept a client connection", e);

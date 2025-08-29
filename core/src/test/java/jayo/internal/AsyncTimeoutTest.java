@@ -276,8 +276,7 @@ public final class AsyncTimeoutTest {
 
     private AsyncTimeout recordingAsyncTimeout() {
         AtomicReference<AsyncTimeout> asyncTimeoutRef = new AtomicReference<>();
-        final var asyncTimeout = AsyncTimeout.
-                create(0L, 0L, () -> timedOut.add(asyncTimeoutRef.get()));
+        final var asyncTimeout = AsyncTimeout.create(() -> timedOut.add(asyncTimeoutRef.get()));
         asyncTimeoutRef.set(asyncTimeout);
         return asyncTimeout;
     }
