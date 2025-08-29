@@ -262,7 +262,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         val reader = RealBuffer()
         reader.write("abcdef")
 
-        assertEquals(6, writer.transferFrom(reader))
+        assertEquals(6, writer.writeAllFrom(reader))
         assertEquals(0, reader.bytesAvailable())
         writer.flush()
         assertEquals("abcdef", data.readString())
@@ -271,36 +271,36 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     @Test
     fun writeAllExhausted() {
         val reader = RealBuffer()
-        assertEquals(0, writer.transferFrom(reader))
+        assertEquals(0, writer.writeAllFrom(reader))
         assertEquals(0, reader.bytesAvailable())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
-                writer.transferFrom(reader)
+                writer.writeAllFrom(reader)
             }
         }
     }
 
     @Test
-    fun writeReader() {
+    fun writeFromReader() {
         val reader = RealBuffer()
         reader.write("abcdef")
 
         // Force resolution of the reader method overload.
-        writer.write(reader as RawReader, 4)
+        writer.writeFrom(reader as RawReader, 4)
         writer.flush()
         assertEquals("abcd", data.readString())
         assertEquals("ef", reader.readString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
-                writer.write(reader as RawReader, 4)
+                writer.writeFrom(reader as RawReader, 4)
             }
         }
     }
 
     @Test
-    fun writeReaderReadsFully() {
+    fun writeFromReaderReadsFully() {
         val reader = object : RawReader by RealBuffer() {
             override fun readAtMostTo(writer: Buffer, byteCount: Long): Long {
                 writer.write("abcd")
@@ -308,23 +308,23 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
             }
         }
 
-        writer.write(reader, 8)
+        writer.writeFrom(reader, 8)
         writer.flush()
         assertEquals("abcdabcd", data.readString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
-                writer.write(reader, 8)
+                writer.writeFrom(reader, 8)
             }
         }
     }
 
     @Test
-    fun writeReaderPropagatesEof() {
+    fun writeFromReaderPropagatesEof() {
         val reader: RawReader = RealBuffer().also { it.write("abcd") }
 
         assertFailsWith<JayoEOFException> {
-            writer.write(reader, 8)
+            writer.writeFrom(reader, 8)
         }
 
         // Ensure that whatever was available was correctly written.
@@ -333,12 +333,12 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     }
 
     @Test
-    fun writeBufferThrowsIAE() {
+    fun writeFromBufferThrowsIAE() {
         val reader = RealBuffer()
         reader.write("abcd")
 
         assertFailsWith<IndexOutOfBoundsException> {
-            writer.write(reader, 8)
+            writer.writeFrom(reader, 8)
         }
 
         writer.flush()
@@ -347,31 +347,31 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
-                writer.write(reader, 8)
+                writer.writeFrom(reader, 8)
             }
         }
     }
 
     @Test
-    fun writeReaderWithNegativeBytesCount() {
+    fun writeFromReaderWithNegativeBytesCount() {
         val reader: RawReader = RealBuffer().also { it.writeByte(0) }
 
         assertFailsWith<IllegalArgumentException> {
-            writer.write(reader, -1L)
+            writer.writeFrom(reader, -1L)
         }
     }
 
     @Test
-    fun writeBufferWithNegativeBytesCount() {
+    fun writeFromBufferWithNegativeBytesCount() {
         val reader = RealBuffer().also { it.writeByte(0) }
 
         assertFailsWith<IndexOutOfBoundsException> {
-            writer.write(reader, -1L)
+            writer.writeFrom(reader, -1L)
         }
     }
 
     @Test
-    fun writeReaderWithZeroIsNoOp() {
+    fun writeFromReaderWithZeroIsNoOp() {
         // This test ensures that a zero byte count never calls through to read the reader. It may be
         // tied to something like a socket which will potentially block trying to read a segment when
         // ultimately we don't want any data.
@@ -380,7 +380,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
                 throw AssertionError()
             }
         }
-        writer.write(reader, 0)
+        writer.writeFrom(reader, 0)
         assertEquals(0, data.bytesAvailable())
     }
 
@@ -621,12 +621,12 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     }
 
     @Test
-    fun writeNioBuffer() {
+    fun writeAllFromNioBuffer() {
         val expected = "abcdefg"
         val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(1024)
         nioByteBuffer.put("abcdefg".toByteArray(Charsets.UTF_8))
         nioByteBuffer.flip()
-        val byteCount: Int = writer.transferFrom(nioByteBuffer)
+        val byteCount: Int = writer.writeAllFrom(nioByteBuffer)
         assertEquals(expected.length, byteCount)
         assertEquals(expected.length, nioByteBuffer.position())
         assertEquals(expected.length, nioByteBuffer.limit())
@@ -635,12 +635,12 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     }
 
     @Test
-    fun writeLargeNioBufferWritesAllData() {
+    fun writeAllFromLargeNioBufferWritesAllData() {
         val expected: String = "a".repeat(Segment.SIZE * 3)
         val nioByteBuffer: ByteBuffer = ByteBuffer.allocate(Segment.SIZE * 4)
         nioByteBuffer.put("a".repeat(Segment.SIZE * 3).toByteArray(Charsets.UTF_8))
         nioByteBuffer.flip()
-        val byteCount: Int = writer.transferFrom(nioByteBuffer)
+        val byteCount: Int = writer.writeAllFrom(nioByteBuffer)
         assertEquals(expected.length, byteCount)
         assertEquals(expected.length, nioByteBuffer.position())
         assertEquals(expected.length, nioByteBuffer.limit())
@@ -649,13 +649,13 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     }
 
     @Test
-    fun writeNioBufferToClosedWriter() {
+    fun writeAllFromNioBufferToClosedWriter() {
         if (writer is Buffer) {
             return
         }
         writer.close()
         assertFailsWith<JayoClosedResourceException> {
-            writer.transferFrom(ByteBuffer.allocate(10))
+            writer.writeAllFrom(ByteBuffer.allocate(10))
         }
     }
 

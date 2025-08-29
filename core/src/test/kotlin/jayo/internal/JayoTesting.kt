@@ -47,7 +47,7 @@ fun bufferWithSegments(vararg segments: String): Buffer {
         buffer.write('_'.repeat(offsetInSegment))
         buffer.write(s)
         buffer.skip(offsetInSegment.toLong())
-        result.write(buffer.clone(), buffer.bytesAvailable())
+        result.writeFrom(buffer.clone(), buffer.bytesAvailable())
     }
     return result
 }

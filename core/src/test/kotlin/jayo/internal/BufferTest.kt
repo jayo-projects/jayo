@@ -396,7 +396,7 @@ class BufferTest {
         for (s in contents) {
             val reader = RealBuffer()
             reader.write(s)
-            buffer.transferFrom(reader)
+            buffer.writeAllFrom(reader)
             expected.append(s)
         }
         val segmentSizes = segmentSizes(buffer)
@@ -414,7 +414,7 @@ class BufferTest {
 
         val reader = RealBuffer()
         reader.write('a'.repeat(Segment.SIZE * 2))
-        writer.write(reader, writeSize.toLong())
+        writer.writeFrom(reader, writeSize.toLong())
 
         assertEquals(listOf(Segment.SIZE - 10, writeSize), segmentSizes(writer))
         assertEquals(listOf(Segment.SIZE - writeSize, Segment.SIZE), segmentSizes(reader))
@@ -430,7 +430,7 @@ class BufferTest {
 
         val reader = RealBuffer()
         reader.write('a'.repeat(Segment.SIZE * 2))
-        writer.write(reader, writeSize.toLong())
+        writer.writeFrom(reader, writeSize.toLong())
 
         assertEquals(listOf(Segment.SIZE - 10, writeSize), segmentSizes(writer))
         assertEquals(listOf(Segment.SIZE - writeSize, Segment.SIZE), segmentSizes(reader))
@@ -443,7 +443,7 @@ class BufferTest {
 
         val reader = RealBuffer()
         reader.write('a'.repeat(Segment.SIZE * 2))
-        writer.write(reader, 20)
+        writer.writeFrom(reader, 20)
 
         assertEquals(listOf(30), segmentSizes(writer))
         assertEquals(listOf(Segment.SIZE - 20, Segment.SIZE), segmentSizes(reader))
@@ -459,7 +459,7 @@ class BufferTest {
 
         val reader = RealBuffer()
         reader.write('a'.repeat(Segment.SIZE * 2))
-        writer.write(reader, 20)
+        writer.writeFrom(reader, 20)
 
         assertEquals(listOf(30), segmentSizes(writer))
         assertEquals(listOf(Segment.SIZE - 20, Segment.SIZE), segmentSizes(reader))
@@ -472,7 +472,7 @@ class BufferTest {
         val writer = RealBuffer()
         val reader: Reader = RealBuffer()
 
-        assertFailsWith<IllegalArgumentException> { writer.write(reader, -1L) }
+        assertFailsWith<IllegalArgumentException> { writer.writeFrom(reader, -1L) }
     }
 
     @Test
@@ -555,7 +555,7 @@ class BufferTest {
         val writer = RealBuffer()
         val reader = RealBuffer()
         reader.write("abcd")
-        writer.write(reader, 2)
+        writer.writeFrom(reader, 2)
         assertEquals("ab", writer.readString(2))
     }
 
@@ -594,7 +594,7 @@ class BufferTest {
 
         val mockWriter = MockWriter()
 
-        assertEquals((Segment.SIZE * 3).toLong(), reader.transferTo(mockWriter))
+        assertEquals((Segment.SIZE * 3).toLong(), reader.readAllTo(mockWriter))
         assertEquals(0, reader.bytesAvailable())
         mockWriter.assertLog("write($write1, ${write1.bytesAvailable()})")
     }
@@ -604,7 +604,7 @@ class BufferTest {
         val reader = RealBuffer().also { it.write('a'.repeat(Segment.SIZE * 3)) }
         val writer = RealBuffer()
 
-        assertEquals((Segment.SIZE * 3).toLong(), writer.transferFrom(reader))
+        assertEquals((Segment.SIZE * 3).toLong(), writer.writeAllFrom(reader))
         assertEquals(0, reader.bytesAvailable())
         assertEquals('a'.repeat(Segment.SIZE * 3), writer.readString())
     }
@@ -785,19 +785,19 @@ class BufferTest {
         val source: Reader = buffer
         val destination: Writer = buffer
 
-        assertFailsWith<IllegalArgumentException> { source.transferTo(destination) }
-        assertFailsWith<IllegalArgumentException> { destination.transferFrom(source) }
+        assertFailsWith<IllegalArgumentException> { source.readAllTo(destination) }
+        assertFailsWith<IllegalArgumentException> { destination.writeAllFrom(source) }
         assertFailsWith<IllegalArgumentException> { source.readAtMostTo(buffer, 1) }
         assertFailsWith<IllegalArgumentException> { source.readTo(destination, 1) }
-        assertFailsWith<IllegalArgumentException> { destination.write(buffer, 1) }
-        assertFailsWith<IllegalArgumentException> { destination.write(source, 1) }
+        assertFailsWith<IllegalArgumentException> { destination.writeFrom(buffer, 1) }
+        assertFailsWith<IllegalArgumentException> { destination.writeFrom(source, 1) }
     }
 
     @Test
     fun transferClone() {
         val buffer = RealBuffer().also { it.writeByte(42) }
         val copy = buffer.clone()
-        copy.transferTo(buffer)
+        copy.readAllTo(buffer)
         assertArrayEquals(byteArrayOf(42, 42), buffer.readByteArray())
     }
 
@@ -879,7 +879,7 @@ class BufferTest {
     fun readFromStreamWithCount() {
         val input: InputStream = ByteArrayInputStream("hello, world!".toByteArray(Charsets.UTF_8))
         val buffer = RealBuffer()
-        buffer.write(input, 10)
+        buffer.writeFrom(input, 10)
         val out = buffer.readString()
         assertEquals("hello, wor", out)
     }
@@ -889,14 +889,14 @@ class BufferTest {
         val input = ByteArrayInputStream("hello, world!".toByteArray(Charsets.UTF_8))
         val buffer = RealBuffer()
         assertFailsWith<JayoEOFException> {
-            buffer.write(input, input.available() + 1L)
+            buffer.writeFrom(input, input.available() + 1L)
         }
     }
 
     @Test
     fun readFromStreamWithNegativeBytesCount() {
         assertFailsWith<IllegalArgumentException> {
-            RealBuffer().write(ByteArrayInputStream(ByteArray(1)), -1)
+            RealBuffer().writeFrom(ByteArrayInputStream(ByteArray(1)), -1)
         }
     }
 

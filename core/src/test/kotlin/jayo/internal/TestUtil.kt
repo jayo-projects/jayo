@@ -189,7 +189,7 @@ object TestUtil {
             buffer.write(data, pos, byteCount)
             buffer.skip(offset.toLong())
 
-            result.write(buffer, byteCount.toLong())
+            result.writeFrom(buffer, byteCount.toLong())
             pos += byteCount
         }
 

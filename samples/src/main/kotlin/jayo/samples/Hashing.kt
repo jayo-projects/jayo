@@ -85,7 +85,7 @@ class KotlinHashing {
     @Throws(IOException::class)
     fun readBuffer(path: Path): Buffer {
         path.reader().use { rawReader ->
-            return Buffer().apply { transferFrom(rawReader) }
+            return Buffer().apply { writeAllFrom(rawReader) }
         }
     }
 }

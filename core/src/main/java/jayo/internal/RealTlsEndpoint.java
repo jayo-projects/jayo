@@ -165,7 +165,7 @@ public final class RealTlsEndpoint {
                         return bytesToReturn;
                     } else {
                         final var toTransfer = Math.min(bytesToReturn, byteCount);
-                        writer.write(decryptedBuffer, toTransfer);
+                        writer.writeFrom(decryptedBuffer, toTransfer);
                         return toTransfer;
                     }
                 }

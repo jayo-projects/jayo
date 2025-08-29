@@ -85,7 +85,7 @@ public final class SocketTimeoutTest {
              var writer = Jayo.buffer(Jayo.writer(socket))) {
             Cancellable.run(Duration.ofMillis(50), _scope -> {
                 byte[] data = new byte[ONE_MB];
-                writer.write(new RealBuffer().write(data), data.length);
+                writer.writeFrom(new RealBuffer().write(data), data.length);
                 writer.flush();
             });
         }
@@ -98,7 +98,7 @@ public final class SocketTimeoutTest {
             assertThatThrownBy(() -> Cancellable.run(Duration.ofMillis(1), _scope -> {
                         try (var writer = Jayo.buffer(Jayo.writer(socket))) {
                             byte[] data = new byte[ONE_MB];
-                            writer.write(new RealBuffer().write(data), data.length);
+                            writer.writeFrom(new RealBuffer().write(data), data.length);
                             writer.flush();
                         }
                     })

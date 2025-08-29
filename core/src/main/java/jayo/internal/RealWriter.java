@@ -50,13 +50,13 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public void write(final @NonNull Buffer source, final long byteCount) {
+    public void writeFrom(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
         if (closed) {
             throw new JayoClosedResourceException();
         }
 
-        buffer.write(source, byteCount);
+        buffer.writeFrom(source, byteCount);
         emitCompleteSegments();
     }
 
@@ -154,19 +154,19 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public int transferFrom(final @NonNull ByteBuffer source) {
+    public int writeAllFrom(final @NonNull ByteBuffer source) {
         Objects.requireNonNull(source);
         if (closed) {
             throw new JayoClosedResourceException();
         }
 
-        final var totalBytesRead = buffer.transferFrom(source);
+        final var totalBytesRead = buffer.writeAllFrom(source);
         emitCompleteSegments();
         return totalBytesRead;
     }
 
     @Override
-    public long transferFrom(final @NonNull RawReader source) {
+    public long writeAllFrom(final @NonNull RawReader source) {
         Objects.requireNonNull(source);
 
         var totalBytesRead = 0L;
@@ -186,7 +186,7 @@ public final class RealWriter implements Writer {
     }
 
     @Override
-    public @NonNull Writer write(final @NonNull RawReader source, final long byteCount) {
+    public @NonNull Writer writeFrom(final @NonNull RawReader source, final long byteCount) {
         Objects.requireNonNull(source);
 
         if (byteCount < 0L) {
@@ -275,7 +275,7 @@ public final class RealWriter implements Writer {
         }
         final var byteCount = buffer.completeSegmentByteCount();
         if (byteCount > 0L) {
-            writer.write(buffer, byteCount);
+            writer.writeFrom(buffer, byteCount);
         }
         return this;
     }
@@ -286,7 +286,7 @@ public final class RealWriter implements Writer {
             throw new JayoClosedResourceException();
         }
         if (buffer.byteSize > 0L) {
-            writer.write(buffer, buffer.byteSize);
+            writer.writeFrom(buffer, buffer.byteSize);
         }
         return this;
     }
@@ -308,7 +308,7 @@ public final class RealWriter implements Writer {
         Throwable thrown = null;
         try {
             if (buffer.byteSize > 0L) {
-                writer.write(buffer, buffer.byteSize);
+                writer.writeFrom(buffer, buffer.byteSize);
             }
         } catch (Throwable e) {
             thrown = e;
@@ -405,7 +405,7 @@ public final class RealWriter implements Writer {
                     throw new ClosedChannelException();
                 }
                 try {
-                    return transferFrom(reader);
+                    return writeAllFrom(reader);
                 } catch (JayoException e) {
                     throw e.getCause();
                 }

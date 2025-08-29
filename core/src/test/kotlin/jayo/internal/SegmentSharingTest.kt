@@ -142,7 +142,7 @@ class SegmentSharingTest {
         assertEquals(ys, bufferA.readString(ys.length.toLong()))
         val bufferB = RealBuffer().write(vs).write(ws)
         val bufferC = bufferA.clone()
-        bufferA.write(bufferB, vs.length.toLong())
+        bufferA.writeFrom(bufferB, vs.length.toLong())
         bufferC.write(xs)
 
         assertEquals(us + vs, bufferA.readString())
@@ -155,7 +155,7 @@ class SegmentSharingTest {
         val bufferA = RealBuffer().write("xxxx")
         val snapshot = bufferA.snapshot() // Share the segment.
         val bufferB = RealBuffer()
-        bufferB.write(bufferA, 2) // Split the shared segment in two.
+        bufferB.writeFrom(bufferA, 2) // Split the shared segment in two.
         bufferB.write("yy") // Append to the first half of the shared segment.
         assertEquals("xxxx", snapshot.decodeToString())
     }

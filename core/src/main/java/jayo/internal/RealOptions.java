@@ -211,7 +211,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
                 rangeStart = rangeEnd;
             }
 
-            node.transferFrom(childNodes);
+            node.writeAllFrom(childNodes);
         } else {
             // If all the bytes are the same, encode a SCAN node.
             var scanByteCount = 0;
@@ -252,7 +252,7 @@ public final class RealOptions extends AbstractList<ByteString> implements Optio
                         endIndex,
                         indexes
                 );
-                node.transferFrom(childNodes);
+                node.writeAllFrom(childNodes);
             }
         }
     }

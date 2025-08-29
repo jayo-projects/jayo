@@ -83,7 +83,7 @@ public final class GzipRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(final @NonNull Buffer source, final long byteCount) {
+    public void writeFrom(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
         if (byteCount < 0) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -94,7 +94,7 @@ public final class GzipRawWriter implements RawWriter {
         }
 
         updateCrc((RealBuffer) source, byteCount);
-        deflaterWriter.write(source, byteCount);
+        deflaterWriter.writeFrom(source, byteCount);
     }
 
     /**

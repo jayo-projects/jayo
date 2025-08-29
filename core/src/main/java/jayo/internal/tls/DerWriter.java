@@ -116,7 +116,7 @@ final class DerWriter {
         }
 
         // Write the payload.
-        _writer.transferFrom(content);
+        _writer.writeAllFrom(content);
     }
 
     /**

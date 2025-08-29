@@ -45,7 +45,7 @@ public final class FileChannelRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(@NonNull Buffer reader, long byteCount) {
+    public void writeFrom(@NonNull Buffer reader, long byteCount) {
         if (!channel.isOpen()) {
             throw new JayoClosedResourceException();
         }

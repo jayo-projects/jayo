@@ -62,8 +62,10 @@ import java.nio.charset.Charset;
  * In the latter case, if a collection is consumable (i.e., once data was read from it will no longer be available for
  * reading again), the write method will consume as many bytes as it was requested to write.
  * <p>
- * Methods fully consuming its argument are named {@code transferFrom}, like {@link #transferFrom(RawReader)} and
- * {@link #transferFrom(ByteBuffer)}.
+ * Methods consuming data from a producer are named {@code write*From}, like {@link #writeFrom(RawReader, long)}.
+ * <p>
+ * Methods fully consuming a producer are named {@code writeAllFrom}, like {@link #writeAllFrom(RawReader)} or
+ * {@link #writeAllFrom(ByteBuffer)}.
  * <p>
  * Kotlin notice: It is recommended to follow the same naming convention for Writer extensions.
  * <p>
@@ -193,7 +195,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @throws JayoClosedResourceException if this writer or {@code source} is closed.
      */
     @NonNull
-    Writer write(final @NonNull RawReader source, final long byteCount);
+    Writer writeFrom(final @NonNull RawReader source, final long byteCount);
 
     /**
      * Writes a byte to this writer.
@@ -347,7 +349,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * {@linkplain ByteBuffer#hasRemaining() remaining} bytes.
      * @throws JayoClosedResourceException if this writer is closed.
      */
-    int transferFrom(final @NonNull ByteBuffer source);
+    int writeAllFrom(final @NonNull ByteBuffer source);
 
     /**
      * Removes all bytes from {@code source} raw reader and writes them to this writer.
@@ -356,7 +358,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @return the number of bytes read, which will be {@code 0L} if {@code source} is exhausted.
      * @throws JayoClosedResourceException if this writer or {@code source} is closed.
      */
-    long transferFrom(final @NonNull RawReader source);
+    long writeAllFrom(final @NonNull RawReader source);
 
     /**
      * Ensures to write all the buffered data written until this call to the upstream. Then the upstream is explicitly

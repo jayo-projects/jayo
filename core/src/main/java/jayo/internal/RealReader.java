@@ -81,7 +81,7 @@ public final class RealReader implements Reader {
 
     @Override
     public @NonNull ByteString readByteString() {
-        buffer.transferFrom(reader);
+        buffer.writeAllFrom(reader);
         return buffer.readByteString();
     }
 
@@ -96,7 +96,7 @@ public final class RealReader implements Reader {
 
     @Override
     public @NonNull Utf8 readUtf8() {
-        buffer.transferFrom(reader);
+        buffer.writeAllFrom(reader);
         return buffer.readUtf8();
     }
 
@@ -111,7 +111,7 @@ public final class RealReader implements Reader {
 
     @Override
     public @NonNull Ascii readAscii() {
-        buffer.transferFrom(reader);
+        buffer.writeAllFrom(reader);
         return buffer.readAscii();
     }
 
@@ -156,7 +156,7 @@ public final class RealReader implements Reader {
 
     @Override
     public byte @NonNull [] readByteArray() {
-        buffer.transferFrom(reader);
+        buffer.writeAllFrom(reader);
         return buffer.readByteArray();
     }
 
@@ -236,7 +236,7 @@ public final class RealReader implements Reader {
     }
 
     @Override
-    public long transferTo(final @NonNull RawWriter destination) {
+    public long readAllTo(final @NonNull RawWriter destination) {
         Objects.requireNonNull(destination);
 
         var totalBytesWritten = 0L;
@@ -244,19 +244,19 @@ public final class RealReader implements Reader {
             final var emitByteCount = buffer.completeSegmentByteCount();
             if (emitByteCount > 0L) {
                 totalBytesWritten += emitByteCount;
-                destination.write(buffer, emitByteCount);
+                destination.writeFrom(buffer, emitByteCount);
             }
         }
         if (buffer.byteSize > 0L) {
             totalBytesWritten += buffer.byteSize;
-            destination.write(buffer, buffer.byteSize);
+            destination.writeFrom(buffer, buffer.byteSize);
         }
         return totalBytesWritten;
     }
 
     @Override
     public @NonNull String readString() {
-        buffer.transferFrom(reader);
+        buffer.writeAllFrom(reader);
         return buffer.readString();
     }
 
@@ -273,7 +273,7 @@ public final class RealReader implements Reader {
     public @NonNull String readString(final @NonNull Charset charset) {
         Objects.requireNonNull(charset);
 
-        buffer.transferFrom(reader);
+        buffer.writeAllFrom(reader);
         return buffer.readString(charset);
     }
 
@@ -832,7 +832,7 @@ public final class RealReader implements Reader {
                     throw new IOException("Underlying reader is closed.");
                 }
                 try {
-                    buffer.transferFrom(reader);
+                    buffer.writeAllFrom(reader);
                     final var bufferSize = buffer.byteSize;
                     buffer.readTo(out, bufferSize);
                     return bufferSize;

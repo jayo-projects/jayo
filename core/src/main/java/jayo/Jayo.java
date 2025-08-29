@@ -369,7 +369,7 @@ public final class Jayo {
 
     private static final class DiscardingWriter implements RawWriter {
         @Override
-        public void write(final @NonNull Buffer source, final long byteCount) {
+        public void writeFrom(final @NonNull Buffer source, final long byteCount) {
             Objects.requireNonNull(source);
 
             try {

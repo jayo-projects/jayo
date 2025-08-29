@@ -350,7 +350,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         }
 
         @Override
-        public void write(final @NonNull Buffer source, final long byteCount) {
+        public void writeFrom(final @NonNull Buffer source, final long byteCount) {
             Objects.requireNonNull(source);
             checkOffsetAndCount(source.bytesAvailable(), 0, byteCount);
 
@@ -369,7 +369,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
             // no need for cancellation
             if (timeoutNanos == 0L) {
-                delegate.write(source, byteCount);
+                delegate.writeFrom(source, byteCount);
                 return;
             }
 
@@ -407,7 +407,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 final var toWrite = _toWrite;
                 // Emit one write operation. Only this section is subject to the timeout.
                 withTimeout(cancelToken, () -> {
-                    delegate.write(src, toWrite);
+                    delegate.writeFrom(src, toWrite);
                     return null;
                 });
                 remaining -= _toWrite;

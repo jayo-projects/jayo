@@ -59,20 +59,18 @@ import java.nio.charset.Charset;
  * required to represent a value of a requested type). If a reader contains fewer bytes than requested, these methods
  * will throw an exception.
  * <p>
- * Methods reading up to requested number of bytes are named as {@code readAtMost} in contrast to methods reading exact
- * number of bytes, which don't have <b>AtMost</b> suffix in their names.
- * If a reader contains fewer bytes than requested, these methods will not treat it as en error and will return
- * gracefully.
+ * Methods reading up to requested number of bytes are named as {@code readAtMostTo} in contrast to methods reading
+ * exact number of bytes, which don't have <b>AtMost</b> in their names. If a reader contains fewer bytes than
+ * requested, these methods will not treat it as en error and will return gracefully.
  * <p>
  * Methods returning a value as a result are named {@code read<Type>}, like {@link #readInt()} or {@link #readByte()}.
  * These methods don't consume the reader's content in case of an error.
  * <p>
- * Methods reading data into a consumer supplied as one of its arguments are named {@code read*To}, like
- * {@link #readTo(RawWriter, long)} or {@link #readAtMostTo(ByteBuffer)}. These methods consume a reader even when an
- * error occurs.
+ * Methods reading data into a consumer are named {@code read*To}, like {@link #readTo(RawWriter, long)} or
+ * {@link #readAtMostTo(ByteBuffer)}. These methods consume the reader's content even when an error occurs.
  * <p>
- * Methods moving all data from a reader to some other writer are named {@code transferTo}, like
- * {@link #transferTo(RawWriter)}.
+ * Methods moving all data from a reader to a consumer are named {@code readAllTo}, like
+ * {@link #readAllTo(RawWriter)}.
  * <p>
  * Kotlin notice: it is recommended to follow the same naming convention for Reader extensions.
  * <p>
@@ -761,7 +759,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @return the total number of bytes written to {@code destination} which will be {@code 0L} if this reader is exhausted.
      * @throws JayoClosedResourceException if this reader or {@code destination} is closed.
      */
-    long transferTo(final @NonNull RawWriter destination);
+    long readAllTo(final @NonNull RawWriter destination);
 
     /**
      * Returns the index of {@code b} first occurrence in this reader, or {@code -1} if it doesn't contain {@code b}.

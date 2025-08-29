@@ -391,21 +391,21 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     @Test
-    fun transferTo() {
+    fun readAllTo() {
         internalBuffer(reader).write("abc")
         writer.write("def")
         writer.emit()
 
         val writer = RealBuffer()
-        assertEquals(6, reader.transferTo(writer))
+        assertEquals(6, reader.readAllTo(writer))
         assertEquals("abcdef", writer.readString())
         assertTrue(reader.exhausted())
     }
 
     @Test
-    fun transferToExhausted() {
+    fun readAllToExhausted() {
         val mockWriter = MockWriter()
-        assertEquals(0, reader.transferTo(mockWriter))
+        assertEquals(0, reader.readAllTo(mockWriter))
         assertTrue(reader.exhausted())
         mockWriter.assertLog()
     }
@@ -549,7 +549,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         data.write("e".repeat(Segment.SIZE))
 
         val expected = data.clone().readByteArray()
-        writer.write(data, data.bytesAvailable())
+        writer.writeFrom(data, data.bytesAvailable())
         writer.emit()
 
         val writer = ByteArray(Segment.SIZE + 5)
@@ -1333,7 +1333,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         // Peek a little data and skip the rest of the upstream reader
         val peek = reader.peek()
         assertEquals("ddd", peek.readString(3))
-        reader.transferTo(discardingWriter())
+        reader.readAllTo(discardingWriter())
 
         // Skip the rest of the buffered data
         peek.skip(internalBuffer(peek).bytesAvailable())
@@ -1400,7 +1400,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.write("Wot do u call it?\r\nWindows")
         writer.flush()
         assertEquals("Wot do u call it?", reader.readLine())
-        reader.transferTo(discardingWriter())
+        reader.readAllTo(discardingWriter())
 
         writer.write("reo\rde\red\n")
         writer.flush()
@@ -1428,7 +1428,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.write("Wot do u call it?\r\nWindows")
         writer.flush()
         assertEquals("Wot do u call it?", reader.readLineStrict())
-        reader.transferTo(discardingWriter())
+        reader.readAllTo(discardingWriter())
 
         writer.write("reo\rde\red\n")
         writer.flush()

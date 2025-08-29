@@ -43,7 +43,7 @@ class GzipWriterTest {
         data.write(original)
         val sink = Buffer()
         val gzipSink = GzipRawWriter(sink)
-        gzipSink.write(data, data.bytesAvailable())
+        gzipSink.writeFrom(data, data.bytesAvailable())
         gzipSink.close()
         val inflated = gunzip(sink)
         assertEquals(original, inflated.readString())
@@ -55,7 +55,7 @@ class GzipWriterTest {
         mockSink.scheduleThrow(0, JayoException("first"))
         mockSink.scheduleThrow(1, JayoException("second"))
         val gzipSink = GzipRawWriter(mockSink)
-        gzipSink.write(Buffer().write("a".repeat(Segment.SIZE)), Segment.SIZE.toLong())
+        gzipSink.writeFrom(Buffer().write("a".repeat(Segment.SIZE)), Segment.SIZE.toLong())
         try {
             gzipSink.close()
             fail()

@@ -129,7 +129,7 @@ public final class RealServerTlsEndpoint implements ServerTlsEndpoint {
 
     private record ServerTlsEndpointRawWriter(@NonNull RealTlsEndpoint impl) implements RawWriter {
         @Override
-        public void write(final @NonNull Buffer source, final long byteCount) {
+        public void writeFrom(final @NonNull Buffer source, final long byteCount) {
             impl.write(source, byteCount);
         }
 

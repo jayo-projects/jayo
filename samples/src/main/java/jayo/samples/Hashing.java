@@ -84,7 +84,7 @@ public final class Hashing {
     public Buffer readBuffer(Path path) {
         try (final var rawReader = Jayo.reader(path)) {
             Buffer buffer = Buffer.create();
-            buffer.transferFrom(rawReader);
+            buffer.writeAllFrom(rawReader);
             return buffer;
         }
     }

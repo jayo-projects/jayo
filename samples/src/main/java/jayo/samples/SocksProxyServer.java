@@ -152,14 +152,14 @@ public final class SocksProxyServer {
     }
 
     /**
-     * Read data from {@code reader} and write it to {@code writer}. This doesn't use {@link Writer#transferFrom(RawReader)}
+     * Read data from {@code reader} and write it to {@code writer}. This doesn't use {@link Writer#writeAllFrom(RawReader)}
      * because that method doesn't flush aggressively, and we need that.
      */
     private void transfer(NetworkEndpoint readerNetworkEndpoint, RawReader reader, RawWriter writer) {
         try {
             Buffer buffer = Buffer.create();
             for (long byteCount; (byteCount = reader.readAtMostTo(buffer, 8192L)) != -1; ) {
-                writer.write(buffer, byteCount);
+                writer.writeFrom(buffer, byteCount);
                 writer.flush();
             }
         } catch (JayoClosedResourceException ignored) {

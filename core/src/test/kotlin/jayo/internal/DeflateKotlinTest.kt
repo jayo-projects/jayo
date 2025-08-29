@@ -65,7 +65,7 @@ class DeflateKotlinTest {
         val deflaterWriter = DeflaterRawWriter((Buffer() as RawWriter).buffered(), deflater)
 
         val ioe = assertThrows(JayoException::class.java) {
-            deflaterWriter.write(data, data.bytesAvailable())
+            deflaterWriter.writeFrom(data, data.bytesAvailable())
         }
 
         assertTrue(ioe.cause!!.cause is NullPointerException)
@@ -84,7 +84,7 @@ class DeflateKotlinTest {
         val deflater = Deflater()
         deflater.setLevel(Deflater.NO_COMPRESSION)
         val deflaterWriter = DeflaterRawWriter(mockWriter.buffered(), deflater)
-        deflaterWriter.write(Buffer().write("a".repeat(Segment.SIZE)), Segment.SIZE.toLong())
+        deflaterWriter.writeFrom(Buffer().write("a".repeat(Segment.SIZE)), Segment.SIZE.toLong())
         try {
             deflaterWriter.close()
             fail()

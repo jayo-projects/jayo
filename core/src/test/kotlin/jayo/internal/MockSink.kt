@@ -49,7 +49,7 @@ class MockWriter : RawWriter {
     if (exception != null) throw exception
   }
 
-  override fun write(reader: Buffer, byteCount: Long) {
+  override fun writeFrom(reader: Buffer, byteCount: Long) {
     log.add("write($reader, $byteCount)")
     reader.skip(byteCount)
     throwIfScheduled()

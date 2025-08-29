@@ -262,21 +262,21 @@ public final class RealBuffer implements Buffer {
     @Override
     public @NonNull Buffer transferFrom(final @NonNull InputStream input) {
         Objects.requireNonNull(input);
-        return write(input, Long.MAX_VALUE, true);
+        return writeFrom(input, Long.MAX_VALUE, true);
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull InputStream input, final long byteCount) {
+    public @NonNull Buffer writeFrom(final @NonNull InputStream input, final long byteCount) {
         Objects.requireNonNull(input);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
-        return write(input, byteCount, false);
+        return writeFrom(input, byteCount, false);
     }
 
-    private @NonNull Buffer write(final @NonNull InputStream in,
-                                  final long byteCount,
-                                  final boolean forever) {
+    private @NonNull Buffer writeFrom(final @NonNull InputStream in,
+                                      final long byteCount,
+                                      final boolean forever) {
         assert in != null;
 
         var remaining = byteCount;
@@ -715,20 +715,20 @@ public final class RealBuffer implements Buffer {
 
         final var currentSize = byteSize;
         if (currentSize < byteCount) {
-            destination.write(this, currentSize); // Exhaust ourselves.
+            destination.writeFrom(this, currentSize); // Exhaust ourselves.
             throw new JayoEOFException("Buffer exhausted before writing " + byteCount + " bytes. Only " + currentSize +
                     " bytes were written.");
         }
-        destination.write(this, byteCount);
+        destination.writeFrom(this, byteCount);
     }
 
     @Override
-    public long transferTo(final @NonNull RawWriter destination) {
+    public long readAllTo(final @NonNull RawWriter destination) {
         Objects.requireNonNull(destination);
 
         final var byteCount = byteSize;
         if (byteCount > 0L) {
-            destination.write(this, byteCount);
+            destination.writeFrom(this, byteCount);
         }
         return byteCount;
     }
@@ -1204,7 +1204,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public int transferFrom(final @NonNull ByteBuffer source) {
+    public int writeAllFrom(final @NonNull ByteBuffer source) {
         Objects.requireNonNull(source);
 
         final var byteBufferSize = source.remaining();
@@ -1221,7 +1221,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public long transferFrom(final @NonNull RawReader source) {
+    public long writeAllFrom(final @NonNull RawReader source) {
         Objects.requireNonNull(source);
 
         var totalBytesRead = 0L;
@@ -1236,7 +1236,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Buffer write(final @NonNull RawReader source, final long byteCount) {
+    public @NonNull Buffer writeFrom(final @NonNull RawReader source, final long byteCount) {
         Objects.requireNonNull(source);
         if (byteCount < 0L) {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
@@ -1419,7 +1419,7 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public void write(final @NonNull Buffer source, final long byteCount) {
+    public void writeFrom(final @NonNull Buffer source, final long byteCount) {
         // Move bytes from the head of the source buffer to the tail of this buffer in the most possible effective way!
         // This method is one of the most crucial parts of the Jayo concept based on Buffer = a queue of segments.
         //
@@ -1550,7 +1550,7 @@ public final class RealBuffer implements Buffer {
         }
 
         final var toWrite = Math.min(byteCount, byteSize);
-        destination.write(this, toWrite);
+        destination.writeFrom(this, toWrite);
         return toWrite;
     }
 
@@ -2317,7 +2317,7 @@ public final class RealBuffer implements Buffer {
 
             @Override
             public int write(final @NonNull ByteBuffer reader) {
-                return RealBuffer.this.transferFrom(reader);
+                return RealBuffer.this.writeAllFrom(reader);
             }
 
             @Override

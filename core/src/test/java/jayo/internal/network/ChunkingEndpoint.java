@@ -37,11 +37,11 @@ public class ChunkingEndpoint implements Endpoint {
         final var rawWriter = wrapped.rawWriter;
         final var newRawWriter = new RawWriter() {
             @Override
-            public void write(final @NonNull Buffer source, final long byteCount) {
+            public void writeFrom(final @NonNull Buffer source, final long byteCount) {
                 var remaining = byteCount;
                 while (remaining > 0L) {
                     final var writeSize = Math.min(chunkSize, remaining);
-                    rawWriter.write(source, writeSize);
+                    rawWriter.writeFrom(source, writeSize);
                     remaining -= writeSize;
                 }
             }

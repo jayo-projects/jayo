@@ -45,7 +45,7 @@ public final class OutputStreamRawWriter implements RawWriter {
     }
 
     @Override
-    public void write(final @NonNull Buffer source, final long byteCount) {
+    public void writeFrom(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
         checkOffsetAndCount(source.bytesAvailable(), 0L, byteCount);
 

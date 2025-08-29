@@ -157,7 +157,7 @@ class Socks5ProxyServer(
     }
 
     /**
-     * Read data from `reader` and write it to `writer`. This doesn't use [Writer.transferFrom] because that method
+     * Read data from `reader` and write it to `writer`. This doesn't use [Writer.writeAllFrom] because that method
      * doesn't flush aggressively, and we need that.
      */
     private fun transfer(readerNetworkEndpoint: NetworkEndpoint, reader: RawReader, writer: RawWriter) {
@@ -165,7 +165,7 @@ class Socks5ProxyServer(
             val buffer = Buffer()
             var byteCount: Long
             while (reader.readAtMostTo(buffer, 8192L).also { byteCount = it } != -1L) {
-                writer.write(buffer, byteCount)
+                writer.writeFrom(buffer, byteCount)
                 writer.flush()
             }
         } catch (_: JayoClosedResourceException) {

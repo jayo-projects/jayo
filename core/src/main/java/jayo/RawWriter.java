@@ -70,7 +70,7 @@ public interface RawWriter extends Closeable, Flushable {
      * @throws JayoClosedResourceException if this writer is closed.
      * @throws JayoException               if an I/O error occurs.
      */
-    void write(final @NonNull Buffer source, final long byteCount);
+    void writeFrom(final @NonNull Buffer source, final long byteCount);
 
     /**
      * Pushes all buffered bytes to their final destination.

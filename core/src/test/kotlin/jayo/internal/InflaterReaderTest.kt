@@ -197,7 +197,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
     /** Use DeflaterOutputStream to deflate reader.  */
     private fun deflate(reader: ByteString) {
         val writer = DeflaterOutputStream(deflatedWriter.asOutputStream()).writer()
-        writer.write(Buffer().write(reader), reader.byteSize().toLong())
+        writer.writeFrom(Buffer().write(reader), reader.byteSize().toLong())
         writer.close()
     }
 

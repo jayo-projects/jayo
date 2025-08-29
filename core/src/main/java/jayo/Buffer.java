@@ -221,7 +221,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      * @throws IllegalArgumentException if {@code byteCount} is negative.
      */
     @NonNull
-    Buffer write(final @NonNull InputStream input, final long byteCount);
+    Buffer writeFrom(final @NonNull InputStream input, final long byteCount);
 
     /**
      * @return the number of bytes in segments that are fully filled and are no longer writable.
@@ -298,7 +298,7 @@ public sealed interface Buffer extends Reader, Writer, Cloneable permits RealBuf
      */
     @Override
     @NonNull
-    Buffer write(final @NonNull RawReader source, final long byteCount);
+    Buffer writeFrom(final @NonNull RawReader source, final long byteCount);
 
     @Override
     @NonNull
