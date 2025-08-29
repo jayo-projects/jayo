@@ -56,14 +56,10 @@ tasks {
     val shadowJmh by registering(ShadowJar::class) {
         dependsOn("jmhJar")
 
-        transform(DontIncludeResourceTransformer().apply {
+        transform<DontIncludeResourceTransformer> {
             resource = "META-INF/BenchmarkList"
-        })
-
-        transform(IncludeResourceTransformer().apply {
-            resource = "META-INF/BenchmarkList"
-            file = file("${project.layout.buildDirectory.get()}/jmh-generated-resources/META-INF/BenchmarkList")
-        })
+            file(file("${project.layout.buildDirectory.get()}/jmh-generated-resources/META-INF/BenchmarkList"))
+        }
     }
 
     val assemble by getting {
