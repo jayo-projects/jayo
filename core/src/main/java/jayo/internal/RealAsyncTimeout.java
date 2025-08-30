@@ -50,7 +50,6 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private static final Condition CONDITION = LOCK.newCondition();
 
     private final @NonNull Runnable onTimeout;
-    private @Nullable RealCancelToken tmpCancelToken = null;
 
     public RealAsyncTimeout(final @NonNull Runnable onTimeout) {
         assert onTimeout != null;
@@ -67,7 +66,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         final var cancelToken = CancellableUtils.getCancelToken();
         // A timeout is already defined, use it
         if (cancelToken != null) {
-            return enter(cancelToken);
+            return enter(cancelToken, false);
         }
 
         // no default timeout, no-op
@@ -78,11 +77,12 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         // use defaultTimeout to create a temporary cancel token
         final var tmpCancelToken = new RealCancelToken(defaultTimeout);
         CancellableUtils.addCancelToken(tmpCancelToken);
-        this.tmpCancelToken = tmpCancelToken;
-        return enter(tmpCancelToken);
+        return enter(tmpCancelToken, true);
     }
 
-    private @Nullable TimeoutNode enter(final @NonNull RealCancelToken cancelToken) {
+    private @Nullable TimeoutNode enter(final @NonNull RealCancelToken cancelToken, final boolean isTemporary) {
+        assert cancelToken != null;
+
         // CancelToken is finished, shielded, or there is no timeout and no deadline: don't bother with the queue.
         if (cancelToken.finished || cancelToken.shielded ||
                 (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
@@ -91,7 +91,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
         LOCK.lock();
         try {
-            return insertIntoQueue(cancelToken.timeoutNanos, cancelToken.deadlineNanoTime);
+            return insertInQueue(cancelToken, isTemporary);
         } finally {
             LOCK.unlock();
         }
@@ -99,19 +99,20 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
     @Override
     public boolean exit(final AsyncTimeout.@Nullable Node node) {
+        if (node == null) {
+            return false;
+        }
+
+        final var _node = (TimeoutNode) node;
         LOCK.lock();
         try {
-            if (node == null) {
-                return false;
-            }
-
-            return !removeFromQueue((TimeoutNode) node);
+            return !removeFromQueue(_node);
         } finally {
             LOCK.unlock();
 
-            if (tmpCancelToken != null) {
-                CancellableUtils.finishCancelToken(tmpCancelToken);
-                tmpCancelToken = null;
+            if (_node.tmpCancelToken != null) {
+                CancellableUtils.finishCancelToken(_node.tmpCancelToken);
+                _node.tmpCancelToken = null;
             }
         }
     }
@@ -135,7 +136,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         final var _cancelToken = (RealCancelToken) cancelToken;
 
         var throwOnTimeout = false;
-        final var node = enter(_cancelToken);
+        final var node = enter(_cancelToken, false);
         try {
             final var result = block.get();
             throwOnTimeout = true;
@@ -187,25 +188,27 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private static final ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
             JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#", false);
 
-    private @NonNull TimeoutNode insertIntoQueue(final long timeoutNanos,
-                                                 final long deadlineNanoTime) {
-        assert timeoutNanos >= 0L || deadlineNanoTime >= 0L;
+    private @NonNull TimeoutNode insertInQueue(final @NonNull RealCancelToken cancelToken, final boolean isTemporary) {
+        assert cancelToken != null;
 
         // Start the watchdog thread and create the head node when the first timeout is scheduled.
         if (HEAD == null) {
             HEAD = new TimeoutNode(0L, () -> {
-            });
+            }, null);
             ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(new Watchdog()).start();
         }
 
         final var now = System.nanoTime();
         final long timeoutAt;
-        if (deadlineNanoTime > 0L) {
-            timeoutAt = deadlineNanoTime;
+        if (cancelToken.deadlineNanoTime > 0L) {
+            timeoutAt = cancelToken.deadlineNanoTime;
         } else {
-            timeoutAt = now + timeoutNanos;
+            timeoutAt = now + cancelToken.timeoutNanos;
         }
-        final var node = new TimeoutNode(timeoutAt, onTimeout);
+        final var node = new TimeoutNode(
+                timeoutAt,
+                onTimeout,
+                isTemporary ? cancelToken : null);
 
         // Insert the node in sorted order.
         final var remainingNanos = remainingNanos(node, now);
@@ -320,17 +323,21 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     public static final class TimeoutNode implements AsyncTimeout.Node {
         private final long timeoutAt;
         private final @NonNull Runnable onTimeout;
+        private @Nullable RealCancelToken tmpCancelToken;
         /**
          * The next node in the linked list.
          */
         private @Nullable TimeoutNode next = null;
 
-        private TimeoutNode(final long timeoutAt, final @NonNull Runnable onTimeout) {
+        private TimeoutNode(final long timeoutAt,
+                            final @NonNull Runnable onTimeout,
+                            final @Nullable RealCancelToken tmpCancelToken) {
             assert timeoutAt >= 0L;
             assert onTimeout != null;
 
             this.timeoutAt = timeoutAt;
             this.onTimeout = onTimeout;
+            this.tmpCancelToken = tmpCancelToken;
         }
 
 
