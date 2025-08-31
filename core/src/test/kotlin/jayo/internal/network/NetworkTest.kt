@@ -7,8 +7,6 @@ package jayo.internal.network
 
 import jayo.*
 import jayo.internal.TestUtil.SEGMENT_SIZE
-import jayo.network.readTimeout
-import jayo.network.writeTimeout
 import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -22,8 +20,6 @@ import java.net.StandardSocketOptions
 import java.time.Duration
 import java.util.stream.Stream
 import kotlin.concurrent.thread
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.nanoseconds
 import kotlin.time.Duration.Companion.seconds
 
 class NetworkTest {
@@ -247,13 +243,13 @@ class NetworkTest {
                 }
                 val client = networkFactory.networkEndpointBuilder()
                     .connectTcp(server.localAddress)
-                client.writeTimeout = 1.nanoseconds
+                client.writeTimeout = Duration.ofNanos(1)
 
                 assertThatThrownBy {
                     client.writer.write(TO_WRITE)
                         .flush()
                 }.isInstanceOf(JayoTimeoutException::class.java)
-                    .hasMessage("timeout")
+                    .hasMessageEndingWith("timeout")
 
                 serverThread.join()
             }
@@ -276,14 +272,14 @@ class NetworkTest {
                 }
                 val client = networkFactory.networkEndpointBuilder()
                     .connectTcp(server.localAddress)
-                client.readTimeout = 100.milliseconds
+                client.readTimeout = Duration.ofMillis(100)
 
                 client.reader.use { clientReader ->
                     assertThat(clientReader.readInt()).isEqualTo(1)
 
                     assertThatThrownBy { clientReader.readInt() }
                         .isInstanceOf(JayoTimeoutException::class.java)
-                        .hasMessage("timeout")
+                        .hasMessageEndingWith("timeout")
                 }
                 serverThread.join()
             }
@@ -302,7 +298,7 @@ class NetworkTest {
                 }
                 val client = networkFactory.networkEndpointBuilder()
                     .connectTcp(server.localAddress)
-                client.readTimeout = 1.nanoseconds
+                client.readTimeout = Duration.ofNanos(1)
 
                 val stringRead = cancelScope(timeout = 10.seconds) {
                     client.reader.readString()
@@ -319,7 +315,7 @@ class NetworkTest {
             .bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
                 val serverThread = thread(start = true) {
                     val accepted = server.accept()
-                    accepted.writeTimeout = 1.nanoseconds
+                    accepted.writeTimeout = Duration.ofNanos(1)
                     accepted.writer.use { writer ->
                         cancelScope(timeout = 10.seconds) {
                             writer.write(TO_WRITE)

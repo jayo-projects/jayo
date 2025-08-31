@@ -202,13 +202,23 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
+    public @NonNull Duration getReadTimeout() {
+        return rawReader.getTimeout();
+    }
+
+    @Override
     public void setReadTimeout(final @NonNull Duration readTimeout) {
         rawReader.setTimeout(readTimeout);
     }
 
     @Override
+    public @NonNull Duration getWriteTimeout() {
+        return rawWriter.getTimeout();
+    }
+
+    @Override
     public void setWriteTimeout(final @NonNull Duration writeTimeout) {
-        Objects.requireNonNull(writeTimeout);
+        rawWriter.setTimeout(writeTimeout);
     }
 
     @Override

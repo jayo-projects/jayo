@@ -86,20 +86,20 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     <T> T withTimeout(final @NonNull CancelToken cancelToken, final @NonNull Supplier<T> block);
 
     /**
-     * @param writer the delegate writer.
-     * @return a new writer that delegates to {@code writer}, using this to implement timeouts. If a timeout occurs, the
-     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
-     */
-    @NonNull
-    RawWriterWithTimeout writer(final @NonNull RawWriter writer);
-
-    /**
      * @param reader the delegate reader.
      * @return a new reader that delegates to {@code reader}, using this to implement timeouts. If a timeout occurs, the
      * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
      */
     @NonNull
     RawReaderWithTimeout reader(final @NonNull RawReader reader);
+
+    /**
+     * @param writer the delegate writer.
+     * @return a new writer that delegates to {@code writer}, using this to implement timeouts. If a timeout occurs, the
+     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
+     */
+    @NonNull
+    RawWriterWithTimeout writer(final @NonNull RawWriter writer);
 
     /**
      * A node in the AsyncTimeout queue.
@@ -111,17 +111,29 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
         long getTimeoutAt();
     }
 
-    sealed interface RawWriterWithTimeout extends RawWriter permits RealAsyncTimeout.RawWriterWithTimeout {
+    sealed interface RawReaderWithTimeout extends RawReader permits RealAsyncTimeout.RawReaderWithTimeout {
         /**
-         * Sets the default write timeout. It will be used as a fallback for each write operation, only if no timeout is
+         * @return the default read timeout. It will be used as a fallback for each read operation, only if no timeout
+         * is present in the cancellable context.
+         */
+        @NonNull Duration getTimeout();
+
+        /**
+         * Sets the default read timeout. It will be used as a fallback for each read operation, only if no timeout is
          * present in the cancellable context. A timeout of zero is interpreted as an infinite timeout.
          */
         void setTimeout(final @NonNull Duration readTimeout);
     }
 
-    sealed interface RawReaderWithTimeout extends RawReader permits RealAsyncTimeout.RawReaderWithTimeout {
+    sealed interface RawWriterWithTimeout extends RawWriter permits RealAsyncTimeout.RawWriterWithTimeout {
         /**
-         * Sets the default read timeout. It will be used as a fallback for each read operation, only if no timeout is
+         * @return the default write timeout. It will be used as a fallback for each write operation, only if no timeout
+         * is present in the cancellable context.
+         */
+        @NonNull Duration getTimeout();
+
+        /**
+         * Sets the default write timeout. It will be used as a fallback for each write operation, only if no timeout is
          * present in the cancellable context. A timeout of zero is interpreted as an infinite timeout.
          */
         void setTimeout(final @NonNull Duration readTimeout);

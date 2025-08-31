@@ -74,13 +74,3 @@ public value class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoin
             builder.useNio(value)
         }
 }
-
-public var NetworkEndpoint.readTimeout: Duration
-    @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-    get() = error("unsupported")
-    set(value) = this.setReadTimeout(value.toJavaDuration())
-
-public var NetworkEndpoint.writeTimeout: Duration
-    @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
-    get() = error("unsupported")
-    set(value) = this.setWriteTimeout(value.toJavaDuration())

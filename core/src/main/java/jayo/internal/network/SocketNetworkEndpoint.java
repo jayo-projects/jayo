@@ -87,6 +87,10 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
                                            final @Nullable Duration connectTimeout,
                                            final @NonNull RealAsyncTimeout asyncTimeout,
                                            final Proxy.@Nullable Socks proxy) {
+        assert socket != null;
+        assert peerAddress != null;
+        assert asyncTimeout != null;
+
         try {
             if (proxy != null) {
                 // connect to the proxy and use it to reach peer
@@ -108,16 +112,25 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     private static void connect(final @NonNull Socket socket,
                                 final @NonNull InetSocketAddress inetSocketAddress,
                                 final @Nullable Duration connectTimeout) throws IOException {
+        assert socket != null;
+        assert inetSocketAddress != null;
+
         if (connectTimeout != null) {
-            final var connectTimeoutMillis = connectTimeout.toMillis();
-            if (connectTimeoutMillis > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException(
-                        "connect timeout in millis is too large, should be <= Integer.MAX_VALUE");
-            }
+            final var connectTimeoutMillis = getTimeoutAsMillis(connectTimeout);
             socket.connect(inetSocketAddress, (int) connectTimeoutMillis);
         } else {
             socket.connect(inetSocketAddress);
         }
+    }
+
+    private static int getTimeoutAsMillis(final @NonNull Duration timeout) {
+        assert timeout != null;
+
+        final var timeoutMillis = timeout.toMillis();
+        if (timeoutMillis > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("The timeout in millis is too large, should be <= Integer.MAX_VALUE");
+        }
+        return (int) timeoutMillis;
     }
 
     @NonNull
@@ -210,13 +223,30 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
+    public @NonNull Duration getReadTimeout() {
+        return rawReader.getTimeout();
+    }
+
+    @Override
     public void setReadTimeout(final @NonNull Duration readTimeout) {
+        final var readTimeoutMillis = getTimeoutAsMillis(readTimeout);
+        try {
+            socket.setSoTimeout(readTimeoutMillis);
+        } catch (IOException e) {
+            throw JayoException.buildJayoException(e);
+        }
+
         rawReader.setTimeout(readTimeout);
     }
 
     @Override
+    public @NonNull Duration getWriteTimeout() {
+        return rawWriter.getTimeout();
+    }
+
+    @Override
     public void setWriteTimeout(final @NonNull Duration writeTimeout) {
-        Objects.requireNonNull(writeTimeout);
+        rawWriter.setTimeout(writeTimeout);
     }
 
     @Override

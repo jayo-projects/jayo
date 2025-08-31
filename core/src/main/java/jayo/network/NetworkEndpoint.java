@@ -93,14 +93,24 @@ public sealed interface NetworkEndpoint extends Endpoint
     <T> @Nullable T getOption(final @NonNull SocketOption<T> name);
 
     /**
-     * Sets the read timeout that will apply on each low-level read operation of the network endpoint. Default is zero.
-     * A timeout of zero is interpreted as an infinite timeout.
+     * @return the timeout that will apply on each low-level read operation of the network endpoint.
+     */
+    @NonNull Duration getReadTimeout();
+
+    /**
+     * Sets the timeout that will apply on each low-level read operation of the network endpoint. Default is zero. A
+     * timeout of zero is interpreted as an infinite timeout.
      */
     void setReadTimeout(final @NonNull Duration readTimeout);
 
     /**
-     * Sets the write timeout that will apply on each low-level write operation of the network endpoint. Default is
-     * zero. A timeout of zero is interpreted as an infinite timeout.
+     * @return the timeout that will apply on each low-level write operation of the network endpoint.
+     */
+    @NonNull Duration getWriteTimeout();
+
+    /**
+     * Sets the timeout that will apply on each low-level write operation of the network endpoint. Default is zero. A
+     * timeout of zero is interpreted as an infinite timeout.
      */
     void setWriteTimeout(final @NonNull Duration writeTimeout);
 

@@ -280,8 +280,18 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
+    public @NonNull Duration getReadTimeout() {
+        return delegate.getReadTimeout();
+    }
+
+    @Override
     public void setReadTimeout(final @NonNull Duration readTimeout) {
         delegate.setReadTimeout(readTimeout);
+    }
+
+    @Override
+    public @NonNull Duration getWriteTimeout() {
+        return delegate.getWriteTimeout();
     }
 
     @Override
