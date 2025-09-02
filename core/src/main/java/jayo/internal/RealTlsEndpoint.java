@@ -388,7 +388,7 @@ public final class RealTlsEndpoint {
         final var closed = new Wrapper.Boolean();
         while (true) {
             if (closed.value) {
-                throw new IllegalStateException("TLS endpoint is closed");
+                throw new JayoClosedResourceException();
             }
 
             writeToWriter(); // IO block
