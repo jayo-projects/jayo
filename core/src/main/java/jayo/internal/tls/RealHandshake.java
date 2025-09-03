@@ -22,10 +22,7 @@
 package jayo.internal.tls;
 
 import jayo.JayoException;
-import jayo.tls.CipherSuite;
-import jayo.tls.Handshake;
-import jayo.tls.Protocol;
-import jayo.tls.TlsVersion;
+import jayo.tls.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -34,8 +31,6 @@ import javax.net.ssl.SSLSession;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -80,23 +75,23 @@ public final class RealHandshake implements Handshake {
                 () -> peerCertificatesCopy);
     }
 
-    private static @NonNull List<Certificate> unmodifiableCertificateList(final @Nullable Certificate[] certificates) {
-        //noinspection Java9CollectionFactory
-        return (certificates != null) ? Collections.unmodifiableList(Arrays.asList(certificates)) : List.of();
+    private static @NonNull List<@NonNull Certificate> unmodifiableCertificateList(
+            final @NonNull Certificate @Nullable [] certificates) {
+        return (certificates != null) ? List.of(certificates) : List.of();
     }
 
     private final @NonNull Protocol protocol;
     private final @NonNull TlsVersion tlsVersion;
     private final @NonNull CipherSuite cipherSuite;
-    private final @NonNull List<Certificate> localCertificates;
-    private final @NonNull Supplier<List<Certificate>> peerCertificatesFn;
-    private @Nullable List<Certificate> peerCertificates = null;
+    private final @NonNull List<@NonNull Certificate> localCertificates;
+    private final @NonNull Supplier<@NonNull List<@NonNull Certificate>> peerCertificatesFn;
+    private @Nullable List<@NonNull Certificate> peerCertificates = null;
 
     public RealHandshake(final @NonNull Protocol protocol,
                          final @NonNull TlsVersion tlsVersion,
                          final @NonNull CipherSuite cipherSuite,
-                         final @NonNull List<Certificate> localCertificates,
-                         final @NonNull Supplier<@NonNull List<Certificate>> peerCertificatesFn) {
+                         final @NonNull List<@NonNull Certificate> localCertificates,
+                         final @NonNull Supplier<@NonNull List<@NonNull Certificate>> peerCertificatesFn) {
         assert protocol != null;
         assert tlsVersion != null;
         assert cipherSuite != null;
@@ -126,17 +121,20 @@ public final class RealHandshake implements Handshake {
     }
 
     @Override
-    public @NonNull List<Certificate> getLocalCertificates() {
+    public @NonNull List<@NonNull Certificate> getLocalCertificates() {
         return localCertificates;
     }
 
     @Override
-    public @NonNull List<Certificate> getPeerCertificates() {
-        if (peerCertificates != null) {
-            return peerCertificates;
+    public @NonNull List<@NonNull Certificate> getPeerCertificates() {
+        if (peerCertificates == null) {
+            try {
+                peerCertificates = peerCertificatesFn.get();
+            } catch (JayoTlsPeerUnverifiedException ignored) {
+                peerCertificates = List.of();
+            }
         }
 
-        peerCertificates = peerCertificatesFn.get();
         return peerCertificates;
     }
 
