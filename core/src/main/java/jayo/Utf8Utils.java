@@ -19,17 +19,17 @@
  * limitations under the License.
  */
 
-package jayo.tools;
+package jayo;
 
-import jayo.Buffer;
-import jayo.Reader;
-import jayo.Writer;
-import jayo.bytestring.Ascii;
 import jayo.bytestring.ByteString;
-import jayo.bytestring.Utf8;
+import jayo.internal.RealByteString;
+import jayo.internal.SegmentedByteString;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
+
+import static jayo.internal.RealByteString.utf8Length;
+import static jayo.internal.SegmentedByteString.utf8Length;
 
 /**
  * Jayo assumes most applications use UTF-8 exclusively and offers optimized implementations of common operations on
@@ -37,13 +37,13 @@ import java.util.Objects;
  * <table border="1">
  * <tr>
  * <th></th>
- * <th>{@link ByteString}, {@link Utf8}</th>
+ * <th>{@link ByteString}</th>
  * <th>{@link Buffer}, {@link Writer}, {@link Reader}</th>
  * </tr>
  * <tr>
  * <td>Encode a string</td>
- * <td>{@link Utf8#encode(String)}</td>
- * <td>{@link Writer#write(String)}, {@link Writer#write(String, int, int)}</td>
+ * <td>{@link ByteString#encode(String)}</td>
+ * <td>{@link Writer#write(String)}</td>
  * </tr>
  * <tr>
  * <td>Encode a code point</td>
@@ -75,9 +75,6 @@ import java.util.Objects;
  * <td colspan="2">{@link Utf8Utils#utf8ByteSize(CharSequence)}</td>
  * </tr>
  * </table>
- *
- * @see ByteString
- * @see Ascii
  */
 public final class Utf8Utils {
     // un-instantiable
@@ -122,5 +119,32 @@ public final class Utf8Utils {
         }
 
         return result;
+    }
+
+    /**
+     * @return the UTF-8 length of {@code byteString}. The length is equal to the number of
+     * <a href="https://www.unicode.org/glossary/#code_point">Unicode code units</a> in the ByteString.
+     * <p>
+     * Note: This method returns the same result as:
+     * <pre>
+     * {@code
+     * byteString.decodeToString().length();
+     * // which is also the same as
+     * byteString.decodeToString(StandardCharsets.UTF_8).length();
+     * }
+     * </pre>
+     */
+    public static int length(final @NonNull ByteString byteString) {
+        Objects.requireNonNull(byteString);
+
+        if (byteString instanceof RealByteString realByteString) {
+            return utf8Length(realByteString);
+        }
+
+        if (byteString instanceof SegmentedByteString segmentedByteString) {
+            return utf8Length(segmentedByteString);
+        }
+
+        throw new IllegalArgumentException("byteString must be an instance of RealByteString or SegmentedByteString");
     }
 }

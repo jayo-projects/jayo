@@ -25,7 +25,7 @@ import jayo.*
 import jayo.bytestring.ByteString
 import jayo.bytestring.decodeBase64
 import jayo.bytestring.decodeHex
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import jayo.bytestring.toByteString
 import jayo.internal.tls.Adapters.DerAdapterValue
 import jayo.internal.tls.Certificate.*
@@ -996,7 +996,7 @@ class DerCertificatesTest {
                             1L,
                             false,
                             16,
-                            "ca@trustwave.com".encodeToUtf8(),
+                            "ca@trustwave.com".encodeToByteString(),
                         )
                     ),
                 ),

@@ -22,7 +22,6 @@
 package jayo.internal.bytestring;
 
 import jayo.bytestring.ByteString;
-import jayo.bytestring.Utf8;
 import jayo.internal.TestUtil;
 import kotlin.text.Charsets;
 import org.junit.jupiter.api.Test;
@@ -50,15 +49,7 @@ public final class ByteStringJavaTest {
                 Arguments.of(ByteStringFactory.getBYTE_STRING(), "ByteString"),
                 Arguments.of(ByteStringFactory.getSEGMENTED_BYTE_STRING(), "SegmentedByteString"),
                 Arguments.of(ByteStringFactory.getONE_BYTE_PER_SEGMENT(),
-                        "SegmentedByteString (one-byte-at-a-time)"),
-                Arguments.of(ByteStringFactory.getUTF8(), "Utf8"),
-                Arguments.of(ByteStringFactory.getSEGMENTED_UTF8(), "SegmentedUtf8"),
-                Arguments.of(ByteStringFactory.getUTF8_ONE_BYTE_PER_SEGMENT(),
-                        "SegmentedUtf8 (one-byte-at-a-time)"),
-                Arguments.of(ByteStringFactory.getASCII(), "Ascii"),
-                Arguments.of(ByteStringFactory.getSEGMENTED_ASCII(), "SegmentedAscii"),
-                Arguments.of(ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT(),
-                        "SegmentedAscii (one-byte-at-a-time)")
+                        "SegmentedByteString (one-byte-at-a-time)")
         );
     }
 
@@ -272,14 +263,10 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void utf8(ByteStringFactory factory) {
-        if (factory != ByteStringFactory.getASCII() &&
-                factory != ByteStringFactory.getSEGMENTED_ASCII() &&
-                factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
-            ByteString byteString = factory.encodeUtf8(bronzeHorseman);
-            assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(Charsets.UTF_8));
-            assertEquals(byteString, ByteString.of(bronzeHorseman.getBytes(Charsets.UTF_8)));
-            assertEquals(byteString.decodeToString(), bronzeHorseman);
-        }
+        ByteString byteString = factory.encodeUtf8(bronzeHorseman);
+        assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(Charsets.UTF_8));
+        assertEquals(byteString, ByteString.of(bronzeHorseman.getBytes(Charsets.UTF_8)));
+        assertEquals(byteString.decodeToString(), bronzeHorseman);
     }
 
     @Test
@@ -349,16 +336,12 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void encodeDecodeStringUtf8(ByteStringFactory factory) {
-        if (factory != ByteStringFactory.getASCII() &&
-                factory != ByteStringFactory.getSEGMENTED_ASCII() &&
-                factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
-            Charset utf8 = StandardCharsets.UTF_8;
-            ByteString byteString = factory.encodeUtf8(bronzeHorseman);
-            assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(utf8));
-            assertEquals(byteString, ByteString.decodeHex("d09dd0b020d0b1d0b5d180d0b5d0b3d18320d0bfd183d181"
-                    + "d182d18bd0bdd0bdd18bd18520d0b2d0bed0bbd0bd"));
-            assertEquals(bronzeHorseman, byteString.decodeToString(utf8));
-        }
+        Charset utf8 = StandardCharsets.UTF_8;
+        ByteString byteString = factory.encodeUtf8(bronzeHorseman);
+        assertByteArraysEquals(byteString.toByteArray(), bronzeHorseman.getBytes(utf8));
+        assertEquals(byteString, ByteString.decodeHex("d09dd0b020d0b1d0b5d180d0b5d0b3d18320d0bfd183d181"
+                + "d182d18bd0bdd0bdd18bd18520d0b2d0bed0bbd0bd"));
+        assertEquals(bronzeHorseman, byteString.decodeToString(utf8));
     }
 
     @Test
@@ -418,8 +401,8 @@ public final class ByteStringJavaTest {
     @Test
     public void readAndToLowercase() {
         InputStream in = new ByteArrayInputStream("ABC".getBytes(Charsets.UTF_8));
-        assertEquals(Utf8.encode("ab"), ByteString.read(in, 2).toAsciiLowercase());
-        assertEquals(Utf8.encode("c"), ByteString.read(in, 1).toAsciiLowercase());
+        assertEquals(ByteString.encode("ab"), ByteString.read(in, 2).toAsciiLowercase());
+        assertEquals(ByteString.encode("c"), ByteString.read(in, 1).toAsciiLowercase());
         assertEquals(ByteString.EMPTY, ByteString.read(in, 0).toAsciiLowercase());
     }
 
@@ -436,27 +419,27 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiAllUppercase(ByteStringFactory factory) {
-        assertEquals(Utf8.encode("ab"), factory.encodeUtf8("AB").toAsciiLowercase());
+        assertEquals(ByteString.encode("ab"), factory.encodeUtf8("AB").toAsciiLowercase());
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiStartsLowercaseEndsUppercase(ByteStringFactory factory) {
-        assertEquals(Utf8.encode("abcd"), factory.encodeUtf8("aBcD").toAsciiLowercase());
+        assertEquals(ByteString.encode("abcd"), factory.encodeUtf8("aBcD").toAsciiLowercase());
     }
 
     @Test
     public void readAndToUppercase() {
         InputStream in = new ByteArrayInputStream("abc".getBytes(Charsets.UTF_8));
-        assertEquals(Utf8.encode("AB"), ByteString.read(in, 2).toAsciiUppercase());
-        assertEquals(Utf8.encode("C"), ByteString.read(in, 1).toAsciiUppercase());
+        assertEquals(ByteString.encode("AB"), ByteString.read(in, 2).toAsciiUppercase());
+        assertEquals(ByteString.encode("C"), ByteString.read(in, 1).toAsciiUppercase());
         assertEquals(ByteString.EMPTY, ByteString.read(in, 0).toAsciiUppercase());
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     public void toAsciiStartsUppercaseEndsLowercase(ByteStringFactory factory) {
-        assertEquals(Utf8.encode("ABCD"), factory.encodeUtf8("AbCd").toAsciiUppercase());
+        assertEquals(ByteString.encode("ABCD"), factory.encodeUtf8("AbCd").toAsciiUppercase());
     }
 
     @ParameterizedTest
@@ -465,9 +448,9 @@ public final class ByteStringJavaTest {
         ByteString byteString = factory.encodeUtf8("Hello, World!");
 
         assertEquals(byteString.substring(0), byteString);
-        assertEquals(byteString.substring(0, 5), Utf8.encode("Hello"));
-        assertEquals(byteString.substring(7), Utf8.encode("World!"));
-        assertEquals(byteString.substring(6, 6), Utf8.encode(""));
+        assertEquals(byteString.substring(0, 5), ByteString.encode("Hello"));
+        assertEquals(byteString.substring(7), ByteString.encode("World!"));
+        assertEquals(byteString.substring(6, 6), ByteString.encode(""));
     }
 
     @ParameterizedTest
@@ -624,11 +607,8 @@ public final class ByteStringJavaTest {
     @ParameterizedTest
     @MethodSource("parameters")
     public void javaSerializationTestNonEmpty(ByteStringFactory factory) {
-        if (factory != ByteStringFactory.getSEGMENTED_ASCII() &&
-                factory != ByteStringFactory.getASCII_ONE_BYTE_PER_SEGMENT()) {
-            ByteString byteString = factory.encodeUtf8(bronzeHorseman);
-            TestUtil.assertEquivalent(byteString, TestUtil.reserialize(byteString));
-        }
+        ByteString byteString = factory.encodeUtf8(bronzeHorseman);
+        TestUtil.assertEquivalent(byteString, TestUtil.reserialize(byteString));
     }
 
     @ParameterizedTest

@@ -21,15 +21,16 @@
 
 package jayo.samples
 
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import jayo.utf8ByteSize
 
 fun dumpStringData(s: String) {
     println("                       " + s)
-    println("        String.length: " + s.length)
-    println("String.codePointCount: " + s.codePointCount(0, s.length))
-    println("            Utf8.size: " + s.utf8ByteSize())
-    println("          UTF-8 bytes: " + s.encodeToUtf8().hex())
+    println("                string: " + s)
+    println("         String.length: " + s.length)
+    println(" String.codePointCount: " + s.codePointCount(0, s.length))
+    println("Utf8Utils.utf8ByteSize: " + s.utf8ByteSize())
+    println("           UTF-8 bytes: " + s.encodeToByteString().hex())
     println()
 }
 

@@ -23,7 +23,7 @@ package jayo.internal.tls
 
 import jayo.*
 import jayo.bytestring.decodeHex
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import jayo.bytestring.toByteString
 import jayo.internal.tls.Adapters.DerAdapterValue
 import jayo.internal.tls.Certificate.*
@@ -218,7 +218,7 @@ class DerTest {
             assertThat(header.tag).isEqualTo(26L)
             assertThat(header.constructed).isFalse()
             assertThat(header.tagClass).isEqualTo(DerHeader.TAG_CLASS_UNIVERSAL)
-            assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToUtf8())
+            assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToByteString())
         }
 
         assertThat(derReader.hasNext()).isFalse()
@@ -230,7 +230,7 @@ class DerTest {
         val derWriter = DerWriter(buffer)
 
         derWriter.write("test", DerHeader.TAG_CLASS_UNIVERSAL, 26L) {
-            derWriter.writeOctetString("Jones".encodeToUtf8())
+            derWriter.writeOctetString("Jones".encodeToByteString())
         }
 
         assertThat(buffer.readByteString()).isEqualTo("1A054A6F6E6573".decodeHex())
@@ -249,7 +249,7 @@ class DerTest {
         derReader.read("test") { header ->
             assertThat(header.tag).isEqualTo(3L)
             assertThat(header.tagClass).isEqualTo(DerHeader.TAG_CLASS_APPLICATION)
-            assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToUtf8())
+            assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToByteString())
         }
 
         assertThat(derReader.hasNext()).isFalse()
@@ -263,7 +263,7 @@ class DerTest {
         val derWriter = DerWriter(buffer)
 
         derWriter.write("test", DerHeader.TAG_CLASS_APPLICATION, 3L) {
-            derWriter.writeOctetString("Jones".encodeToUtf8())
+            derWriter.writeOctetString("Jones".encodeToByteString())
         }
 
         assertThat(buffer.readByteString()).isEqualTo("43054A6F6E6573".decodeHex())
@@ -289,7 +289,7 @@ class DerTest {
                 assertThat(derHeader.tag).isEqualTo(3L)
                 assertThat(derHeader.tagClass).isEqualTo(DerHeader.TAG_CLASS_APPLICATION)
                 assertThat(derHeader.length).isEqualTo(5L)
-                assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToUtf8())
+                assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToByteString())
             }
 
             assertThat(derReader.hasNext()).isFalse()
@@ -308,7 +308,7 @@ class DerTest {
 
         derWriter.write("test", DerHeader.TAG_CLASS_CONTEXT_SPECIFIC, 2L) {
             derWriter.write("test", DerHeader.TAG_CLASS_APPLICATION, 3L) {
-                derWriter.writeOctetString("Jones".encodeToUtf8())
+                derWriter.writeOctetString("Jones".encodeToByteString())
             }
         }
 
@@ -336,7 +336,7 @@ class DerTest {
                 assertThat(header2.tag).isEqualTo(3L)
                 assertThat(header2.tagClass).isEqualTo(DerHeader.TAG_CLASS_APPLICATION)
                 assertThat(header2.length).isEqualTo(5L)
-                assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToUtf8())
+                assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToByteString())
             }
 
             assertThat(derReader.hasNext()).isFalse()
@@ -356,7 +356,7 @@ class DerTest {
 
         derWriter.write("test", DerHeader.TAG_CLASS_APPLICATION, 7L) {
             derWriter.write("test", DerHeader.TAG_CLASS_APPLICATION, 3L) {
-                derWriter.writeOctetString("Jones".encodeToUtf8())
+                derWriter.writeOctetString("Jones".encodeToByteString())
             }
         }
 
@@ -378,7 +378,7 @@ class DerTest {
             assertThat(header.tag).isEqualTo(2L)
             assertThat(header.tagClass).isEqualTo(DerHeader.TAG_CLASS_CONTEXT_SPECIFIC)
             assertThat(header.length).isEqualTo(5L)
-            assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToUtf8())
+            assertThat(derReader.readOctetString()).isEqualTo("Jones".encodeToByteString())
         }
 
         assertThat(derReader.hasNext()).isFalse()
@@ -393,7 +393,7 @@ class DerTest {
         val derWriter = DerWriter(buffer)
 
         derWriter.write("test", DerHeader.TAG_CLASS_CONTEXT_SPECIFIC, 2L) {
-            derWriter.writeOctetString("Jones".encodeToUtf8())
+            derWriter.writeOctetString("Jones".encodeToByteString())
         }
 
         assertThat(buffer.readByteString()).isEqualTo("82054A6F6E6573".decodeHex())
@@ -465,7 +465,7 @@ class DerTest {
             Buffer()
                 .write("300A".decodeHex())
                 .write("1505".decodeHex())
-                .write("Smith".encodeToUtf8())
+                .write("Smith".encodeToByteString())
                 .write("01".decodeHex())
                 .write("01".decodeHex())
                 .write("FF".decodeHex())
@@ -477,7 +477,7 @@ class DerTest {
 
             derReader.read("test") { header2 ->
                 assertThat(header2.tag).isEqualTo(21L)
-                assertThat(derReader.readOctetString()).isEqualTo("Smith".encodeToUtf8())
+                assertThat(derReader.readOctetString()).isEqualTo("Smith".encodeToByteString())
             }
 
             derReader.read("test") { header3 ->
@@ -498,7 +498,7 @@ class DerTest {
 
         derWriter.write("test", DerHeader.TAG_CLASS_UNIVERSAL, 16L) {
             derWriter.write("test", DerHeader.TAG_CLASS_UNIVERSAL, 21L) {
-                derWriter.writeOctetString("Smith".encodeToUtf8())
+                derWriter.writeOctetString("Smith".encodeToByteString())
             }
 
             derWriter.write("test", DerHeader.TAG_CLASS_UNIVERSAL, 1L) {

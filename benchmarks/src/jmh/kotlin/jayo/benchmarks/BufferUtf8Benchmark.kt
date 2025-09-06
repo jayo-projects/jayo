@@ -1,6 +1,7 @@
 package jayo.benchmarks
 
 import jayo.Buffer
+import jayo.Utf8Utils
 import jayo.bytestring.ByteString
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
@@ -114,22 +115,16 @@ open class BufferUtf8Benchmark {
     }
 
     @Benchmark
-    fun writeByteStringJayo() {
-        jayoBuffer.write(jayoDecode)
-        jayoBuffer.clear()
-    }
-
-    @Benchmark
-    fun readUtf8StringJayo() {
+    fun readUtf8Jayo() {
         jayoBuffer.write(jayoDecode)
         val length = jayoBuffer.readString().length
         check(length == encode.length)
     }
 
     @Benchmark
-    fun readUtf8Jayo() {
+    fun readUtf8ByteStringJayo() {
         jayoBuffer.write(jayoDecode)
-        val length = jayoBuffer.readUtf8().length()
+        val length = Utf8Utils.length(jayoBuffer.readByteString())
         check(length == encode.length)
     }
 }

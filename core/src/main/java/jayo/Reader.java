@@ -25,9 +25,7 @@
 
 package jayo;
 
-import jayo.bytestring.Ascii;
 import jayo.bytestring.ByteString;
-import jayo.bytestring.Utf8;
 import jayo.internal.RealReader;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -306,9 +304,9 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <pre>
      * {@code
      * private static Options FIELDS = Options.of(
-     * Utf8.encode("depth="),  // index = 0
-     * Utf8.encode("height="), // index = 1
-     * Utf8.encode("width=")); // index = 2
+     * ByteString.encode("depth="),  // index = 0
+     * ByteString.encode("height="), // index = 1
+     * ByteString.encode("width=")); // index = 2
      * // ...
      * Buffer buffer = Buffer.create()
      * .write("width=640\n")
@@ -368,50 +366,6 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      */
     @NonNull
     ByteString readByteString(final long byteCount);
-
-    /**
-     * Removes all UTF-8 bytes from this reader and returns them as a UTF-8 byte string.
-     *
-     * @return the UTF-8 byte string containing all UTF-8 bytes from this reader.
-     * @throws JayoClosedResourceException if this reader is closed.
-     */
-    @NonNull
-    Utf8 readUtf8();
-
-    /**
-     * Removes {@code byteCount} UTF-8 bytes from this and returns them as a UTF-8 byte string.
-     *
-     * @param byteCount the number of bytes to read from this reader.
-     * @return the UTF-8 byte string containing {@code byteCount} UTF-8 bytes from this reader.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
-     */
-    @NonNull
-    Utf8 readUtf8(final long byteCount);
-
-    /**
-     * Removes all ASCII bytes from this reader and returns them as an ASCII byte string.
-     *
-     * @return the UTF-8 byte string containing all ASCII bytes from this reader.
-     * @throws JayoClosedResourceException if this reader is closed.
-     */
-    @NonNull
-    Ascii readAscii();
-
-    /**
-     * Removes {@code byteCount} ASCII bytes from this and returns them as an ASCII byte string.
-     *
-     * @param byteCount the number of bytes to read from this reader.
-     * @return the UTF-8 byte string containing {@code byteCount} ASCII bytes from this reader.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
-     */
-    @NonNull
-    Ascii readAscii(final long byteCount);
 
     /**
      * Removes and returns UTF-8 encoded characters up to but not including the next line break. A line break is either
@@ -879,7 +833,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * exhausted, then new data will be requested from the downstream. The scan terminates at the reader's exhaustion.
      * <pre>
      * {@code
-     * ByteString ANY_VOWEL = Utf8.encode("AEOIUaeoiu");
+     * ByteString ANY_VOWEL = ByteString.encode("AEOIUaeoiu");
      *
      * Buffer buffer = Buffer.create()
      * .write("Dr. Alan Grant");
@@ -901,7 +855,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * exhausted, then new data will be requested from the downstream. The scan terminates at the reader's exhaustion.
      * <pre>
      * {@code
-     * ByteString ANY_VOWEL = Utf8.encode("AEOIUaeoiu");
+     * ByteString ANY_VOWEL = ByteString.encode("AEOIUaeoiu");
      *
      * Buffer buffer = Buffer.create()
      * .write("Dr. Alan Grant");
@@ -925,7 +879,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * reader is exhausted before enough bytes could determine a match.
      * <pre>
      * {@code
-     * ByteString simonSays = Utf8.encode("Simon says:");
+     * ByteString simonSays = ByteString.encode("Simon says:");
      *
      * Buffer standOnOneLeg = Buffer.create().write("Simon says: Stand on one leg.");
      * assertEquals(standOnOneLeg.rangeEquals(0, simonSays)).isTrue();
@@ -951,7 +905,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * are matched, or if this reader is exhausted before enough bytes could determine a match.
      * <pre>
      * {@code
-     * ByteString simonSays = Utf8.encode("Simon says:");
+     * ByteString simonSays = ByteString.encode("Simon says:");
      *
      * Buffer standOnOneLeg = Buffer.create().write("Garfunkel says: Stand on one leg.");
      * assertEquals(standOnOneLeg.rangeEquals(10, simonSays, 6, 5)).isTrue();

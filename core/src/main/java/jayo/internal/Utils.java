@@ -25,12 +25,19 @@ import jayo.Buffer;
 import jayo.Reader;
 import jayo.Writer;
 import jayo.bytestring.ByteString;
+import jayo.crypto.Digest;
+import jayo.crypto.Hmac;
 import org.jspecify.annotations.NonNull;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLEngineResult;
 import java.lang.ref.Cleaner;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
 public final class Utils {
@@ -44,12 +51,37 @@ public final class Utils {
     static final char @NonNull [] HEX_DIGIT_CHARS =
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-    static final char UTF8_REPLACEMENT_CHARACTER = '\ufffd';
-    static final int UTF8_REPLACEMENT_CODE_POINT = UTF8_REPLACEMENT_CHARACTER;
-    static final char ASCII_REPLACEMENT_CHARACTER = '?';
-    static final int ASCII_REPLACEMENT_CODE_POINT = ASCII_REPLACEMENT_CHARACTER;
+    static final int UTF8_REPLACEMENT_CODE_POINT = '\ufffd';
 
     static final @NonNull Cleaner JAYO_CLEANER = JavaVersionUtils.cleaner();
+
+    static @NonNull MessageDigest messageDigest(final @NonNull Digest digest) {
+        Objects.requireNonNull(digest);
+
+        try {
+            return MessageDigest.getInstance(digest.toString());
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("Algorithm is not available: " + digest, e);
+        }
+    }
+
+    static @NonNull Mac mac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
+        Objects.requireNonNull(hMac);
+        Objects.requireNonNull(key);
+
+        final javax.crypto.Mac javaMac;
+        try {
+            javaMac = javax.crypto.Mac.getInstance(hMac.toString());
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("Algorithm is not available: " + hMac, e);
+        }
+        try {
+            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.toString()));
+        } catch (InvalidKeyException e) {
+            throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
+        }
+        return javaMac;
+    }
 
     public static @NonNull RealBuffer internalBuffer(final @NonNull Reader reader) {
         assert reader != null;
@@ -76,15 +108,11 @@ public final class Utils {
             return realByteString.data;
         }
 
-        if (byteString instanceof RealAscii realAscii) {
-            return realAscii.data;
+        if (byteString instanceof SegmentedByteString segmentedByteString) {
+            return segmentedByteString.toByteArray();
         }
 
-        if (byteString instanceof BaseByteString baseByteString) {
-            return baseByteString.internalArray();
-        }
-
-        throw new IllegalArgumentException("byteString must be an instance of RealByteString or BaseByteString");
+        throw new IllegalArgumentException("byteString must be an instance of RealByteString or SegmentedByteString");
     }
 
     /**

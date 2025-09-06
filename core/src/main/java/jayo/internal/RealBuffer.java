@@ -26,15 +26,12 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.bytestring.Ascii;
 import jayo.bytestring.ByteString;
-import jayo.bytestring.Utf8;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -44,9 +41,6 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -628,68 +622,6 @@ public final class RealBuffer implements Buffer {
     }
 
     @Override
-    public @NonNull Utf8 readUtf8() {
-        return readUtf8(byteSize);
-    }
-
-    public @NonNull Utf8 readUtf8(final long byteCount) {
-        if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("invalid byteCount: " + byteCount);
-        }
-        if (byteSize < byteCount) {
-            throw new JayoEOFException();
-        }
-        if (byteCount == 0L) {
-            return Utf8.EMPTY;
-        }
-
-        if (byteCount < SEGMENTING_THRESHOLD) {
-            return new RealUtf8(readByteArray(byteCount), false);
-        }
-
-        // Walk through the buffer to count how many segments we'll need.
-        final var segmentCount = checkAndCountSegments((int) byteCount);
-
-        // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new Segment[segmentCount];
-        final var directory = new int[segmentCount];
-        fillSegmentsAndDirectory(segments, directory, (int) byteCount, true);
-
-        return new SegmentedUtf8(segments, directory, false);
-    }
-
-    @Override
-    public @NonNull Ascii readAscii() {
-        return readAscii(byteSize);
-    }
-
-    public @NonNull Ascii readAscii(final long byteCount) {
-        if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("invalid byteCount: " + byteCount);
-        }
-        if (byteSize < byteCount) {
-            throw new JayoEOFException();
-        }
-        if (byteCount == 0L) {
-            return Ascii.EMPTY;
-        }
-
-        if (byteCount < SEGMENTING_THRESHOLD) {
-            return new RealAscii(readByteArray(byteCount));
-        }
-
-        // Walk through the buffer to count how many segments we'll need.
-        final var segmentCount = checkAndCountSegments((int) byteCount);
-
-        // Walk through the buffer again to assign segments and build the directory.
-        final var segments = new Segment[segmentCount];
-        final var directory = new int[segmentCount];
-        fillSegmentsAndDirectory(segments, directory, (int) byteCount, true);
-
-        return new SegmentedAscii(segments, directory);
-    }
-
-    @Override
     public int select(final @NonNull Options options) {
         Objects.requireNonNull(options);
 
@@ -1102,15 +1034,13 @@ public final class RealBuffer implements Buffer {
                                  final int byteCount) {
         Objects.requireNonNull(byteString);
 
-        if (byteString instanceof RealByteString _byteString) {
-            _byteString.write(this, offset, byteCount);
-        } else if (byteString instanceof BaseByteString _byteString) {
-            _byteString.write(this, offset, byteCount);
-        } else if (byteString instanceof RealAscii _byteString) {
-            _byteString.write(this, offset, byteCount);
+        if (byteString instanceof RealByteString realByteString) {
+            realByteString.write(this, offset, byteCount);
+        } else if (byteString instanceof SegmentedByteString segmentedByteString) {
+            segmentedByteString.write(this, offset, byteCount);
         } else {
             throw new IllegalArgumentException(
-                    "byteString must be an instance of RealByteString, BaseByteString or RealAscii");
+                    "byteString must be an instance of RealByteString or SegmentedByteString");
         }
         return this;
     }
@@ -1795,14 +1725,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull ByteString hash(final @NonNull Digest digest) {
-        Objects.requireNonNull(digest);
-
-        final MessageDigest messageDigest;
-        try {
-            messageDigest = MessageDigest.getInstance(digest.toString());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + digest, e);
-        }
+        final var messageDigest = messageDigest(digest);
         final var head = this.head;
         if (head != null) {
             messageDigest.update(head.data, head.pos, head.limit - head.pos);
@@ -1818,20 +1741,7 @@ public final class RealBuffer implements Buffer {
 
     @Override
     public @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
-        Objects.requireNonNull(hMac);
-        Objects.requireNonNull(key);
-
-        final javax.crypto.Mac javaMac;
-        try {
-            javaMac = javax.crypto.Mac.getInstance(hMac.toString());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalArgumentException("Algorithm is not available : " + hMac, e);
-        }
-        try {
-            javaMac.init(new SecretKeySpec(Utils.internalArray(key), hMac.toString()));
-        } catch (InvalidKeyException e) {
-            throw new IllegalArgumentException("InvalidKeyException was fired with the provided ByteString key", e);
-        }
+        final var javaMac = mac(hMac, key);
         final var head = this.head;
         if (head != null) {
             javaMac.update(head.data, head.pos, head.limit - head.pos);

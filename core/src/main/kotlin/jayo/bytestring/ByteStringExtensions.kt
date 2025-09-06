@@ -23,11 +23,25 @@
 
 package jayo.bytestring
 
+import jayo.Utf8Utils
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 /**
+ * @return the UTF-8 length of this `byteString`. The length is equal to the number of
+ * [Unicode code units](https://www.unicode.org/glossary/#code_point) in the ByteString.
+ *
+ * Note: This method returns the same result as:
+ * ```kotlin
+ * byteString.decodeToString().length()
+ * // which is also the same as
+ * byteString.decodeToString(Charsets.UTF_8).length()
+ * ```
+ */
+public fun ByteString.utf8Length(): Int = Utf8Utils.length(this)
+
+        /**
  * @return a new [ByteString] containing a copy of `byteCount` bytes of this byte array starting at `offset`. Do not
  * provide values for `byteCount` and `offset` if you want a full copy of this byte array.
  */

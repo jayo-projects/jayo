@@ -29,7 +29,6 @@ import jayo.JayoEOFException;
 import jayo.JayoException;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
-import jayo.internal.BaseByteString;
 import jayo.internal.RealByteString;
 import jayo.internal.SegmentedByteString;
 import org.jspecify.annotations.NonNull;
@@ -59,12 +58,9 @@ import static jayo.internal.Base64Utils.decodeBase64ToArray;
  * <b>Immutability is guaranteed:</b> ByteString copies data on creation as well as on conversion back to
  * {@code byte[]}, thus guaranteeing that later modification of source data or data returned from {@link #toByteArray()}
  * won't mutate the byte string itself.
- *
- * @see Utf8
- * @see Ascii
  */
 public sealed interface ByteString extends Serializable, Comparable<ByteString>
-        permits BaseByteString, RealByteString, SegmentedByteString, Utf8 {
+        permits RealByteString, SegmentedByteString {
     /**
      * The empty byte string.
      */

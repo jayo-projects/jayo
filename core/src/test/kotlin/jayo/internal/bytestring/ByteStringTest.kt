@@ -21,22 +21,23 @@
 
 package jayo.internal.bytestring
 
-import jayo.bytestring.ByteString
-import jayo.bytestring.encodeToUtf8
-import jayo.bytestring.readByteString
-import jayo.bytestring.toByteString
+import jayo.JayoCharacterCodingException
+import jayo.bytestring.*
 import jayo.crypto.JdkDigest
 import jayo.crypto.JdkHmac
+import jayo.internal.makeSegments
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.util.stream.Stream
+import kotlin.text.decodeToString
 
 class ByteStringTest {
 
@@ -47,14 +48,22 @@ class ByteStringTest {
                 Arguments.of(ByteStringFactory.BYTE_STRING, "ByteString"),
                 Arguments.of(ByteStringFactory.SEGMENTED_BYTE_STRING, "SegmentedByteString"),
                 Arguments.of(ByteStringFactory.ONE_BYTE_PER_SEGMENT, "SegmentedByteString (one-byte-at-a-time)"),
-                Arguments.of(ByteStringFactory.UTF8, "Utf8"),
-                Arguments.of(ByteStringFactory.SEGMENTED_UTF8, "SegmentedUtf8"),
-                Arguments.of(ByteStringFactory.UTF8_ONE_BYTE_PER_SEGMENT, "SegmentedUtf8 (one-byte-at-a-time)"),
-                Arguments.of(ByteStringFactory.ASCII, "Ascii"),
-                Arguments.of(ByteStringFactory.SEGMENTED_ASCII, "SegmentedAscii"),
-                Arguments.of(ByteStringFactory.ASCII_ONE_BYTE_PER_SEGMENT, "SegmentedAscii (one-byte-at-a-time)"),
             )
         }
+
+        private const val ASCII = "abcdef"
+        private const val UTF8_NO_SURROGATE = "Cａfé \uD83C\uDF69!" // é is one code point.
+        private const val UTF8_SURROGATES = "Cａfé \uD83C\uDF69!" // e is one code point, its accent is another.
+        private const val LAST_3_BYTES_CHARACTER = "\uFFFF"
+        private const val FIRST_4_BYTES_CHARACTER = "\uD800\uDC00"
+        private const val LAST_4_BYTES_CHARACTER = "\uD803\uDFFF"
+        private const val UTF8 =
+            ("Սｍ, I'll 𝓽𝖾ll ᶌօ𝘂 ᴛℎ℮ 𝜚𝕣०ｂl𝖾ｍ ｗі𝕥𝒽 𝘵𝘩𝐞 𝓼𝙘𝐢𝔢𝓷𝗍𝜄𝚏𝑖ｃ 𝛠𝝾ｗ𝚎𝑟 𝕥ｈ⍺𝞃 𝛄𝓸𝘂'𝒓𝗲 υ𝖘𝓲𝗇ɡ 𝕙𝚎𝑟ｅ, "
+                    + "𝛊𝓽 ⅆ𝕚𝐝𝝿'𝗍 𝔯𝙚𝙦ᴜ𝜾𝒓𝘦 𝔞𝘯𝐲 ԁ𝜄𝑠𝚌ι𝘱lι𝒏ｅ 𝑡𝜎 𝕒𝚝𝖙𝓪і𝞹 𝔦𝚝. 𝒀ο𝗎 𝔯𝑒⍺𝖉 ｗ𝐡𝝰𝔱 𝞂𝞽һ𝓮𝓇ƽ հ𝖺𝖉 ⅾ𝛐𝝅ⅇ 𝝰πԁ 𝔂ᴑᴜ 𝓉ﮨ၀𝚔 "
+                    + "т𝒽𝑒 𝗇𝕖ⅹ𝚝 𝔰𝒕е𝓅. 𝘠ⲟ𝖚 𝖉ⅰԁ𝝕'τ 𝙚𝚊ｒ𝞹 𝘵Ꮒ𝖾 𝝒𝐧هｗl𝑒𝖉ƍ𝙚 𝓯૦ｒ 𝔂𝞼𝒖𝕣𝑠𝕖l𝙫𝖊𝓼, 𐑈о ｙ𝘰𝒖 ⅆە𝗇'ｔ 𝜏α𝒌𝕖 𝛂𝟉ℽ "
+                    + "𝐫ⅇ𝗌ⲣ๐ϖ𝖘ꙇᖯ𝓲l𝓲𝒕𝘆 𝐟𝞼𝘳 𝚤𝑡. 𝛶𝛔𝔲 ｓ𝕥σσ𝐝 ﮩ𝕟 𝒕𝗁𝔢 𝘴𝐡𝜎ᴜlⅾ𝓮𝔯𝚜 𝛐𝙛 ᶃ𝚎ᴨᎥս𝚜𝘦𝓈 𝓽𝞸 ａ𝒄𝚌𝞸ｍρl𝛊ꜱ𝐡 𝓈𝚘ｍ𝚎𝞃𝔥⍳𝞹𝔤 𝐚𝗌 𝖋ａ𝐬𝒕 "
+                    + "αｓ γ𝛐𝕦 𝔠ﻫ𝛖lԁ, 𝚊π𝑑 Ь𝑒𝙛૦𝓇𝘦 𝓎٥𝖚 ⅇｖℯ𝝅 𝜅ո𝒆ｗ ｗ𝗵𝒂𝘁 ᶌ੦𝗎 ｈ𝐚𝗱, 𝜸ﮨ𝒖 𝓹𝝰𝔱𝖾𝗇𝓽𝔢ⅆ і𝕥, 𝚊𝜛𝓭 𝓹𝖺ⅽϰ𝘢ℊеᏧ 𝑖𝞃, "
+                    + "𝐚𝛑ꓒ 𝙨l𝔞р𝘱𝔢𝓭 ɩ𝗍 ہ𝛑 𝕒 ｐl𝛂ѕᴛ𝗂𝐜 l𝞄ℼ𝔠𝒽𝑏ﮪ⨯, 𝔞ϖ𝒹 ｎ𝛔ｗ 𝛾𝐨𝞄'𝗿𝔢 ꜱ℮ll𝙞ｎɡ ɩ𝘁, 𝙮𝕠𝛖 ｗ𝑎ℼ𝚗𝛂 𝕤𝓮ll 𝙞𝓉.")
     }
 
     @Test
@@ -143,7 +152,7 @@ class ByteStringTest {
     @ParameterizedTest
     @MethodSource("parameters")
     fun testHMac(factory: ByteStringFactory) = with(factory.encodeUtf8("Kevin")) {
-        val key = "Brandon".encodeToUtf8()
+        val key = "Brandon".encodeToByteString()
         assertThat(hmac(JdkHmac.HMAC_MD5, key).hex()).isEqualTo("cd5478da9993e894de891a6d680a88fb")
         assertThat(hmac(JdkHmac.HMAC_SHA_1, key).hex()).isEqualTo("46eedc331e6f92c801808fd5bfc5424afe659402")
         assertThat(hmac(JdkHmac.HMAC_SHA_224, key).hex())
@@ -267,5 +276,61 @@ class ByteStringTest {
         assertEquals("WwwwXxxxYyyyZzzz", byteArray.decodeToString())
         byteString.copyInto(8, byteArray, 0, 0)
         assertEquals("WwwwXxxxYyyyZzzz", byteArray.decodeToString())
+    }
+
+    @Test
+    fun lengthEncodingErrors() {
+        var utf8 = ByteString.of(0xc0.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+        utf8 = makeSegments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+        utf8 = ByteString.of(0xe2.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+        utf8 = makeSegments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+        utf8 = ByteString.of(0xf4.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+        utf8 = makeSegments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+        utf8 = ByteString.of(0xff.toByte())
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+        utf8 = makeSegments(utf8)
+        assertThrows<JayoCharacterCodingException> { utf8.utf8Length() }
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun lengthAndDecodeUtf8(factory: ByteStringFactory) {
+        var utf8 = factory.encodeUtf8(ASCII)
+        assertEquals(ASCII.length, utf8.utf8Length())
+        assertEquals(ASCII, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(UTF8_NO_SURROGATE)
+        assertEquals(UTF8_NO_SURROGATE.length, utf8.utf8Length())
+        assertEquals(UTF8_NO_SURROGATE, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(UTF8_SURROGATES)
+        assertEquals(UTF8_SURROGATES.length, utf8.utf8Length())
+        assertEquals(UTF8_SURROGATES, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(LAST_3_BYTES_CHARACTER)
+        assertEquals(LAST_3_BYTES_CHARACTER.length, utf8.utf8Length())
+        assertEquals(LAST_3_BYTES_CHARACTER, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(FIRST_4_BYTES_CHARACTER)
+        assertEquals(FIRST_4_BYTES_CHARACTER.length, utf8.utf8Length())
+        assertEquals(FIRST_4_BYTES_CHARACTER, utf8.decodeToString())
+        utf8 = factory.encodeUtf8(LAST_4_BYTES_CHARACTER)
+        assertEquals(LAST_4_BYTES_CHARACTER.length, utf8.utf8Length())
+        assertEquals(LAST_4_BYTES_CHARACTER, utf8.decodeToString())
+        if (factory != ByteStringFactory.ONE_BYTE_PER_SEGMENT) {
+            // Make all the strings the same length for comparison
+            val length = 20_000
+            val builder = StringBuilder()
+            while (builder.length < length) {
+                builder.append(UTF8)
+            }
+            val value = builder.toString()
+
+            utf8 = factory.encodeUtf8(value)
+            assertEquals(value.length, utf8.utf8Length())
+            assertEquals(value, utf8.decodeToString())
+        }
     }
 }

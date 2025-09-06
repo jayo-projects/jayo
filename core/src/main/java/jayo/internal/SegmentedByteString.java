@@ -21,6 +21,7 @@
 
 package jayo.internal;
 
+import jayo.JayoCharacterCodingException;
 import jayo.JayoException;
 import jayo.bytestring.ByteString;
 import jayo.crypto.Digest;
@@ -31,13 +32,16 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serial;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.internal.Utils.JAYO_CLEANER;
-import static jayo.internal.Utils.arrayRangeEquals;
+import static jayo.internal.ByteStringUtils.checkSubstringParameters;
+import static jayo.internal.Utils.*;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 /**
@@ -58,12 +62,17 @@ import static jayo.tools.JayoUtils.checkOffsetAndCount;
  * <p>
  * This structure is chosen so that the segment holding a particular offset can be found by an efficient binary search.
  */
-public sealed class SegmentedByteString extends BaseByteString implements ByteString permits SegmentedUtf8 {
+public final class SegmentedByteString implements ByteString {
+    @Serial
+    private static final long serialVersionUID = 43L;
+
     transient final @NonNull Segment @NonNull [] segments;
-    transient final int @NonNull [] directory;
+    private transient final int @NonNull [] directory;
+
+    private transient int hashCode = 0; // Lazily computed; 0 if unknown.
+    private transient @Nullable String utf8; // Lazily computed.
 
     SegmentedByteString(final @NonNull Segment @NonNull [] segments, final int @NonNull [] directory) {
-        super(((RealByteString) EMPTY).data);
         assert segments != null;
         assert directory != null;
 
@@ -73,27 +82,18 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final @NonNull String base64() {
-        return toByteString().base64();
+    public @NonNull String decodeToString() {
+        var utf8String = utf8;
+        if (utf8String == null) {
+            // We don't care if we double-allocate in racy code.
+            utf8String = new String(toByteArray(), StandardCharsets.UTF_8);
+            utf8 = utf8String;
+        }
+        return utf8String;
     }
 
     @Override
-    public final @NonNull String base64Url() {
-        return toByteString().base64Url();
-    }
-
-    @Override
-    public @NonNull ByteString toAsciiLowercase() {
-        return toByteString().toAsciiLowercase();
-    }
-
-    @Override
-    public @NonNull ByteString toAsciiUppercase() {
-        return toByteString().toAsciiUppercase();
-    }
-
-    @Override
-    public final @NonNull ByteString hash(final @NonNull Digest digest) {
+    public @NonNull ByteString hash(final @NonNull Digest digest) {
         Objects.requireNonNull(digest);
 
         final var messageDigest = messageDigest(digest);
@@ -102,13 +102,18 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
+    public @NonNull ByteString hmac(final @NonNull Hmac hMac, final @NonNull ByteString key) {
         Objects.requireNonNull(hMac);
         Objects.requireNonNull(key);
 
         final var javaMac = mac(hMac, key);
         forEachSegment((s, byteCount) -> javaMac.update(s.data, s.pos, byteCount));
         return new RealByteString(javaMac.doFinal());
+    }
+
+    @Override
+    public @NonNull ByteString substring(final int startIndex) {
+        return substring(startIndex, byteSize());
     }
 
     @Override
@@ -142,7 +147,7 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final byte getByte(final int index) {
+    public byte getByte(final int index) {
         checkOffsetAndCount(directory[segments.length - 1], index, 1);
 
         final var segmentIndex = segment(index);
@@ -152,12 +157,17 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final int byteSize() {
+    public int byteSize() {
         return directory[segments.length - 1];
     }
 
     @Override
-    public final byte @NonNull [] toByteArray() {
+    public boolean isEmpty() {
+        return byteSize() == 0;
+    }
+
+    @Override
+    public byte @NonNull [] toByteArray() {
         final var result = new byte[byteSize()];
         final var resultPos = new Wrapper.Int();
         forEachSegment((s, byteCount) -> {
@@ -168,7 +178,12 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final void write(final @NonNull OutputStream out) {
+    public @NonNull ByteBuffer asByteBuffer() {
+        return ByteBuffer.wrap(toByteArray());
+    }
+
+    @Override
+    public void write(final @NonNull OutputStream out) {
         Objects.requireNonNull(out);
 
         forEachSegment((s, byteCount) -> {
@@ -180,10 +195,12 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
         });
     }
 
-    @Override
-    final void write(final @NonNull RealBuffer buffer,
-                     final int offset,
-                     final int byteCount) {
+    /**
+     * Writes the contents of this byte string to {@code buffer}.
+     */
+    void write(final @NonNull RealBuffer buffer,
+               final int offset,
+               final int byteCount) {
         assert buffer != null;
 
         forEachSegment(offset, offset + byteCount, (s, _offset, _byteCount) -> {
@@ -205,10 +222,10 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final boolean rangeEquals(final int offset,
-                                     final @NonNull ByteString other,
-                                     final int otherOffset,
-                                     final int byteCount) {
+    public boolean rangeEquals(final int offset,
+                               final @NonNull ByteString other,
+                               final int otherOffset,
+                               final int byteCount) {
         Objects.requireNonNull(other);
         if (offset < 0 || offset > byteSize() - byteCount) {
             return false;
@@ -226,10 +243,10 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final boolean rangeEquals(final int offset,
-                                     final byte @NonNull [] other,
-                                     final int otherOffset,
-                                     final int byteCount) {
+    public boolean rangeEquals(final int offset,
+                               final byte @NonNull [] other,
+                               final int otherOffset,
+                               final int byteCount) {
         Objects.requireNonNull(other);
         if (offset < 0 || offset > byteSize() - byteCount ||
                 otherOffset < 0 || otherOffset > other.length - byteCount
@@ -249,10 +266,10 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final void copyInto(final int offset,
-                               final byte @NonNull [] target,
-                               final int targetOffset,
-                               final int byteCount) {
+    public void copyInto(final int offset,
+                         final byte @NonNull [] target,
+                         final int targetOffset,
+                         final int byteCount) {
         Objects.requireNonNull(target);
         checkOffsetAndCount(byteSize(), offset, byteCount);
         checkOffsetAndCount(target.length, targetOffset, byteCount);
@@ -266,42 +283,118 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     }
 
     @Override
-    public final int indexOf(final byte @NonNull [] other, final int startIndex) {
-        Objects.requireNonNull(other);
-        return toByteString().indexOf(other, startIndex);
+    public @NonNull String decodeToString(final @NonNull Charset charset) {
+        Objects.requireNonNull(charset);
+        return toRealByteString().decodeToString(charset);
     }
 
     @Override
-    public final int lastIndexOf(final byte @NonNull [] other, final int startIndex) {
+    public @NonNull String base64() {
+        return toRealByteString().base64();
+    }
+
+    @Override
+    public @NonNull String base64Url() {
+        return toRealByteString().base64Url();
+    }
+
+    @Override
+    public @NonNull String hex() {
+        return toRealByteString().hex();
+    }
+
+    @Override
+    public @NonNull ByteString toAsciiLowercase() {
+        return toRealByteString().toAsciiLowercase();
+    }
+
+    @Override
+    public @NonNull ByteString toAsciiUppercase() {
+        return toRealByteString().toAsciiUppercase();
+    }
+
+    @Override
+    public boolean startsWith(final @NonNull ByteString prefix) {
+        return rangeEquals(0, prefix, 0, prefix.byteSize());
+    }
+
+    @Override
+    public boolean startsWith(final byte @NonNull [] prefix) {
+        return rangeEquals(0, prefix, 0, prefix.length);
+    }
+
+    @Override
+    public boolean endsWith(final @NonNull ByteString suffix) {
+        return rangeEquals(byteSize() - suffix.byteSize(), suffix, 0, suffix.byteSize());
+    }
+
+    @Override
+    public boolean endsWith(final byte @NonNull [] suffix) {
+        return rangeEquals(byteSize() - suffix.length, suffix, 0, suffix.length);
+    }
+
+    @Override
+    public int indexOf(final @NonNull ByteString other) {
+        return indexOf(other, 0);
+    }
+
+    @Override
+    public int indexOf(final @NonNull ByteString other, final int startIndex) {
+        return indexOf(Utils.internalArray(other), startIndex);
+    }
+
+    @Override
+    public int indexOf(final byte @NonNull [] other) {
+        return indexOf(other, 0);
+    }
+
+    @Override
+    public int indexOf(final byte @NonNull [] other, final int startIndex) {
         Objects.requireNonNull(other);
-        return toByteString().lastIndexOf(other, startIndex);
+        return toRealByteString().indexOf(other, startIndex);
+    }
+
+    @Override
+    public int lastIndexOf(final @NonNull ByteString other) {
+        return lastIndexOf(other, byteSize());
+    }
+
+    @Override
+    public int lastIndexOf(final @NonNull ByteString other, final int startIndex) {
+        return lastIndexOf(Utils.internalArray(other), startIndex);
+    }
+
+    @Override
+    public int lastIndexOf(final byte @NonNull [] other) {
+        return lastIndexOf(other, byteSize());
+    }
+
+    @Override
+    public int lastIndexOf(final byte @NonNull [] other, final int startIndex) {
+        Objects.requireNonNull(other);
+        return toRealByteString().lastIndexOf(other, startIndex);
     }
 
     /**
      * Returns a copy as a non-segmented byte string.
      */
-    ByteString toByteString() {
+    private ByteString toRealByteString() {
         return new RealByteString(toByteArray());
     }
 
     @Override
-    final byte @NonNull [] internalArray() {
-        return toByteArray();
-    }
-
-    @Override
-    public final boolean equals(final @Nullable Object other) {
+    public boolean equals(final @Nullable Object other) {
         if (other == this) {
             return true;
         }
-        if (!(other instanceof ByteString _other)) {
+        if (!(other instanceof ByteString that)) {
             return false;
         }
-        return _other.byteSize() == byteSize() && rangeEquals(0, _other, 0, byteSize());
+        return that.byteSize() == byteSize() && rangeEquals(0, that, 0, byteSize());
     }
 
     @Override
-    public final int hashCode() {
+    public int hashCode() {
         if (hashCode != 0) {
             return hashCode;
         }
@@ -322,16 +415,21 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
 
     @Override
     public @NonNull String toString() {
-        return toByteString().toString();
+        return toRealByteString().toString();
+    }
+
+    @Override
+    public int compareTo(final @NonNull ByteString other) {
+        return ByteStringUtils.compareTo(this, other);
     }
 
     /**
      * Processes the segments between `beginIndex` and `endIndex`, invoking `action` with the ByteArray
      * and range of the valid data.
      */
-    final boolean forEachSegment(final int beginIndex,
-                                 final int endIndex,
-                                 final @NonNull TriPredicate<Segment, Integer, Integer> action) {
+    private boolean forEachSegment(final int beginIndex,
+                                   final int endIndex,
+                                   final @NonNull TriPredicate<Segment, Integer, Integer> action) {
         assert action != null;
 
         var segmentIndex = segment(beginIndex);
@@ -373,7 +471,7 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
     /**
      * Returns the index of the segment that contains the byte at `pos`.
      */
-    final int segment(final int pos) {
+    int segment(final int pos) {
         // Search for (pos + 1) instead of (pos) because the directory holds sizes, not indexes.
         final var i = binarySearch(pos + 1, segments.length);
         return (i >= 0) ? i : ~i; // If i is negative, bitflip to get the invert position.
@@ -422,10 +520,115 @@ public sealed class SegmentedByteString extends BaseByteString implements ByteSt
 
     // region native-jvm-serialization
 
+//    @Serial
+//    private void readObject(final @NonNull ObjectInputStream in) throws IOException {
+//        final var dataLength = in.readInt();
+//        final var bytes = in.readNBytes(dataLength);
+//        final var isAscii = in.readBoolean();
+//        final var length = in.readInt();
+//        final Field dataField;
+//        final Field isAsciiField;
+//        final Field lengthField;
+//        try {
+//            dataField = ByteStringUtils.class.getDeclaredField("data");
+//            isAsciiField = ByteStringUtils.class.getDeclaredField("isAscii");
+//            lengthField = ByteStringUtils.class.getDeclaredField("length");
+//        } catch (NoSuchFieldException e) {
+//            throw new IllegalStateException("ByteStringUtils should contain 'data', 'isAscii' and 'length' fields", e);
+//        }
+//        dataField.setAccessible(true);
+//        isAsciiField.setAccessible(true);
+//        lengthField.setAccessible(true);
+//        try {
+//            dataField.set(this, bytes);
+//            isAsciiField.set(this, isAscii);
+//            lengthField.set(this, length);
+//        } catch (IllegalAccessException e) {
+//            throw new IllegalStateException("It should be possible to set ByteStringUtils's 'data', 'isAscii' and " +
+//                    "'length' fields", e);
+//        }
+//    }
+
     @Serial
     private @NonNull Object writeReplace() { // For Java Serialization.
-        return toByteString();
+        return toRealByteString();
     }
 
     // endregion
+
+    public static int utf8Length(final @NonNull SegmentedByteString byteString) {
+        assert byteString != null;
+
+        final var byteSize = byteString.byteSize();
+        final var directory = byteString.directory;
+        final var segments = byteString.segments;
+
+        var byteIndex = 0;
+        var segmentIndex = 0;
+        var nextSegmentOffset = directory[0];
+        var byteIndexInSegment = segments[0].pos;
+        while (segments[segmentIndex].data[byteIndexInSegment] >= 0) {
+            byteIndex++;
+            if (byteIndex < nextSegmentOffset) {
+                // we stay in the current segment
+                byteIndexInSegment++;
+                continue;
+            }
+            if (byteIndex == byteSize) {
+                return byteSize;
+            }
+
+            nextSegmentOffset = directory[++segmentIndex];
+            byteIndexInSegment = segments[segmentIndex].pos;
+        }
+
+        var length = byteIndex;
+        while (true) {
+            final var b0 = segments[segmentIndex].data[byteIndexInSegment];
+            final int increment;
+            if (b0 >= 0) {
+                // 0xxxxxxx : 7 bits (ASCII).
+                increment = 1;
+                length++;
+            } else if ((b0 & 0xe0) == 0xc0) {
+                // 0x110xxxxx : 11 bits (5 + 6).
+                increment = 2;
+                length++;
+            } else if ((b0 & 0xf0) == 0xe0) {
+                // 0x1110xxxx : 16 bits (4 + 6 + 6).
+                increment = 3;
+                length++;
+            } else if ((b0 & 0xf8) == 0xf0) {
+                // 0x11110xxx : 21 bits (3 + 6 + 6 + 6).
+                increment = 4;
+                length += 2;
+            } else {
+                // We expected the first byte of a code point but got something else.
+                throw new JayoCharacterCodingException(
+                        "We expected the first byte of a code point but got something else at byte " + (byteIndex));
+            }
+
+            byteIndex += increment;
+            if (byteIndex < nextSegmentOffset) {
+                // we stay in the current segment
+                byteIndexInSegment += increment;
+                continue;
+            }
+
+            if (byteIndex == byteSize) {
+                return length;
+            }
+            if (byteIndex > byteSize) {
+                throw new JayoCharacterCodingException("malformed input: partial character at end");
+            }
+
+            // we must switch to the next segment until the expected increment
+            int offset = 0;
+            while (byteIndex >= nextSegmentOffset) {
+                offset = byteIndex - nextSegmentOffset;
+                nextSegmentOffset = directory[++segmentIndex];
+            }
+            byteIndexInSegment = segments[segmentIndex].pos + offset;
+        }
+    }
 }

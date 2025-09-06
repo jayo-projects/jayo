@@ -27,7 +27,7 @@ package jayo.internal
 
 import jayo.*
 import jayo.bytestring.ByteString
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import jayo.internal.TestUtil.assertByteArrayEquals
 import jayo.internal.Utils.internalBuffer
 import org.assertj.core.api.Assertions.assertThat
@@ -1729,38 +1729,18 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     }
 
     @Test
-    fun readUtf8TooShortThrows() {
-        writer.write("abc")
-        writer.emit()
-        assertFailsWith<JayoEOFException> { reader.readUtf8(4) }
-
-        assertThat(reader.readUtf8().codePoints())
-            .containsExactly('a'.code, 'b'.code, 'c'.code) // The read shouldn't consume any data.
-    }
-
-    @Test
-    fun readAsciiTooShortThrows() {
-        writer.write("abc")
-        writer.emit()
-        assertFailsWith<JayoEOFException> { reader.readAscii(4) }
-
-        assertThat(reader.readAscii().codePoints())
-            .containsExactly('a'.code, 'b'.code, 'c'.code) // The read shouldn't consume any data.
-    }
-
-    @Test
     fun indexOfByteString() {
-        assertEquals(-1, reader.indexOf("flop".encodeToUtf8()))
+        assertEquals(-1, reader.indexOf("flop".encodeToByteString()))
 
         writer.write("flip flop")
         writer.emit()
-        assertEquals(5, reader.indexOf("flop".encodeToUtf8()))
+        assertEquals(5, reader.indexOf("flop".encodeToByteString()))
         reader.readString() // Clear stream.
 
-        // Make sure we backtrack and resume searching after partial match.
+        // Make sure we backtrack and resume searching after a partial match.
         writer.write("hi hi hi hey")
         writer.emit()
-        assertEquals(3, reader.indexOf("hi hi hey".encodeToUtf8()))
+        assertEquals(3, reader.indexOf("hi hi hey".encodeToByteString()))
     }
 
     @Test
@@ -1770,55 +1750,55 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.emit()
         assertEquals(
             (Segment.SIZE - 3).toLong(),
-            reader.indexOf("aabc".encodeToUtf8(), (Segment.SIZE - 4).toLong()),
+            reader.indexOf("aabc".encodeToByteString(), (Segment.SIZE - 4).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 3).toLong(),
-            reader.indexOf("aabc".encodeToUtf8(), (Segment.SIZE - 3).toLong()),
+            reader.indexOf("aabc".encodeToByteString(), (Segment.SIZE - 3).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("abcd".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("abcd".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("abc".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("abc".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("abc".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("abc".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("ab".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("ab".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 2).toLong(),
-            reader.indexOf("a".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("a".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 1).toLong(),
-            reader.indexOf("bc".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("bc".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE - 1).toLong(),
-            reader.indexOf("b".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("b".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             Segment.SIZE.toLong(),
-            reader.indexOf("c".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("c".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             Segment.SIZE.toLong(),
-            reader.indexOf("c".encodeToUtf8(), Segment.SIZE.toLong()),
+            reader.indexOf("c".encodeToByteString(), Segment.SIZE.toLong()),
         )
         assertEquals(
             (Segment.SIZE + 1).toLong(),
-            reader.indexOf("d".encodeToUtf8(), (Segment.SIZE - 2).toLong()),
+            reader.indexOf("d".encodeToByteString(), (Segment.SIZE - 2).toLong()),
         )
         assertEquals(
             (Segment.SIZE + 1).toLong(),
-            reader.indexOf("d".encodeToUtf8(), (Segment.SIZE + 1).toLong()),
+            reader.indexOf("d".encodeToByteString(), (Segment.SIZE + 1).toLong()),
         )
     }
 
@@ -1827,22 +1807,22 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         writer.write("a".repeat(Segment.SIZE - 1))
         writer.write("bcd")
         writer.emit()
-        assertEquals(-1, reader.indexOf("abcda".encodeToUtf8(), (Segment.SIZE - 3).toLong()))
+        assertEquals(-1, reader.indexOf("abcda".encodeToByteString(), (Segment.SIZE - 3).toLong()))
     }
 
     @Test
     fun indexOfByteStringWithOffset() {
-        assertEquals(-1, reader.indexOf("flop".encodeToUtf8(), 1))
+        assertEquals(-1, reader.indexOf("flop".encodeToByteString(), 1))
 
         writer.write("flop flip flop")
         writer.emit()
-        assertEquals(10, reader.indexOf("flop".encodeToUtf8(), 1))
+        assertEquals(10, reader.indexOf("flop".encodeToByteString(), 1))
         reader.readString() // Clear stream
 
         // Make sure we backtrack and resume searching after partial match.
         writer.write("hi hi hi hi hey")
         writer.emit()
-        assertEquals(6, reader.indexOf("hi hi hey".encodeToUtf8(), 1))
+        assertEquals(6, reader.indexOf("hi hi hey".encodeToByteString(), 1))
     }
 
     @Test
@@ -1857,7 +1837,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     @Test
     fun indexOfByteStringInvalidArgumentsThrows() {
         assertFailsWith<IllegalArgumentException> {
-            reader.indexOf("hi".encodeToUtf8(), -1)
+            reader.indexOf("hi".encodeToByteString(), -1)
         }
     }
 
@@ -1865,55 +1845,55 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
     fun indexOfElement() {
         writer.write("a").write("b".repeat(Segment.SIZE)).write("c")
         writer.emit()
-        assertEquals(0, reader.indexOfElement("DEFGaHIJK".encodeToUtf8()))
-        assertEquals(1, reader.indexOfElement("DEFGHIJKb".encodeToUtf8()))
-        assertEquals((Segment.SIZE + 1).toLong(), reader.indexOfElement("cDEFGHIJK".encodeToUtf8()))
-        assertEquals(1, reader.indexOfElement("DEFbGHIc".encodeToUtf8()))
-        assertEquals(-1L, reader.indexOfElement("DEFGHIJK".encodeToUtf8()))
-        assertEquals(-1L, reader.indexOfElement("".encodeToUtf8()))
+        assertEquals(0, reader.indexOfElement("DEFGaHIJK".encodeToByteString()))
+        assertEquals(1, reader.indexOfElement("DEFGHIJKb".encodeToByteString()))
+        assertEquals((Segment.SIZE + 1).toLong(), reader.indexOfElement("cDEFGHIJK".encodeToByteString()))
+        assertEquals(1, reader.indexOfElement("DEFbGHIc".encodeToByteString()))
+        assertEquals(-1L, reader.indexOfElement("DEFGHIJK".encodeToByteString()))
+        assertEquals(-1L, reader.indexOfElement("".encodeToByteString()))
     }
 
     @Test
     fun indexOfElementWithOffset() {
         writer.write("a").write("b".repeat(Segment.SIZE)).write("c")
         writer.emit()
-        assertEquals(-1, reader.indexOfElement("DEFGaHIJK".encodeToUtf8(), 1))
-        assertEquals(15, reader.indexOfElement("DEFGHIJKb".encodeToUtf8(), 15))
+        assertEquals(-1, reader.indexOfElement("DEFGaHIJK".encodeToByteString(), 1))
+        assertEquals(15, reader.indexOfElement("DEFGHIJKb".encodeToByteString(), 15))
     }
 
     @Test
     fun rangeEquals() {
         writer.write("A man, a plan, a canal. Panama.")
         writer.emit()
-        assertTrue(reader.rangeEquals(7, "a plan".encodeToUtf8()))
-        assertTrue(reader.rangeEquals(0, "A man".encodeToUtf8()))
-        assertTrue(reader.rangeEquals(24, "Panama".encodeToUtf8()))
-        assertFalse(reader.rangeEquals(24, "Panama. Panama. Panama.".encodeToUtf8()))
+        assertTrue(reader.rangeEquals(7, "a plan".encodeToByteString()))
+        assertTrue(reader.rangeEquals(0, "A man".encodeToByteString()))
+        assertTrue(reader.rangeEquals(24, "Panama".encodeToByteString()))
+        assertFalse(reader.rangeEquals(24, "Panama. Panama. Panama.".encodeToByteString()))
     }
 
     @Test
     fun rangeEqualsWithOffsetAndCount() {
         writer.write("A man, a plan, a canal. Panama.")
         writer.emit()
-        assertTrue(reader.rangeEquals(7, "aaa plannn".encodeToUtf8(), 2, 6))
-        assertTrue(reader.rangeEquals(0, "AAA mannn".encodeToUtf8(), 2, 5))
-        assertTrue(reader.rangeEquals(24, "PPPanamaaa".encodeToUtf8(), 2, 6))
+        assertTrue(reader.rangeEquals(7, "aaa plannn".encodeToByteString(), 2, 6))
+        assertTrue(reader.rangeEquals(0, "AAA mannn".encodeToByteString(), 2, 5))
+        assertTrue(reader.rangeEquals(24, "PPPanamaaa".encodeToByteString(), 2, 6))
     }
 
     @Test
     fun rangeEqualsArgumentValidation() {
         // Negative reader offset.
-        assertFalse(reader.rangeEquals(-1, "A".encodeToUtf8()))
+        assertFalse(reader.rangeEquals(-1, "A".encodeToByteString()))
         // Negative bytes offset.
-        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), -1, 1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), -1, 1))
         // Bytes offset longer than bytes length.
-        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 2, 1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 2, 1))
         // Negative byte count.
-        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 0, -1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 0, -1))
         // Byte count longer than bytes length.
-        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 0, 2))
+        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 0, 2))
         // Bytes offset plus byte count longer than bytes length.
-        assertFalse(reader.rangeEquals(0, "A".encodeToUtf8(), 1, 1))
+        assertFalse(reader.rangeEquals(0, "A".encodeToByteString(), 1, 1))
     }
 
     @Test

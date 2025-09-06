@@ -25,7 +25,7 @@ import jayo.*
 import jayo.bytestring.ByteString
 import jayo.bytestring.ByteString.of
 import jayo.bytestring.decodeHex
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import org.junit.jupiter.api.assertThrows
 import java.util.zip.CRC32
 import kotlin.test.Test
@@ -82,7 +82,7 @@ class GzipReaderTest {
         val gzipped = Buffer()
         gzipped.write(gzipHeaderWithFlags(0x04.toByte()))
         gzipped.writeShort(java.lang.Short.reverseBytes(7.toShort())) // little endian extra length
-        gzipped.write("blubber".encodeToUtf8().toByteArray(), 0, 7)
+        gzipped.write("blubber".encodeToByteString().toByteArray(), 0, 7)
         gzipped.write(deflated)
         gzipped.write(gzipTrailer)
         assertGzipped(gzipped)
@@ -92,7 +92,7 @@ class GzipReaderTest {
     fun gunzip_withName() {
         val gzipped = Buffer()
         gzipped.write(gzipHeaderWithFlags(0x08.toByte()))
-        gzipped.write("foo.txt".encodeToUtf8().toByteArray(), 0, 7)
+        gzipped.write("foo.txt".encodeToByteString().toByteArray(), 0, 7)
         gzipped.writeByte(0) // zero-terminated
         gzipped.write(deflated)
         gzipped.write(gzipTrailer)
@@ -103,7 +103,7 @@ class GzipReaderTest {
     fun gunzip_withComment() {
         val gzipped = Buffer()
         gzipped.write(gzipHeaderWithFlags(0x10.toByte()))
-        gzipped.write("rubbish".encodeToUtf8().toByteArray(), 0, 7)
+        gzipped.write("rubbish".encodeToByteString().toByteArray(), 0, 7)
         gzipped.writeByte(0) // zero-terminated
         gzipped.write(deflated)
         gzipped.write(gzipTrailer)
@@ -119,10 +119,10 @@ class GzipReaderTest {
         val gzipped = Buffer()
         gzipped.write(gzipHeaderWithFlags(0x1c.toByte()))
         gzipped.writeShort(java.lang.Short.reverseBytes(7.toShort())) // little endian extra length
-        gzipped.write("blubber".encodeToUtf8().toByteArray(), 0, 7)
-        gzipped.write("foo.txt".encodeToUtf8().toByteArray(), 0, 7)
+        gzipped.write("blubber".encodeToByteString().toByteArray(), 0, 7)
+        gzipped.write("foo.txt".encodeToByteString().toByteArray(), 0, 7)
         gzipped.writeByte(0) // zero-terminated
-        gzipped.write("rubbish".encodeToUtf8().toByteArray(), 0, 7)
+        gzipped.write("rubbish".encodeToByteString().toByteArray(), 0, 7)
         gzipped.writeByte(0) // zero-terminated
         gzipped.write(deflated)
         gzipped.write(gzipTrailer)
