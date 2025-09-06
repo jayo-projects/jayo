@@ -27,8 +27,7 @@ package jayo.internal
 
 import jayo.*
 import jayo.bytestring.ByteString
-import jayo.bytestring.Utf8
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -528,52 +527,26 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
     @Test
     fun writeByteString() {
-        writer.write("təˈranəˌsôr".encodeToUtf8())
+        writer.write("təˈranəˌsôr".encodeToByteString())
         writer.flush()
         assertEquals(ByteString.of(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readByteString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
-                writer.write("təˈranəˌsôr".encodeToUtf8())
+                writer.write("təˈranəˌsôr".encodeToByteString())
             }
         }
     }
 
     @Test
     fun writeByteStringOffset() {
-        writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
+        writer.write("təˈranəˌsôr".encodeToByteString(), 5, 5)
         writer.flush()
         assertEquals(ByteString.of(*"72616ec999".decodeHex()), data.readByteString())
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
-                writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
-            }
-        }
-    }
-
-    @Test
-    fun writeUtf8() {
-        writer.write("təˈranəˌsôr".encodeToUtf8())
-        writer.flush()
-        assertEquals(Utf8.of(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readUtf8())
-        if (writer is RealWriter) {
-            writer.close()
-            assertFailsWith<JayoClosedResourceException> {
-                writer.write("təˈranəˌsôr".encodeToUtf8())
-            }
-        }
-    }
-
-    @Test
-    fun writeUtf8Offset() {
-        writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
-        writer.flush()
-        assertEquals(Utf8.of(*"72616ec999".decodeHex()), data.readUtf8())
-        if (writer is RealWriter) {
-            writer.close()
-            assertFailsWith<JayoClosedResourceException> {
-                writer.write("təˈranəˌsôr".encodeToUtf8(), 5, 5)
+                writer.write("təˈranəˌsôr".encodeToByteString(), 5, 5)
             }
         }
     }

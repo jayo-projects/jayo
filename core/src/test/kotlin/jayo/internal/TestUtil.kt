@@ -23,7 +23,7 @@ package jayo.internal
 
 import jayo.Buffer
 import jayo.bytestring.ByteString
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import org.junit.jupiter.api.Assertions.*
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
@@ -34,7 +34,6 @@ object TestUtil {
     // Necessary to make an internal member visible to Java.
     internal const val SEGMENT_POOL_MAX_SIZE = SegmentPool.MAX_SIZE
     internal const val UTF8_REPLACEMENT_CODE_POINT: Int = Utils.UTF8_REPLACEMENT_CODE_POINT
-    internal const val ASCII_REPLACEMENT_CODE_POINT: Int = Utils.ASCII_REPLACEMENT_CODE_POINT
     internal const val SEGMENT_SIZE = Segment.SIZE
 
     @JvmStatic
@@ -88,7 +87,7 @@ object TestUtil {
             assertFalse(b1 == b3)
             assertFalse(b1.hashCode() == b3.hashCode())
         } else {
-            val b3 = "a".encodeToUtf8()
+            val b3 = "a".encodeToByteString()
             assertFalse(b1 == b3)
             assertFalse(b1.hashCode() == b3.hashCode())
         }

@@ -71,18 +71,6 @@ open class BufferLatin1Benchmark {
     }
 
     @Benchmark
-    fun writeLatin1Okio() {
-        okioBuffer.writeString(encode, Charsets.ISO_8859_1)
-        okioBuffer.clear()
-    }
-
-    @Benchmark
-    fun readLatin1Okio(): String {
-        okioBuffer.writeString(encode, Charsets.ISO_8859_1)
-        return okioBuffer.readString(Charsets.ISO_8859_1)
-    }
-
-    @Benchmark
     fun writeLatin1Jayo() {
         jayoBuffer.write(encode, Charsets.ISO_8859_1)
         jayoBuffer.clear()
@@ -90,7 +78,19 @@ open class BufferLatin1Benchmark {
 
     @Benchmark
     fun readLatin1Jayo(): String {
-        jayoBuffer.write(encode, Charsets.ISO_8859_1)
+        jayoBuffer.write(jayoDecode)
         return jayoBuffer.readString(Charsets.ISO_8859_1)
+    }
+
+    @Benchmark
+    fun writeLatin1Okio() {
+        okioBuffer.writeString(encode, Charsets.ISO_8859_1)
+        okioBuffer.clear()
+    }
+
+    @Benchmark
+    fun readLatin1Okio(): String {
+        okioBuffer.write(okioDecode)
+        return okioBuffer.readString(Charsets.ISO_8859_1)
     }
 }

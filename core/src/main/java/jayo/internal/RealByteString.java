@@ -21,8 +21,9 @@
 
 package jayo.internal;
 
-import jayo.bytestring.ByteString;
+import jayo.JayoCharacterCodingException;
 import jayo.JayoException;
+import jayo.bytestring.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import org.jspecify.annotations.NonNull;
@@ -36,14 +37,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static jayo.internal.BaseByteString.*;
-import static jayo.internal.UnsafeUtils.noCopyStringFromLatin1Bytes;
-import static jayo.internal.Utils.HEX_DIGIT_CHARS;
+import static jayo.internal.ByteStringUtils.checkSubstringParameters;
+import static jayo.internal.UnsafeUtils.*;
+import static jayo.internal.Utils.*;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final /*Valhalla 'primitive class' or at least 'value class'*/ class RealByteString implements ByteString {
     @Serial
     private static final long serialVersionUID = 42L;
+    private static final boolean ALLOW_COMPACT_STRING = UNSAFE_AVAILABLE && SUPPORT_COMPACT_STRING;
 
     final byte @NonNull [] data;
 
@@ -88,7 +90,13 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public @NonNull String hex() {
-        return hexStatic(data);
+        final var result = new char[data.length * 2];
+        var c = 0;
+        for (final var b : data) {
+            result[c++] = HEX_DIGIT_CHARS[b >> 4 & 0xf];
+            result[c++] = HEX_DIGIT_CHARS[b & 0xf];
+        }
+        return new String(result);
     }
 
     @Override
@@ -103,13 +111,57 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public @NonNull ByteString toAsciiLowercase() {
-        final var lowercase = toAsciiLowercaseBytes(data);
+        // Search for an uppercase character. If we don't find one, return this.
+        var i = 0;
+        byte[] lowercase = null;
+        while (i < data.length) {
+            var c = data[i];
+            if (c < (byte) ((int) 'A') || c > (byte) ((int) 'Z')) {
+                i++;
+                continue;
+            }
+
+            // This string needs to be lowercased. Create and return a new byte string.
+            lowercase = data.clone();
+            lowercase[i++] = (byte) (c - ('A' - 'a'));
+            while (i < lowercase.length) {
+                c = lowercase[i];
+                if (c < (byte) ((int) 'A') || c > (byte) ((int) 'Z')) {
+                    i++;
+                    continue;
+                }
+                lowercase[i] = (byte) (c - ('A' - 'a'));
+                i++;
+            }
+        }
         return (lowercase != null) ? new RealByteString(lowercase) : this;
     }
 
     @Override
     public @NonNull ByteString toAsciiUppercase() {
-        final var uppercase = toAsciiUppercaseBytes(data);
+        // Search for a lowercase character. If we don't find one, return this.
+        var i = 0;
+        byte[] uppercase = null;
+        while (i < data.length) {
+            var c = data[i];
+            if (c < (byte) ((int) 'a') || c > (byte) ((int) 'z')) {
+                i++;
+                continue;
+            }
+
+            // This string needs to be uppercased. Create and return a new byte string.
+            uppercase = data.clone();
+            uppercase[i++] = (byte) (c - ('a' - 'A'));
+            while (i < uppercase.length) {
+                c = uppercase[i];
+                if (c < (byte) ((int) 'a') || c > (byte) ((int) 'z')) {
+                    i++;
+                    continue;
+                }
+                uppercase[i] = (byte) (c - ('a' - 'A'));
+                i++;
+            }
+        }
         return (uppercase != null) ? new RealByteString(uppercase) : this;
     }
 
@@ -183,7 +235,12 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
                                final byte @NonNull [] other,
                                final int otherOffset,
                                final int byteCount) {
-        return rangeEqualsStatic(data, offset, other, otherOffset, byteCount);
+        Objects.requireNonNull(other);
+        return (
+                offset >= 0 && offset <= data.length - byteCount &&
+                        otherOffset >= 0 && otherOffset <= other.length - byteCount &&
+                        arrayRangeEquals(data, offset, other, otherOffset, byteCount)
+        );
     }
 
     @Override
@@ -232,7 +289,15 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public int indexOf(final byte @NonNull [] other, final int startIndex) {
-        return indexOfStatic(data, other, startIndex);
+        Objects.requireNonNull(other);
+
+        final var limit = data.length - other.length;
+        for (var i = Math.max(startIndex, 0); i <= limit; i++) {
+            if (arrayRangeEquals(data, i, other, 0, other.length)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -252,15 +317,23 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public int lastIndexOf(final byte @NonNull [] other, final int startIndex) {
-        return lastIndexOfStatic(data, other, startIndex);
+        Objects.requireNonNull(other);
+
+        final var limit = data.length - other.length;
+        for (var i = Math.min(startIndex, limit); i >= 0; i--) {
+            if (arrayRangeEquals(data, i, other, 0, other.length)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     @Override
     public boolean equals(final @Nullable Object other) {
-        if (other == this) {
-            return true;
+        if (!(other instanceof ByteString that)) {
+            return false;
         }
-        return equalsStatic(data, other);
+        return that.byteSize() == data.length && that.rangeEquals(0, data, 0, data.length);
     }
 
     @Override
@@ -270,7 +343,7 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public int compareTo(final @NonNull ByteString other) {
-        return compareToStatic(this, other);
+        return ByteStringUtils.compareTo(this, other);
     }
 
     // this method comes from kotlinx-io
@@ -323,4 +396,49 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
     }
 
     // endregion
+
+    public static int utf8Length(final @NonNull RealByteString byteString) {
+        assert byteString != null;
+
+        final var data = byteString.data;
+        var byteIndex = 0;
+
+        while (byteIndex < data.length) {
+            if (data[byteIndex] < 0) {
+                break;
+            }
+            byteIndex++;
+        }
+
+        var length = byteIndex;
+        while (byteIndex < data.length) {
+            final var b0 = data[byteIndex];
+            if (b0 >= 0) {
+                // 0xxxxxxx : 7 bits (ASCII).
+                byteIndex++;
+                length++;
+            } else if ((b0 & 0xe0) == 0xc0) {
+                // 0x110xxxxx : 11 bits (5 + 6).
+                byteIndex += 2;
+                length++;
+            } else if ((b0 & 0xf0) == 0xe0) {
+                // 0x1110xxxx : 16 bits (4 + 6 + 6).
+                byteIndex += 3;
+                length++;
+            } else if ((b0 & 0xf8) == 0xf0) {
+                // 0x11110xxx : 21 bits (3 + 6 + 6 + 6).
+                byteIndex += 4;
+                length += 2;
+            } else {
+                // We expected the first byte of a code point but got something else.
+                throw new JayoCharacterCodingException(
+                        "We expected the first byte of a code point but got something else at byte " + (byteIndex));
+            }
+        }
+        if (byteIndex > data.length) {
+            throw new JayoCharacterCodingException("malformed input: partial character at end");
+        }
+
+        return length;
+    }
 }

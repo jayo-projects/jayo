@@ -5,11 +5,14 @@
 
 package jayo.internal
 
-import jayo.*
-import jayo.bytestring.encodeToUtf8
+import jayo.Buffer
+import jayo.RawReader
+import jayo.bytestring.encodeToByteString
 import jayo.bytestring.toByteString
 import jayo.crypto.JdkDigest
 import jayo.crypto.JdkHmac
+import jayo.hash
+import jayo.hmac
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -35,7 +38,7 @@ class HashingTests {
     @Test
     fun hMacTest() {
         val bytes = ByteArray(Segment.SIZE *  2 + 1) { 'a'.code.toByte() }
-        val key = "abc".encodeToUtf8()
+        val key = "abc".encodeToByteString()
         val expectedMd5 = "2d6bd1f82825302aa6ed6cdac51771ff"
 
         // ByteString

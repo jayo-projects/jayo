@@ -21,15 +21,17 @@
 
 package jayo.internal
 
+import jayo.Buffer
+import jayo.JayoEOFException
+import jayo.Reader
+import jayo.Writer
+import jayo.bytestring.ByteString
+import jayo.bytestring.encodeToByteString
+import jayo.crypto.JdkDigest
+import jayo.crypto.JdkHmac
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
-import jayo.*
-import jayo.crypto.JdkDigest
-import jayo.crypto.JdkHmac
-import jayo.JayoEOFException
-import jayo.bytestring.ByteString
-import jayo.bytestring.encodeToUtf8
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -51,7 +53,7 @@ class BufferTest {
     @Test
     fun copyToBuffer() {
         val reader = RealBuffer()
-        reader.write("party".encodeToUtf8())
+        reader.write("party".encodeToByteString())
 
         val target = RealBuffer()
         reader.copyTo(target)
@@ -62,7 +64,7 @@ class BufferTest {
     @Test
     fun copyToBufferWithOffset() {
         val reader = RealBuffer()
-        reader.write("party".encodeToUtf8())
+        reader.write("party".encodeToByteString())
 
         val target = RealBuffer()
         reader.copyTo(target, 2L)
@@ -73,7 +75,7 @@ class BufferTest {
     @Test
     fun copyToBufferWithByteCount() {
         val reader = RealBuffer()
-        reader.write("party".encodeToUtf8())
+        reader.write("party".encodeToByteString())
 
         val target = RealBuffer()
         reader.copyTo(target, 0L, 3L)
@@ -84,7 +86,7 @@ class BufferTest {
     @Test
     fun copyToBufferWithOffsetAndByteCount() {
         val reader = RealBuffer()
-        reader.write("party".encodeToUtf8())
+        reader.write("party".encodeToByteString())
 
         val target = RealBuffer()
         reader.copyTo(target, 1L, 3L)
@@ -114,7 +116,7 @@ class BufferTest {
 
     @Test
     fun testHash() {
-        val buffer = RealBuffer().apply { write("Kevin".encodeToUtf8()) }
+        val buffer = RealBuffer().apply { write("Kevin".encodeToByteString()) }
         with(buffer) {
             assertThat(hash(JdkDigest.MD5).hex()).isEqualTo("f1cd318e412b5f7226e5f377a9544ff7")
             assertThat(hash(JdkDigest.SHA_1).hex()).isEqualTo("e043899daa0c7add37bc99792b2c045d6abbc6dc")
@@ -151,8 +153,8 @@ class BufferTest {
 
     @Test
     fun testHMac() {
-        val buffer = RealBuffer().apply { write("Kevin".encodeToUtf8()) }
-        val key = "Brandon".encodeToUtf8()
+        val buffer = RealBuffer().apply { write("Kevin".encodeToByteString()) }
+        val key = "Brandon".encodeToByteString()
         with(buffer) {
             assertThat(hmac(JdkHmac.HMAC_MD5, key).hex()).isEqualTo("cd5478da9993e894de891a6d680a88fb")
             assertThat(hmac(JdkHmac.HMAC_SHA_1, key).hex()).isEqualTo("46eedc331e6f92c801808fd5bfc5424afe659402")
@@ -806,7 +808,7 @@ class BufferTest {
         val buffer = RealBuffer()
         assertEquals(ByteString.EMPTY, buffer.snapshot())
         buffer.write("hello")
-        assertEquals("hello".encodeToUtf8(), buffer.snapshot())
+        assertEquals("hello".encodeToByteString(), buffer.snapshot())
         buffer.clear()
         assertEquals(ByteString.EMPTY, buffer.snapshot())
     }

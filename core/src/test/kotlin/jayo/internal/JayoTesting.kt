@@ -22,9 +22,7 @@
 package jayo.internal
 
 import jayo.Buffer
-import jayo.bytestring.Ascii
 import jayo.bytestring.ByteString
-import jayo.bytestring.Utf8
 
 fun segmentSizes(buffer: Buffer): List<Int> {
     check(buffer is RealBuffer)
@@ -61,32 +59,6 @@ fun makeSegments(source: ByteString): ByteString {
         buffer.byteSize++
     }
     return buffer.snapshot()
-}
-
-fun RealBuffer.readUtf8Segmented() = readUtf8(bytesAvailable())
-
-fun makeUtf8Segments(source: Utf8): Utf8 {
-    val buffer = RealBuffer()
-    for (i in 0 until source.byteSize()) {
-        val segment = buffer.writableTail(Segment.SIZE)
-        segment.data[segment.pos] = source.getByte(i)
-        segment.limit++
-        buffer.byteSize++
-    }
-    return buffer.readUtf8Segmented()
-}
-
-fun RealBuffer.readAsciiSegmented() = readAscii(bytesAvailable())
-
-fun makeAsciiSegments(source: Ascii): Ascii {
-    val buffer = RealBuffer()
-    for (i in 0 until source.byteSize()) {
-        val segment = buffer.writableTail(Segment.SIZE)
-        segment.data[segment.pos] = source.getByte(i)
-        segment.limit++
-        buffer.byteSize++
-    }
-    return buffer.readAsciiSegmented()
 }
 
 fun Char.repeat(count: Int): String {

@@ -23,7 +23,6 @@
 
 package jayo
 
-import jayo.tools.Utf8Utils
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream

@@ -24,7 +24,7 @@ package jayo.internal
 import jayo.*
 import jayo.bytestring.ByteString
 import jayo.bytestring.decodeBase64
-import jayo.bytestring.encodeToUtf8
+import jayo.bytestring.encodeToByteString
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.fail
@@ -103,7 +103,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
                     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB8BtFeWvE=",
         )
         val original = "a".repeat(1024 * 1024)
-        deflate(original.encodeToUtf8())
+        deflate(original.encodeToByteString())
         val inflated = inflate(deflatedReader)
         assertEquals(original, inflated.readString())
     }
@@ -121,7 +121,7 @@ abstract class AbstractInflaterReaderTest internal constructor(private val buffe
         for (i in 0 until 1024) {
             resetDeflatedSourceAndSink()
             val inflated = Buffer().write("a".repeat(i))
-            deflate("God help us, we're in the hands of engineers.".encodeToUtf8())
+            deflate("God help us, we're in the hands of engineers.".encodeToByteString())
             val reader = deflatedReader.inflate()
             while (reader.readAtMostTo(inflated, Int.MAX_VALUE.toLong()) != -1L) {
             }

@@ -22,9 +22,7 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.bytestring.Ascii;
 import jayo.bytestring.ByteString;
-import jayo.bytestring.Utf8;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -92,36 +90,6 @@ public final class RealReader implements Reader {
         }
         require(byteCount);
         return buffer.readByteString(byteCount);
-    }
-
-    @Override
-    public @NonNull Utf8 readUtf8() {
-        buffer.writeAllFrom(reader);
-        return buffer.readUtf8();
-    }
-
-    @Override
-    public @NonNull Utf8 readUtf8(final long byteCount) {
-        if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("invalid byteCount: " + byteCount);
-        }
-        require(byteCount);
-        return buffer.readUtf8(byteCount);
-    }
-
-    @Override
-    public @NonNull Ascii readAscii() {
-        buffer.writeAllFrom(reader);
-        return buffer.readAscii();
-    }
-
-    @Override
-    public @NonNull Ascii readAscii(final long byteCount) {
-        if (byteCount < 0 || byteCount > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("invalid byteCount: " + byteCount);
-        }
-        require(byteCount);
-        return buffer.readAscii(byteCount);
     }
 
     @Override
