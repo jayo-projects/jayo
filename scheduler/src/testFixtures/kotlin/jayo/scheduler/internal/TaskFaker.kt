@@ -48,13 +48,16 @@ import kotlin.contracts.contract
  */
 class TaskFaker : Closeable {
     private fun Any.assertThreadHoldsLock() {
-        if (assertionsEnabled && !taskRunner.scheduledLock.isHeldByCurrentThread) {
+        if (assertionsEnabled &&
+            !taskRunner.scheduledLock.isHeldByCurrentThread &&
+            !taskRunner.lock.isHeldByCurrentThread) {
             throw AssertionError("Thread ${Thread.currentThread().name} MUST hold lock on $this")
         }
     }
 
     private fun Any.assertThreadDoesntHoldLock() {
-        if (assertionsEnabled && taskRunner.scheduledLock.isHeldByCurrentThread) {
+        if (assertionsEnabled &&
+            (taskRunner.scheduledLock.isHeldByCurrentThread || taskRunner.scheduledLock.isHeldByCurrentThread)) {
             throw AssertionError("Thread ${Thread.currentThread().name} MUST NOT hold lock on $this")
         }
     }
@@ -176,7 +179,7 @@ class TaskFaker : Closeable {
                     return true
                 }
 
-                override fun <T> decorate(queue: BlockingQueue<T>) = TaskFakerBlockingQueue(queue)
+                override fun <T : Any> decorate(queue: BlockingQueue<T>) = TaskFakerBlockingQueue(queue)
             },
             logger,
         )
@@ -365,14 +368,14 @@ class TaskFaker : Closeable {
      * This blocking queue hooks into a fake clock rather than using regular JVM timing for functions like [poll]. It is
      * only usable within task faker tasks.
      */
-    private inner class TaskFakerBlockingQueue<T>(
+    private inner class TaskFakerBlockingQueue<T : Any>(
         val delegate: BlockingQueue<T>,
     ) : AbstractQueue<T>(), BlockingQueue<T> {
         override val size: Int = delegate.size
 
         private var editCount = 0
 
-        override fun poll(): T = delegate.poll()
+        override fun poll(): T? = delegate.poll()
 
         @Suppress("unchecked_cast")
         override fun poll(timeout: Long, unit: TimeUnit): T? {
