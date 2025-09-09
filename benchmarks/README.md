@@ -142,9 +142,9 @@ SlowWriterBenchmark.writerJayo    jayo  thrpt    5  2.868 ± 0.167  ops/s
 ## SocketReaderBenchmark
 
 Benchmark                           (type)   Mode  Cnt      Score      Error  Units
-SocketReaderBenchmark.readerJayo   jayo-io  thrpt    5  43424.974 ± 2887.253  ops/s
-SocketReaderBenchmark.readerJayo  jayo-nio  thrpt    5  44226.808 ± 2137.315  ops/s
-SocketReaderBenchmark.readerOkio      okio  thrpt    5  41227.906 ± 1017.343  ops/s
+SocketReaderBenchmark.readerJayo   jayo-io  thrpt    5  45024.388 ± 3553.323  ops/s
+SocketReaderBenchmark.readerJayo  jayo-nio  thrpt    5  42771.983 ± 2038.744  ops/s
+SocketReaderBenchmark.readerOkio      okio  thrpt    5  42404.185 ± 3085.909  ops/s
 
 ## TcpAndJsonSerializationBenchmark
 

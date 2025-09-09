@@ -1,6 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.github.jengelman.gradle.plugins.shadow.transformers.DontIncludeResourceTransformer
-import com.github.jengelman.gradle.plugins.shadow.transformers.IncludeResourceTransformer
 import kotlin.jvm.optionals.getOrNull
 import org.gradle.api.file.DuplicatesStrategy.WARN
 
@@ -44,11 +43,11 @@ jmh {
     jmhVersion = catalogVersion("jmh")
 
 //    includes.set(listOf("""jayo\.benchmarks\.BufferLatin1Benchmark.*"""))
-    includes.set(listOf("""jayo\.benchmarks\.BufferUtf8Benchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.BufferUtf8Benchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.JsonSerializationBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SlowReaderBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SlowWriterBenchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
+    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
 }
 

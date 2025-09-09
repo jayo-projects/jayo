@@ -29,7 +29,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to
@@ -79,13 +78,6 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     boolean exit(final @Nullable Node node);
 
     /**
-     * Surrounds {@code block} with calls to {@link #enter(long)} and {@link #exit(Node)} , throwing a
-     * {@linkplain jayo.JayoTimeoutException JayoTimeoutException} if a timeout occurred. You must provide a
-     * {@code cancelToken} obtained by calling {@link CancelToken#getCancelToken()}.
-     */
-    <T> T withTimeout(final @NonNull CancelToken cancelToken, final @NonNull Supplier<T> block);
-
-    /**
      * @param reader the delegate reader.
      * @return a new reader that delegates to {@code reader}, using this to implement timeouts. If a timeout occurs, the
      * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
@@ -116,7 +108,8 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
          * @return the default read timeout. It will be used as a fallback for each read operation, only if no timeout
          * is present in the cancellable context.
          */
-        @NonNull Duration getTimeout();
+        @NonNull
+        Duration getTimeout();
 
         /**
          * Sets the default read timeout. It will be used as a fallback for each read operation, only if no timeout is
@@ -130,7 +123,8 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
          * @return the default write timeout. It will be used as a fallback for each write operation, only if no timeout
          * is present in the cancellable context.
          */
-        @NonNull Duration getTimeout();
+        @NonNull
+        Duration getTimeout();
 
         /**
          * Sets the default write timeout. It will be used as a fallback for each write operation, only if no timeout is

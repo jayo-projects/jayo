@@ -129,25 +129,28 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         return new RawReaderWithTimeout(reader);
     }
 
-    @Override
-    public <T> T withTimeout(final @NonNull CancelToken cancelToken, final @NonNull Supplier<T> block) {
-        Objects.requireNonNull(cancelToken);
-        Objects.requireNonNull(block);
-        final var _cancelToken = (RealCancelToken) cancelToken;
+    /**
+     * Surrounds {@code block} with calls to {@link #enter(long)} and {@link #exit(Node)} , throwing a
+     * {@linkplain jayo.JayoTimeoutException JayoTimeoutException} if a timeout occurred. You must provide a
+     * {@code cancelToken} obtained by calling {@link CancelToken#getCancelToken()}.
+     */
+    public <T> T withTimeout(final @NonNull RealCancelToken cancelToken, final @NonNull Supplier<T> block) {
+        assert cancelToken != null;
+        assert block != null;
 
         var throwOnTimeout = false;
-        final var node = enter(_cancelToken, false);
+        final var node = enter(cancelToken, false);
         try {
             final var result = block.get();
             throwOnTimeout = true;
             return result;
         } catch (JayoException e) {
-            _cancelToken.cancel();
+            cancelToken.cancel();
             throw (!exit(node)) ? e : newTimeoutException(e);
         } finally {
             final var timedOut = exit(node);
             if (timedOut && throwOnTimeout) {
-                _cancelToken.cancel();
+                cancelToken.cancel();
                 throw newTimeoutException(null);
             }
         }
