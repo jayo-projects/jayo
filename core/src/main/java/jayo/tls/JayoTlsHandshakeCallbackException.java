@@ -16,7 +16,7 @@ import javax.net.ssl.SSLHandshakeException;
 import java.util.Objects;
 
 /**
- * Thrown during {@link TlsEndpoint} handshake to indicate that a user-supplied function threw an exception.
+ * Thrown during {@link TlsSocket} handshake to indicate that a user-supplied function threw an exception.
  */
 public final class JayoTlsHandshakeCallbackException extends JayoTlsHandshakeException {
     public JayoTlsHandshakeCallbackException(String message, Throwable throwable) {

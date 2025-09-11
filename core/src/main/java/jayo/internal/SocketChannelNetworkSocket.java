@@ -3,17 +3,14 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo.internal.network;
+package jayo.internal;
 
-import jayo.*;
-import jayo.internal.GatheringByteChannelRawWriter;
-import jayo.internal.ReadableByteChannelRawReader;
-import jayo.internal.RealAsyncTimeout;
-import jayo.internal.RealAsyncTimeout.RawReaderWithTimeout;
-import jayo.internal.RealAsyncTimeout.RawWriterWithTimeout;
-import jayo.internal.RealCancelToken;
-import jayo.network.NetworkEndpoint;
+import jayo.JayoException;
+import jayo.internal.network.RealSocksProxy;
+import jayo.internal.network.SocksNetworkSocket;
+import jayo.network.NetworkSocket;
 import jayo.network.Proxy;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -23,6 +20,7 @@ import java.net.ProtocolFamily;
 import java.net.SocketOption;
 import java.nio.channels.SocketChannel;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,13 +28,13 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
 
 /**
- * A {@link NetworkEndpoint} backed by an underlying {@linkplain SocketChannel NIO SocketChannel}.
+ * A {@link NetworkSocket} backed by an underlying {@linkplain SocketChannel NIO SocketChannel}.
  */
-public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
-    private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketChannelNetworkEndpoint");
+public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketChannelNetworkSocket");
 
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-    static @NonNull NetworkEndpoint connect(
+    public static @NonNull NetworkSocket connect(
             final @NonNull InetSocketAddress peerAddress,
             final @Nullable Duration connectTimeout,
             final Proxy.@Nullable Socks proxy,
@@ -54,47 +52,47 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             }
 
             final var asyncTimeout = buildAsyncTimeout(socketChannel);
-            final NetworkEndpoint networkEndpoint;
+            final NetworkSocket networkSocket;
             if (connectTimeout != null) {
                 final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
-                networkEndpoint = asyncTimeout.withTimeout(cancelToken, () ->
+                networkSocket = asyncTimeout.withTimeout(cancelToken, () ->
                         connect(socketChannel, peerAddress, asyncTimeout, proxy));
             } else {
-                networkEndpoint = connect(socketChannel, peerAddress, asyncTimeout, proxy);
+                networkSocket = connect(socketChannel, peerAddress, asyncTimeout, proxy);
             }
 
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketChannelNetworkEndpoint connected to {0}, protocol family " +
+                LOGGER.log(DEBUG, "new client SocketChannelNetworkSocket connected to {0}, protocol family " +
                         "= {1}, socket options = {2}", peerAddress, family, socketOptions);
             }
 
-            return networkEndpoint;
+            return networkSocket;
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG,
-                        "new client SocketChannelNetworkEndpoint failed to connect to " + peerAddress, e);
+                        "new client SocketChannelNetworkSocket failed to connect to " + peerAddress, e);
             }
             throw JayoException.buildJayoException(e);
         }
     }
 
-    private static @NonNull NetworkEndpoint connect(final @NonNull SocketChannel socketChannel,
-                                                    final @NonNull InetSocketAddress peerAddress,
-                                                    final @NonNull RealAsyncTimeout asyncTimeout,
-                                                    final Proxy.@Nullable Socks proxy) {
+    private static @NonNull NetworkSocket connect(final @NonNull SocketChannel socketChannel,
+                                                  final @NonNull InetSocketAddress peerAddress,
+                                                  final @NonNull RealAsyncTimeout asyncTimeout,
+                                                  final Proxy.@Nullable Socks proxy) {
         try {
             if (proxy != null) {
                 // connect to the proxy and use it to reach peer
                 socketChannel.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
-                final var proxyNetEndpoint = new SocketChannelNetworkEndpoint(socketChannel, asyncTimeout);
+                final var proxyNetEndpoint = new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
                 if (!(proxy instanceof RealSocksProxy socksProxy)) {
                     throw new IllegalArgumentException("proxy is not a RealSocksProxy");
                 }
-                return new SocksNetworkEndpoint(socksProxy, proxyNetEndpoint, peerAddress);
+                return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
             }
             // connect to peer
             socketChannel.connect(peerAddress);
-            return new SocketChannelNetworkEndpoint(socketChannel, asyncTimeout);
+            return new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -114,53 +112,20 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
 
     private final @NonNull SocketChannel socketChannel;
 
-    final @NonNull RawReaderWithTimeout rawReader;
-    private Reader reader = null;
-    final @NonNull RawWriterWithTimeout rawWriter;
-    private Writer writer = null;
-
-    SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel) {
+    public SocketChannelNetworkSocket(final @NonNull SocketChannel socketChannel) {
         this(socketChannel, buildAsyncTimeout(socketChannel));
     }
 
-    private SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel,
-                                         final @NonNull RealAsyncTimeout asyncTimeout) {
+    private SocketChannelNetworkSocket(final @NonNull SocketChannel socketChannel,
+                                       final @NonNull RealAsyncTimeout timeout) {
+        super(timeout);
         assert socketChannel != null;
-        assert asyncTimeout != null;
 
         this.socketChannel = socketChannel;
-        this.rawReader = asyncTimeout.reader(new ReadableByteChannelRawReader(socketChannel));
-        this.rawWriter = asyncTimeout.writer(new GatheringByteChannelRawWriter(socketChannel));
     }
 
     @Override
-    public @NonNull Reader getReader() {
-        if (reader == null) {
-            setReader(rawReader);
-        }
-        return reader;
-    }
-
-    void setReader(final @NonNull RawReader rawReader) {
-        assert rawReader != null;
-        reader = Jayo.buffer(rawReader);
-    }
-
-    @Override
-    public @NonNull Writer getWriter() {
-        if (writer == null) {
-            setWriter(rawWriter);
-        }
-        return writer;
-    }
-
-    void setWriter(final @NonNull RawWriter rawWriter) {
-        assert rawWriter != null;
-        writer = Jayo.buffer(rawWriter);
-    }
-
-    @Override
-    public void close() {
+    public void cancel() {
         try {
             socketChannel.close();
         } catch (IOException e) {
@@ -202,27 +167,68 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
-    public @NonNull Duration getReadTimeout() {
-        return rawReader.getTimeout();
-    }
-
-    @Override
     public void setReadTimeout(final @NonNull Duration readTimeout) {
-        rawReader.setTimeout(readTimeout);
-    }
-
-    @Override
-    public @NonNull Duration getWriteTimeout() {
-        return rawWriter.getTimeout();
-    }
-
-    @Override
-    public void setWriteTimeout(final @NonNull Duration writeTimeout) {
-        rawWriter.setTimeout(writeTimeout);
+        Objects.requireNonNull(readTimeout);
+        readTimeoutNanos = readTimeout.toNanos();
     }
 
     @Override
     public @NonNull SocketChannel getUnderlying() {
         return socketChannel;
+    }
+
+    @Override
+    int read(final @NonNull Segment dstTail, final int toRead) throws IOException {
+        assert dstTail != null;
+        return socketChannel.read(dstTail.asByteBuffer(dstTail.limit, toRead));
+    }
+
+    @Override
+    void shutdownInput() throws IOException {
+        if (!socketChannel.isOpen()) {
+            return; // Nothing to do.
+        }
+        socketChannel.shutdownInput();
+    }
+
+    @Override
+    void write(final @NonNull RealBuffer src,
+               final int byteCount,
+               final @Nullable RealCancelToken cancelToken) {
+        assert src != null;
+
+        src.withHeadsAsByteBuffers(byteCount, sources -> {
+            var remaining = byteCount;
+            final var firstSourceIndex = new Wrapper.Int(); // index of the first source in the array of sources with remaining bytes to write
+            while (true) {
+                CancelToken.throwIfReached(cancelToken);
+                final int written= timeout.withTimeout(cancelToken, () -> {
+                    try {
+                        return (int) socketChannel.write(sources, firstSourceIndex.value,
+                                sources.length - firstSourceIndex.value);
+                    } catch (IOException e) {
+                        throw JayoException.buildJayoException(e);
+                    }
+                });
+                remaining -= written;
+                if (remaining == 0) {
+                    break; // done
+                }
+
+                // we must ignore the X first fully written byteArrays in the next iteration's writing call
+                firstSourceIndex.value = (int) Arrays.stream(sources)
+                        .takeWhile(byteBuffer -> !byteBuffer.hasRemaining())
+                        .count();
+            }
+            return byteCount;
+        });
+    }
+
+    @Override
+    void shutdownOutput() throws IOException {
+        if (!socketChannel.isOpen()) {
+            return; // Nothing to do.
+        }
+        socketChannel.shutdownOutput();
     }
 }

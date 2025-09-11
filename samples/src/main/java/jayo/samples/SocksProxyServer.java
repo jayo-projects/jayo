@@ -22,7 +22,7 @@
 package jayo.samples;
 
 import jayo.*;
-import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkSocket;
 import jayo.network.NetworkServer;
 
 import java.io.IOException;
@@ -47,7 +47,7 @@ public final class SocksProxyServer {
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private NetworkServer networkServer;
-    private final Set<NetworkEndpoint> openNetworkEndpoints = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<NetworkSocket> openNetworkSockets = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public void start() {
         networkServer = NetworkServer.bindTcp(new InetSocketAddress(0 /* find free port */));
@@ -67,23 +67,23 @@ public final class SocksProxyServer {
     private void acceptSockets() {
         try {
             while (true) {
-                final NetworkEndpoint from = networkServer.accept();
-                openNetworkEndpoints.add(from);
+                final NetworkSocket from = networkServer.accept();
+                openNetworkSockets.add(from);
                 executor.execute(() -> handleClient(from));
             }
         } catch (JayoException e) {
             System.out.println("shutting down because of: " + e);
         } finally {
-            for (NetworkEndpoint networkEndpoint : openNetworkEndpoints) {
-                closeQuietly(networkEndpoint);
+            for (NetworkSocket networkSocket : openNetworkSockets) {
+                Jayo.closeQuietly(networkSocket);
             }
         }
     }
 
-    private void handleClient(final NetworkEndpoint client) {
-        final Reader fromReader = client.getReader();
-        final Writer fromWriter = client.getWriter();
+    private void handleClient(final NetworkSocket client) {
         try {
+            final Reader fromReader = client.getReader();
+            final Writer fromWriter = client.getWriter();
             // Read the hello.
             final int socksVersion = fromReader.readByte();
             if (socksVersion != VERSION_5) {
@@ -122,10 +122,10 @@ public final class SocksProxyServer {
             int port = fromReader.readShort() & 0xffff;
 
             // Connect to the caller's specified host.
-            final NetworkEndpoint toNetworkEndpoint = NetworkEndpoint.connectTcp(new InetSocketAddress(inetAddress, port));
-            openNetworkEndpoints.add(toNetworkEndpoint);
-            InetSocketAddress toNetworkEndpointAddress = toNetworkEndpoint.getLocalAddress();
-            byte[] localAddress = toNetworkEndpointAddress.getAddress().getAddress();
+            final NetworkSocket toNetworkSocket = NetworkSocket.connectTcp(new InetSocketAddress(inetAddress, port));
+            openNetworkSockets.add(toNetworkSocket);
+            InetSocketAddress toNetworkSocketAddress = toNetworkSocket.getLocalAddress();
+            byte[] localAddress = toNetworkSocketAddress.getAddress().getAddress();
             if (localAddress.length != 4) {
                 throw new JayoProtocolException("Caller's specified host local address must be IPv4");
             }
@@ -136,17 +136,17 @@ public final class SocksProxyServer {
                     .writeByte((byte) 0)
                     .writeByte(ADDRESS_TYPE_IPV4)
                     .write(localAddress)
-                    .writeShort((short) toNetworkEndpointAddress.getPort())
+                    .writeShort((short) toNetworkSocketAddress.getPort())
                     .flush();
 
             // Connect readers to writers in both directions.
-            final var toWriter = toNetworkEndpoint.getWriter();
+            final var toWriter = toNetworkSocket.getWriter();
             executor.execute(() -> transfer(client, fromReader, toWriter));
-            final var toReader = toNetworkEndpoint.getReader();
-            executor.execute(() -> transfer(toNetworkEndpoint, toReader, fromWriter));
+            final var toReader = toNetworkSocket.getReader();
+            executor.execute(() -> transfer(toNetworkSocket, toReader, fromWriter));
         } catch (JayoException | IOException e) {
-            closeQuietly(client);
-            openNetworkEndpoints.remove(client);
+            Jayo.closeQuietly(client);
+            openNetworkSockets.remove(client);
             System.out.println("connect failed for " + client + ": " + e);
         }
     }
@@ -155,7 +155,7 @@ public final class SocksProxyServer {
      * Read data from {@code reader} and write it to {@code writer}. This doesn't use {@link Writer#writeAllFrom(RawReader)}
      * because that method doesn't flush aggressively, and we need that.
      */
-    private void transfer(NetworkEndpoint readerNetworkEndpoint, RawReader reader, RawWriter writer) {
+    private void transfer(NetworkSocket readerNetworkSocket, RawReader reader, RawWriter writer) {
         try {
             Buffer buffer = Buffer.create();
             for (long byteCount; (byteCount = reader.readAtMostTo(buffer, 8192L)) != -1; ) {
@@ -166,8 +166,8 @@ public final class SocksProxyServer {
         } finally {
             closeQuietly(writer);
             closeQuietly(reader);
-            closeQuietly(readerNetworkEndpoint);
-            openNetworkEndpoints.remove(readerNetworkEndpoint);
+            Jayo.closeQuietly(readerNetworkSocket);
+            openNetworkSockets.remove(readerNetworkSocket);
         }
     }
 

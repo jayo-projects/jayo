@@ -10,7 +10,7 @@
 
 package jayo.tls;
 
-import jayo.Endpoint;
+import jayo.Socket;
 import jayo.network.NetworkServer;
 import jayo.tls.helpers.CertificateFactory;
 import jayo.tls.helpers.SocketPairFactory;
@@ -39,13 +39,13 @@ public class FailTest {
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
-        Endpoint serverEndpoint = server.accept();
+        Socket serverSocket = server.accept();
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> {
-            final var parameterizer = ServerTlsEndpoint.builder(nameOpt ->
+            final var parameterizer = ServerTlsSocket.builder(nameOpt ->
                             factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
                                     nameOpt))
-                    .createParameterizer(serverEndpoint);
+                    .createParameterizer(serverSocket);
             factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), parameterizer);
             assertThat(parameterizer.getEnabledTlsVersions()).contains(certificateFactory.version);
             parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
@@ -70,13 +70,13 @@ public class FailTest {
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
-        Endpoint serverEndpoint = server.accept();
+        Socket serverSocket = server.accept();
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> {
-            final var parameterizer = ServerTlsEndpoint.builder(nameOpt ->
+            final var parameterizer = ServerTlsSocket.builder(nameOpt ->
                             factory.handshakeCertificatesFactory(certificateFactory.getServerHandshakeCertificates(),
                                     nameOpt))
-                    .createParameterizer(serverEndpoint);
+                    .createParameterizer(serverSocket);
             factory.fixedCipherServerSslEngineCustomizer(Optional.empty(), parameterizer);
             parameterizer.setEnabledTlsVersions(List.of(certificateFactory.version));
             parameterizer.build();

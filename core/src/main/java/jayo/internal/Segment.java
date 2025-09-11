@@ -47,7 +47,7 @@ final class Segment {
      *
      * @implNote Aligned with TLS max data size = 16_709 bytes
      */
-    static final int SIZE = RealTlsEndpoint.MAX_ENCRYPTED_PACKET_BYTE_SIZE;
+    static final int SIZE = AbstractTlsSocket.MAX_ENCRYPTED_PACKET_BYTE_SIZE;
 
     /**
      * A segment will be shared if the data size exceeds this threshold to avoid having to copy this many bytes.

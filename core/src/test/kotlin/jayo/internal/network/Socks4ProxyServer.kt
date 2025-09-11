@@ -6,9 +6,9 @@
 package jayo.internal.network
 
 import jayo.*
-import jayo.internal.network.SocksNetworkEndpoint.COMMAND_CONNECT
-import jayo.internal.network.SocksNetworkEndpoint.SOCKS_V4
-import jayo.network.NetworkEndpoint
+import jayo.internal.network.SocksNetworkSocket.COMMAND_CONNECT
+import jayo.internal.network.SocksNetworkSocket.SOCKS_V4
+import jayo.network.NetworkSocket
 import jayo.network.NetworkServer
 import java.io.Closeable
 import java.net.InetAddress
@@ -64,9 +64,9 @@ class Socks4ProxyServer(
             val decodedUsername = sb.toString()
 
             // Connect to the caller's specified host.
-            val toNetworkEndpoint = NetworkEndpoint.connectTcp(InetSocketAddress(inetAddress, port))
-            val toNetworkEndpointAddress = toNetworkEndpoint.localAddress
-            val localAddress = toNetworkEndpointAddress.address.address
+            val toNetworkSocket = NetworkSocket.connectTcp(InetSocketAddress(inetAddress, port))
+            val toNetworkSocketAddress = toNetworkSocket.localAddress
+            val localAddress = toNetworkSocketAddress.address.address
 
             // Write the reply.
             val authStatus = if (username == null || username == decodedUsername) {
@@ -76,17 +76,17 @@ class Socks4ProxyServer(
             }
             fromWriter.writeByte(SOCKS_V4)
                 .writeByte(authStatus)
-                .writeShort(toNetworkEndpointAddress.port.toShort())
+                .writeShort(toNetworkSocketAddress.port.toShort())
                 .write(localAddress)
                 .emit()
 
             // Connect readers to writers in both directions.
-            val toWriter = toNetworkEndpoint.writer
+            val toWriter = toNetworkSocket.writer
             executor.execute { transfer(client, fromReader, toWriter) }
-            val toReader = toNetworkEndpoint.reader
-            executor.execute { transfer(toNetworkEndpoint, toReader, fromWriter) }
+            val toReader = toNetworkSocket.reader
+            executor.execute { transfer(toNetworkSocket, toReader, fromWriter) }
         } catch (e: JayoException) {
-            client.close()
+            client.cancel()
             println("connect failed for $client: $e")
         }
     }
@@ -95,7 +95,7 @@ class Socks4ProxyServer(
      * Read data from `reader` and write it to `writer`. This doesn't use [Writer.writeAllFrom] because that method
      * doesn't flush aggressively, and we need that.
      */
-    private fun transfer(readerNetworkEndpoint: NetworkEndpoint, reader: RawReader, writer: RawWriter) {
+    private fun transfer(readerNetworkSocket: NetworkSocket, reader: RawReader, writer: RawWriter) {
         try {
             val buffer = Buffer()
             var byteCount: Long
@@ -107,7 +107,7 @@ class Socks4ProxyServer(
         } finally {
             writer.close()
             reader.close()
-            readerNetworkEndpoint.close()
+            readerNetworkSocket.cancel()
         }
     }
 }

@@ -35,7 +35,7 @@ import java.util.Objects;
 
 @SuppressWarnings("resource")
 public final class RealWriter implements Writer {
-    private final @NonNull RawWriter writer;
+    final @NonNull RawWriter writer;
     final @NonNull RealBuffer buffer = new RealBuffer();
     private boolean closed = false;
 
@@ -144,10 +144,7 @@ public final class RealWriter implements Writer {
     private @NonNull Writer writePrivate(final byte @NonNull [] source,
                                          final int offset,
                                          final int byteCount) {
-        Objects.requireNonNull(source);
-        if (closed) {
-            throw new JayoClosedResourceException();
-        }
+        assert source != null;
 
         buffer.write(source, offset, byteCount);
         return emitCompleteSegments();

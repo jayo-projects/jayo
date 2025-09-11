@@ -98,6 +98,9 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         if (writer is RealWriter) {
             writer.close()
             assertFailsWith<JayoClosedResourceException> {
+                writer.write(reader)
+            }
+            assertFailsWith<JayoClosedResourceException> {
                 writer.write(reader, 1, 1)
             }
         }
@@ -442,6 +445,44 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
     private fun assertLongDecimalString(string: String, value: Long) {
         with(writer) {
             writeDecimalLong(value)
+            write("zzz")
+            flush()
+        }
+        val expected = "${string}zzz"
+        val actual = data.readString()
+        assertEquals(expected, actual, "$value expected $expected but was $actual")
+    }
+
+    @Test
+    fun hexadecimalUnsignedLongString() {
+        assertHexadecimalUnsignedLongString("0", 0)
+        assertHexadecimalUnsignedLongString("8000000000000000", Long.MIN_VALUE)
+        assertHexadecimalUnsignedLongString("7fffffffffffffff", Long.MAX_VALUE)
+        assertHexadecimalUnsignedLongString("9", 9L)
+        assertHexadecimalUnsignedLongString("63", 99L)
+        assertHexadecimalUnsignedLongString("3e7", 999L)
+        assertHexadecimalUnsignedLongString("270f", 9999L)
+        assertHexadecimalUnsignedLongString("1869f", 99999L)
+        assertHexadecimalUnsignedLongString("f423f", 999999L)
+        assertHexadecimalUnsignedLongString("98967f", 9999999L)
+        assertHexadecimalUnsignedLongString("a", 10L)
+        assertHexadecimalUnsignedLongString("64", 100L)
+        assertHexadecimalUnsignedLongString("3e8", 1000L)
+        assertHexadecimalUnsignedLongString("2710", 10000L)
+        assertHexadecimalUnsignedLongString("186a0", 100000L)
+        assertHexadecimalUnsignedLongString("f4240", 1000000L)
+        assertHexadecimalUnsignedLongString("989680", 10000000L)
+        if (writer is RealWriter) {
+            writer.close()
+            assertFailsWith<JayoClosedResourceException> {
+                writer.writeHexadecimalUnsignedLong(0L)
+            }
+        }
+    }
+
+    private fun assertHexadecimalUnsignedLongString(string: String, value: Long) {
+        with(writer) {
+            writeHexadecimalUnsignedLong(value)
             write("zzz")
             flush()
         }

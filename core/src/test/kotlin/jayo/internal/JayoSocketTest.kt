@@ -10,7 +10,6 @@ import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import java.io.OutputStream
 import java.net.Socket
 import kotlin.concurrent.thread
 import kotlin.time.Duration.Companion.milliseconds
@@ -21,11 +20,12 @@ class JayoSocketTest {
         val buffer = Buffer()
         val socket = object : Socket() {
             override fun isConnected() = true
+            override fun getOutputStream() = buffer.asOutputStream()
             override fun getInputStream() = buffer.asInputStream()
         }
 
         assertThatThrownBy {
-            Jayo.reader(socket).readAtMostTo(Buffer(), -1)
+            socket.asJayoSocket().reader.readAtMostTo(Buffer(), -1)
         }.isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage("byteCount < 0: -1")
     }
@@ -35,6 +35,7 @@ class JayoSocketTest {
         val buffer = Buffer()
         val socket = object : Socket() {
             override fun isConnected() = true
+            override fun getOutputStream() = buffer.asOutputStream()
             override fun getInputStream() = buffer.asInputStream()
         }
 
@@ -43,7 +44,7 @@ class JayoSocketTest {
             thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
-                val reader = Jayo.reader(socket).buffered()
+                val reader = socket.asJayoSocket().reader
                 throwableAssert = assertThatThrownBy { reader.readByte() }
             }.join()
         }
@@ -56,6 +57,7 @@ class JayoSocketTest {
         val buffer = Buffer()
         val socket = object : Socket() {
             override fun isConnected() = true
+            override fun getOutputStream() = buffer.asOutputStream()
             override fun getInputStream() = buffer.asInputStream()
         }
 
@@ -64,7 +66,7 @@ class JayoSocketTest {
             thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
-                val reader = Jayo.reader(socket).buffered()
+                val reader = socket.asJayoSocket().reader
                 throwableAssert = assertThatThrownBy { reader.readByte() }
             }.join()
         }
@@ -78,6 +80,7 @@ class JayoSocketTest {
         val socket = object : Socket() {
             override fun isConnected() = true
             override fun getOutputStream() = buffer.asOutputStream()
+            override fun getInputStream() = buffer.asInputStream()
         }
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
@@ -85,7 +88,7 @@ class JayoSocketTest {
             thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
-                val writer = Jayo.writer(socket).buffered()
+                val writer = socket.asJayoSocket().writer
                 throwableAssert = assertThatThrownBy {
                     writer.writeByte(0)
                     writer.flush()
@@ -102,6 +105,7 @@ class JayoSocketTest {
         val socket = object : Socket() {
             override fun isConnected() = true
             override fun getOutputStream() = buffer.asOutputStream()
+            override fun getInputStream() = buffer.asInputStream()
         }
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
@@ -109,7 +113,7 @@ class JayoSocketTest {
             thread(start = true) {
                 cancel()
                 Thread.currentThread().interrupt()
-                val writer = Jayo.writer(socket).buffered()
+                val writer = socket.asJayoSocket().writer
                 throwableAssert = assertThatThrownBy {
                     writer.writeByte(0)
                     writer.flush()
@@ -123,19 +127,19 @@ class JayoSocketTest {
     @Test
     @Tag("no-ci")
     fun `close with timeout`() {
+        val buffer = Buffer()
         val socket = object : Socket() {
             override fun isConnected() = true
-            override fun getOutputStream() = object : OutputStream() {
-                override fun write(b: Int) = TODO("Not yet implemented")
+            override fun getOutputStream() = buffer.asOutputStream()
+            override fun getInputStream() = buffer.asInputStream()
 
-                override fun close() {
-                    Thread.sleep(2)
-                }
+            override fun shutdownOutput() {
+                Thread.sleep(3)
             }
         }
         cancelScope(1.milliseconds) {
             assertThatThrownBy {
-                Jayo.writer(socket).close()
+                socket.asJayoSocket().writer.close()
             }.isInstanceOf(JayoTimeoutException::class.java)
                 .hasMessage("timeout")
         }
@@ -147,7 +151,10 @@ class JayoSocketTest {
         val socket = object : Socket() {
             override fun isConnected() = true
             override fun getOutputStream() = buffer.asOutputStream()
+            override fun getInputStream() = buffer.asInputStream()
+
+            override fun shutdownOutput() {}
         }
-        Jayo.writer(socket).close()
+        socket.asJayoSocket().writer.close()
     }
 }

@@ -90,8 +90,8 @@ public class Loops {
             clientReaderThread.join();
             serverWriterThread.join();
 
-            socketPair.client.plain.close();
-            socketPair.server.plain.close();
+            socketPair.client.plain.cancel();
+            socketPair.server.plain.cancel();
 
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -122,7 +122,7 @@ public class Loops {
                 socketGroup.tls.shutdown();
             }
             if (close) {
-                socketGroup.plain.close();
+                socketGroup.plain.cancel();
             }
             logger.fine("Finalizing writer loop");
         });
@@ -149,7 +149,7 @@ public class Loops {
             byte[] actual = digest.digest();
             assertThat(actual).contains(expectedBytesHash.apply(size));
             if (close) {
-                socketGroup.plain.close();
+                socketGroup.plain.cancel();
             }
             logger.fine("Finalizing reader loop");
         });

@@ -10,11 +10,11 @@
 
 package jayo.tls;
 
-import jayo.Endpoint;
 import jayo.JayoException;
 import jayo.Reader;
+import jayo.Socket;
 import jayo.Writer;
-import jayo.internal.RealTlsEndpoint;
+import jayo.internal.AbstractTlsSocket;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SSLEngine;
@@ -22,13 +22,13 @@ import javax.net.ssl.SSLSession;
 import java.util.List;
 
 /**
- * A TLS (Transport Layer Security) endpoint, either the client-side or server-side end of a TLS connection between two
- * peers. {@link TlsEndpoint} guarantee that the TLS connection is established and the <b>initial handshake was done</b>
+ * A TLS (Transport Layer Security) socket, either the client-side or server-side end of a TLS connection between two
+ * peers. {@link TlsSocket} guarantee that the TLS connection is established and the <b>initial handshake was done</b>
  * upon creation.
  * <p>
- * {@link TlsEndpoint} implementation delegate all cryptographic operations to the standard JDK's existing
- * {@linkplain SSLEngine TLS/SSL Engine}; effectively hiding it behind an easy-to-use API based on Jayo's reader and
- * writer, that allows to secure JVM applications with minimal added complexity.
+ * {@link TlsSocket} implementation delegate all cryptographic operations to the standard JDK's existing
+ * {@linkplain SSLEngine TLS/SSL Engine}; effectively hiding it behind an easy-to-use API based on
+ * {@linkplain Socket Jayo Socket}, that allows to secure JVM applications with minimal added complexity.
  * <p>
  * Note that this is an API adapter, not a cryptographic implementation: except for a few bytes that are parsed at
  * the beginning of the connection in server mode to look for the SNI, the whole protocol implementation is done by the
@@ -37,20 +37,20 @@ import java.util.List;
  * Please read the {@link #shutdown()} javadoc for a detailed explanation of the TLS shutdown phase.
  *
  * @see <a href="https://www.ibm.com/docs/en/sdk-java-technology/8?topic=sslengine-">Java SSLEngine documentation</a>
- * @see ClientTlsEndpoint
- * @see ServerTlsEndpoint
+ * @see ClientTlsSocket
+ * @see ServerTlsSocket
  */
-public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, ServerTlsEndpoint {
+public sealed interface TlsSocket extends Socket permits ClientTlsSocket, ServerTlsSocket, AbstractTlsSocket {
 
     /**
-     * @return a reader that reads decrypted plaintext data from this TLS endpoint.
+     * @return a reader that reads decrypted plaintext data from this TLS socket.
      */
     @Override
     @NonNull
     Reader getReader();
 
     /**
-     * @return a writer to write plaintext data to be encrypted by this TLS endpoint.
+     * @return a writer to write plaintext data to be encrypted by this TLS socket.
      */
     @Override
     @NonNull
@@ -113,64 +113,64 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
     boolean isShutdownSent();
 
     /**
-     * Closes the underlying endpoint. This method first does some form of best-effort TLS close if not already done.
+     * Cancels the underlying socket. This method first does some form of best-effort TLS shutdown if not already done.
      * The exact behavior can be configured using {@link Builder#waitForCloseConfirmation(boolean)}.
      * <p>
      * The default behavior mimics what happens in a normal (that is, non-layered)
      * {@link javax.net.ssl.SSLSocket#close()}.
      * <p>
-     * For finer control of the TLS close, use {@link #shutdown()}.
+     * For finer control of the TLS shutdown procedure, use {@link #shutdown()}.
      *
-     * @throws JayoException if the underlying endpoint throws an IO Exception during close. Exceptions thrown during
+     * @throws JayoException if the underlying socket throws an IO Exception during cancel. Exceptions thrown during
      *                       any previous TLS close are not propagated.
+     * @see #shutdown()
      */
     @Override
-    void close();
+    void cancel();
 
     /**
-     * @return the underlying {@link Endpoint} that read and write encrypted data.
+     * @return the underlying {@link Socket} that read and write encrypted data.
      */
     @Override
     @NonNull
-    Endpoint getUnderlying();
+    Socket getUnderlying();
 
     /**
-     * The abstract builder used to create a {@link TlsEndpoint} instance.
+     * The abstract builder used to create a {@link TlsSocket} instance.
      */
     sealed interface Builder<T extends Builder<T, U>, U extends Parameterizer> extends Cloneable
-            permits RealTlsEndpoint.Builder, ClientTlsEndpoint.Builder, ServerTlsEndpoint.Builder {
+            permits AbstractTlsSocket.Builder, ClientTlsSocket.Builder, ServerTlsSocket.Builder {
         /**
-         * Whether to wait for TLS close confirmation when calling {@code close()} on this TLS endpoint or on its
-         * {@linkplain TlsEndpoint#getReader() reader} or {@linkplain TlsEndpoint#getWriter() writer}. Default is
-         * {@code false} to not wait and close immediately. The proper closing procedure can then be triggered at any
-         * moment using {@link TlsEndpoint#shutdown()}.
+         * Whether to wait for TLS close confirmation when calling {@link TlsSocket#cancel()}. Default is {@code false}
+         * to not wait and cancel immediately. The proper closing procedure can then be triggered at any moment using
+         * {@link TlsSocket#shutdown()}.
          * <p>
-         * Setting this to {@code true} will block (potentially until it times out, or indefinitely) the close operation
-         * until the counterpart confirms the close on their side (sending a "close notify" alert). In this case it
+         * Setting this to {@code true} will block (potentially until it times out, or indefinitely) the cancel
+         * operation until the peer confirms the close on their side (sending a "close notify" alert). In this case it
          * emulates the behavior of {@linkplain javax.net.ssl.SSLSocket SSLSocket} when used in layered mode (and
          * without autoClose).
          * <p>
-         * Even when this behavior is enabled, the close operation will not propagate any exception thrown during the
-         * TLS close exchange and just proceed to close the underlying reader or writer.
+         * Even when this behavior is enabled, the cancel operation will not propagate any exception thrown during the
+         * TLS close exchange and just proceed to cancel the underlying socket.
          *
-         * @see TlsEndpoint#shutdown()
+         * @see TlsSocket#shutdown()
          */
         @NonNull
         T waitForCloseConfirmation(final boolean waitForCloseConfirmation);
 
         /**
-         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using no advisory peer information. It
-         * requires an existing {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a
+         * Create a new {@linkplain TlsSocket.Parameterizer TLS parameterizer} using no advisory peer information. It
+         * requires an existing {@link Socket} for encrypted bytes (typically, but not necessarily associated with a
          * network socket).
          *
-         * @see #createParameterizer(Endpoint, String, int)
+         * @see #createParameterizer(Socket, String, int)
          */
         @NonNull
-        U createParameterizer(final @NonNull Endpoint encryptedEndpoint);
+        U createParameterizer(final @NonNull Socket encryptedSocket);
 
         /**
-         * Create a new {@linkplain TlsEndpoint.Parameterizer TLS parameterizer} using advisory peer information. It
-         * requires an existing {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a
+         * Create a new {@linkplain TlsSocket.Parameterizer TLS parameterizer} using advisory peer information. It
+         * requires an existing {@link Socket} for encrypted bytes (typically, but not necessarily associated with a
          * network socket).
          * <p>
          * Applications using this method are providing hints for an internal session reuse strategy.
@@ -182,7 +182,7 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
          * @param peerPort the non-authoritative port.
          */
         @NonNull
-        U createParameterizer(final @NonNull Endpoint encryptedEndpoint,
+        U createParameterizer(final @NonNull Socket encryptedSocket,
                               final @NonNull String peerHost,
                               final int peerPort);
 
@@ -193,8 +193,8 @@ public sealed interface TlsEndpoint extends Endpoint permits ClientTlsEndpoint, 
         T clone();
     }
 
-    sealed interface Parameterizer permits RealTlsEndpoint.Parameterizer, ClientTlsEndpoint.Parameterizer,
-            ServerTlsEndpoint.Parameterizer {
+    sealed interface Parameterizer permits AbstractTlsSocket.Parameterizer, ClientTlsSocket.Parameterizer,
+            ServerTlsSocket.Parameterizer {
         /**
          * @return the list of enabled {@linkplain Protocol protocols} (http/1.1, quic, etc.) for
          * <a href="https://tools.ietf.org/html/draft-ietf-tls-applayerprotoneg">ALPN</a> selection. These protocols

@@ -25,6 +25,7 @@ import jayo.bytestring.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.internal.*;
+import jayo.network.NetworkSocket;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
@@ -40,7 +41,6 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import static java.lang.System.Logger.Level.DEBUG;
-import static java.lang.System.Logger.Level.WARNING;
 
 /**
  * Essential APIs for working with Jayo.
@@ -76,50 +76,6 @@ public final class Jayo {
     }
 
     /**
-     * @return a raw writer that writes to {@code socket}. Prefer this over {@link #writer(OutputStream)} because this
-     * method honors timeouts. When a socket write operation times out, this socket is asynchronously closed by a
-     * watchdog thread.
-     * @see jayo.network.NetworkEndpoint
-     */
-    public static @NonNull RawWriter writer(final @NonNull Socket socket) {
-        Objects.requireNonNull(socket);
-        final var timeout = new RealAsyncTimeout(() -> {
-            try {
-                socket.close();
-            } catch (Exception e) {
-                LOGGER.log(WARNING, "Failed to close timed out socket " + socket, e);
-            }
-        });
-        try {
-            return timeout.writer(new OutputStreamRawWriter(socket.getOutputStream()));
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    /**
-     * @return a raw reader that reads from {@code socket}. Prefer this over {@link #reader(InputStream)} because this
-     * method honors timeouts. When a socket read operation times out, this socket is asynchronously closed by a
-     * watchdog thread.
-     * @see jayo.network.NetworkEndpoint
-     */
-    public static @NonNull RawReader reader(final @NonNull Socket socket) {
-        Objects.requireNonNull(socket);
-        final var timeout = new RealAsyncTimeout(() -> {
-            try {
-                socket.close();
-            } catch (Exception e) {
-                LOGGER.log(WARNING, "Failed to close timed out socket " + socket, e);
-            }
-        });
-        try {
-            return timeout.reader(new InputStreamRawReader(socket.getInputStream()));
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    /**
      * @return a raw writer that writes to {@code out} stream.
      */
     public static @NonNull RawWriter writer(final @NonNull OutputStream out) {
@@ -133,42 +89,6 @@ public final class Jayo {
     public static @NonNull RawReader reader(final @NonNull InputStream in) {
         Objects.requireNonNull(in);
         return new InputStreamRawReader(in);
-    }
-
-    /**
-     * @return a raw writer that writes to {@code socketChannel}. Prefer this over {@link #writer(GatheringByteChannel)}
-     * because this method honors timeouts. When a socket channel write operation times out, this socket is
-     * asynchronously closed by a watchdog thread.
-     * @see jayo.network.NetworkEndpoint
-     */
-    public static @NonNull RawWriter writer(final @NonNull SocketChannel socketChannel) {
-        Objects.requireNonNull(socketChannel);
-        final var timeout = new RealAsyncTimeout(() -> {
-            try {
-                socketChannel.close();
-            } catch (Exception e) {
-                LOGGER.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
-            }
-        });
-        return timeout.writer(new GatheringByteChannelRawWriter(socketChannel));
-    }
-
-    /**
-     * @return a raw reader that reads from {@code socketChannel}. Prefer this over {@link #reader(ReadableByteChannel)}
-     * because this method honors timeouts. When a socket channel read operation times out, this socket is
-     * asynchronously closed by a watchdog thread.
-     * @see jayo.network.NetworkEndpoint
-     */
-    public static @NonNull RawReader reader(final @NonNull SocketChannel socketChannel) {
-        Objects.requireNonNull(socketChannel);
-        final var timeout = new RealAsyncTimeout(() -> {
-            try {
-                socketChannel.close();
-            } catch (Exception e) {
-                LOGGER.log(WARNING, "Failed to close timed out socket channel " + socketChannel, e);
-            }
-        });
-        return timeout.reader(new ReadableByteChannelRawReader(socketChannel));
     }
 
     /**
@@ -281,6 +201,39 @@ public final class Jayo {
             return new InputStreamRawReader(new FileInputStream(file));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
+        }
+    }
+
+    /**
+     * @return a {@linkplain NetworkSocket Jayo network socket} based on {@code ioSocket}. Prefer this over
+     * {@linkplain #writer(OutputStream) Jayo.writer(ioSocket.getOutputStream())} and
+     * {@linkplain #reader(InputStream) Jayo.reader(ioSocket.getInputStream())} because this socket honors timeouts.
+     * When a socket operation times out, this socket is asynchronously closed by a watchdog thread.
+     */
+    public static @NonNull NetworkSocket socket(final @NonNull Socket ioSocket) {
+        Objects.requireNonNull(ioSocket);
+        return new IoSocketNetworkSocket(ioSocket);
+    }
+
+    /**
+     * @return a {@linkplain NetworkSocket Jayo network socket} based on {@code nioSocketChannel}. Prefer this over
+     * {@linkplain #writer(GatheringByteChannel) Jayo.writer(nioSocketChannel)} and
+     * {@linkplain #reader(ReadableByteChannel) Jayo.reader(nioSocketChannel)} because this socket honors timeouts.
+     * When a socket operation times out, this socket is asynchronously closed by a watchdog thread.
+     */
+    public static @NonNull NetworkSocket socket(final @NonNull SocketChannel nioSocketChannel) {
+        Objects.requireNonNull(nioSocketChannel);
+        return new SocketChannelNetworkSocket(nioSocketChannel);
+    }
+
+    /**
+     * Closes this {@code socket}, ignoring any {@link JayoException}.
+     */
+    public static void closeQuietly(final @NonNull RawSocket socket) {
+        Objects.requireNonNull(socket);
+        try (final var ignored1 = socket.getWriter(); final var ignored2 = socket.getReader()) {
+            socket.cancel();
+        } catch (JayoException ignored) {
         }
     }
 

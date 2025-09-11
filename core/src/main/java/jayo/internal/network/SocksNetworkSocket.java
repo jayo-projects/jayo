@@ -8,7 +8,7 @@ package jayo.internal.network;
 import jayo.*;
 import jayo.network.JayoSocketException;
 import jayo.network.JayoUnknownHostException;
-import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkSocket;
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -17,7 +17,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-public final class SocksNetworkEndpoint implements NetworkEndpoint {
+public final class SocksNetworkSocket implements NetworkSocket {
     static final byte SOCKS_V5 = 5;
     static final byte SOCKS_V4 = 4;
 
@@ -45,14 +45,14 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
     private static final byte ADDRESS_TYPE_NOT_SUPPORTED = 8;
 
     private final @NonNull RealSocksProxy proxy;
-    private final @NonNull NetworkEndpoint delegate;
+    private final @NonNull NetworkSocket delegate;
     private final @NonNull Reader reader;
     private final @NonNull Writer writer;
     private final @NonNull InetSocketAddress peerAddress;
 
-    SocksNetworkEndpoint(final @NonNull RealSocksProxy proxy,
-                         final @NonNull NetworkEndpoint delegate,
-                         final @NonNull InetSocketAddress peerAddress) {
+    public SocksNetworkSocket(final @NonNull RealSocksProxy proxy,
+                              final @NonNull NetworkSocket delegate,
+                              final @NonNull InetSocketAddress peerAddress) {
         assert proxy != null;
         assert delegate != null;
         assert peerAddress != null;
@@ -310,8 +310,8 @@ public final class SocksNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
-    public void close() {
-        delegate.close();
+    public void cancel() {
+        delegate.cancel();
     }
 
     @Override

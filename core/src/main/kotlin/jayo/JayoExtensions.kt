@@ -23,6 +23,7 @@
 
 package jayo
 
+import jayo.network.NetworkSocket
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -34,35 +35,11 @@ import java.nio.channels.WritableByteChannel
 import java.nio.file.OpenOption
 import java.nio.file.Path
 
-/**
- * @return a writer that writes to this [Socket]. Prefer this over [writer] because this method honors timeouts.
- * When the socket write times out, it is asynchronously closed by a watchdog thread.
- */
-public fun Socket.writer(): RawWriter = Jayo.writer(this)
-
-/**
- * @return a reader that reads from this [Socket]. Prefer this over [reader] because this method honors timeouts.
- * When the socket read times out, it is asynchronously closed by a watchdog thread.
- */
-public fun Socket.reader(): RawReader = Jayo.reader(this)
-
 /** @return a writer that writes to this [OutputStream]. */
 public fun OutputStream.writer(): RawWriter = Jayo.writer(this)
 
 /** @return a reader that reads from this [InputStream]. */
 public fun InputStream.reader(): RawReader = Jayo.reader(this)
-
-/**
- * @return a writer that writes to this [SocketChannel]. Prefer this over [writer] because this method honors timeouts.
- * When the socket channel write times out, it is asynchronously closed by a watchdog thread.
- */
-public fun SocketChannel.writer(): RawWriter = Jayo.writer(this)
-
-/**
- * @return a reader that reads from this [SocketChannel]. Prefer this over [reader] because this method honors timeouts.
- * When the socket channel read times out, it is asynchronously closed by a watchdog thread.
- */
-public fun SocketChannel.reader(): RawReader = Jayo.reader(this)
 
 /** @return a writer that writes to this [GatheringByteChannel]. */
 public fun GatheringByteChannel.writer(): RawWriter = Jayo.writer(this)
@@ -74,16 +51,16 @@ public fun WritableByteChannel.writer(): RawWriter = Jayo.writer(this)
 public fun ReadableByteChannel.reader(): RawReader = Jayo.reader(this)
 
 /**
- * @return a writer that writes to this [Path]. options allow to specify how the file is opened.
+ * @return a writer that writes to this [Path]. [options] allow to specify how the file is opened.
  *
- * Note : we always add the `StandardOpenOption.WRITE` option to the options Set, so we ensure we can write in this path
+ * Note: we always add the `StandardOpenOption.WRITE` option to the options Set, so we ensure we can write in this path
  */
 public fun Path.writer(vararg options: OpenOption): RawWriter = Jayo.writer(this, *options)
 
 /**
- * @return a reader that reads from this [Path]. options allow to specify how the file is opened.
+ * @return a reader that reads from this [Path]. [options] allow to specify how the file is opened.
  *
- * Note : we always add the `StandardOpenOption.READ` option to the options Set, so we ensure we can read from this path
+ * Note: we always add the `StandardOpenOption.READ` option to the options Set, so we ensure we can read from this path
  */
 public fun Path.reader(vararg options: OpenOption): RawReader = Jayo.reader(this, *options)
 
@@ -98,6 +75,25 @@ public fun File.writer(): RawWriter = Jayo.writer(this)
  * instead.
  */
 public fun File.reader(): RawReader = Jayo.reader(this)
+
+/**
+ * @return a [Jayo network socket][NetworkSocket] based on [Socket]. Prefer this over
+ * [Jayo.writer(ioSocket.getOutputStream())][writer] and [Jayo.reader(ioSocket.getInputStream())][reader] because this
+ * socket honors timeouts. When a socket operation times out, this socket is asynchronously closed by a watchdog thread.
+ */
+public fun Socket.asJayoSocket(): NetworkSocket = Jayo.socket(this)
+
+/**
+ * @return a [Jayo network socket][NetworkSocket] based on [SocketChannel]. Prefer this over
+ * [Jayo.writer(nioSocketChannel)][writer] and [Jayo.reader(nioSocketChannel)][reader] because this socket honors
+ * timeouts. When a socket operation times out, this socket is asynchronously closed by a watchdog thread.
+ */
+public fun SocketChannel.asJayoSocket(): NetworkSocket = Jayo.socket(this)
+
+/**
+ * Closes this [RawSocket], ignoring any [JayoException].
+ */
+public fun RawSocket.closeQuietly(): Unit = Jayo.closeQuietly(this)
 
 /** @return a writer that discards all data written to it. */
 public fun discardingWriter(): RawWriter = Jayo.discardingWriter()

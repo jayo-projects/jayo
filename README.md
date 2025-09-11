@@ -14,15 +14,15 @@ read, and easier to debug (with stack traces that make sense!).
 // Let the system pick up a local free port
 try (NetworkServer listener = NetworkServer.bindTcp(new InetSocketAddress(0))) {
   Thread serverThread = Thread.startVirtualThread(() -> {
-    try (NetworkEndpoint serverEndpoint = listener.accept();
-         Writer serverWriter = serverEndpoint.getWriter()) {
-      serverWriter.write("The Answer to the Ultimate Question of Life is ")
-            .writeUtf8CodePoint('4')
-            .writeUtf8CodePoint('2');
+    Socket serverSocket = listener.accept();
+    try (Writer serverWriter = serverSocket.getWriter()) {
+        serverWriter.write("The Answer to the Ultimate Question of Life is ")
+                .writeUtf8CodePoint('4')
+                .writeUtf8CodePoint('2');
     }
   });
-  try (NetworkEndpoint clientEndpoint = NetworkEndpoint.connectTcp(listener.getLocalAddress());
-       Reader clientReader = clientEndpoint.getReader()) {
+  Socket clientSocket = NetworkSocket.connectTcp(listener.getLocalAddress());
+  try (Reader clientReader = clientSocket.getReader()) {
     assertThat(clientReader.readString())
         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
   }
@@ -75,10 +75,10 @@ ready !*
   * `Utf8` is a specific `ByteString` that contains UTF-8 encoded bytes only with a lot more functions.
 * `RawReader` and `RawWriter`, and mostly their buffered versions `Reader` and `Writer`, offer great improvements over
 `InputStream` and `OutputStream`.
-* `NetworkEndpoint` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
+* `NetworkSocket` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
 
 Jayo also provides some useful tools for TLS
-* `ClientTlsEndpoint` and `ServerTlsEndpoint` are easy-to-use APIs based on Jayo's reader and writer, that allow to
+* `ClientTlsSocket` and `ServerTlsSocket` are easy-to-use APIs based on Jayo's reader and writer, that allow to
 secure JVM applications with minimal added complexity.
 * `JssePlatform` eases access to platform-specific Java Secure Socket Extension (JSSE) features.
 

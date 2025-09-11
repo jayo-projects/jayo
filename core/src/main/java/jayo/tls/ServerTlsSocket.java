@@ -5,8 +5,8 @@
 
 package jayo.tls;
 
-import jayo.Endpoint;
-import jayo.internal.tls.RealServerTlsEndpoint;
+import jayo.Socket;
+import jayo.internal.tls.RealServerTlsSocket;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -16,23 +16,23 @@ import java.util.Objects;
 import java.util.function.Function;
 
 /**
- * The server-side TLS (Transport Layer Security) end of a TLS connection between two peers. {@link ServerTlsEndpoint}
+ * The server-side TLS (Transport Layer Security) end of a TLS connection between two peers. {@link ServerTlsSocket}
  * guarantee that the TLS connection is established and the <b>initial handshake was done</b> upon creation.
  *
- * @see TlsEndpoint
- * @see ClientTlsEndpoint
+ * @see TlsSocket
+ * @see ClientTlsSocket
  */
-public sealed interface ServerTlsEndpoint extends TlsEndpoint permits RealServerTlsEndpoint {
+public sealed interface ServerTlsSocket extends TlsSocket permits RealServerTlsSocket {
     /**
-     * Create a new {@link Builder} for a server-side TLS endpoint using the provided {@link ServerHandshakeCertificates}.
+     * Create a new {@link Builder} for a server-side TLS socket using the provided {@link ServerHandshakeCertificates}.
      */
     static @NonNull Builder builder(final @NonNull ServerHandshakeCertificates handshakeCertificates) {
         Objects.requireNonNull(handshakeCertificates);
-        return new RealServerTlsEndpoint.Builder(handshakeCertificates);
+        return new RealServerTlsSocket.Builder(handshakeCertificates);
     }
 
     /**
-     * Create a new {@link Builder} for a server-side TLS endpoint using a custom {@link ServerHandshakeCertificates}
+     * Create a new {@link Builder} for a server-side TLS socket using a custom {@link ServerHandshakeCertificates}
      * factory, which will be used to create the handshake certificates as a function of the SNI received at the TLS
      * connection start.
      *
@@ -42,7 +42,7 @@ public sealed interface ServerTlsEndpoint extends TlsEndpoint permits RealServer
      *                                     {@code null} indicates that no server certificate is supplied and the TLS
      *                                     connection would then be aborted by throwing a
      *                                     {@link JayoTlsHandshakeException}.
-     * @implNote Due to limitations of {@link SSLEngine}, configuring a {@link ServerTlsEndpoint} to select the
+     * @implNote Due to limitations of {@link SSLEngine}, configuring a {@link ServerTlsSocket} to select the
      * {@link ServerHandshakeCertificates} based on the SNI value implies parsing the first TLS frame (ClientHello)
      * independently of the {@link SSLEngine}.
      * @see <a href="https://tools.ietf.org/html/rfc6066#section-3">Server Name Indication</a>
@@ -51,33 +51,33 @@ public sealed interface ServerTlsEndpoint extends TlsEndpoint permits RealServer
             final @NonNull Function<@Nullable SNIServerName, @Nullable ServerHandshakeCertificates>
                     handshakeCertificatesFactory) {
         Objects.requireNonNull(handshakeCertificatesFactory);
-        return new RealServerTlsEndpoint.Builder(handshakeCertificatesFactory);
+        return new RealServerTlsSocket.Builder(handshakeCertificatesFactory);
     }
 
     @NonNull
     ServerHandshakeCertificates getHandshakeCertificates();
 
     /**
-     * The builder used to create a {@link ServerTlsEndpoint} instance.
+     * The builder used to create a {@link ServerTlsSocket} instance.
      */
-    sealed interface Builder extends TlsEndpoint.Builder<Builder, Parameterizer> permits RealServerTlsEndpoint.Builder {
+    sealed interface Builder extends TlsSocket.Builder<Builder, Parameterizer> permits RealServerTlsSocket.Builder {
         /**
-         * Create a new {@linkplain ServerTlsEndpoint server-side TLS endpoint}, it requires an existing
-         * {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a network socket).
+         * Create a new {@linkplain ServerTlsSocket server-side TLS socket}, it requires an existing
+         * {@link Socket} for encrypted bytes (typically, but not necessarily associated with a network socket).
          * <p>
-         * If you need TLS parameterization, please use {@link #createParameterizer(Endpoint)} or
-         * {@link #createParameterizer(Endpoint, String, int)} instead.
+         * If you need TLS parameterization, please use {@link #createParameterizer(Socket)} or
+         * {@link #createParameterizer(Socket, String, int)} instead.
          */
         @NonNull
-        ServerTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint);
+        ServerTlsSocket build(final @NonNull Socket encryptedSocket);
     }
 
-    sealed interface Parameterizer extends TlsEndpoint.Parameterizer
-            permits RealServerTlsEndpoint.Builder.Parameterizer {
+    sealed interface Parameterizer extends TlsSocket.Parameterizer
+            permits RealServerTlsSocket.Builder.Parameterizer {
         /**
-         * Create a new {@linkplain ServerTlsEndpoint server-side TLS endpoint}.
+         * Create a new {@linkplain ServerTlsSocket server-side TLS socket}.
          */
         @NonNull
-        ServerTlsEndpoint build();
+        ServerTlsSocket build();
     }
 }

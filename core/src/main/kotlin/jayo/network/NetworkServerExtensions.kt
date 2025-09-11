@@ -25,7 +25,7 @@ public fun NetworkServer.Builder.kotlin(
 @JvmInline
 public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Builder) {
     /**
-     * Sets the value of a socket option to set on the [accepted network endpoints][NetworkServer.accept] by the
+     * Sets the value of a socket option to set on the [accepted network sockets][NetworkServer.accept] by the
      * [NetworkServer] built by this configuration.
      *
      * @param name  The socket option

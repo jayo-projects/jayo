@@ -5,7 +5,7 @@
 
 package jayo.network;
 
-import jayo.Endpoint;
+import jayo.Socket;
 import jayo.JayoClosedResourceException;
 import jayo.internal.network.NetworkServerBuilder;
 import jayo.internal.network.ServerSocketChannelNetworkServer;
@@ -28,7 +28,7 @@ import java.net.SocketOption;
  * <p>
  * Call {@link #accept()} to block until a request is received and the resulting connection is established.
  * <p>
- * Please read {@link Endpoint} javadoc for the endpoint rationale.
+ * Please read {@link Socket} javadoc for the socket rationale.
  */
 public sealed interface NetworkServer extends Closeable
         permits ServerSocketChannelNetworkServer, ServerSocketNetworkServer {
@@ -55,12 +55,12 @@ public sealed interface NetworkServer extends Closeable
     }
 
     /**
-     * @return a new server-side {@link NetworkEndpoint} that was created after an incoming client request. The
+     * @return a new server-side {@link NetworkSocket} that was created after an incoming client request. The
      * executing thread blocks until a request is received and the resulting connection is established or an error
      * occurs.
      * @throws UnsupportedOperationException If one of the socket options you set with
      *                                       {@link Builder#option(SocketOption, Object)} is not supported by the
-     *                                       network endpoint.
+     *                                       network socket.
      * @throws IllegalArgumentException      If one of the socket options' value you set with
      *                                       {@link Builder#option(SocketOption, Object)} is not a valid value for
      *                                       this socket option.
@@ -69,7 +69,7 @@ public sealed interface NetworkServer extends Closeable
      * @throws jayo.JayoException            If an I/O error occurs.
      */
     @NonNull
-    NetworkEndpoint accept();
+    NetworkSocket accept();
 
     /**
      * Closes this network server.
@@ -102,7 +102,7 @@ public sealed interface NetworkServer extends Closeable
     <T> @Nullable T getOption(final @NonNull SocketOption<T> name);
 
     /**
-     * @return the underlying IO resource. For example, a {@linkplain java.net.ServerSocket IO Socket} or a
+     * @return the underlying IO resource. For example, a {@linkplain java.net.ServerSocket IO ServerSocket} or a
      * {@linkplain java.nio.channels.ServerSocketChannel NIO ServerSocketChannel}.
      */
     @NonNull
@@ -114,7 +114,7 @@ public sealed interface NetworkServer extends Closeable
     sealed interface Builder extends Cloneable permits NetworkServerBuilder {
         /**
          * Sets the value of a socket option to set on the
-         * {@linkplain NetworkServer#accept() accepted network endpoints}.
+         * {@linkplain NetworkServer#accept() accepted network sockets}.
          *
          * @param <T>   The type of the socket option value
          * @param name  The socket option

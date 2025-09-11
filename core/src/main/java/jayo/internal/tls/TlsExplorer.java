@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * Implement basic TLS parsing, just to read the SNI. Used by
- * {@linkplain RealServerTlsEndpoint ServerTlsEndpoint}.
+ * {@linkplain RealServerTlsSocket ServerTlsSocket}.
  */
 public final class TlsExplorer {
     // un-instantiable

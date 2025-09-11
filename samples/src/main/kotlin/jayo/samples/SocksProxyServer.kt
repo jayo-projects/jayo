@@ -22,8 +22,8 @@
 package jayo.samples
 
 import jayo.*
-import jayo.network.NetworkEndpoint
 import jayo.network.NetworkServer
+import jayo.network.NetworkSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Proxy
@@ -46,7 +46,7 @@ private const val REPLY_SUCCEEDED: Byte = 0
 class KotlinSocksProxyServer {
     private val executor = Executors.newCachedThreadPool()
     private lateinit var networkServer: NetworkServer
-    private val openNetworkEndpoints: MutableSet<NetworkEndpoint> = Collections.newSetFromMap(ConcurrentHashMap())
+    private val openNetworkSockets: MutableSet<NetworkSocket> = Collections.newSetFromMap(ConcurrentHashMap())
 
     fun start() {
         networkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */))
@@ -67,22 +67,22 @@ class KotlinSocksProxyServer {
         try {
             while (true) {
                 val from = networkServer.accept()
-                openNetworkEndpoints.add(from)
+                openNetworkSockets.add(from)
                 executor.execute { handleClient(from) }
             }
         } catch (e: JayoException) {
             println("shutting down: $e")
         } finally {
-            for (networkEndpoint in openNetworkEndpoints) {
-                networkEndpoint.close()
+            for (networkSocket in openNetworkSockets) {
+                networkSocket.closeQuietly()
             }
         }
     }
 
-    private fun handleClient(client: NetworkEndpoint) {
-        val fromReader = client.reader
-        val fromWriter = client.writer
+    private fun handleClient(client: NetworkSocket) {
         try {
+            val fromReader = client.reader
+            val fromWriter = client.writer
             // Read the hello.
             val socksVersion = fromReader.readByte()
             if (socksVersion != VERSION_5) {
@@ -124,10 +124,10 @@ class KotlinSocksProxyServer {
             val port = fromReader.readShort().toInt() and 0xffff
 
             // Connect to the caller's specified host.
-            val toNetworkEndpoint = NetworkEndpoint.connectTcp(InetSocketAddress(inetAddress, port))
-            openNetworkEndpoints.add(toNetworkEndpoint)
-            val toNetworkEndpointAddress = toNetworkEndpoint.localAddress
-            val localAddress = toNetworkEndpointAddress.address.address
+            val toNetworkSocket = NetworkSocket.connectTcp(InetSocketAddress(inetAddress, port))
+            openNetworkSockets.add(toNetworkSocket)
+            val toNetworkSocketAddress = toNetworkSocket.localAddress
+            val localAddress = toNetworkSocketAddress.address.address
             if (localAddress.size != 4) {
                 throw JayoProtocolException("Caller's specified host local address must be IPv4")
             }
@@ -138,17 +138,17 @@ class KotlinSocksProxyServer {
                 .writeByte(0)
                 .writeByte(ADDRESS_TYPE_IPV4)
                 .write(localAddress)
-                .writeShort(toNetworkEndpointAddress.port.toShort())
+                .writeShort(toNetworkSocketAddress.port.toShort())
                 .emit()
 
             // Connect readers to writers in both directions.
-            val toWriter = toNetworkEndpoint.writer
+            val toWriter = toNetworkSocket.writer
             executor.execute { transfer(client, fromReader, toWriter) }
-            val toReader = toNetworkEndpoint.reader
-            executor.execute { transfer(toNetworkEndpoint, toReader, fromWriter) }
+            val toReader = toNetworkSocket.reader
+            executor.execute { transfer(toNetworkSocket, toReader, fromWriter) }
         } catch (e: JayoException) {
-            client.close()
-            openNetworkEndpoints.remove(client)
+            client.closeQuietly()
+            openNetworkSockets.remove(client)
             println("connect failed for $client: $e")
         }
     }
@@ -157,7 +157,7 @@ class KotlinSocksProxyServer {
      * Read data from `reader` and write it to `writer`. This doesn't use [Writer.writeAllFrom] because that method
      * doesn't flush aggressively, and we need that.
      */
-    private fun transfer(readerNetworkEndpoint: NetworkEndpoint, reader: RawReader, writer: RawWriter) {
+    private fun transfer(readerNetworkSocket: NetworkSocket, reader: RawReader, writer: RawWriter) {
         try {
             val buffer = Buffer()
             var byteCount: Long
@@ -169,8 +169,8 @@ class KotlinSocksProxyServer {
         } finally {
             writer.close()
             reader.close()
-            readerNetworkEndpoint.close()
-            openNetworkEndpoints.remove(readerNetworkEndpoint)
+            readerNetworkSocket.closeQuietly()
+            openNetworkSockets.remove(readerNetworkSocket)
         }
     }
 }

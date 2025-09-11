@@ -49,7 +49,7 @@ public final class SocketTimeoutTest {
     @Test
     public void readWithoutTimeout() throws Exception {
         try (var socket = socket(ONE_MB, 0);
-             var reader = Jayo.buffer(Jayo.reader(socket))) {
+             var reader = Jayo.socket(socket).getReader()) {
             Cancellable.run(Duration.ofMillis(500), _scope -> reader.require(ONE_MB));
         }
     }
@@ -57,7 +57,7 @@ public final class SocketTimeoutTest {
     @Test
     public void readWithTimeout() throws Exception {
         try (var socket = socket(0, 0);
-             var reader = Jayo.buffer(Jayo.reader(socket))) {
+             var reader = Jayo.socket(socket).getReader()) {
             Cancellable.run(Duration.ofMillis(25), _scope ->
                     assertThatThrownBy(() -> reader.require(ONE_MB))
                             // we may fail when expecting 1MB and socket is reading, or after the read, exception is not
@@ -69,7 +69,7 @@ public final class SocketTimeoutTest {
     @Test
     public void readWitManualCancellation() throws Exception {
         try (var socket = socket(ONE_MB, 0);
-             var reader = Jayo.buffer(Jayo.reader(socket))) {
+             var reader = Jayo.socket(socket).getReader()) {
             Cancellable.run(scope -> {
                 scope.cancel();
                 assertThatThrownBy(() -> reader.require(ONE_MB))
@@ -82,7 +82,7 @@ public final class SocketTimeoutTest {
     @Test
     public void writeWithoutTimeout() throws Exception {
         try (var socket = socket(0, ONE_MB);
-             var writer = Jayo.buffer(Jayo.writer(socket))) {
+             var writer = Jayo.socket(socket).getWriter()) {
             Cancellable.run(Duration.ofMillis(50), _scope -> {
                 byte[] data = new byte[ONE_MB];
                 writer.writeFrom(new RealBuffer().write(data), data.length);
@@ -96,7 +96,7 @@ public final class SocketTimeoutTest {
         try (var socket = socket(ONE_MB, 0)) {
             long start = System.nanoTime();
             assertThatThrownBy(() -> Cancellable.run(Duration.ofMillis(1), _scope -> {
-                        try (var writer = Jayo.buffer(Jayo.writer(socket))) {
+                        try (var writer = Jayo.socket(socket).getWriter()) {
                             byte[] data = new byte[ONE_MB];
                             writer.writeFrom(new RealBuffer().write(data), data.length);
                             writer.flush();
