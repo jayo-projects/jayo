@@ -37,7 +37,7 @@ Each Jayo `Segment` has to store binary data, basically we have 2 options : `byt
 
 Java's NIO channels, IO sockets since Java 13 with the new default implementation `NioSocketImpl` (see
 [Reimplementation of the Legacy Socket API](https://openjdk.org/jeps/353)), and IO Datagram Sockets since Java 15 only
-read and write to the network thanks to direct ByteBuffers. When using IO or NIO with on-heap ByteBuffer, the JVM uses
+read and write to the network thanks to direct ByteBuffers. When using IO or NIO with on-heap memory, the JVM uses
 its internal direct ByteBuffers pool to avoid allocating and zero-fill a new direct ByteBuffer every time. However, it
 will always copy binary data between heap and native memory on each I/O operation.
 
@@ -70,10 +70,8 @@ dependencies at all!
 * Cancellation and timeout have been fully reworked.
 
 While staying small, Jayo offers a few more tools than Okio : 
-* `Utf8` and `Ascii` types were added. They are specific subclasses of `ByteString` that contains UTF-8 and ASCII
-encoded bytes only.
-* `NetworkEndpoint` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
-* `ClientTlsEndpoint` and `ServerTlsEndpoint` are easy-to-use TLS APIs based on Jayo's reader and writer, that allow to
-secure JVM applications with minimal added complexity.
+* `NetworkSocket` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
+* `ClientTlsSocket` and `ServerTlsSocket` are easy-to-use TLS APIs based on Jayo's `Socket`, that allow to secure JVM
+applications with minimal added complexity.
 * We provide our built-in `Proxy` implementation, because sadly the JVM only supports proxy on IO TCP sockets, not for
 NIO nor UDP.

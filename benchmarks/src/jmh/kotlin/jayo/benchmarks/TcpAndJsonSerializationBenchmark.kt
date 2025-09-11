@@ -1,11 +1,9 @@
 package jayo.benchmarks
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import jayo.buffered
+import jayo.asJayoSocket
 import jayo.kotlinx.serialization.decodeFromReader
 import jayo.kotlinx.serialization.encodeToWriter
-import jayo.reader
-import jayo.writer
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.okio.decodeFromBufferedSource
@@ -93,7 +91,7 @@ open class TcpAndJsonSerializationBenchmark {
     fun readerJayo() {
         Socket().use { socket ->
             socket.connect(senderServer.localSocketAddress)
-            socket.reader().buffered().use { reader ->
+            socket.asJayoSocket().reader.use { reader ->
                 val decoded = kotlinxSerializationMapper.decodeFromReader(
                     JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
                     reader
@@ -121,7 +119,7 @@ open class TcpAndJsonSerializationBenchmark {
     fun senderJayo() {
         val socket = Socket()
         socket.connect(receiverServer.localSocketAddress)
-        socket.writer().buffered().use { writer ->
+        socket.asJayoSocket().writer.use { writer ->
             kotlinxSerializationMapper.encodeToWriter(
                 JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
                 defaultPixelEvent,
@@ -135,7 +133,7 @@ open class TcpAndJsonSerializationBenchmark {
     fun senderJayoJackson() {
         val socket = Socket()
         socket.connect(receiverServer.localSocketAddress)
-        socket.writer().buffered().use { writer ->
+        socket.asJayoSocket().writer.use { writer ->
             val output = writer.asOutputStream()
             objectMapper.writeValue(output, defaultPixelEvent)
             output.flush()

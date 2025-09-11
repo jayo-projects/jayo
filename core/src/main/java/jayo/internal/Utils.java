@@ -39,11 +39,19 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Utils {
     // un-instantiable
     private Utils() {
     }
+
+    /**
+     * Don't write more than 4 full segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer
+     * timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never succeed
+     * on a slow enough connection.
+     */
+    static final int TIMEOUT_WRITE_SIZE = 4 * Segment.SIZE;
 
     static final long OVERFLOW_ZONE = Long.MIN_VALUE / 10L;
     static final long OVERFLOW_DIGIT_START = Long.MIN_VALUE % 10L + 1;
@@ -343,5 +351,19 @@ public final class Utils {
         return String.format(
                 "status=%s,handshakeStatus=%s,bytesProduced=%d,bytesConsumed=%d",
                 result.getStatus(), result.getHandshakeStatus(), result.bytesProduced(), result.bytesConsumed());
+    }
+
+    /**
+     * @return the new value of the bit field if a change was made, or {@code 0} if no change was made.
+     */
+    static int setBitsOrZero(final @NonNull AtomicInteger atomicInteger, final int bits) {
+        assert atomicInteger != null;
+
+        while (true) {
+            int current = atomicInteger.get();
+            if ((current & bits) != 0) return 0; // At least one bit is already set.
+            int updated = current | bits;
+            if (atomicInteger.compareAndSet(current, updated)) return updated;
+        }
     }
 }

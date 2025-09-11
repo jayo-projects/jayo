@@ -11,8 +11,8 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.internal.tls.RealClientTlsEndpoint;
-import jayo.internal.tls.RealServerTlsEndpoint;
+import jayo.internal.tls.RealClientTlsSocket;
+import jayo.internal.tls.RealServerTlsSocket;
 import jayo.tls.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -31,14 +31,13 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
-public final class RealTlsEndpoint {
-    private static final System.Logger LOGGER = System.getLogger("jayo.tls.TlsEndpoint");
+public sealed abstract class AbstractTlsSocket implements TlsSocket permits RealClientTlsSocket, RealServerTlsSocket {
+    private static final System.Logger LOGGER = System.getLogger("jayo.tls.TlsSocket");
 
-    static final int MAX_DATA_SIZE = 16 * 1024; // 2^14 bytes
+    private static final int MAX_DATA_SIZE = 16 * 1024; // 2^14 bytes
     // @formatter:off
     static final int MAX_ENCRYPTED_PACKET_BYTE_SIZE =
             21            // header + iv
@@ -56,31 +55,33 @@ public final class RealTlsEndpoint {
      */
     private static final @NonNull ByteBuffer @NonNull [] DUMMY_OUT = new ByteBuffer[]{ByteBuffer.allocate(0)};
 
-    private final @NonNull Endpoint encryptedEndpoint;
+    private final @NonNull Socket encryptedSocket;
     private final @NonNull RealReader encryptedReader;
     private final @NonNull RealWriter encryptedWriter;
     private final @NonNull SSLEngine engine;
     private final boolean waitForCloseConfirmation;
     private final @NonNull SSLSession tlsSession;
+    private final @NonNull Reader reader;
+    private final @NonNull Writer writer;
 
     private final @NonNull Lock readLock = new ReentrantLock();
     private final @NonNull Lock writeLock = new ReentrantLock();
 
     private @Nullable Boolean isTls = null;
     /**
-     * Whether an IOException was received from the underlying endpoint or from the {@link SSLEngine}.
+     * Whether an IOException was received from the underlying socket or from the {@link SSLEngine}.
      */
     private volatile boolean invalid = false;
 
     /**
      * Whether a close_notify was already sent.
      */
-    public volatile boolean shutdownSent = false;
+    private volatile boolean shutdownSent = false;
 
     /**
      * Whether a close_notify was already received.
      */
-    public volatile boolean shutdownReceived = false;
+    private volatile boolean shutdownReceived = false;
 
     /**
      * Decrypted data from {@link #encryptedReader}
@@ -101,18 +102,18 @@ public final class RealTlsEndpoint {
 
     private int remainingBytesToRead;
 
-    public RealTlsEndpoint(
-            final @NonNull Endpoint encryptedEndpoint,
+    public AbstractTlsSocket(
+            final @NonNull Socket encryptedSocket,
             final @NonNull SSLEngine engine,
             final boolean waitForCloseConfirmation) {
-        assert encryptedEndpoint != null;
+        assert encryptedSocket != null;
         assert engine != null;
 
         JssePlatform.get().adaptSslEngine(engine);
 
-        this.encryptedEndpoint = encryptedEndpoint;
-        this.encryptedReader = (RealReader) encryptedEndpoint.getReader();
-        this.encryptedWriter = (RealWriter) encryptedEndpoint.getWriter();
+        this.encryptedSocket = encryptedSocket;
+        this.encryptedReader = (RealReader) encryptedSocket.getReader();
+        this.encryptedWriter = (RealWriter) encryptedSocket.getWriter();
         this.engine = engine;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
 
@@ -124,76 +125,103 @@ public final class RealTlsEndpoint {
         if (tlsSession.getProtocol().startsWith("DTLS")) {
             throw new IllegalArgumentException("DTLS not supported");
         }
+
+        reader = new RealReader(new TlsSocketRawReader());
+        writer = new RealWriter(new TlsSocketRawWriter());
     }
 
-    public @NonNull SSLSession getSession() {
+    @Override
+    public final @NonNull Reader getReader() {
+        return reader;
+    }
+
+    @Override
+    public final @NonNull Writer getWriter() {
+        return writer;
+    }
+
+    @Override
+    public final @NonNull SSLSession getSession() {
         return tlsSession;
     }
 
-    public @NonNull Handshake getHandshake() {
-        // on-demand Handshake creation, only if the user calls it
-        return Handshake.get(tlsSession, Protocol.get(engine.getApplicationProtocol()));
+    @Override
+    public final @NonNull Socket getUnderlying() {
+        return encryptedSocket;
     }
 
     // read
 
-    public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
-        Objects.requireNonNull(writer);
-        if (byteCount < 0L) {
-            throw new IllegalArgumentException("byteCount < 0: " + byteCount);
-        }
-        if (!(writer instanceof RealBuffer _writer)) {
-            throw new IllegalArgumentException("writer must be an instance of RealBuffer");
-        }
-        if (byteCount == 0L) {
-            return 0L;
-        }
-
-        readLock.lock();
-        try {
-            if (invalid || shutdownSent) {
-                throw new JayoClosedResourceException();
+    private final class TlsSocketRawReader implements RawReader {
+        @Override
+        public long readAtMostTo(final @NonNull Buffer destination, final long byteCount) {
+            assert destination != null;
+            if (byteCount == 0L) {
+                return 0L;
+            }
+            if (byteCount < 0L) {
+                throw new IllegalArgumentException("byteCount < 0: " + byteCount);
             }
 
-            // the decrypted buffer may already have available data
-            suppliedDecryptedBuffer = _writer;
-            bytesToReturn = (int) decryptedBuffer.bytesAvailable();
+            final var dst = (RealBuffer) destination;
 
-            while (true) {
-                if (bytesToReturn > 0) {
-                    if (decryptedBuffer.exhausted()) {
-                        return bytesToReturn;
-                    } else {
-                        final var toTransfer = Math.min(bytesToReturn, byteCount);
-                        writer.writeFrom(decryptedBuffer, toTransfer);
-                        return toTransfer;
+            readLock.lock();
+            try {
+                if (invalid || shutdownSent) {
+                    throw new JayoClosedResourceException();
+                }
+
+                // the decrypted buffer may already have available data
+                suppliedDecryptedBuffer = dst;
+                bytesToReturn = (int) decryptedBuffer.bytesAvailable();
+
+                while (true) {
+                    if (bytesToReturn > 0) {
+                        if (decryptedBuffer.exhausted()) {
+                            return bytesToReturn;
+                        } else {
+                            final var toTransfer = Math.min(bytesToReturn, byteCount);
+                            dst.writeFrom(decryptedBuffer, toTransfer);
+                            return toTransfer;
+                        }
                     }
-                }
 
-                if (shutdownReceived) {
-                    return -1L;
-                }
+                    if (shutdownReceived) {
+                        return -1L;
+                    }
 
-                switch (engine.getHandshakeStatus()) {
-                    case NEED_UNWRAP, NEED_WRAP -> writeAndHandshake();
-                    case NOT_HANDSHAKING, FINISHED -> {
-                        readAndUnwrap();
-                        if (shutdownReceived) {
+                    switch (engine.getHandshakeStatus()) {
+                        case NEED_UNWRAP, NEED_WRAP -> writeAndHandshake();
+                        case NOT_HANDSHAKING, FINISHED -> {
+                            readAndUnwrap();
+                            if (shutdownReceived) {
+                                return -1L;
+                            }
+                        }
+                        case NEED_TASK -> handleTask();
+                        // Unsupported stage eg: NEED_UNWRAP_AGAIN
+                        default -> {
                             return -1L;
                         }
                     }
-                    case NEED_TASK -> handleTask();
-                    // Unsupported stage eg: NEED_UNWRAP_AGAIN
-                    default -> {
-                        return -1;
-                    }
                 }
+            } catch (TlsEOFException e) {
+                return -1L;
+            } finally {
+                suppliedDecryptedBuffer = null;
+                readLock.unlock();
             }
-        } catch (TlsEOFException e) {
-            return -1;
-        } finally {
-            suppliedDecryptedBuffer = null;
-            readLock.unlock();
+        }
+
+        @Override
+        public void close() {
+            readLock.lock();
+            try {
+                encryptedReader.close();
+            } finally {
+                freeBuffer();
+                readLock.unlock();
+            }
         }
     }
 
@@ -359,27 +387,43 @@ public final class RealTlsEndpoint {
 
     // write
 
-    public void write(final @NonNull Buffer source, final long byteCount) {
-        Objects.requireNonNull(source);
-        checkOffsetAndCount(source.bytesAvailable(), 0L, byteCount);
+    private final class TlsSocketRawWriter implements RawWriter {
+        @Override
+        public void writeFrom(final @NonNull Buffer source, final long byteCount) {
+            assert source != null;
+            checkOffsetAndCount(source.bytesAvailable(), 0L, byteCount);
 
-        if (!(source instanceof RealBuffer _reader)) {
-            throw new IllegalArgumentException("reader must be an instance of RealBuffer");
+            final var src = (RealBuffer) source;
+
+            /*
+             * Note that we should enter the write loop even in the case that the reader buffer has no remaining bytes,
+             * as it could be the case that the user is forced to call write again, just to write pending encrypted
+             * bytes.
+             */
+            writeLock.lock();
+            try {
+                if (invalid || shutdownSent) {
+                    throw new JayoClosedResourceException();
+                }
+
+                wrapAndWrite(src, byteCount);
+            } finally {
+                writeLock.unlock();
+            }
         }
 
-        /*
-         * Note that we should enter the write loop even in the case that the reader buffer has no remaining bytes,
-         * as it could be the case that the user is forced to call write again, just to write pending encrypted bytes.
-         */
-        writeLock.lock();
-        try {
-            if (invalid || shutdownSent) {
-                throw new JayoClosedResourceException();
-            }
+        @Override
+        public void flush() {
+        }
 
-            wrapAndWrite(_reader, byteCount);
-        } finally {
-            writeLock.unlock();
+        @Override
+        public void close() {
+            writeLock.lock();
+            try {
+                encryptedWriter.close();
+            } finally {
+                writeLock.unlock();
+            }
         }
     }
 
@@ -453,6 +497,12 @@ public final class RealTlsEndpoint {
 
     // handshake
 
+    @Override
+    public final @NonNull Handshake getHandshake() {
+        // on-demand Handshake creation, only if the user calls it
+        return Handshake.get(tlsSession, Protocol.get(engine.getApplicationProtocol()));
+    }
+
     /**
      * Do a negotiation if this TLS connection is new, and it hasn't been done already.
      */
@@ -515,72 +565,34 @@ public final class RealTlsEndpoint {
         }
     }
 
-    public boolean isOpen() {
-        return encryptedEndpoint.isOpen() && !shutdownSent && !shutdownReceived;
+    @Override
+    public final boolean isOpen() {
+        return encryptedSocket.isOpen() && !shutdownSent && !shutdownReceived;
     }
 
-    // close
+    // cancel & shutdown
 
-    public void close() {
-        tryShutdown();
-
-        //encryptedWriter.close();
-        encryptedReader.close();
-
-        /*
-         * After closing the underlying endpoint, locks should be taken fast.
-         */
-        readLock.lock();
+    @Override
+    public final void cancel() {
+        var closeConfirmed = false;
         try {
-            writeLock.lock();
-            try {
-                freeBuffer();
-            } finally {
-                writeLock.unlock();
+            if (!shutdownSent) {
+                closeConfirmed = shutdown();
             }
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    private void tryShutdown() {
-        if (!readLock.tryLock()) {
-            return;
-        }
-        try {
-            if (!writeLock.tryLock()) {
-                return;
+            if (!closeConfirmed && waitForCloseConfirmation) {
+                shutdown();
             }
-            try {
-                var closeConfirmed = false;
-                if (!shutdownSent) {
-                    closeConfirmed = shutdownSafe();
-                }
-                if (!closeConfirmed && waitForCloseConfirmation) {
-                    shutdownSafe();
-                }
-            } finally {
-                writeLock.unlock();
-            }
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    private boolean shutdownSafe() {
-        try {
-            return shutdown();
-        } catch (Throwable e) {
+        } catch (JayoException je) {
             if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "Error doing TLS shutdown on close(), continuing.", e);
-            } else if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "Error doing TLS shutdown on close(), continuing: {0}.", e.getMessage());
+                LOGGER.log(TRACE, "Error doing TLS shutdown on close(), continuing.", je);
             }
-            return true;
+        } finally {
+            encryptedSocket.cancel();
         }
     }
 
-    public boolean shutdown() {
+    @Override
+    public final boolean shutdown() {
         readLock.lock();
         try {
             writeLock.lock();
@@ -629,6 +641,16 @@ public final class RealTlsEndpoint {
         }
     }
 
+    @Override
+    public final boolean isShutdownReceived() {
+        return shutdownReceived;
+    }
+
+    @Override
+    public final boolean isShutdownSent() {
+        return shutdownSent;
+    }
+
     private void freeBuffer() {
         decryptedBuffer.clear();
     }
@@ -665,10 +687,10 @@ public final class RealTlsEndpoint {
     }
 
     /**
-     * The base class for builders of {@link TlsEndpoint}.
+     * The base class for builders of {@link TlsSocket}.
      */
-    public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T, U>, U extends TlsEndpoint.Parameterizer>
-            implements TlsEndpoint.Builder<T, U> permits RealClientTlsEndpoint.Builder, RealServerTlsEndpoint.Builder {
+    public static sealed abstract class Builder<T extends TlsSocket.Builder<T, U>, U extends TlsSocket.Parameterizer>
+            implements TlsSocket.Builder<T, U> permits RealClientTlsSocket.Builder, RealServerTlsSocket.Builder {
         protected boolean waitForCloseConfirmation = false;
 
         protected abstract @NonNull T getThis();
@@ -684,10 +706,10 @@ public final class RealTlsEndpoint {
     }
 
     /**
-     * The base class for parameterize {@link TlsEndpoint}.
+     * The base class for parameterize {@link TlsSocket}.
      */
-    public static sealed abstract class Parameterizer implements TlsEndpoint.Parameterizer
-            permits RealClientTlsEndpoint.Builder.Parameterizer, RealServerTlsEndpoint.Builder.Parameterizer {
+    public static sealed abstract class Parameterizer implements TlsSocket.Parameterizer
+            permits RealClientTlsSocket.Builder.Parameterizer, RealServerTlsSocket.Builder.Parameterizer {
         protected final @NonNull SSLEngine engine;
 
         protected Parameterizer(final @NonNull SSLEngine engine) {

@@ -1,8 +1,8 @@
 package jayo.benchmarks
 
 import jayo.Reader
+import jayo.asJayoSocket
 import jayo.buffered
-import jayo.reader
 import jayo.writer
 import okio.BufferedSource
 import okio.buffer
@@ -72,15 +72,17 @@ open class SocketReaderBenchmark {
         }
         clientSocket = Socket("localhost", serverSocket.localPort)
         clientSocketChannel = SocketChannel.open(serverSocket.localSocketAddress)
-            when (type) {
+        when (type) {
             "jayo-io" -> {
                 clientOutputStream = clientSocket.getOutputStream()
-                jayoReader = clientSocket.reader().buffered()
+                val jayoSocket = clientSocket.asJayoSocket()
+                jayoReader = jayoSocket.reader
             }
 
             "jayo-nio" -> {
                 clientOutputStream = clientSocketChannel.writer().buffered().asOutputStream()
-                jayoReader = clientSocketChannel.reader().buffered()
+                val jayoSocket = clientSocketChannel.asJayoSocket()
+                jayoReader = jayoSocket.reader
             }
 
             "okio" -> {

@@ -5,8 +5,10 @@
 
 package jayo.internal.network;
 
-import jayo.network.NetworkEndpoint;
+import jayo.internal.IoSocketNetworkSocket;
+import jayo.internal.SocketChannelNetworkSocket;
 import jayo.network.NetworkProtocol;
+import jayo.network.NetworkSocket;
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -23,25 +25,25 @@ import java.util.Objects;
 import static java.lang.System.Logger.Level.INFO;
 
 @SuppressWarnings("RawUseOfParameterized")
-public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
-    private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkEndpointBuilder");
+public final class NetworkSocketBuilder implements NetworkSocket.Builder {
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkSocketBuilder");
 
     private @Nullable Duration connectTimeout;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
     private @Nullable ProtocolFamily protocolFamily;
     private boolean useNio;
 
-    public NetworkEndpointBuilder() {
+    public NetworkSocketBuilder() {
         this(null, new HashMap<>(), null, true);
     }
 
     /**
      * The private constructor used by {@link #clone()}.
      */
-    private NetworkEndpointBuilder(final @Nullable Duration connectTimeout,
-                                   final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
-                                   final @Nullable ProtocolFamily protocolFamily,
-                                   final boolean useNio) {
+    private NetworkSocketBuilder(final @Nullable Duration connectTimeout,
+                                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                                 final @Nullable ProtocolFamily protocolFamily,
+                                 final boolean useNio) {
         assert socketOptions != null;
 
         this.connectTimeout = connectTimeout;
@@ -51,21 +53,21 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
     }
 
     @Override
-    public @NonNull NetworkEndpointBuilder connectTimeout(final @NonNull Duration connectTimeout) {
+    public @NonNull NetworkSocketBuilder connectTimeout(final @NonNull Duration connectTimeout) {
         Objects.requireNonNull(connectTimeout);
         this.connectTimeout = connectTimeout;
         return this;
     }
 
     @Override
-    public <T> @NonNull NetworkEndpointBuilder option(final @NonNull SocketOption<T> name, final @Nullable T value) {
+    public <T> @NonNull NetworkSocketBuilder option(final @NonNull SocketOption<T> name, final @Nullable T value) {
         Objects.requireNonNull(name);
         socketOptions.put(name, value);
         return this;
     }
 
     @Override
-    public @NonNull NetworkEndpointBuilder protocol(final @NonNull NetworkProtocol protocol) {
+    public @NonNull NetworkSocketBuilder protocol(final @NonNull NetworkProtocol protocol) {
         Objects.requireNonNull(protocol);
         this.protocolFamily = switch (protocol) {
             case IPv4 -> StandardProtocolFamily.INET;
@@ -79,7 +81,7 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
     }
 
     @Override
-    public @NonNull NetworkEndpointBuilder useNio(final boolean useNio) {
+    public @NonNull NetworkSocketBuilder useNio(final boolean useNio) {
         if (!useNio && protocolFamily != null) {
             LOGGER.log(INFO, "You set a network protocol, it requires NIO mode, forcing it.");
             this.useNio = true;
@@ -91,25 +93,25 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
     }
 
     @Override
-    public @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress) {
+    public @NonNull NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress) {
         Objects.requireNonNull(peerAddress);
         return connectTcpPrivate(peerAddress, null);
     }
 
     @Override
-    public @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress,
-                                               final Proxy.@NonNull Socks proxy) {
+    public @NonNull NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress,
+                                             final Proxy.@NonNull Socks proxy) {
         Objects.requireNonNull(peerAddress);
         Objects.requireNonNull(proxy);
         return connectTcpPrivate(peerAddress, proxy);
     }
 
-    private @NonNull NetworkEndpoint connectTcpPrivate(final @NonNull InetSocketAddress peerAddress,
-                                                       final Proxy.@Nullable Socks proxy) {
+    private @NonNull NetworkSocket connectTcpPrivate(final @NonNull InetSocketAddress peerAddress,
+                                                     final Proxy.@Nullable Socks proxy) {
         assert peerAddress != null;
 
         if (useNio) {
-            return SocketChannelNetworkEndpoint.connect(
+            return SocketChannelNetworkSocket.connect(
                     peerAddress,
                     connectTimeout,
                     proxy,
@@ -117,7 +119,7 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
                     protocolFamily);
         }
 
-        return SocketNetworkEndpoint.connect(
+        return IoSocketNetworkSocket.connect(
                 peerAddress,
                 connectTimeout,
                 proxy,
@@ -126,8 +128,8 @@ public final class NetworkEndpointBuilder implements NetworkEndpoint.Builder {
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
-    public @NonNull NetworkEndpointBuilder clone() {
-        return new NetworkEndpointBuilder(
+    public @NonNull NetworkSocketBuilder clone() {
+        return new NetworkSocketBuilder(
                 connectTimeout,
                 socketOptions,
                 protocolFamily,

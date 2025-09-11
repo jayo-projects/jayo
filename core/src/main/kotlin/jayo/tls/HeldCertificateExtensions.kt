@@ -30,9 +30,7 @@ public fun HeldCertificate.Builder.build(config: HeldCertificateBuilderDsl.() ->
 @JvmInline
 public value class HeldCertificateBuilderDsl internal constructor(private val builder: HeldCertificate.Builder) {
     /**
-     * Sets the certificate to be valid in ```[notBefore..notAfter]```. Both endpoints are specified in the format of
-     * [System.currentTimeMillis]. Specify -1L for both values to use the default interval = 24 hours starting when the
-     * certificate is created.
+     * Sets the certificate to be valid in ```[notBefore..notAfter]```.
      */
     public var validityInterval: Pair<Instant, Instant>
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)

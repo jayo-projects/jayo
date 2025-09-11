@@ -96,7 +96,7 @@ public class JayoException extends UncheckedIOException {
             return new JayoUnknownHostException(unknownHostException);
         }
 
-        // Endpoint related exceptions
+        // Socket related exceptions
         if (ioException instanceof ClosedChannelException closedChanException) {
             return new JayoClosedResourceException(closedChanException);
         }

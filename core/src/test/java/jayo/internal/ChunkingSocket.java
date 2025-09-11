@@ -8,18 +8,20 @@
  * Licensed under the MIT License
  */
 
-package jayo.internal.network;
+package jayo.internal;
 
 import jayo.*;
 import org.jspecify.annotations.NonNull;
 
-public class ChunkingEndpoint implements Endpoint {
-    private final SocketChannelNetworkEndpoint wrapped;
+public class ChunkingSocket implements Socket {
+    private final SocketChannelNetworkSocket wrapped;
+    private final Reader reader;
+    private final Writer writer;
 
-    public ChunkingEndpoint(Endpoint _wrapped, int chunkSize) {
-        this.wrapped = ((SocketChannelNetworkEndpoint) _wrapped);
+    public ChunkingSocket(Socket _wrapped, int chunkSize) {
+        this.wrapped = ((SocketChannelNetworkSocket) _wrapped);
 
-        final var rawReader = wrapped.rawReader;
+        final var rawReader = wrapped.reader.reader;
         final var newRawReader = new RawReader() {
             @Override
             public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
@@ -32,9 +34,9 @@ public class ChunkingEndpoint implements Endpoint {
                 rawReader.close();
             }
         };
-        wrapped.setReader(newRawReader);
+        reader = Jayo.buffer(newRawReader);
 
-        final var rawWriter = wrapped.rawWriter;
+        final var rawWriter = wrapped.writer.writer;
         final var newRawWriter = new RawWriter() {
             @Override
             public void writeFrom(final @NonNull Buffer source, final long byteCount) {
@@ -56,22 +58,22 @@ public class ChunkingEndpoint implements Endpoint {
                 rawWriter.close();
             }
         };
-        wrapped.setWriter(newRawWriter);
+        writer = Jayo.buffer(newRawWriter);
     }
 
     @Override
     public @NonNull Reader getReader() {
-        return wrapped.getReader();
+        return reader;
     }
 
     @Override
     public @NonNull Writer getWriter() {
-        return wrapped.getWriter();
+        return writer;
     }
 
     @Override
-    public void close() {
-        wrapped.close();
+    public void cancel() {
+        wrapped.cancel();
     }
 
     @Override
@@ -80,7 +82,7 @@ public class ChunkingEndpoint implements Endpoint {
     }
 
     @Override
-    public @NonNull Endpoint getUnderlying() {
+    public @NonNull Socket getUnderlying() {
         return wrapped;
     }
 }

@@ -27,9 +27,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
+import java.io.*
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.channels.FileChannel
@@ -132,25 +130,34 @@ class JayoTest {
     }
 
     @Test
-    fun socketRawWriter() {
+    fun socketWriter() {
         val baos = ByteArrayOutputStream()
         val socket = object : Socket() {
+            override fun getInputStream() = object : InputStream() {
+                override fun read() = TODO("Not yet implemented")
+            }
+
             override fun getOutputStream() = baos
             override fun isConnected() = true
         }
-        val writer = Jayo.writer(socket)
+        val writer = socket.asJayoSocket().writer
         writer.writeFrom(RealBuffer().write("a"), 1L)
+        writer.flush()
         assertThat(baos.toByteArray()).isEqualTo(byteArrayOf(0x61))
     }
 
     @Test
-    fun socketRawReader() {
+    fun socketReader() {
         val bais = ByteArrayInputStream(byteArrayOf(0x61))
         val socket = object : Socket() {
             override fun getInputStream() = bais
+            override fun getOutputStream() = object : OutputStream() {
+                override fun write(b: Int) = TODO("Not yet implemented")
+            }
+
             override fun isConnected() = true
         }
-        val reader = Jayo.reader(socket)
+        val reader = socket.asJayoSocket().reader
         val buffer = RealBuffer()
         reader.readAtMostTo(buffer, 1L)
         assertThat(buffer.readString()).isEqualTo("a")
@@ -203,9 +210,8 @@ class JayoTest {
         val buffer = Buffer()
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             val serverThread = thread(start = true) {
-                listener.accept().use { serverEndpoint ->
-                    serverEndpoint.reader.readAtMostTo(buffer, 1L)
-                }
+                val serverSocket = listener.accept()
+                serverSocket.reader.readAtMostTo(buffer, 1L)
             }
 
             SocketChannel.open(listener.localAddress).use { socketChannel ->
@@ -222,10 +228,9 @@ class JayoTest {
     fun socketChannelReader() {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             val serverThread = thread(start = true) {
-                listener.accept().use { serverEndpoint ->
-                    serverEndpoint.writer.buffered().use { serverWriter ->
-                        serverWriter.write("a")
-                    }
+                val serverSocket = listener.accept()
+                serverSocket.writer.buffered().use { serverWriter ->
+                    serverWriter.write("a")
                 }
             }
 

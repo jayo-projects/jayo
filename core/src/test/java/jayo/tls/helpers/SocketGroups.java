@@ -10,26 +10,26 @@
 
 package jayo.tls.helpers;
 
-import jayo.network.NetworkEndpoint;
-import jayo.tls.TlsEndpoint;
+import jayo.network.NetworkSocket;
+import jayo.tls.TlsSocket;
 
 public class SocketGroups {
 
     public static class OldOldSocketPair {
-        public final TlsEndpoint client;
-        public final TlsEndpoint server;
+        public final TlsSocket client;
+        public final TlsSocket server;
 
-        public OldOldSocketPair(TlsEndpoint client, TlsEndpoint server) {
+        public OldOldSocketPair(TlsSocket client, TlsSocket server) {
             this.client = client;
             this.server = server;
         }
     }
 
     public static class OldIoSocketPair {
-        public final TlsEndpoint client;
+        public final TlsSocket client;
         public final SocketGroup server;
 
-        public OldIoSocketPair(TlsEndpoint client, SocketGroup server) {
+        public OldIoSocketPair(TlsSocket client, SocketGroup server) {
             this.client = client;
             this.server = server;
         }
@@ -37,9 +37,9 @@ public class SocketGroups {
 
     public static class IoOldSocketPair {
         public final SocketGroup client;
-        public final TlsEndpoint server;
+        public final TlsSocket server;
 
-        public IoOldSocketPair(SocketGroup client, TlsEndpoint server) {
+        public IoOldSocketPair(SocketGroup client, TlsSocket server) {
             this.client = client;
             this.server = server;
         }
@@ -56,10 +56,10 @@ public class SocketGroups {
     }
 
     public static class SocketGroup {
-        public final TlsEndpoint tls;
-        public final NetworkEndpoint plain;
+        public final TlsSocket tls;
+        public final NetworkSocket plain;
 
-        public SocketGroup(TlsEndpoint tls, NetworkEndpoint plain) {
+        public SocketGroup(TlsSocket tls, NetworkSocket plain) {
             this.tls = tls;
             this.plain = plain;
         }

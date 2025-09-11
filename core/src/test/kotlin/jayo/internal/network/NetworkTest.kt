@@ -51,7 +51,7 @@ class NetworkTest {
                             .flush()
                     }
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
 
                 val stringRead = client.reader.readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
@@ -67,7 +67,7 @@ class NetworkTest {
         assertThat(server.getOption(StandardSocketOptions.SO_REUSEADDR)).isTrue()
         assertThat(server.localAddress).isInstanceOf(InetSocketAddress::class.java)
 
-        val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+        val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
         assertThat(client.getOption(StandardSocketOptions.SO_REUSEADDR)).isTrue()
         assertThat(client.localAddress).isInstanceOf(InetSocketAddress::class.java)
         assertThat(client.peerAddress).isInstanceOf(InetSocketAddress::class.java)
@@ -81,7 +81,7 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
 
                 assertThatThrownBy {
                     client.reader.readAtMostTo(Buffer(), -1)
@@ -99,7 +99,7 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
 
                 val reader1 = client.reader
                 val reader2 = client.reader
@@ -118,7 +118,7 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
 
                 val writer1 = client.writer
                 val writer2 = client.writer
@@ -136,7 +136,7 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
                 cancelScope {
                     thread(start = true) {
                         cancel()
@@ -160,7 +160,7 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
                 cancelScope {
                     thread(start = true) {
                         cancel()
@@ -184,7 +184,7 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
                 cancelScope {
                     thread(start = true) {
                         cancel()
@@ -210,9 +210,9 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
                 assertThat(client.isOpen).isTrue()
-                client.close()
+                client.cancel()
                 assertThat(client.isOpen).isFalse()
                 serverThread.join()
             }
@@ -223,7 +223,7 @@ class NetworkTest {
     fun `default connect timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */)).use {
             assertThatThrownBy {
-                networkFactory.networkEndpointBuilder()
+                networkFactory.networkSocketBuilder()
                     .connectTimeout(Duration.ofMillis(1))
                     .connectTcp(UNREACHABLE_ADDRESS_IPV4)
             }.isInstanceOf(JayoTimeoutException::class.java)
@@ -241,7 +241,7 @@ class NetworkTest {
                 val serverThread = thread(start = true) {
                     server.accept()
                 }
-                val client = networkFactory.networkEndpointBuilder()
+                val client = networkFactory.networkSocketBuilder()
                     .connectTcp(server.localAddress)
                 client.writeTimeout = Duration.ofNanos(1)
 
@@ -270,7 +270,7 @@ class NetworkTest {
                         serverWriter.writeInt(2)
                     }
                 }
-                val client = networkFactory.networkEndpointBuilder()
+                val client = networkFactory.networkSocketBuilder()
                     .connectTcp(server.localAddress)
                 client.readTimeout = Duration.ofMillis(100)
 
@@ -296,7 +296,7 @@ class NetworkTest {
                         writer.write(TO_WRITE)
                     }
                 }
-                val client = networkFactory.networkEndpointBuilder()
+                val client = networkFactory.networkSocketBuilder()
                     .connectTcp(server.localAddress)
                 client.readTimeout = Duration.ofNanos(1)
 
@@ -323,7 +323,7 @@ class NetworkTest {
                         }
                     }
                 }
-                val client = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
 
                 val stringRead = client.reader.readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
@@ -342,8 +342,8 @@ class NetworkTest {
             .isInstanceOf(JayoClosedResourceException::class.java)
 
         val server = networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
-        val closedClient = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
-        closedClient.close()
+        val closedClient = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
+        closedClient.cancel()
         assertThatThrownBy { closedClient.getOption(StandardSocketOptions.SO_REUSEADDR) }
             .isInstanceOf(JayoClosedResourceException::class.java)
         assertThatThrownBy { closedClient.localAddress }
@@ -360,8 +360,8 @@ class NetworkTest {
         closedServer.close()
 
         val server = networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
-        val closedClient = networkFactory.networkEndpointBuilder().connectTcp(server.localAddress)
-        closedClient.close()
-        closedClient.close()
+        val closedClient = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
+        closedClient.cancel()
+        closedClient.cancel()
     }
 }

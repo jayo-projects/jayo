@@ -5,8 +5,8 @@
 
 package jayo.tls;
 
-import jayo.Endpoint;
-import jayo.internal.tls.RealClientTlsEndpoint;
+import jayo.Socket;
+import jayo.internal.tls.RealClientTlsSocket;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SNIServerName;
@@ -14,58 +14,58 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * The client-side TLS (Transport Layer Security) end of a TLS connection between two peers. {@link ClientTlsEndpoint}
+ * The client-side TLS (Transport Layer Security) end of a TLS connection between two peers. {@link ClientTlsSocket}
  * guarantee that the TLS connection is established and the <b>initial handshake was done</b> upon creation.
  *
- * @see TlsEndpoint
- * @see ServerTlsEndpoint
+ * @see TlsSocket
+ * @see ServerTlsSocket
  */
-public sealed interface ClientTlsEndpoint extends TlsEndpoint permits RealClientTlsEndpoint {
+public sealed interface ClientTlsSocket extends TlsSocket permits RealClientTlsSocket {
     /**
-     * Create a new default client-side TLS endpoint. It requires an existing {@link Endpoint} for encrypted bytes
+     * Create a new default client-side TLS socket. It requires an existing {@link Socket} for encrypted bytes
      * (typically, but not necessarily associated with a network socket). A system default
      * {@link ClientHandshakeCertificates} will be used to secure TLS connections.
      * <p>
      * If you need any specific configuration, please use {@link #builder(ClientHandshakeCertificates)} instead.
      */
-    static @NonNull ClientTlsEndpoint create(final @NonNull Endpoint encryptedEndpoint) {
-        Objects.requireNonNull(encryptedEndpoint);
+    static @NonNull ClientTlsSocket create(final @NonNull Socket encryptedSocket) {
+        Objects.requireNonNull(encryptedSocket);
         return builder(ClientHandshakeCertificates.create())
-                .build(encryptedEndpoint);
+                .build(encryptedSocket);
     }
 
     /**
-     * Create a new {@link Builder} for a client-side TLS endpoint using the provided
+     * Create a new {@link Builder} for a client-side TLS socket using the provided
      * {@link ClientHandshakeCertificates}.
      */
     static @NonNull Builder builder(final @NonNull ClientHandshakeCertificates handshakeCertificates) {
         Objects.requireNonNull(handshakeCertificates);
-        return new RealClientTlsEndpoint.Builder(handshakeCertificates);
+        return new RealClientTlsSocket.Builder(handshakeCertificates);
     }
 
     @NonNull
     ClientHandshakeCertificates getHandshakeCertificates();
 
     /**
-     * The builder used to create a {@link ClientTlsEndpoint} instance.
+     * The builder used to create a {@link ClientTlsSocket} instance.
      */
-    sealed interface Builder extends TlsEndpoint.Builder<Builder, Parameterizer> permits RealClientTlsEndpoint.Builder {
+    sealed interface Builder extends TlsSocket.Builder<Builder, Parameterizer> permits RealClientTlsSocket.Builder {
         @NonNull
         ClientHandshakeCertificates getHandshakeCertificates();
 
         /**
-         * Create a new {@linkplain ClientTlsEndpoint client-side TLS endpoint}, it requires an existing
-         * {@link Endpoint} for encrypted bytes (typically, but not necessarily associated with a network socket).
+         * Create a new {@linkplain ClientTlsSocket client-side TLS socket}, it requires an existing
+         * {@link Socket} for encrypted bytes (typically, but not necessarily associated with a network socket).
          * <p>
-         * If you need TLS parameterization, please use {@link #createParameterizer(Endpoint)} or
-         * {@link #createParameterizer(Endpoint, String, int)} instead.
+         * If you need TLS parameterization, please use {@link #createParameterizer(Socket)} or
+         * {@link #createParameterizer(Socket, String, int)} instead.
          */
         @NonNull
-        ClientTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint);
+        ClientTlsSocket build(final @NonNull Socket encryptedSocket);
     }
 
-    sealed interface Parameterizer extends TlsEndpoint.Parameterizer
-            permits RealClientTlsEndpoint.Builder.Parameterizer {
+    sealed interface Parameterizer extends TlsSocket.Parameterizer
+            permits RealClientTlsSocket.Builder.Parameterizer {
         /**
          * @return the list containing all {@linkplain SNIServerName SNI server names} of the Server Name Indication
          * (SNI) parameter.
@@ -80,9 +80,9 @@ public sealed interface ClientTlsEndpoint extends TlsEndpoint permits RealClient
         void setServerNames(final @NonNull List<@NonNull SNIServerName> serverNames);
 
         /**
-         * Create a new {@linkplain ClientTlsEndpoint client-side TLS endpoint}.
+         * Create a new {@linkplain ClientTlsSocket client-side TLS socket}.
          */
         @NonNull
-        ClientTlsEndpoint build();
+        ClientTlsSocket build();
     }
 }

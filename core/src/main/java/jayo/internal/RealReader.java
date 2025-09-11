@@ -40,7 +40,7 @@ import static jayo.internal.Utils.selectPrefix;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class RealReader implements Reader {
-    private final @NonNull RawReader reader;
+    final @NonNull RawReader reader;
     final @NonNull RealBuffer buffer = new RealBuffer();
     private boolean closed = false;
 

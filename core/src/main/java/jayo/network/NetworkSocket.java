@@ -5,12 +5,11 @@
 
 package jayo.network;
 
-import jayo.Endpoint;
 import jayo.JayoClosedResourceException;
-import jayo.internal.network.NetworkEndpointBuilder;
-import jayo.internal.network.SocketChannelNetworkEndpoint;
-import jayo.internal.network.SocketNetworkEndpoint;
-import jayo.internal.network.SocksNetworkEndpoint;
+import jayo.Socket;
+import jayo.internal.AbstractNetworkSocket;
+import jayo.internal.network.NetworkSocketBuilder;
+import jayo.internal.network.SocksNetworkSocket;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -19,8 +18,8 @@ import java.net.SocketOption;
 import java.time.Duration;
 
 /**
- * A network endpoint is either the client-side or server-side end of a socket-based connection between two peers.
- * {@link NetworkEndpoint} guarantee that its underlying socket is <b>open and connected</b> to a peer upon creation.
+ * A network socket is either the client-side or server-side end of a socket-based connection between two peers.
+ * {@link NetworkSocket} guarantee that its underlying socket is <b>open and connected</b> to a peer upon creation.
  * <p>
  * The {@link #getLocalAddress()} method returns the local address that the socket is bound to, the
  * {@link #getPeerAddress()} method returns the peer address to which the socket is connected, the
@@ -28,16 +27,15 @@ import java.time.Duration;
  * returns the underlying socket itself: an {@linkplain java.net.Socket IO Socket} or a
  * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel}.
  * <p>
- * Note: {@link NetworkEndpoint} honors timeout. When a read or write operation times out, the socket is asynchronously
+ * Note: {@link NetworkSocket} honors timeout. When a read or write operation times out, the socket is asynchronously
  * closed by a watchdog thread. By default, no read nor write timeout is set, use {@link #setReadTimeout(Duration)} and
  * {@link #setWriteTimeout(Duration)} methods to set them.
  *
- * @see Endpoint
+ * @see Socket
  */
-public sealed interface NetworkEndpoint extends Endpoint
-        permits SocketChannelNetworkEndpoint, SocketNetworkEndpoint, SocksNetworkEndpoint {
+public sealed interface NetworkSocket extends Socket permits AbstractNetworkSocket, SocksNetworkSocket {
     /**
-     * @return a new client-side TCP {@link NetworkEndpoint} backed by an underlying
+     * @return a new client-side TCP {@link NetworkSocket} backed by an underlying
      * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} connected to the server using the provided
      * {@code peerAddress} socket address.
      * <p>
@@ -47,28 +45,28 @@ public sealed interface NetworkEndpoint extends Endpoint
      * If you need any specific configuration, please use {@link #builder()} instead.
      * @throws jayo.JayoException If an I/O error occurs.
      */
-    static @NonNull NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress) {
+    static @NonNull NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress) {
         return builder().connectTcp(peerAddress);
     }
 
     /**
-     * @return a client-side {@link NetworkEndpoint} builder.
+     * @return a client-side {@link NetworkSocket} builder.
      */
     static @NonNull Builder builder() {
-        return new NetworkEndpointBuilder();
+        return new NetworkSocketBuilder();
     }
 
     /**
-     * @return the local socket address that this network endpoint's underlying socket is bound to.
-     * @throws JayoClosedResourceException If this network endpoint is closed.
+     * @return the local socket address that this network socket's underlying socket is bound to.
+     * @throws JayoClosedResourceException If this network socket is closed.
      * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
     InetSocketAddress getLocalAddress();
 
     /**
-     * @return the peer socket address to which this network endpoint's underlying socket is connected.
-     * @throws JayoClosedResourceException If this network endpoint is closed.
+     * @return the peer socket address to which this network socket's underlying socket is connected.
+     * @throws JayoClosedResourceException If this network socket is closed.
      * @throws jayo.JayoException          If an I/O error occurs.
      */
     @NonNull
@@ -85,39 +83,41 @@ public sealed interface NetworkEndpoint extends Endpoint
      * @param <T>  The type of the socket option value.
      * @param name The socket option.
      * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
-     * @throws UnsupportedOperationException If this network endpoint does not support the socket option.
-     * @throws JayoClosedResourceException   If this network endpoint is closed.
+     * @throws UnsupportedOperationException If this network socket does not support the socket option.
+     * @throws JayoClosedResourceException   If this network socket is closed.
      * @throws jayo.JayoException            If an I/O error occurs.
      * @see java.net.StandardSocketOptions
      */
     <T> @Nullable T getOption(final @NonNull SocketOption<T> name);
 
     /**
-     * @return the timeout that will apply on each low-level read operation of the network endpoint.
+     * @return the timeout that will apply on each low-level read operation of the network socket.
      */
-    @NonNull Duration getReadTimeout();
+    @NonNull
+    Duration getReadTimeout();
 
     /**
-     * Sets the timeout that will apply on each low-level read operation of the network endpoint. Default is zero. A
+     * Sets the timeout that will apply on each low-level read operation of the network socket. Default is zero. A
      * timeout of zero is interpreted as an infinite timeout.
      */
     void setReadTimeout(final @NonNull Duration readTimeout);
 
     /**
-     * @return the timeout that will apply on each low-level write operation of the network endpoint.
+     * @return the timeout that will apply on each low-level write operation of the network socket.
      */
-    @NonNull Duration getWriteTimeout();
+    @NonNull
+    Duration getWriteTimeout();
 
     /**
-     * Sets the timeout that will apply on each low-level write operation of the network endpoint. Default is zero. A
+     * Sets the timeout that will apply on each low-level write operation of the network socket. Default is zero. A
      * timeout of zero is interpreted as an infinite timeout.
      */
     void setWriteTimeout(final @NonNull Duration writeTimeout);
 
     /**
-     * The builder used to create a client-side {@link NetworkEndpoint}.
+     * The builder used to create a client-side {@link NetworkSocket}.
      */
-    sealed interface Builder extends Cloneable permits NetworkEndpointBuilder {
+    sealed interface Builder extends Cloneable permits NetworkSocketBuilder {
         /**
          * Sets the timeout for establishing the connection to the peer, including the proxy initialization if one is
          * used. Default is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -126,7 +126,7 @@ public sealed interface NetworkEndpoint extends Endpoint
         Builder connectTimeout(final @NonNull Duration connectTimeout);
 
         /**
-         * Sets the value of a socket option to set on the network endpoint.
+         * Sets the value of a socket option to set on the network socket.
          *
          * @param <T>   The type of the socket option value.
          * @param name  The socket option.
@@ -157,21 +157,21 @@ public sealed interface NetworkEndpoint extends Endpoint
         Builder useNio(final boolean useNio);
 
         /**
-         * @return a new client-side TCP {@link NetworkEndpoint} connected to the server using the provided
+         * @return a new client-side TCP {@link NetworkSocket} connected to the server using the provided
          * {@code peerAddress} socket address.
          * @throws jayo.JayoException If an I/O error occurs.
          */
         @NonNull
-        NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress);
+        NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress);
 
         /**
-         * @return a new client-side TCP {@link NetworkEndpoint} connected to the server using the provided
+         * @return a new client-side TCP {@link NetworkSocket} connected to the server using the provided
          * {@code peerAddress} socket address using the provided Socks {@code proxy} as intermediary between this and
          * the peer server.
          * @throws jayo.JayoException If an I/O error occurs.
          */
         @NonNull
-        NetworkEndpoint connectTcp(final @NonNull InetSocketAddress peerAddress, final Proxy.@NonNull Socks proxy);
+        NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress, final Proxy.@NonNull Socks proxy);
 
         /**
          * @return a deep copy of this builder.

@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.internal.RealAsyncTimeout.TIMEOUT_WRITE_SIZE;
+import static jayo.internal.Utils.TIMEOUT_WRITE_SIZE;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class GatheringByteChannelRawWriter implements RawWriter {

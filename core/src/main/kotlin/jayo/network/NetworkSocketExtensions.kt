@@ -3,7 +3,7 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-@file:JvmName("-NetworkEndpoint") // Leading '-' hides this class from Java.
+@file:JvmName("-NetworkSocket") // Leading '-' hides this class from Java.
 
 package jayo.network
 
@@ -14,18 +14,18 @@ import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
-public fun NetworkEndpoint.Builder.kotlin(
-    config: NetworkEndpointBuilderDsl.() -> Unit
-): NetworkEndpoint.Builder {
+public fun NetworkSocket.Builder.kotlin(
+    config: NetworkSocketBuilderDsl.() -> Unit
+): NetworkSocket.Builder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(NetworkEndpointBuilderDsl(this))
+    config(NetworkSocketBuilderDsl(this))
     return this
 }
 
 @JayoDslMarker
 @JvmInline
-public value class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoint.Builder) {
+public value class NetworkSocketBuilderDsl(private val builder: NetworkSocket.Builder) {
     /**
      * Sets the timeout for establishing the connection to the peer, including the proxy initialization if one is used.
      * Default is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -38,7 +38,7 @@ public value class NetworkEndpointBuilderDsl(private val builder: NetworkEndpoin
         }
 
     /**
-     * Sets the value of a socket option to set on the network endpoints produced by this builder.
+     * Sets the value of a socket option to set on the network sockets produced by this builder.
      *
      * @param name  The socket option
      * @param value The value of the socket option. A value of `null` may be a valid value for some socket options.
