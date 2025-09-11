@@ -31,7 +31,7 @@ import java.util.Objects;
  * Wraps an {@link IOException} with an unchecked exception.
  */
 public class JayoException extends UncheckedIOException {
-    private static final @NonNull String CLOSED_SOCKET_MESSAGE = "Socket closed";
+    private static final @NonNull String CLOSED_SOCKET_MESSAGE = "RawSocket closed";
     private static final @NonNull String BROKEN_PIPE_SOCKET_MESSAGE = "Broken pipe";
 
     /**
@@ -96,7 +96,7 @@ public class JayoException extends UncheckedIOException {
             return new JayoUnknownHostException(unknownHostException);
         }
 
-        // Endpoint related exceptions
+        // Socket related exceptions
         if (ioException instanceof ClosedChannelException closedChanException) {
             return new JayoClosedResourceException(closedChanException);
         }

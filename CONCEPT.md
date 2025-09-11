@@ -72,8 +72,8 @@ dependencies at all!
 While staying small, Jayo offers a few more tools than Okio : 
 * `Utf8` and `Ascii` types were added. They are specific subclasses of `ByteString` that contains UTF-8 and ASCII
 encoded bytes only.
-* `NetworkEndpoint` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
-* `ClientTlsEndpoint` and `ServerTlsEndpoint` are easy-to-use TLS APIs based on Jayo's reader and writer, that allow to
+* `NetworkSocket` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
+* `ClientTlsSocket` and `ServerTlsSocket` are easy-to-use TLS APIs based on Jayo's reader and writer, that allow to
 secure JVM applications with minimal added complexity.
 * We provide our built-in `Proxy` implementation, because sadly the JVM only supports proxy on IO TCP sockets, not for
 NIO nor UDP.

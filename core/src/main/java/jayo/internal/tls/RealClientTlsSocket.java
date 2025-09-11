@@ -11,11 +11,10 @@
 package jayo.internal.tls;
 
 import jayo.*;
-import jayo.internal.RealTlsEndpoint;
-import jayo.tls.ClientHandshakeCertificates;
-import jayo.tls.ClientTlsEndpoint;
-import jayo.tls.Handshake;
-import jayo.tls.TlsEndpoint;
+import jayo.internal.RealTlsSocket;
+import jayo.tls.*;
+import jayo.tls.ClientTlsSocket;
+import jayo.tls.TlsSocket;
 import org.jspecify.annotations.NonNull;
 
 import javax.net.ssl.SNIServerName;
@@ -25,30 +24,30 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A client-side {@link TlsEndpoint}.
+ * A client-side {@link TlsSocket}.
  */
-public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
-    private final @NonNull Endpoint encryptedEndpoint;
+public final class RealClientTlsSocket implements ClientTlsSocket {
+    private final @NonNull Socket encryptedSocket;
     private final @NonNull ClientHandshakeCertificates handshakeCertificates;
-    private final @NonNull RealTlsEndpoint impl;
+    private final @NonNull RealTlsSocket impl;
 
     private Reader reader = null;
     private Writer writer = null;
 
-    private RealClientTlsEndpoint(
-            final @NonNull Endpoint encryptedEndpoint,
+    private RealClientTlsSocket(
+            final @NonNull Socket encryptedSocket,
             final @NonNull ClientHandshakeCertificates handshakeCertificates,
             final boolean waitForCloseConfirmation,
             final @NonNull SSLEngine engine) {
-        assert encryptedEndpoint != null;
+        assert encryptedSocket != null;
         assert handshakeCertificates != null;
         assert engine != null;
 
-        this.encryptedEndpoint = encryptedEndpoint;
+        this.encryptedSocket = encryptedSocket;
         this.handshakeCertificates = handshakeCertificates;
 
-        impl = new RealTlsEndpoint(
-                encryptedEndpoint,
+        impl = new RealTlsSocket(
+                encryptedSocket,
                 engine,
                 waitForCloseConfirmation);
     }
@@ -56,7 +55,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     @Override
     public @NonNull Reader getReader() {
         if (reader == null) {
-            reader = Jayo.buffer(new ClientTlsEndpointRawReader(impl));
+            reader = Jayo.buffer(new ClientTlsSocketRawReader(impl));
         }
         return reader;
     }
@@ -64,7 +63,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     @Override
     public @NonNull Writer getWriter() {
         if (writer == null) {
-            writer = Jayo.buffer(new ClientTlsEndpointRawWriter(impl));
+            writer = Jayo.buffer(new ClientTlsSocketRawWriter(impl));
         }
         return writer;
     }
@@ -80,8 +79,8 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     }
 
     @Override
-    public @NonNull Endpoint getUnderlying() {
-        return encryptedEndpoint;
+    public @NonNull Socket getUnderlying() {
+        return encryptedSocket;
     }
 
     @Override
@@ -100,7 +99,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     }
 
     @Override
-    public void close() {
+    public void cancel() {
         impl.close();
     }
 
@@ -115,10 +114,10 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
     }
 
     /**
-     * Builder of {@link RealClientTlsEndpoint}
+     * Builder of {@link RealClientTlsSocket}
      */
-    public static final class Builder extends RealTlsEndpoint.Builder<ClientTlsEndpoint.Builder, ClientTlsEndpoint.Parameterizer>
-            implements ClientTlsEndpoint.Builder {
+    public static final class Builder extends RealTlsSocket.Builder<ClientTlsSocket.Builder, ClientTlsSocket.Parameterizer>
+            implements ClientTlsSocket.Builder {
         private final @NonNull ClientHandshakeCertificates handshakeCertificates;
 
         public Builder(final @NonNull ClientHandshakeCertificates handshakeCertificates) {
@@ -148,39 +147,39 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
         }
 
         @Override
-        public @NonNull ClientTlsEndpoint build(final @NonNull Endpoint encryptedEndpoint) {
-            Objects.requireNonNull(encryptedEndpoint);
+        public @NonNull ClientTlsSocket build(final @NonNull Socket encryptedSocket) {
+            Objects.requireNonNull(encryptedSocket);
 
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext().createSSLEngine();
             engine.setUseClientMode(true);
-            return new RealClientTlsEndpoint(
-                    encryptedEndpoint,
+            return new RealClientTlsSocket(
+                    encryptedSocket,
                     handshakeCertificates,
                     waitForCloseConfirmation,
                     engine);
         }
 
         @Override
-        public @NonNull Parameterizer createParameterizer(final @NonNull Endpoint encryptedEndpoint) {
-            Objects.requireNonNull(encryptedEndpoint);
+        public @NonNull Parameterizer createParameterizer(final @NonNull Socket encryptedSocket) {
+            Objects.requireNonNull(encryptedSocket);
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine();
             engine.setUseClientMode(true);
-            return new Parameterizer(encryptedEndpoint, engine);
+            return new Parameterizer(encryptedSocket, engine);
         }
 
         @Override
-        public @NonNull Parameterizer createParameterizer(final @NonNull Endpoint encryptedEndpoint,
+        public @NonNull Parameterizer createParameterizer(final @NonNull Socket encryptedSocket,
                                                           final @NonNull String peerHost,
                                                           final int peerPort) {
-            Objects.requireNonNull(encryptedEndpoint);
+            Objects.requireNonNull(encryptedSocket);
             Objects.requireNonNull(peerHost);
             assert peerPort > 0;
 
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine(peerHost, peerPort);
             engine.setUseClientMode(true);
-            return new Parameterizer(encryptedEndpoint, engine);
+            return new Parameterizer(encryptedSocket, engine);
         }
 
         @Override
@@ -188,14 +187,14 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
             return new Builder(handshakeCertificates, waitForCloseConfirmation);
         }
 
-        public final class Parameterizer extends RealTlsEndpoint.Parameterizer
-                implements ClientTlsEndpoint.Parameterizer {
-            private final @NonNull Endpoint encryptedEndpoint;
+        public final class Parameterizer extends RealTlsSocket.Parameterizer
+                implements ClientTlsSocket.Parameterizer {
+            private final @NonNull Socket encryptedSocket;
 
-            private Parameterizer(final @NonNull Endpoint encryptedEndpoint, final @NonNull SSLEngine engine) {
+            private Parameterizer(final @NonNull Socket encryptedSocket, final @NonNull SSLEngine engine) {
                 super(engine);
-                assert encryptedEndpoint != null;
-                this.encryptedEndpoint = encryptedEndpoint;
+                assert encryptedSocket != null;
+                this.encryptedSocket = encryptedSocket;
             }
 
             @Override
@@ -214,9 +213,9 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
             }
 
             @Override
-            public @NonNull ClientTlsEndpoint build() {
-                return new RealClientTlsEndpoint(
-                        encryptedEndpoint,
+            public @NonNull ClientTlsSocket build() {
+                return new RealClientTlsSocket(
+                        encryptedSocket,
                         handshakeCertificates,
                         waitForCloseConfirmation,
                         engine);
@@ -224,7 +223,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
         }
     }
 
-    private record ClientTlsEndpointRawReader(@NonNull RealTlsEndpoint impl) implements RawReader {
+    private record ClientTlsSocketRawReader(@NonNull RealTlsSocket impl) implements RawReader {
         @Override
         public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
             return impl.readAtMostTo(writer, byteCount);
@@ -236,7 +235,7 @@ public final class RealClientTlsEndpoint implements ClientTlsEndpoint {
         }
     }
 
-    private record ClientTlsEndpointRawWriter(@NonNull RealTlsEndpoint impl) implements RawWriter {
+    private record ClientTlsSocketRawWriter(@NonNull RealTlsSocket impl) implements RawWriter {
         @Override
         public void writeFrom(final @NonNull Buffer source, final long byteCount) {
             impl.write(source, byteCount);

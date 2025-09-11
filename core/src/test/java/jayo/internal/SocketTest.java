@@ -7,7 +7,7 @@ package jayo.internal;
 
 import jayo.Reader;
 import jayo.Writer;
-import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkSocket;
 import jayo.network.NetworkServer;
 import org.junit.jupiter.api.Test;
 
@@ -21,16 +21,16 @@ public class SocketTest {
         // Let the system pick up a local free port
         try (NetworkServer listener = NetworkServer.bindTcp(new InetSocketAddress(0))) {
             Thread serverThread = new Thread(() -> {
-                try (NetworkEndpoint serverEndpoint = listener.accept();
-                     Writer serverWriter = serverEndpoint.getWriter()) {
+                NetworkSocket serverSocket = listener.accept();
+                try (Writer serverWriter = serverSocket.getWriter()) {
                     serverWriter.write("The Answer to the Ultimate Question of Life is ")
                             .writeUtf8CodePoint('4')
                             .writeUtf8CodePoint('2');
                 }
             });
             serverThread.start();
-            try (NetworkEndpoint clientEndpoint = NetworkEndpoint.connectTcp(listener.getLocalAddress());
-                 Reader clientReader = clientEndpoint.getReader()) {
+            NetworkSocket clientSocket = NetworkSocket.connectTcp(listener.getLocalAddress());
+            try (Reader clientReader = clientSocket.getReader()) {
                 assertThat(clientReader.readString())
                         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
             }

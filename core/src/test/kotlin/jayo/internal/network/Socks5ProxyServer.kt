@@ -22,8 +22,8 @@
 package jayo.internal.network
 
 import jayo.*
-import jayo.internal.network.SocksNetworkEndpoint.*
-import jayo.network.NetworkEndpoint
+import jayo.internal.network.SocksNetworkSocket.*
+import jayo.network.NetworkSocket
 import jayo.network.NetworkServer
 import java.io.Closeable
 import java.net.InetAddress
@@ -132,9 +132,9 @@ class Socks5ProxyServer(
             val port = fromReader.readShort().toInt() and 0xffff
 
             // Connect to the caller's specified host.
-            val toNetworkEndpoint = NetworkEndpoint.connectTcp(InetSocketAddress(inetAddress, port))
-            val toNetworkEndpointAddress = toNetworkEndpoint.localAddress
-            val localAddress = toNetworkEndpointAddress.address.address
+            val toNetworkSocket = NetworkSocket.connectTcp(InetSocketAddress(inetAddress, port))
+            val toNetworkSocketAddress = toNetworkSocket.localAddress
+            val localAddress = toNetworkSocketAddress.address.address
 
             // Write the reply.
             fromWriter.writeByte(SOCKS_V5)
@@ -142,16 +142,16 @@ class Socks5ProxyServer(
                 .writeByte(0)
                 .writeByte(if (localAddress.size == 4) ADDRESS_TYPE_IPV4 else ADDRESS_TYPE_IPV6)
                 .write(localAddress)
-                .writeShort(toNetworkEndpointAddress.port.toShort())
+                .writeShort(toNetworkSocketAddress.port.toShort())
                 .emit()
 
             // Connect readers to writers in both directions.
-            val toWriter = toNetworkEndpoint.writer
+            val toWriter = toNetworkSocket.writer
             executor.execute { transfer(client, fromReader, toWriter) }
-            val toReader = toNetworkEndpoint.reader
-            executor.execute { transfer(toNetworkEndpoint, toReader, fromWriter) }
+            val toReader = toNetworkSocket.reader
+            executor.execute { transfer(toNetworkSocket, toReader, fromWriter) }
         } catch (e: JayoException) {
-            client.close()
+            client.cancel()
             println("connect failed for $client: $e")
         }
     }
@@ -160,7 +160,7 @@ class Socks5ProxyServer(
      * Read data from `reader` and write it to `writer`. This doesn't use [Writer.writeAllFrom] because that method
      * doesn't flush aggressively, and we need that.
      */
-    private fun transfer(readerNetworkEndpoint: NetworkEndpoint, reader: RawReader, writer: RawWriter) {
+    private fun transfer(readerNetworkSocket: NetworkSocket, reader: RawReader, writer: RawWriter) {
         try {
             val buffer = Buffer()
             var byteCount: Long
@@ -172,7 +172,7 @@ class Socks5ProxyServer(
         } finally {
             writer.close()
             reader.close()
-            readerNetworkEndpoint.close()
+            readerNetworkSocket.cancel()
         }
     }
 }

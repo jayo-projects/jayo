@@ -10,9 +10,9 @@
 
 package jayo.tls.helpers;
 
-import jayo.Endpoint;
+import jayo.Socket;
 import jayo.Jayo;
-import jayo.tls.TlsEndpoint;
+import jayo.tls.TlsSocket;
 
 import java.io.IOException;
 
@@ -31,12 +31,12 @@ public class InteroperabilityUtils {
     }
 
     public static class EndpointReader implements Reader {
-        private final Endpoint endpoint;
+        private final Socket socket;
         private final jayo.Reader jayoReader;
 
-        public EndpointReader(Endpoint endpoint) {
-            this.endpoint = endpoint;
-            this.jayoReader = Jayo.buffer(endpoint.getReader());
+        public EndpointReader(Socket socket) {
+            this.socket = socket;
+            this.jayoReader = Jayo.buffer(socket.getReader());
         }
 
         @Override
@@ -46,17 +46,17 @@ public class InteroperabilityUtils {
 
         @Override
         public void close() {
-            endpoint.close();
+            socket.cancel();
         }
     }
 
-    public static class TlsEndpointWriter implements Writer {
-        private final TlsEndpoint tlsEndpoint;
+    public static class TlsSocketWriter implements Writer {
+        private final TlsSocket tlsSocket;
         private final jayo.Writer jayoWriter;
 
-        public TlsEndpointWriter(TlsEndpoint tlsEndpoint) {
-            this.tlsEndpoint = tlsEndpoint;
-            this.jayoWriter = Jayo.buffer(tlsEndpoint.getWriter());
+        public TlsSocketWriter(TlsSocket tlsSocket) {
+            this.tlsSocket = tlsSocket;
+            this.jayoWriter = Jayo.buffer(tlsSocket.getWriter());
         }
 
         @Override
@@ -67,7 +67,7 @@ public class InteroperabilityUtils {
 
         @Override
         public void close() {
-            tlsEndpoint.close();
+            tlsSocket.cancel();
         }
     }
 }

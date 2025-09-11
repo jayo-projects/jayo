@@ -5,7 +5,7 @@
 
 package jayo.internal.network
 
-import jayo.network.NetworkEndpoint
+import jayo.network.NetworkSocket
 import jayo.network.NetworkProtocol
 import jayo.network.NetworkServer
 import jayo.network.kotlin
@@ -22,8 +22,8 @@ enum class NetworkFactory {
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
             }
 
-        override fun networkEndpointBuilder() =
-            NetworkEndpoint.builder().kotlin {
+        override fun networkSocketBuilder() =
+            NetworkSocket.builder().kotlin {
                 protocol = NetworkProtocol.IPv6
                 connectTimeout = 30.seconds
                 option(StandardSocketOptions.SO_REUSEADDR, true)
@@ -40,8 +40,8 @@ enum class NetworkFactory {
                 serverOption(StandardSocketOptions.SO_REUSEADDR, true)
             }
 
-        override fun networkEndpointBuilder() =
-            NetworkEndpoint.builder().kotlin {
+        override fun networkSocketBuilder() =
+            NetworkSocket.builder().kotlin {
                 useNio = false
                 connectTimeout = 30.seconds
                 option(StandardSocketOptions.SO_REUSEADDR, true)
@@ -52,6 +52,6 @@ enum class NetworkFactory {
     ;
 
     abstract fun networkServerBuilder(): NetworkServer.Builder
-    abstract fun networkEndpointBuilder(): NetworkEndpoint.Builder
+    abstract fun networkSocketBuilder(): NetworkSocket.Builder
     abstract val isIo: Boolean
 }

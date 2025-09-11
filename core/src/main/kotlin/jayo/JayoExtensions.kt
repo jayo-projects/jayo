@@ -26,7 +26,7 @@ package jayo
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
-import java.net.Socket
+import java.net.Socket as JavaNetSocket
 import java.nio.channels.GatheringByteChannel
 import java.nio.channels.ReadableByteChannel
 import java.nio.channels.SocketChannel
@@ -38,13 +38,13 @@ import java.nio.file.Path
  * @return a writer that writes to this [Socket]. Prefer this over [writer] because this method honors timeouts.
  * When the socket write times out, it is asynchronously closed by a watchdog thread.
  */
-public fun Socket.writer(): RawWriter = Jayo.writer(this)
+public fun JavaNetSocket.writer(): RawWriter = Jayo.writer(this)
 
 /**
  * @return a reader that reads from this [Socket]. Prefer this over [reader] because this method honors timeouts.
  * When the socket read times out, it is asynchronously closed by a watchdog thread.
  */
-public fun Socket.reader(): RawReader = Jayo.reader(this)
+public fun JavaNetSocket.reader(): RawReader = Jayo.reader(this)
 
 /** @return a writer that writes to this [OutputStream]. */
 public fun OutputStream.writer(): RawWriter = Jayo.writer(this)
@@ -98,6 +98,11 @@ public fun File.writer(): RawWriter = Jayo.writer(this)
  * instead.
  */
 public fun File.reader(): RawReader = Jayo.reader(this)
+
+/**
+ * Closes this [Socket], ignoring any [JayoException].
+ */
+public fun RawSocket.closeQuietly(): Unit = Jayo.closeQuietly(this)
 
 /** @return a writer that discards all data written to it. */
 public fun discardingWriter(): RawWriter = Jayo.discardingWriter()

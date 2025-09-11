@@ -11,11 +11,11 @@
 package jayo.samples.tls;
 
 import jayo.Buffer;
-import jayo.RawReader;
-import jayo.network.NetworkEndpoint;
+import jayo.Reader;
 import jayo.network.NetworkServer;
+import jayo.network.NetworkSocket;
 import jayo.tls.ServerHandshakeCertificates;
-import jayo.tls.ServerTlsEndpoint;
+import jayo.tls.ServerTlsSocket;
 
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
@@ -40,23 +40,23 @@ public class TlsSniSocketServer {
         /*
          * Set the SSLContext factory with a lambda expression. In this case we reject the connection in all cases
          * except when the supplied domain matches exacting, in which case we just return our default context. A real
-         * implementation would have more than one context to return according to the supplied name.
+         * implementation would have more than one context to return, according to the supplied name.
          */
         Function<SNIServerName, ServerHandshakeCertificates> exampleHandshakeCertificatesFactory =
                 sniServerName -> {
-            if (sniServerName instanceof SNIHostName hostName && hostName.getAsciiName().equals("domain.com")) {
-                return handshakeCertificates;
-            }
-            return null;
-        };
+                    if (sniServerName instanceof SNIHostName hostName && hostName.getAsciiName().equals("domain.com")) {
+                        return handshakeCertificates;
+                    }
+                    return null;
+                };
 
         try (NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(10000))) {
             // accept encrypted connections
             System.out.println("Waiting for connection...");
-            try (NetworkEndpoint accepted = server.accept();
-                 // create the ServerTlsEndpoint, combining the socket endpoint and the SSLContext, using minimal options
-                 ServerTlsEndpoint tlsEndpoint = ServerTlsEndpoint.builder(exampleHandshakeCertificatesFactory).build(accepted);
-                 RawReader decryptedReader = tlsEndpoint.getReader()) {
+            NetworkSocket accepted = server.accept();
+            // create the ServerTlsSocket, combining the socket socket and the SSLContext, using minimal options
+            ServerTlsSocket tlsSocket = ServerTlsSocket.builder(exampleHandshakeCertificatesFactory).build(accepted);
+            try (Reader decryptedReader = tlsSocket.getReader()) {
                 Buffer buffer = Buffer.create();
                 // write to stdout all data sent by the client
                 while (decryptedReader.readAtMostTo(buffer, 10000L) != -1) {

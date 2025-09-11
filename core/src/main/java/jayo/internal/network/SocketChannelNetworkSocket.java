@@ -12,7 +12,7 @@ import jayo.internal.RealAsyncTimeout;
 import jayo.internal.RealAsyncTimeout.RawReaderWithTimeout;
 import jayo.internal.RealAsyncTimeout.RawWriterWithTimeout;
 import jayo.internal.RealCancelToken;
-import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkSocket;
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -30,13 +30,13 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
 
 /**
- * A {@link NetworkEndpoint} backed by an underlying {@linkplain SocketChannel NIO SocketChannel}.
+ * A {@link NetworkSocket} backed by an underlying {@linkplain SocketChannel NIO SocketChannel}.
  */
-public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
-    private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketChannelNetworkEndpoint");
+public final class SocketChannelNetworkSocket implements NetworkSocket {
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketChannelNetworkSocket");
 
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-    static @NonNull NetworkEndpoint connect(
+    static @NonNull NetworkSocket connect(
             final @NonNull InetSocketAddress peerAddress,
             final @Nullable Duration connectTimeout,
             final Proxy.@Nullable Socks proxy,
@@ -54,47 +54,47 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
             }
 
             final var asyncTimeout = buildAsyncTimeout(socketChannel);
-            final NetworkEndpoint networkEndpoint;
+            final NetworkSocket networkSocket;
             if (connectTimeout != null) {
                 final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
-                networkEndpoint = asyncTimeout.withTimeout(cancelToken, () ->
+                networkSocket = asyncTimeout.withTimeout(cancelToken, () ->
                         connect(socketChannel, peerAddress, asyncTimeout, proxy));
             } else {
-                networkEndpoint = connect(socketChannel, peerAddress, asyncTimeout, proxy);
+                networkSocket = connect(socketChannel, peerAddress, asyncTimeout, proxy);
             }
 
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketChannelNetworkEndpoint connected to {0}, protocol family " +
+                LOGGER.log(DEBUG, "new client SocketChannelNetworkSocket connected to {0}, protocol family " +
                         "= {1}, socket options = {2}", peerAddress, family, socketOptions);
             }
 
-            return networkEndpoint;
+            return networkSocket;
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG,
-                        "new client SocketChannelNetworkEndpoint failed to connect to " + peerAddress, e);
+                        "new client SocketChannelNetworkSocket failed to connect to " + peerAddress, e);
             }
             throw JayoException.buildJayoException(e);
         }
     }
 
-    private static @NonNull NetworkEndpoint connect(final @NonNull SocketChannel socketChannel,
-                                                    final @NonNull InetSocketAddress peerAddress,
-                                                    final @NonNull RealAsyncTimeout asyncTimeout,
-                                                    final Proxy.@Nullable Socks proxy) {
+    private static @NonNull NetworkSocket connect(final @NonNull SocketChannel socketChannel,
+                                                  final @NonNull InetSocketAddress peerAddress,
+                                                  final @NonNull RealAsyncTimeout asyncTimeout,
+                                                  final Proxy.@Nullable Socks proxy) {
         try {
             if (proxy != null) {
                 // connect to the proxy and use it to reach peer
                 socketChannel.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
-                final var proxyNetEndpoint = new SocketChannelNetworkEndpoint(socketChannel, asyncTimeout);
+                final var proxyNetEndpoint = new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
                 if (!(proxy instanceof RealSocksProxy socksProxy)) {
                     throw new IllegalArgumentException("proxy is not a RealSocksProxy");
                 }
-                return new SocksNetworkEndpoint(socksProxy, proxyNetEndpoint, peerAddress);
+                return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
             }
             // connect to peer
             socketChannel.connect(peerAddress);
-            return new SocketChannelNetworkEndpoint(socketChannel, asyncTimeout);
+            return new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -119,12 +119,12 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     final @NonNull RawWriterWithTimeout rawWriter;
     private Writer writer = null;
 
-    SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel) {
+    SocketChannelNetworkSocket(final @NonNull SocketChannel socketChannel) {
         this(socketChannel, buildAsyncTimeout(socketChannel));
     }
 
-    private SocketChannelNetworkEndpoint(final @NonNull SocketChannel socketChannel,
-                                         final @NonNull RealAsyncTimeout asyncTimeout) {
+    private SocketChannelNetworkSocket(final @NonNull SocketChannel socketChannel,
+                                       final @NonNull RealAsyncTimeout asyncTimeout) {
         assert socketChannel != null;
         assert asyncTimeout != null;
 
@@ -160,7 +160,7 @@ public final class SocketChannelNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
-    public void close() {
+    public void cancel() {
         try {
             socketChannel.close();
         } catch (IOException e) {

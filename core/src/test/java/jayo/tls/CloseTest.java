@@ -47,12 +47,12 @@ public class CloseTest {
                 false);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
-            clientGroup.plain.close();
+            clientGroup.plain.cancel();
             assertThat(clientGroup.tls.isShutdownSent()).isFalse();
             assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             assertThat(clientGroup.tls.isOpen()).isFalse();
@@ -74,8 +74,8 @@ public class CloseTest {
         serverThread.start();
         clientThread.join();
         serverThread.join();
-        clientGroup.tls.close();
-        serverGroup.tls.close();
+        clientGroup.tls.cancel();
+        serverGroup.tls.cancel();
     }
 
     @Test
@@ -88,13 +88,13 @@ public class CloseTest {
                 false);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
-            clientGroup.plain.close();
+            clientGroup.plain.cancel();
             assertThat(clientGroup.tls.isShutdownSent()).isFalse();
             assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             clientWriter.write(data);
@@ -119,8 +119,8 @@ public class CloseTest {
         serverThread.start();
         clientThread.join();
         serverThread.join();
-        clientGroup.tls.close();
-        serverGroup.tls.close();
+        clientGroup.tls.cancel();
+        serverGroup.tls.cancel();
     }
 
     @Test
@@ -133,13 +133,13 @@ public class CloseTest {
                 false);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
-            client.close();
+            client.cancel();
             assertThat(clientGroup.tls.isShutdownSent()).isTrue();
             assertThat(clientGroup.tls.isShutdownReceived()).isFalse();
             clientWriter.write(data);
@@ -159,7 +159,7 @@ public class CloseTest {
             assertThat(serverGroup.tls.isOpen()).isFalse();
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            server.close();
+            server.cancel();
             assertThatThrownBy(() -> serverReader.readAtMostTo(buffer)).isInstanceOf(JayoClosedResourceException.class);
         });
         Thread clientThread = new Thread(clientFn, "client-thread");
@@ -180,13 +180,13 @@ public class CloseTest {
                 true);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
-            client.close();
+            client.cancel();
             assertThat(clientGroup.tls.isShutdownSent()).isTrue();
             assertThat(clientGroup.tls.isShutdownReceived()).isTrue();
             clientWriter.write(data);
@@ -202,7 +202,7 @@ public class CloseTest {
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
             // repeated
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
-            server.close();
+            server.cancel();
             assertThat(serverGroup.tls.isShutdownReceived()).isTrue();
             assertThat(serverGroup.tls.isShutdownSent()).isTrue();
             assertThatThrownBy(() -> serverReader.readAtMostTo(buffer)).isInstanceOf(JayoClosedResourceException.class);
@@ -225,13 +225,13 @@ public class CloseTest {
                 true);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
             clientWriter.flush();
-            client.close();
+            client.cancel();
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
@@ -253,7 +253,7 @@ public class CloseTest {
         clientThread.join(100);
         serverThread.join();
         assertThat(clientThread.isAlive()).isTrue();
-        serverGroup.tls.close();
+        serverGroup.tls.cancel();
         clientThread.join();
     }
 
@@ -267,8 +267,8 @@ public class CloseTest {
                 false);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
@@ -298,8 +298,8 @@ public class CloseTest {
         serverThread.start();
         clientThread.join();
         serverThread.join();
-        client.close();
-        server.close();
+        client.cancel();
+        server.cancel();
     }
 
     @Test
@@ -312,8 +312,8 @@ public class CloseTest {
                 false);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
@@ -352,8 +352,8 @@ public class CloseTest {
         serverThread.start();
         clientThread.join();
         serverThread.join();
-        client.close();
-        server.close();
+        client.cancel();
+        server.cancel();
     }
 
     @Test
@@ -366,8 +366,8 @@ public class CloseTest {
                 false);
         SocketGroup clientGroup = socketPair.client;
         SocketGroup serverGroup = socketPair.server;
-        TlsEndpoint client = clientGroup.tls;
-        TlsEndpoint server = serverGroup.tls;
+        TlsSocket client = clientGroup.tls;
+        TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
             Writer clientWriter = client.getWriter()
                     .write(data);
@@ -403,7 +403,7 @@ public class CloseTest {
         serverThread.start();
         serverThread.join();
         clientThread.join();
-        client.close();
-        server.close();
+        client.cancel();
+        server.cancel();
     }
 }

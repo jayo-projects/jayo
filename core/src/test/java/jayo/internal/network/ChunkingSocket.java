@@ -13,11 +13,11 @@ package jayo.internal.network;
 import jayo.*;
 import org.jspecify.annotations.NonNull;
 
-public class ChunkingEndpoint implements Endpoint {
-    private final SocketChannelNetworkEndpoint wrapped;
+public class ChunkingSocket implements Socket {
+    private final SocketChannelNetworkSocket wrapped;
 
-    public ChunkingEndpoint(Endpoint _wrapped, int chunkSize) {
-        this.wrapped = ((SocketChannelNetworkEndpoint) _wrapped);
+    public ChunkingSocket(Socket _wrapped, int chunkSize) {
+        this.wrapped = ((SocketChannelNetworkSocket) _wrapped);
 
         final var rawReader = wrapped.rawReader;
         final var newRawReader = new RawReader() {
@@ -70,8 +70,8 @@ public class ChunkingEndpoint implements Endpoint {
     }
 
     @Override
-    public void close() {
-        wrapped.close();
+    public void cancel() {
+        wrapped.cancel();
     }
 
     @Override
@@ -80,7 +80,7 @@ public class ChunkingEndpoint implements Endpoint {
     }
 
     @Override
-    public @NonNull Endpoint getUnderlying() {
+    public @NonNull Socket getUnderlying() {
         return wrapped;
     }
 }

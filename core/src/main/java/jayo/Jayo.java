@@ -25,6 +25,7 @@ import jayo.bytestring.ByteString;
 import jayo.crypto.Digest;
 import jayo.crypto.Hmac;
 import jayo.internal.*;
+import jayo.network.NetworkSocket;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
@@ -79,7 +80,7 @@ public final class Jayo {
      * @return a raw writer that writes to {@code socket}. Prefer this over {@link #writer(OutputStream)} because this
      * method honors timeouts. When a socket write operation times out, this socket is asynchronously closed by a
      * watchdog thread.
-     * @see jayo.network.NetworkEndpoint
+     * @see NetworkSocket
      */
     public static @NonNull RawWriter writer(final @NonNull Socket socket) {
         Objects.requireNonNull(socket);
@@ -101,7 +102,7 @@ public final class Jayo {
      * @return a raw reader that reads from {@code socket}. Prefer this over {@link #reader(InputStream)} because this
      * method honors timeouts. When a socket read operation times out, this socket is asynchronously closed by a
      * watchdog thread.
-     * @see jayo.network.NetworkEndpoint
+     * @see NetworkSocket
      */
     public static @NonNull RawReader reader(final @NonNull Socket socket) {
         Objects.requireNonNull(socket);
@@ -139,7 +140,7 @@ public final class Jayo {
      * @return a raw writer that writes to {@code socketChannel}. Prefer this over {@link #writer(GatheringByteChannel)}
      * because this method honors timeouts. When a socket channel write operation times out, this socket is
      * asynchronously closed by a watchdog thread.
-     * @see jayo.network.NetworkEndpoint
+     * @see NetworkSocket
      */
     public static @NonNull RawWriter writer(final @NonNull SocketChannel socketChannel) {
         Objects.requireNonNull(socketChannel);
@@ -157,7 +158,7 @@ public final class Jayo {
      * @return a raw reader that reads from {@code socketChannel}. Prefer this over {@link #reader(ReadableByteChannel)}
      * because this method honors timeouts. When a socket channel read operation times out, this socket is
      * asynchronously closed by a watchdog thread.
-     * @see jayo.network.NetworkEndpoint
+     * @see NetworkSocket
      */
     public static @NonNull RawReader reader(final @NonNull SocketChannel socketChannel) {
         Objects.requireNonNull(socketChannel);
@@ -281,6 +282,17 @@ public final class Jayo {
             return new InputStreamRawReader(new FileInputStream(file));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
+        }
+    }
+
+    /**
+     * Closes this {@code socket}, ignoring any {@link JayoException}.
+     */
+    public static void closeQuietly(final @NonNull RawSocket socket) {
+        Objects.requireNonNull(socket);
+        try (final var ignored1 = socket.getWriter(); final var ignored2 = socket.getReader()) {
+            socket.cancel();
+        } catch (JayoException ignored) {
         }
     }
 

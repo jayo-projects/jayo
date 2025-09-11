@@ -12,10 +12,10 @@ package jayo.samples.tls;
 
 import jayo.Buffer;
 import jayo.RawReader;
-import jayo.network.NetworkEndpoint;
+import jayo.Socket;
 import jayo.network.NetworkServer;
 import jayo.tls.ServerHandshakeCertificates;
-import jayo.tls.ServerTlsEndpoint;
+import jayo.tls.ServerTlsSocket;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -38,11 +38,11 @@ public class TlsSocketServer {
         try (NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(10000))) {
             // accept encrypted connections
             System.out.println("Waiting for connection...");
-            try (NetworkEndpoint accepted = server.accept();
-                 // create the ServerTlsEndpoint, combining the socket endpoint and the server handshake certificates,
-                 // using minimal options
-                 ServerTlsEndpoint tlsEndpoint = ServerTlsEndpoint.builder(handshakeCertificates).build(accepted);
-                 RawReader decryptedReader = tlsEndpoint.getReader()) {
+            Socket accepted = server.accept();
+            // create the ServerTlsSocket, combining the socket socket and the server handshake certificates,
+            // using minimal options
+            Socket tlsSocket = ServerTlsSocket.builder(handshakeCertificates).build(accepted);
+            try (RawReader decryptedReader = tlsSocket.getReader()) {
                 Buffer buffer = Buffer.create();
                 // write to stdout all data sent by the client
                 while (decryptedReader.readAtMostTo(buffer, 10000L) != -1) {

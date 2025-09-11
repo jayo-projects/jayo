@@ -11,8 +11,8 @@
 package jayo.internal;
 
 import jayo.*;
-import jayo.internal.tls.RealClientTlsEndpoint;
-import jayo.internal.tls.RealServerTlsEndpoint;
+import jayo.internal.tls.RealClientTlsSocket;
+import jayo.internal.tls.RealServerTlsSocket;
 import jayo.tls.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -35,8 +35,8 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
-public final class RealTlsEndpoint {
-    private static final System.Logger LOGGER = System.getLogger("jayo.tls.TlsEndpoint");
+public final class RealTlsSocket {
+    private static final System.Logger LOGGER = System.getLogger("jayo.tls.TlsSocket");
 
     static final int MAX_DATA_SIZE = 16 * 1024; // 2^14 bytes
     // @formatter:off
@@ -56,7 +56,7 @@ public final class RealTlsEndpoint {
      */
     private static final @NonNull ByteBuffer @NonNull [] DUMMY_OUT = new ByteBuffer[]{ByteBuffer.allocate(0)};
 
-    private final @NonNull Endpoint encryptedEndpoint;
+    private final @NonNull Socket encryptedSocket;
     private final @NonNull RealReader encryptedReader;
     private final @NonNull RealWriter encryptedWriter;
     private final @NonNull SSLEngine engine;
@@ -68,7 +68,7 @@ public final class RealTlsEndpoint {
 
     private @Nullable Boolean isTls = null;
     /**
-     * Whether an IOException was received from the underlying endpoint or from the {@link SSLEngine}.
+     * Whether an IOException was received from the underlying socket or from the {@link SSLEngine}.
      */
     private volatile boolean invalid = false;
 
@@ -101,18 +101,18 @@ public final class RealTlsEndpoint {
 
     private int remainingBytesToRead;
 
-    public RealTlsEndpoint(
-            final @NonNull Endpoint encryptedEndpoint,
+    public RealTlsSocket(
+            final @NonNull Socket encryptedSocket,
             final @NonNull SSLEngine engine,
             final boolean waitForCloseConfirmation) {
-        assert encryptedEndpoint != null;
+        assert encryptedSocket != null;
         assert engine != null;
 
         JssePlatform.get().adaptSslEngine(engine);
 
-        this.encryptedEndpoint = encryptedEndpoint;
-        this.encryptedReader = (RealReader) encryptedEndpoint.getReader();
-        this.encryptedWriter = (RealWriter) encryptedEndpoint.getWriter();
+        this.encryptedSocket = encryptedSocket;
+        this.encryptedReader = (RealReader) encryptedSocket.getReader();
+        this.encryptedWriter = (RealWriter) encryptedSocket.getWriter();
         this.engine = engine;
         this.waitForCloseConfirmation = waitForCloseConfirmation;
 
@@ -516,7 +516,7 @@ public final class RealTlsEndpoint {
     }
 
     public boolean isOpen() {
-        return encryptedEndpoint.isOpen() && !shutdownSent && !shutdownReceived;
+        return encryptedSocket.isOpen() && !shutdownSent && !shutdownReceived;
     }
 
     // close
@@ -528,7 +528,7 @@ public final class RealTlsEndpoint {
         encryptedReader.close();
 
         /*
-         * After closing the underlying endpoint, locks should be taken fast.
+         * After closing the underlying socket, locks should be taken fast.
          */
         readLock.lock();
         try {
@@ -665,10 +665,10 @@ public final class RealTlsEndpoint {
     }
 
     /**
-     * The base class for builders of {@link TlsEndpoint}.
+     * The base class for builders of {@link TlsSocket}.
      */
-    public static sealed abstract class Builder<T extends TlsEndpoint.Builder<T, U>, U extends TlsEndpoint.Parameterizer>
-            implements TlsEndpoint.Builder<T, U> permits RealClientTlsEndpoint.Builder, RealServerTlsEndpoint.Builder {
+    public static sealed abstract class Builder<T extends TlsSocket.Builder<T, U>, U extends TlsSocket.Parameterizer>
+            implements TlsSocket.Builder<T, U> permits RealClientTlsSocket.Builder, RealServerTlsSocket.Builder {
         protected boolean waitForCloseConfirmation = false;
 
         protected abstract @NonNull T getThis();
@@ -684,10 +684,10 @@ public final class RealTlsEndpoint {
     }
 
     /**
-     * The base class for parameterize {@link TlsEndpoint}.
+     * The base class for parameterize {@link TlsSocket}.
      */
-    public static sealed abstract class Parameterizer implements TlsEndpoint.Parameterizer
-            permits RealClientTlsEndpoint.Builder.Parameterizer, RealServerTlsEndpoint.Builder.Parameterizer {
+    public static sealed abstract class Parameterizer implements TlsSocket.Parameterizer
+            permits RealClientTlsSocket.Builder.Parameterizer, RealServerTlsSocket.Builder.Parameterizer {
         protected final @NonNull SSLEngine engine;
 
         protected Parameterizer(final @NonNull SSLEngine engine) {

@@ -27,7 +27,7 @@ import jayo.internal.OutputStreamRawWriter;
 import jayo.internal.RealAsyncTimeout;
 import jayo.internal.RealAsyncTimeout.RawReaderWithTimeout;
 import jayo.internal.RealAsyncTimeout.RawWriterWithTimeout;
-import jayo.network.NetworkEndpoint;
+import jayo.network.NetworkSocket;
 import jayo.network.Proxy;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -44,13 +44,13 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
 
 /**
- * A {@link NetworkEndpoint} backed by an underlying {@linkplain Socket IO Socket}.
+ * A {@link NetworkSocket} backed by an underlying {@linkplain Socket IO RawSocket}.
  */
-public final class SocketNetworkEndpoint implements NetworkEndpoint {
-    private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketNetworkEndpoint");
+public final class IoSocketNetworkSocket implements NetworkSocket {
+    private static final System.Logger LOGGER = System.getLogger("jayo.network.IoSocketNetworkSocket");
 
     @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-    static @NonNull NetworkEndpoint connect(
+    static @NonNull NetworkSocket connect(
             final @NonNull InetSocketAddress peerAddress,
             final @Nullable Duration connectTimeout,
             final Proxy.@Nullable Socks proxy,
@@ -66,27 +66,27 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             }
 
             final var asyncTimeout = buildAsyncTimeout(socket);
-            final var networkEndpoint = connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy);
+            final var networkSocket = connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy);
 
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketNetworkEndpoint connected to {0}, socket options = {1}",
+                LOGGER.log(DEBUG, "new client IoSocketNetworkSocket connected to {0}, socket options = {1}",
                         peerAddress, socketOptions);
             }
 
-            return networkEndpoint;
+            return networkSocket;
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketNetworkEndpoint failed to connect to " + peerAddress, e);
+                LOGGER.log(DEBUG, "new client IoSocketNetworkSocket failed to connect to " + peerAddress, e);
             }
             throw JayoException.buildJayoException(e);
         }
     }
 
-    private static NetworkEndpoint connect(final @NonNull Socket socket,
-                                           final @NonNull InetSocketAddress peerAddress,
-                                           final @Nullable Duration connectTimeout,
-                                           final @NonNull RealAsyncTimeout asyncTimeout,
-                                           final Proxy.@Nullable Socks proxy) {
+    private static NetworkSocket connect(final @NonNull Socket socket,
+                                         final @NonNull InetSocketAddress peerAddress,
+                                         final @Nullable Duration connectTimeout,
+                                         final @NonNull RealAsyncTimeout asyncTimeout,
+                                         final Proxy.@Nullable Socks proxy) {
         assert socket != null;
         assert peerAddress != null;
         assert asyncTimeout != null;
@@ -95,15 +95,15 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
             if (proxy != null) {
                 // connect to the proxy and use it to reach peer
                 connect(socket, new InetSocketAddress(proxy.getHost(), proxy.getPort()), connectTimeout);
-                final var proxyNetEndpoint = new SocketNetworkEndpoint(socket, asyncTimeout);
+                final var proxyNetEndpoint = new IoSocketNetworkSocket(socket, asyncTimeout);
                 if (!(proxy instanceof RealSocksProxy socksProxy)) {
                     throw new IllegalArgumentException("proxy is not a RealSocksProxy");
                 }
-                return new SocksNetworkEndpoint(socksProxy, proxyNetEndpoint, peerAddress);
+                return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
             }
             // connect to peer
             connect(socket, peerAddress, connectTimeout);
-            return new SocketNetworkEndpoint(socket, asyncTimeout);
+            return new IoSocketNetworkSocket(socket, asyncTimeout);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -152,11 +152,11 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     private final @NonNull RawWriterWithTimeout rawWriter;
     private Writer writer = null;
 
-    SocketNetworkEndpoint(final @NonNull Socket socket) {
+    IoSocketNetworkSocket(final @NonNull Socket socket) {
         this(socket, buildAsyncTimeout(socket));
     }
 
-    private SocketNetworkEndpoint(final @NonNull Socket socket, final @NonNull RealAsyncTimeout asyncTimeout) {
+    private IoSocketNetworkSocket(final @NonNull Socket socket, final @NonNull RealAsyncTimeout asyncTimeout) {
         assert socket != null;
         assert asyncTimeout != null;
 
@@ -186,7 +186,7 @@ public final class SocketNetworkEndpoint implements NetworkEndpoint {
     }
 
     @Override
-    public void close() {
+    public void cancel() {
         try {
             socket.close();
         } catch (IOException e) {

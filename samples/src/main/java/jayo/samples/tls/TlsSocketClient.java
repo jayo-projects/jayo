@@ -10,11 +10,11 @@
 
 package jayo.samples.tls;
 
-import jayo.Jayo;
 import jayo.Reader;
+import jayo.Socket;
 import jayo.Writer;
-import jayo.network.NetworkEndpoint;
-import jayo.tls.ClientTlsEndpoint;
+import jayo.network.NetworkSocket;
+import jayo.tls.ClientTlsSocket;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -29,11 +29,11 @@ public class TlsSocketClient {
             "GET https://www.howsmyssl.com/a/check HTTP/1.0\nHost: www.howsmyssl.com\n\n";
 
     public static void main(String... args) throws IOException {
-        try (NetworkEndpoint client = NetworkEndpoint.connectTcp(new InetSocketAddress(DOMAIN, 443));
-             // create the ClientTlsEndpoint using minimal options
-             ClientTlsEndpoint tlsEndpoint = ClientTlsEndpoint.create(client);
-             Writer toEncryptWriter = Jayo.buffer(tlsEndpoint.getWriter());
-             Reader decryptedReader = Jayo.buffer(tlsEndpoint.getReader())) {
+        Socket client = NetworkSocket.connectTcp(new InetSocketAddress(DOMAIN, 443));
+        // create the ClientTlsSocket using minimal options
+        Socket tlsSocket = ClientTlsSocket.create(client);
+        try (Writer toEncryptWriter = tlsSocket.getWriter();
+             Reader decryptedReader = tlsSocket.getReader()) {
             // do HTTP interaction and print result
             toEncryptWriter.write(HTTP_LINE, StandardCharsets.US_ASCII);
             toEncryptWriter.emit();
