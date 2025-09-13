@@ -7,6 +7,7 @@ package jayo.internal.network;
 
 import jayo.JayoClosedResourceException;
 import jayo.JayoException;
+import jayo.internal.AbstractNetworkSocket;
 import jayo.network.NetworkSocket;
 import jayo.network.NetworkServer;
 import org.jspecify.annotations.NonNull;
@@ -73,11 +74,11 @@ public final class ServerSocketNetworkServer implements NetworkServer {
                 socket.setOption(socketOption.getKey(), socketOption.getValue());
             }
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "accepted server IoSocketNetworkSocket connected to {0}, socket options = {1}",
+                LOGGER.log(DEBUG, "accepted server AbstractNetworkSocket connected to {0}, socket options = {1}",
                         socket.getRemoteSocketAddress(), socketOptions);
             }
 
-            return new IoSocketNetworkSocket(socket);
+            return new AbstractNetworkSocket(socket);
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG, "ServerSocketNetworkServer failed to accept a client connection", e);

@@ -19,135 +19,28 @@
  * limitations under the License.
  */
 
-package jayo.internal.network;
+package jayo.internal;
 
 import jayo.*;
-import jayo.internal.*;
+import jayo.internal.network.IoSocketNetworkSocket;
 import jayo.network.NetworkSocket;
-import jayo.network.Proxy;
 import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketOption;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.System.Logger.Level.DEBUG;
-import static java.lang.System.Logger.Level.WARNING;
 import static jayo.internal.Utils.setBitsOrZero;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 /**
  * A {@link NetworkSocket} backed by an underlying {@linkplain Socket IO RawSocket}.
  */
-public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
-    private static final System.Logger LOGGER = System.getLogger("jayo.network.AbstractNetworkSocket");
-
-    @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-    public static @NonNull NetworkSocket connect(
-            final @NonNull InetSocketAddress peerAddress,
-            final @Nullable Duration connectTimeout,
-            final Proxy.@Nullable Socks proxy,
-            final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions
-    ) {
-        assert peerAddress != null;
-        assert socketOptions != null;
-
-        final var socket = new Socket();
-        try {
-            for (final var socketOption : socketOptions.entrySet()) {
-                socket.setOption(socketOption.getKey(), socketOption.getValue());
-            }
-
-            final var asyncTimeout = buildAsyncTimeout(socket);
-            final var networkSocket = connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy);
-
-            if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client AbstractNetworkSocket connected to {0}, socket options = {1}",
-                        peerAddress, socketOptions);
-            }
-
-            return networkSocket;
-        } catch (IOException e) {
-            if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client AbstractNetworkSocket failed to connect to " + peerAddress, e);
-            }
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    private static NetworkSocket connect(final @NonNull Socket socket,
-                                         final @NonNull InetSocketAddress peerAddress,
-                                         final @Nullable Duration connectTimeout,
-                                         final @NonNull RealAsyncTimeout asyncTimeout,
-                                         final Proxy.@Nullable Socks proxy) {
-        assert socket != null;
-        assert peerAddress != null;
-        assert asyncTimeout != null;
-
-        try {
-            if (proxy != null) {
-                // connect to the proxy and use it to reach peer
-                connect(socket, new InetSocketAddress(proxy.getHost(), proxy.getPort()), connectTimeout);
-                final var proxyNetEndpoint = new IoSocketNetworkSocket(socket, asyncTimeout);
-                if (!(proxy instanceof RealSocksProxy socksProxy)) {
-                    throw new IllegalArgumentException("proxy is not a RealSocksProxy");
-                }
-                return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
-            }
-            // connect to peer
-            connect(socket, peerAddress, connectTimeout);
-            return new IoSocketNetworkSocket(socket, asyncTimeout);
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    private static void connect(final @NonNull Socket socket,
-                                final @NonNull InetSocketAddress inetSocketAddress,
-                                final @Nullable Duration connectTimeout) throws IOException {
-        assert socket != null;
-        assert inetSocketAddress != null;
-
-        if (connectTimeout != null) {
-            final var connectTimeoutMillis = getTimeoutAsMillis(connectTimeout);
-            socket.connect(inetSocketAddress, (int) connectTimeoutMillis);
-        } else {
-            socket.connect(inetSocketAddress);
-        }
-    }
-
-    private static int getTimeoutAsMillis(final @NonNull Duration timeout) {
-        assert timeout != null;
-
-        final var timeoutMillis = timeout.toMillis();
-        if (timeoutMillis > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("The timeout in millis is too large, should be <= Integer.MAX_VALUE");
-        }
-        return (int) timeoutMillis;
-    }
-
-    @NonNull
-    private static RealAsyncTimeout buildAsyncTimeout(final @NonNull Socket socket) {
-        assert socket != null;
-        return new RealAsyncTimeout(() -> {
-            try {
-                socket.close();
-            } catch (Exception e) {
-                LOGGER.log(WARNING, "Failed to close timed out socket " + socket, e);
-            }
-        });
-    }
-
-    private final @NonNull Socket socket;
+public sealed abstract class AbstractNetworkSocket implements NetworkSocket permits IoSocketNetworkSocket {
     private final @NonNull RealAsyncTimeout timeout;
     private long readTimeoutNanos = 0L;
     private final @NonNull Reader reader;
@@ -159,119 +52,41 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
     private static final int READER_CLOSED_BIT = 2;
     private static final int ALL_CLOSED_BITS = WRITER_CLOSED_BIT | READER_CLOSED_BIT;
 
-    public IoSocketNetworkSocket(final @NonNull Socket socket) {
-        this(socket, buildAsyncTimeout(socket));
-    }
-
-    private IoSocketNetworkSocket(final @NonNull Socket socket, final @NonNull RealAsyncTimeout timeout) {
-        assert socket != null;
+    private AbstractNetworkSocket(final @NonNull RealAsyncTimeout timeout) {
         assert timeout != null;
 
-        this.socket = socket;
         this.timeout = timeout;
-        reader = Jayo.buffer(new IoSocketRawReader());
-        writer = Jayo.buffer(new IoSocketRawWriter());
+        reader = Jayo.buffer(new SocketRawReader());
+        writer = Jayo.buffer(new SocketRawWriter());
     }
 
     @Override
-    public @NonNull Reader getReader() {
+    public final @NonNull Reader getReader() {
         return reader;
     }
 
     @Override
-    public @NonNull Writer getWriter() {
+    public final @NonNull Writer getWriter() {
         return writer;
     }
 
     @Override
-    public void cancel() {
-        try {
-            socket.close();
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    @Override
-    public boolean isOpen() {
-        return !socket.isClosed() && !socket.isInputShutdown() && !socket.isOutputShutdown();
-    }
-
-    @Override
-    public @NonNull InetSocketAddress getLocalAddress() {
-        throwIfClosed();
-        return (InetSocketAddress) socket.getLocalSocketAddress();
-    }
-
-    @Override
-    public @NonNull InetSocketAddress getPeerAddress() {
-        throwIfClosed();
-        return (InetSocketAddress) socket.getRemoteSocketAddress();
-    }
-
-    @Override
-    public <T> @Nullable T getOption(final @NonNull SocketOption<T> name) {
-        Objects.requireNonNull(name);
-        try {
-            throwIfClosed();
-            return socket.getOption(name);
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    @Override
-    public @NonNull Duration getReadTimeout() {
+    public final @NonNull Duration getReadTimeout() {
         return Duration.ofNanos(readTimeoutNanos);
     }
 
     @Override
-    public void setReadTimeout(final @NonNull Duration readTimeout) {
-        Objects.requireNonNull(readTimeout);
-
-        final var readTimeoutMillis = getTimeoutAsMillis(readTimeout);
-        try {
-            socket.setSoTimeout(readTimeoutMillis);
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-
-        readTimeoutNanos = readTimeout.toNanos();
-    }
-
-    @Override
-    public @NonNull Duration getWriteTimeout() {
+    public final @NonNull Duration getWriteTimeout() {
         return Duration.ofNanos(writeTimeoutNanos);
     }
 
     @Override
-    public void setWriteTimeout(final @NonNull Duration writeTimeout) {
+    public final void setWriteTimeout(final @NonNull Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout);
         writeTimeoutNanos = writeTimeout.toNanos();
     }
 
-    @Override
-    public @NonNull Socket getUnderlying() {
-        return socket;
-    }
-
-    private void throwIfClosed() {
-        if (socket.isClosed()) {
-            throw new JayoClosedResourceException();
-        }
-    }
-
-    private final class IoSocketRawReader implements RawReader {
-        private final @NonNull InputStream in;
-
-        private IoSocketRawReader() {
-            try {
-                in = socket.getInputStream();
-            } catch (IOException e) {
-                throw JayoException.buildJayoException(e);
-            }
-        }
-
+    private final class SocketRawReader implements RawReader {
         @Override
         public long readAtMostTo(final @NonNull Buffer destination, final long byteCount) {
             assert destination != null;
@@ -316,7 +131,7 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             final var toRead = (int) Math.min(byteCount, Segment.SIZE - dstTail.limit);
             final int read = timeout.withTimeout(cancelToken, () -> {
                 try {
-                    return in.read(dstTail.data, dstTail.limit, toRead);
+                    return AbstractNetworkSocket.this.read(dstTail, toRead);
                 } catch (IOException e) {
                     throw JayoException.buildJayoException(e);
                 }
@@ -346,11 +161,8 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
                         }
                         // Close this stream only.
                         default -> {
-                            if (socket.isClosed() || socket.isInputShutdown()) {
-                                yield null; // Nothing to do.
-                            }
                             try {
-                                socket.shutdownInput();
+                                shutdownInput();
                                 yield null;
                             } catch (IOException e) {
                                 throw JayoException.buildJayoException(e);
@@ -361,21 +173,15 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
 
         @Override
         public @NonNull String toString() {
-            return "RawReader(" + socket + ")";
+            return "RawReader(" + getUnderlying() + ")";
         }
     }
 
-    private final class IoSocketRawWriter implements RawWriter {
-        private final @NonNull OutputStream out;
+    abstract int read(final @NonNull Segment dstTail, final int toRead) throws IOException;
 
-        private IoSocketRawWriter() {
-            try {
-                out = socket.getOutputStream();
-            } catch (IOException e) {
-                throw JayoException.buildJayoException(e);
-            }
-        }
+    abstract void shutdownInput() throws IOException;
 
+    private final class SocketRawWriter implements RawWriter {
         @Override
         public void writeFrom(final @NonNull Buffer source, final long byteCount) {
             assert source != null;
@@ -419,7 +225,7 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
                 final var toWrite = (int) Math.min(remaining, head.limit - head.pos);
                 timeout.withTimeout(cancelToken, () -> {
                     try {
-                        out.write(head.data, head.pos, toWrite);
+                        AbstractNetworkSocket.this.write(head, toWrite);
                         return null;
                     } catch (IOException e) {
                         throw JayoException.buildJayoException(e);
@@ -442,7 +248,7 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             final var cancelToken = CancellableUtils.getCancelToken();
             timeout.withTimeout(cancelToken, () -> {
                 try {
-                    out.flush();
+                    AbstractNetworkSocket.this.flush();
                     return null;
                 } catch (IOException e) {
                     throw JayoException.buildJayoException(e);
@@ -464,12 +270,8 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
                         }
                         // Close this stream only.
                         default -> {
-                            if (socket.isClosed() || socket.isOutputShutdown()) {
-                                yield null; // Nothing to do.
-                            }
                             try {
-                                out.flush();
-                                socket.shutdownOutput();
+                                shutdownOutput();
                                 yield null;
                             } catch (IOException e) {
                                 throw JayoException.buildJayoException(e);
@@ -480,7 +282,13 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
 
         @Override
         public @NonNull String toString() {
-            return "RawWriter(" + socket + ")";
+            return "RawWriter(" + getUnderlying() + ")";
         }
     }
+
+    abstract void write(final @NonNull Segment headTail, final int toRead) throws IOException;
+
+    abstract void flush() throws IOException;
+
+    abstract void shutdownOutput() throws IOException;
 }

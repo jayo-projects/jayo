@@ -21,13 +21,10 @@
 
 package jayo.tools;
 
-import jayo.RawReader;
-import jayo.RawWriter;
 import jayo.internal.RealAsyncTimeout;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.time.Duration;
 import java.util.Objects;
 
 /**
@@ -38,9 +35,6 @@ import java.util.Objects;
  * Subclasses must call {@link #create(Runnable)} to implement the action that will be called when a timeout occurs.
  * This method will be invoked by the shared watchdog thread, so it should not do any long-running operations.
  * Otherwise, we risk starving other timeouts from being triggered.
- * <p>
- * Use {@link #writer(RawWriter)} and {@link #reader(RawReader)} to apply this timeout to a stream. The returned value
- * will apply the timeout to each operation on the wrapped stream.
  * <p>
  * Callers should call {@link #enter(long)} before doing work that is subject to timeouts, and {@link #exit(Node)}
  * afterward. The return value of {@link #exit(Node)} indicates whether a timeout was triggered.
@@ -78,22 +72,6 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     boolean exit(final @Nullable Node node);
 
     /**
-     * @param reader the delegate reader.
-     * @return a new reader that delegates to {@code reader}, using this to implement timeouts. If a timeout occurs, the
-     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
-     */
-    @NonNull
-    RawReaderWithTimeout reader(final @NonNull RawReader reader);
-
-    /**
-     * @param writer the delegate writer.
-     * @return a new writer that delegates to {@code writer}, using this to implement timeouts. If a timeout occurs, the
-     * {@code onTimeout} code block declared in {@link #create(Runnable)} will execute.
-     */
-    @NonNull
-    RawWriterWithTimeout writer(final @NonNull RawWriter writer);
-
-    /**
      * A node in the AsyncTimeout queue.
      */
     sealed interface Node permits RealAsyncTimeout.TimeoutNode {
@@ -101,35 +79,5 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
          * If scheduled, this is the time that the watchdog should time this out.
          */
         long getTimeoutAt();
-    }
-
-    sealed interface RawReaderWithTimeout extends RawReader permits RealAsyncTimeout.RawReaderWithTimeout {
-        /**
-         * @return the default read timeout. It will be used as a fallback for each read operation, only if no timeout
-         * is present in the cancellable context.
-         */
-        @NonNull
-        Duration getTimeout();
-
-        /**
-         * Sets the default read timeout. It will be used as a fallback for each read operation, only if no timeout is
-         * present in the cancellable context. A timeout of zero is interpreted as an infinite timeout.
-         */
-        void setTimeout(final @NonNull Duration readTimeout);
-    }
-
-    sealed interface RawWriterWithTimeout extends RawWriter permits RealAsyncTimeout.RawWriterWithTimeout {
-        /**
-         * @return the default write timeout. It will be used as a fallback for each write operation, only if no timeout
-         * is present in the cancellable context.
-         */
-        @NonNull
-        Duration getTimeout();
-
-        /**
-         * Sets the default write timeout. It will be used as a fallback for each write operation, only if no timeout is
-         * present in the cancellable context. A timeout of zero is interpreted as an infinite timeout.
-         */
-        void setTimeout(final @NonNull Duration readTimeout);
     }
 }

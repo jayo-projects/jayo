@@ -5,6 +5,7 @@
 
 package jayo.internal.network;
 
+import jayo.internal.AbstractNetworkSocket;
 import jayo.network.NetworkSocket;
 import jayo.network.NetworkProtocol;
 import jayo.network.Proxy;
@@ -117,7 +118,7 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
                     protocolFamily);
         }
 
-        return IoSocketNetworkSocket.connect(
+        return AbstractNetworkSocket.connect(
                 peerAddress,
                 connectTimeout,
                 proxy,

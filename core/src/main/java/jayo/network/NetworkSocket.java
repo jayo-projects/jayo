@@ -7,8 +7,8 @@ package jayo.network;
 
 import jayo.Socket;
 import jayo.JayoClosedResourceException;
+import jayo.internal.AbstractNetworkSocket;
 import jayo.internal.network.*;
-import jayo.internal.network.IoSocketNetworkSocket;
 import jayo.internal.network.SocksNetworkSocket;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -34,7 +34,7 @@ import java.time.Duration;
  * @see Socket
  */
 public sealed interface NetworkSocket extends Socket
-        permits SocketChannelNetworkSocket, IoSocketNetworkSocket, SocksNetworkSocket {
+        permits AbstractNetworkSocket, SocketChannelNetworkSocket, SocksNetworkSocket {
     /**
      * @return a new client-side TCP {@link NetworkSocket} backed by an underlying
      * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} connected to the server using the provided

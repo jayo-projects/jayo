@@ -50,9 +50,9 @@ public final class SocksNetworkSocket implements NetworkSocket {
     private final @NonNull Writer writer;
     private final @NonNull InetSocketAddress peerAddress;
 
-    SocksNetworkSocket(final @NonNull RealSocksProxy proxy,
-                       final @NonNull NetworkSocket delegate,
-                       final @NonNull InetSocketAddress peerAddress) {
+    public SocksNetworkSocket(final @NonNull RealSocksProxy proxy,
+                              final @NonNull NetworkSocket delegate,
+                              final @NonNull InetSocketAddress peerAddress) {
         assert proxy != null;
         assert delegate != null;
         assert peerAddress != null;

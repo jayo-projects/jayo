@@ -82,12 +82,10 @@ public final class InputStreamRawReader implements RawReader {
         if (read > 0) {
             dstTail.limit += read;
             dst.byteSize += read;
-        } else {
-            if (dstTail.pos == dstTail.limit) {
-                // We allocated a tail segment, but didn't end up needing it. Recycle!
-                dst.head = dstTail.pop();
-                SegmentPool.recycle(dstTail);
-            }
+        } else if (dstTail.pos == dstTail.limit) {
+            // We allocated a tail segment, but didn't end up needing it. Recycle!
+            dst.head = dstTail.pop();
+            SegmentPool.recycle(dstTail);
         }
 
         if (LOGGER.isLoggable(TRACE)) {
