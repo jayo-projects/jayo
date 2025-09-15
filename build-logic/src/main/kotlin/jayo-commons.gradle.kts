@@ -26,15 +26,25 @@ val koverage = mapOf(
 )
 
 kotlin {
+    // for all targets: main / test / testFixtures
     compilerOptions {
         languageVersion.set(KOTLIN_2_0)
         apiVersion.set(KOTLIN_2_0)
-        allWarningsAsErrors = true
         explicitApi = Strict
         freeCompilerArgs.addAll(
             "-Xnullability-annotations=@org.jspecify.annotations:strict", // not really sure if this helps ;)
             "-opt-in=kotlin.contracts.ExperimentalContracts",
         )
+    }
+    // only for the main target
+    target {
+        val main by compilations.getting {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    allWarningsAsErrors = true
+                }
+            }
+        }
     }
 }
 
