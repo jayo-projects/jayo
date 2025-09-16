@@ -574,20 +574,35 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
 
     @Override
     public final void cancel() {
-        var closeConfirmed = false;
+        tryShutdownForCancel();
+        encryptedSocket.cancel();
+    }
+
+    private void tryShutdownForCancel() {
+        if (!readLock.tryLock()) {
+            return;
+        }
         try {
-            if (!shutdownSent) {
-                closeConfirmed = shutdown();
+            if (!writeLock.tryLock()) {
+                return;
             }
-            if (!closeConfirmed && waitForCloseConfirmation) {
-                shutdown();
-            }
-        } catch (JayoException je) {
-            if (LOGGER.isLoggable(TRACE)) {
-                LOGGER.log(TRACE, "Error doing TLS shutdown on close(), continuing.", je);
+            try {
+                var closeConfirmed = false;
+                if (!shutdownSent) {
+                    closeConfirmed = shutdownLocked(false);
+                }
+                if (!closeConfirmed && waitForCloseConfirmation) {
+                    shutdownLocked(false);
+                }
+            } catch (Exception e) {
+                if (LOGGER.isLoggable(TRACE)) {
+                    LOGGER.log(TRACE, "Error doing TLS shutdown on cancel(), continuing.", e);
+                }
+            } finally {
+                writeLock.unlock();
             }
         } finally {
-            encryptedSocket.cancel();
+            readLock.unlock();
         }
     }
 
@@ -597,48 +612,55 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
         try {
             writeLock.lock();
             try {
-                if (invalid) {
-                    throw new JayoClosedResourceException();
-                }
-
-                if (!shutdownSent) {
-                    shutdownSent = true;
-                    writeToWriter(); // IO block
-                    engine.closeOutbound();
-                    wrap(DUMMY_OUT);
-                    writeToWriter(); // IO block
-                    /*
-                     * If this side is the first to send close_notify, then, inbound is not done and false should be
-                     * returned (so the client waits for the response). If this side is the second, then inbound was
-                     * already done, and we can return true.
-                     */
-                    if (shutdownReceived) {
-                        freeBuffer();
-                    }
-                    return shutdownReceived;
-                }
-
-                /*
-                 * If we reach this point, then we just have to read the close notification from the client. Only try
-                 * to do it if necessary, to make this method idempotent.
-                 */
-                if (!shutdownReceived) {
-                    try {
-                        // IO block
-                        readAndUnwrap();
-                        assert shutdownReceived;
-                    } catch (TlsEOFException e) {
-                        throw new JayoClosedResourceException();
-                    }
-                }
-                freeBuffer();
-                return true;
+                return shutdownLocked(true);
             } finally {
                 writeLock.unlock();
             }
         } finally {
             readLock.unlock();
         }
+    }
+
+    private boolean shutdownLocked(final boolean freeBuffer) {
+        if (invalid) {
+            throw new JayoClosedResourceException();
+        }
+
+        if (!shutdownSent) {
+            shutdownSent = true;
+            writeToWriter(); // IO block
+            engine.closeOutbound();
+            wrap(DUMMY_OUT);
+            writeToWriter(); // IO block
+            /*
+             * If this side is the first to send close_notify, then, inbound is not done and false should be returned
+             * (so the client waits for the response). If this side is the second, then inbound was already done, and we
+             * can return true.
+             */
+            final var _shutdownReceived = this.shutdownReceived;
+            if (freeBuffer && _shutdownReceived) {
+                freeBuffer();
+            }
+            return _shutdownReceived;
+        }
+
+        /*
+         * If we reach this point, then we just have to read the close notification from the client. Only try
+         * to do it if necessary, to make this method idempotent.
+         */
+        if (!shutdownReceived) {
+            try {
+                // IO block
+                readAndUnwrap();
+            } catch (TlsEOFException e) {
+                throw new JayoClosedResourceException();
+            }
+        }
+        if (freeBuffer) {
+            freeBuffer();
+        }
+
+        return true;
     }
 
     @Override
