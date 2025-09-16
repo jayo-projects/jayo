@@ -130,22 +130,25 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             CancelToken.throwIfReached(cancelToken);
             final var dstTail = dst.writableTail(1);
             final var toRead = (int) Math.min(byteCount, Segment.SIZE - dstTail.limit);
-            final int read = timeout.withTimeout(cancelToken, () -> {
+            final int bytesRead = timeout.withTimeout(cancelToken, () -> {
                 try {
                     return AbstractNetworkSocket.this.read(dstTail, toRead);
                 } catch (IOException e) {
                     throw JayoException.buildJayoException(e);
                 }
             });
-            if (read > 0) {
-                dstTail.limit += read;
-                dst.byteSize += read;
-            } else if (dstTail.pos == dstTail.limit) {
-                // We allocated a tail segment, but didn't end up needing it. Recycle!
-                dst.head = dstTail.pop();
-                SegmentPool.recycle(dstTail);
+            if (bytesRead == -1) {
+                if (dstTail.pos == dstTail.limit) {
+                    // We allocated a tail segment, but didn't end up needing it. Recycle!
+                    dst.head = dstTail.pop();
+                    SegmentPool.recycle(dstTail);
+                }
+                return -1L;
             }
-            return read;
+
+            dstTail.limit += bytesRead;
+            dst.byteSize += bytesRead;
+            return bytesRead;
         }
 
         @Override
