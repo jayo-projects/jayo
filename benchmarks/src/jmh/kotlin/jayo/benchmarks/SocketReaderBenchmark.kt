@@ -25,7 +25,6 @@ open class SocketReaderBenchmark {
     @Param("jayo-io", "jayo-nio", "okio")
     private lateinit var type: String
 
-    private lateinit var serverSocket: ServerSocket
     private lateinit var clientSocket: Socket
     private lateinit var clientSocketChannel: SocketChannel
     private lateinit var clientOutputStream: OutputStream
@@ -40,7 +39,7 @@ open class SocketReaderBenchmark {
 
     @Setup
     fun setup() {
-        serverSocket = ServerSocket(0)
+        val serverSocket = ServerSocket(0)
         // start sender server
         Thread.ofPlatform().start {
             try {

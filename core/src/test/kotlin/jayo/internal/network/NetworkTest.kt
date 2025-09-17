@@ -266,13 +266,13 @@ class NetworkTest {
                     accepted.writer.use { serverWriter ->
                         serverWriter.writeInt(1)
                             .flush()
-                        Thread.sleep(300)
+                        Thread.sleep(400)
                         serverWriter.writeInt(2)
                     }
                 }
                 val client = networkFactory.networkSocketBuilder()
                     .connectTcp(server.localAddress)
-                client.readTimeout = Duration.ofMillis(100)
+                client.readTimeout = Duration.ofMillis(200)
 
                 client.reader.use { clientReader ->
                     assertThat(clientReader.readInt()).isEqualTo(1)
