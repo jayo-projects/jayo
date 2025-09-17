@@ -11,7 +11,6 @@ import jayo.JayoException;
 import jayo.RawWriter;
 import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -20,7 +19,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static jayo.internal.Utils.TIMEOUT_WRITE_SIZE;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public final class GatheringByteChannelRawWriter implements RawWriter {
@@ -50,30 +48,6 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
         }
 
         final var src = (RealBuffer) source;
-        var remaining = byteCount;
-        while (remaining > 0L) {
-            /*
-             * Don't write more than 4 full segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer
-             * timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never
-             * succeed on a sufficiently slow connection.
-             */
-            final var toWrite = (int) Math.min(remaining, TIMEOUT_WRITE_SIZE);
-            write(src, toWrite, cancelToken);
-            remaining -= toWrite;
-        }
-
-        if (LOGGER.isLoggable(TRACE)) {
-            LOGGER.log(TRACE, "GatheringByteChannelRawWriter: Finished writing {0} bytes from Buffer#{2} " +
-                            "(size={2}) to the WritableByteChannel{3}",
-                    byteCount, source.hashCode(), source.bytesAvailable(), System.lineSeparator());
-        }
-    }
-
-    private void write(final @NonNull RealBuffer src,
-                       final int byteCount,
-                       final @Nullable RealCancelToken cancelToken) {
-        assert src != null;
-
         src.withHeadsAsByteBuffers(byteCount, sources -> {
             var remaining = byteCount;
             var firstSourceIndex = 0; // index of the first source in the array of sources with remaining bytes to write
@@ -97,6 +71,12 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
             }
             return byteCount;
         });
+
+        if (LOGGER.isLoggable(TRACE)) {
+            LOGGER.log(TRACE, "GatheringByteChannelRawWriter: Finished writing {0} bytes from Buffer#{2} " +
+                            "(size={2}) to the WritableByteChannel{3}",
+                    byteCount, source.hashCode(), source.bytesAvailable(), System.lineSeparator());
+        }
     }
 
     @Override

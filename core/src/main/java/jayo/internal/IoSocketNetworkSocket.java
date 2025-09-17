@@ -245,7 +245,7 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
 
     @Override
     void write(final @NonNull RealBuffer src,
-               final int byteCount,
+               final long byteCount,
                final @Nullable RealCancelToken cancelToken) {
         assert src != null;
 
@@ -254,7 +254,7 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             CancelToken.throwIfReached(cancelToken);
             final var head = src.head;
             assert head != null;
-            final var toWrite = Math.min(remaining, head.limit - head.pos);
+            final var toWrite = (int) Math.min(remaining, head.limit - head.pos);
             timeout.withTimeout(cancelToken, () -> {
                 try {
                     out.write(head.data, head.pos, toWrite);

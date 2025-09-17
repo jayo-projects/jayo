@@ -44,7 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 
 import static java.lang.System.Logger.Level.TRACE;
 import static jayo.internal.UnsafeUtils.*;
@@ -1941,8 +1941,8 @@ public final class RealBuffer implements Buffer {
         return unsafeCursor;
     }
 
-    int withHeadsAsByteBuffers(final int toRead,
-                               final @NonNull ToIntFunction<@NonNull ByteBuffer @NonNull []> readAction) {
+    long withHeadsAsByteBuffers(final long toRead,
+                                final @NonNull ToLongFunction<@NonNull ByteBuffer @NonNull []> readAction) {
         assert readAction != null;
         assert toRead > 0;
 
@@ -1952,7 +1952,7 @@ public final class RealBuffer implements Buffer {
         var remaining = toRead;
         while (remaining > 0) {
             assert segment != null;
-            final var toReadInSegment = Math.min(remaining, segment.limit - segment.pos);
+            final var toReadInSegment = (int) Math.min(remaining, segment.limit - segment.pos);
             byteBuffers.add(segment.asByteBuffer(segment.pos, toReadInSegment));
             remaining -= toReadInSegment;
             segment = segment.next;
@@ -1960,7 +1960,7 @@ public final class RealBuffer implements Buffer {
         final var sources = byteBuffers.toArray(new ByteBuffer[0]);
 
         // 2) call readAction
-        final var read = readAction.applyAsInt(sources);
+        final var read = readAction.applyAsLong(sources);
         if (read <= 0) {
             return read;
         }
@@ -1970,7 +1970,7 @@ public final class RealBuffer implements Buffer {
         while (remaining > 0) {
             final var head = this.head;
             assert head != null;
-            final var readFromHead = Math.min(remaining, head.limit - head.pos);
+            final var readFromHead = (int) Math.min(remaining, head.limit - head.pos);
             head.pos += readFromHead;
             byteSize -= readFromHead;
             remaining -= readFromHead;

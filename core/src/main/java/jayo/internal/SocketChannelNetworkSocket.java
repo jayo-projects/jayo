@@ -26,6 +26,7 @@ import java.util.Objects;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
+import static jayo.internal.Utils.TIMEOUT_WRITE_SIZE;
 
 /**
  * A {@link NetworkSocket} backed by an underlying {@linkplain SocketChannel NIO SocketChannel}.
@@ -193,8 +194,26 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
 
     @Override
     void write(final @NonNull RealBuffer src,
-               final int byteCount,
+               final long byteCount,
                final @Nullable RealCancelToken cancelToken) {
+        assert src != null;
+
+        var remaining = byteCount;
+        while (remaining > 0L) {
+            /*
+             * Don't write more than 4 full segments (~67 KiB) of data at a time. Otherwise, slow connections may suffer
+             * timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer may never
+             * succeed on a sufficiently slow connection.
+             */
+            final var toWrite = Math.min(remaining, TIMEOUT_WRITE_SIZE);
+            writeToSocketChannel(src, toWrite, cancelToken);
+            remaining -= toWrite;
+        }
+    }
+
+    private void writeToSocketChannel(final @NonNull RealBuffer src,
+                                      final long byteCount,
+                                      final @Nullable RealCancelToken cancelToken) {
         assert src != null;
 
         src.withHeadsAsByteBuffers(byteCount, sources -> {
@@ -202,9 +221,9 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
             final var firstSourceIndex = new Wrapper.Int(); // index of the first source in the array of sources with remaining bytes to write
             while (true) {
                 CancelToken.throwIfReached(cancelToken);
-                final int written= timeout.withTimeout(cancelToken, () -> {
+                final var written = timeout.withTimeout(cancelToken, () -> {
                     try {
-                        return (int) socketChannel.write(sources, firstSourceIndex.value,
+                        return socketChannel.write(sources, firstSourceIndex.value,
                                 sources.length - firstSourceIndex.value);
                     } catch (IOException e) {
                         throw JayoException.buildJayoException(e);

@@ -33,7 +33,6 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static jayo.internal.Utils.TIMEOUT_WRITE_SIZE;
 import static jayo.internal.Utils.setBitsOrZero;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
@@ -197,7 +196,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             if (cancelToken != null) {
                 cancelToken.timeoutNanos = writeTimeoutNanos;
                 try {
-                    write(src, byteCount, cancelToken);
+                    AbstractNetworkSocket.this.write(src, byteCount, cancelToken);
                 } finally {
                     cancelToken.timeoutNanos = 0L;
                 }
@@ -206,31 +205,13 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
                 cancelToken = new RealCancelToken(writeTimeoutNanos, 0L, false);
                 CancellableUtils.addCancelToken(cancelToken);
                 try {
-                    write(src, byteCount, cancelToken);
+                    AbstractNetworkSocket.this.write(src, byteCount, cancelToken);
                 } finally {
                     CancellableUtils.finishCancelToken(cancelToken);
                 }
             } else {
                 // no need for cancellation
-                write(src, byteCount, null);
-            }
-        }
-
-        private void write(final @NonNull RealBuffer src,
-                           final long byteCount,
-                           final @Nullable RealCancelToken cancelToken) {
-            assert src != null;
-
-            var remaining = byteCount;
-            while (remaining > 0L) {
-                /*
-                 * Don't write more than 4 full segments (~67 KiB) of data at a time. Otherwise, slow connections may
-                 * suffer timeouts even when they're making (slow) progress. Without this, writing a single 1 MiB buffer
-                 * may never succeed on a sufficiently slow connection.
-                 */
-                final var toWrite = (int) Math.min(remaining, TIMEOUT_WRITE_SIZE);
-                AbstractNetworkSocket.this.write(src, toWrite, cancelToken);
-                remaining -= toWrite;
+                AbstractNetworkSocket.this.write(src, byteCount, null);
             }
         }
 
@@ -278,7 +259,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
     }
 
     abstract void write(final @NonNull RealBuffer src,
-                        final int byteCount,
+                        final long byteCount,
                         final @Nullable RealCancelToken cancelToken);
 
     void flush() throws IOException {
