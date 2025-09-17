@@ -105,7 +105,7 @@ class TaskRunnerRealBackendTest {
     fun testSingleExecute() {
         val t1 = System.nanoTime() / 1e6
 
-        taskRunner.execute(true) {
+        taskRunner.execute("singleTask", true) {
             log.put("runOnce")
         }
 

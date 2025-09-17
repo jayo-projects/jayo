@@ -32,14 +32,12 @@ import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public final class RealTaskRunner implements TaskRunner {
     private static final System.Logger LOGGER = System.getLogger("jayo.scheduler.TaskRunner");
 
-    private final @NonNull AtomicLong nextTaskIndex = new AtomicLong(10000);
     private final @NonNull AtomicInteger nextQueueIndex = new AtomicInteger(10000);
 
     final @NonNull Backend backend;
@@ -405,9 +403,13 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     @Override
-    public void execute(final boolean cancellable, final @NonNull Runnable block) {
+    public void execute(final @NonNull String name,
+                        final boolean cancellable,
+                        final @NonNull Runnable block) {
+        assert name != null;
         assert block != null;
-        final var task = new Task.RunnableTask("T" + nextTaskIndex, cancellable) {
+
+        final var task = new Task.RunnableTask(name, cancellable) {
             @Override
             public void run() {
                 block.run();
