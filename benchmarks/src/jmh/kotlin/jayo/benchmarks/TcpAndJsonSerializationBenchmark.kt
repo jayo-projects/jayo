@@ -1,20 +1,25 @@
 package jayo.benchmarks
 
+import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import jayo.Socket
 import jayo.asJayoSocket
 import jayo.kotlinx.serialization.decodeFromReader
 import jayo.kotlinx.serialization.encodeToWriter
+import jayo.network.NetworkSocket
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.okio.decodeFromBufferedSource
 import kotlinx.serialization.json.okio.encodeToBufferedSink
+import okio.asOkioSocket
 import okio.buffer
-import okio.sink
-import okio.source
 import org.openjdk.jmh.annotations.*
+import java.net.InetSocketAddress
 import java.net.ServerSocket
-import java.net.Socket
+import java.nio.channels.SocketChannel
 import java.util.concurrent.TimeUnit
+import okio.Socket as OkioSocket
+import java.net.Socket as JavaSocket
 
 @OptIn(ExperimentalSerializationApi::class)
 @State(Scope.Benchmark)
@@ -26,11 +31,13 @@ import java.util.concurrent.TimeUnit
 @Fork(value = 1)
 open class TcpAndJsonSerializationBenchmark {
     private val senderServer = ServerSocket(0)
-    private val receiverServer = ServerSocket(0)
+    private lateinit var clientSocket: Socket
+    private lateinit var clientOkioSocket: OkioSocket
 
     companion object {
         @JvmStatic
         private val objectMapper = jacksonObjectMapper()
+            .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
 
         @JvmStatic
         private val kotlinxSerializationMapper = Json
@@ -50,6 +57,8 @@ open class TcpAndJsonSerializationBenchmark {
                 postData = "-",
                 cookies = "_ga=GA1.2.971852807.1546968515"
             )
+
+        val bytesCache = ByteArray(737)
     }
 
     @Setup
@@ -59,9 +68,10 @@ open class TcpAndJsonSerializationBenchmark {
             try {
                 while (true) {
                     val sock = senderServer.accept()
-                    val output = sock.getOutputStream()
                     Thread.ofVirtual().start {
-                        objectMapper.writeValue(output, defaultPixelEvent)
+                        sock.getOutputStream().use { output ->
+                            objectMapper.writeValue(output, defaultPixelEvent)
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -70,6 +80,7 @@ open class TcpAndJsonSerializationBenchmark {
             }
         }
 
+        val receiverServer = ServerSocket(0)
         // start receiver server
         Thread.ofPlatform().start {
             try {
@@ -77,7 +88,8 @@ open class TcpAndJsonSerializationBenchmark {
                     val sock = receiverServer.accept()
                     val input = sock.getInputStream()
                     Thread.ofVirtual().start {
-                        check(input.readAllBytes().size == 737)
+                        while (input.readNBytes(bytesCache, 0, 737) == 737) {
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -85,13 +97,20 @@ open class TcpAndJsonSerializationBenchmark {
                 e.printStackTrace()
             }
         }
+        clientSocket = NetworkSocket.connectTcp(receiverServer.localSocketAddress as InetSocketAddress)
+        clientOkioSocket = java.net.Socket("localhost", receiverServer.localPort).asOkioSocket()
+    }
+
+    @TearDown
+    fun tearDown() {
+        clientSocket.cancel()
+        clientOkioSocket.cancel()
     }
 
     @Benchmark
     fun readerJayo() {
-        Socket().use { socket ->
-            socket.connect(senderServer.localSocketAddress)
-            socket.asJayoSocket().reader.use { reader ->
+        SocketChannel.open(senderServer.localSocketAddress).use { socketChannel ->
+            socketChannel.asJayoSocket().reader.use { reader ->
                 val decoded = kotlinxSerializationMapper.decodeFromReader(
                     JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
                     reader
@@ -103,9 +122,9 @@ open class TcpAndJsonSerializationBenchmark {
 
     @Benchmark
     fun readerOkio() {
-        Socket().use { socket ->
+        JavaSocket().use { socket ->
             socket.connect(senderServer.localSocketAddress)
-            socket.source().buffer().use { source ->
+            socket.asOkioSocket().source.buffer().use { source ->
                 val decoded = kotlinxSerializationMapper.decodeFromBufferedSource(
                     JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
                     source
@@ -117,40 +136,30 @@ open class TcpAndJsonSerializationBenchmark {
 
     @Benchmark
     fun senderJayo() {
-        val socket = Socket()
-        socket.connect(receiverServer.localSocketAddress)
-        socket.asJayoSocket().writer.use { writer ->
-            kotlinxSerializationMapper.encodeToWriter(
-                JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
-                defaultPixelEvent,
-                writer
-            )
-            writer.flush()
-        }
+        val writer = clientSocket.writer
+        kotlinxSerializationMapper.encodeToWriter(
+            JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
+            defaultPixelEvent,
+            writer
+        )
+        writer.flush()
     }
 
     @Benchmark
     fun senderJayoJackson() {
-        val socket = Socket()
-        socket.connect(receiverServer.localSocketAddress)
-        socket.asJayoSocket().writer.use { writer ->
-            val output = writer.asOutputStream()
-            objectMapper.writeValue(output, defaultPixelEvent)
-            output.flush()
-        }
+        val output = clientSocket.writer.asOutputStream()
+        objectMapper.writeValue(output, defaultPixelEvent)
+        output.flush()
     }
 
     @Benchmark
     fun senderOkio() {
-        val socket = Socket()
-        socket.connect(receiverServer.localSocketAddress)
-        socket.sink().buffer().use { sink ->
-            kotlinxSerializationMapper.encodeToBufferedSink(
-                JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
-                defaultPixelEvent,
-                sink
-            )
-            sink.flush()
-        }
+        val sink = clientOkioSocket.sink.buffer()
+        kotlinxSerializationMapper.encodeToBufferedSink(
+            JsonSerializationBenchmark.DefaultPixelEvent.serializer(),
+            defaultPixelEvent,
+            sink
+        )
+        sink.flush()
     }
 }

@@ -148,8 +148,9 @@ SocketReaderBenchmark.readerOkio      okio  thrpt    5  42404.185 ± 3085.909  o
 
 ## TcpAndJsonSerializationBenchmark
 
-Benchmark                                     Mode  Cnt      Score      Error  Units
-TcpAndJsonSerializationBenchmark.readerJayo  thrpt    5  21127.543 ± 5022.590  ops/s
-TcpAndJsonSerializationBenchmark.readerOkio  thrpt    5  20698.793 ± 1559.715  ops/s
-TcpAndJsonSerializationBenchmark.senderJayo  thrpt    5   1886.880 ±   84.593  ops/s
-TcpAndJsonSerializationBenchmark.senderOkio  thrpt    5   1892.732 ±  204.239  ops/s
+Benchmark                                            Mode  Cnt       Score       Error  Units
+TcpAndJsonSerializationBenchmark.readerJayo         thrpt    5   22997.122 ±  2233.987  ops/s
+TcpAndJsonSerializationBenchmark.readerOkio         thrpt    5   22813.714 ±  3438.853  ops/s
+TcpAndJsonSerializationBenchmark.senderJayo         thrpt    5  459701.623 ±  9430.803  ops/s
+TcpAndJsonSerializationBenchmark.senderJayoJackson  thrpt    5  478318.671 ±  7845.783  ops/s
+TcpAndJsonSerializationBenchmark.senderOkio         thrpt    5  348639.577 ± 12296.264  ops/s
