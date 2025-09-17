@@ -134,7 +134,7 @@ class JayoTest {
         val baos = ByteArrayOutputStream()
         val socket = object : Socket() {
             override fun getInputStream() = object : InputStream() {
-                override fun read() = TODO("Not yet implemented")
+                override fun read() = -1
             }
 
             override fun getOutputStream() = baos
@@ -152,7 +152,7 @@ class JayoTest {
         val socket = object : Socket() {
             override fun getInputStream() = bais
             override fun getOutputStream() = object : OutputStream() {
-                override fun write(b: Int) = TODO("Not yet implemented")
+                override fun write(b: Int) = Unit
             }
 
             override fun isConnected() = true

@@ -12,7 +12,6 @@ fun catalogVersion(lib: String) =
         ?: throw GradleException("Version '$lib' is not specified in the toml version catalog")
 
 dependencies {
-    testImplementation(project(":jayo"))
     testImplementation(testFixtures(project(":jayo")))
 
     testFixturesApi(project(":jayo"))
