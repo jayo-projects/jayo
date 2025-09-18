@@ -5,7 +5,7 @@ kotlin = "2.2.20"
 # https://github.com/Kotlin/dokka/releases
 dokka = "2.0.0"
 # https://github.com/Kotlin/kotlinx-kover/releases
-kover = "0.9.1"
+kover = "0.9.2"
 # https://github.com/melix/mrjar-gradle-plugin/releases
 mrjar = "0.1.1"
 # https://github.com/melix/jmh-gradle-plugin/tags (for benchmarks)
@@ -21,7 +21,7 @@ jspecify = "1.0.0"
 
 # main -> optional dependencies
 # https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk18on
-bouncycastle = "1.81"
+bouncycastle = "1.82"
 # https://mvnrepository.com/artifact/org.conscrypt/conscrypt-openjdk-uber
 conscrypt = "2.5.2"
 
