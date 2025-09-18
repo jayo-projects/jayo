@@ -148,8 +148,7 @@ public final class SocksNetworkSocket implements NetworkSocket {
             default -> new JayoSocketException("SOCKS5 : Reply from SOCKS server contains bad status");
         };
         if (exception != null) {
-            reader.close();
-            writer.close();
+            Jayo.closeQuietly(delegate);
             throw exception;
         }
     }
@@ -213,8 +212,7 @@ public final class SocksNetworkSocket implements NetworkSocket {
 
             if (authFailed) {
                 // https://www.ietf.org/rfc/rfc1929.txt : the connection must be closed if authentication fails
-                writer.close();
-                reader.close();
+                Jayo.closeQuietly(delegate);
                 return false;
             }
 
@@ -253,8 +251,7 @@ public final class SocksNetworkSocket implements NetworkSocket {
             default -> new JayoSocketException("SOCKS4 : Reply from SOCKS server contains bad status");
         };
         if (exception != null) {
-            reader.close();
-            writer.close();
+            Jayo.closeQuietly(delegate);
             throw exception;
         }
     }
