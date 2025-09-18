@@ -28,8 +28,9 @@ import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -81,7 +82,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
         LOCK.lock();
         try {
-            return insertInQueue(cancelToken, isTemporary);
+            return insertIntoQueue(cancelToken, isTemporary);
         } finally {
             LOCK.unlock();
         }
@@ -96,7 +97,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         final var _node = (TimeoutNode) node;
         LOCK.lock();
         try {
-            return !removeFromQueue(_node);
+            return !QUEUE.remove(_node);
         } finally {
             LOCK.unlock();
 
@@ -156,30 +157,33 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     /**
      * Duration for the watchdog thread to be idle before it shuts itself down.
      */
-    private static final long IDLE_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(60);
-    private static final long IDLE_TIMEOUT_NANOS = TimeUnit.MILLISECONDS.toNanos(IDLE_TIMEOUT_MILLIS);
+    private static final long IDLE_TIMEOUT_NANOS = Duration.ofSeconds(60).toNanos();
 
     /**
-     * The watchdog thread processes a linked list of pending timeouts, sorted in the order to be triggered. This lock
-     * guards the queue.
+     * The watchdog thread processes this queue containing pending timeouts. It synchronizes on {@link #CONDITION} to
+     * guard accesses to the queue.
      * <p>
-     * Head's 'next' points to the first element of the linked list. The first element is the next node to time out, or
-     * null if the queue is empty. The head is null until the watchdog thread is started and also after being idle for
-     * {@link #IDLE_TIMEOUT_MILLIS}.
+     * The queue's first element is the next node to time out, which is null if the queue is empty.
+     * <p>
+     * The {@link #IDLE_SENTINEL} is null until the watchdog thread is started and also after being idle for
+     * {@link #IDLE_TIMEOUT_NANOS}.
      */
-    private static @Nullable TimeoutNode HEAD = null;
+    private static final @NonNull PriorityQueue QUEUE = new PriorityQueue();
+    private static @Nullable TimeoutNode IDLE_SENTINEL = null;
 
+    private static final @NonNull TimeoutNode IDLE_SENTINEL_WATCHDOG_RUNNING = new TimeoutNode(0L, () -> {
+    }, null);
     private static final ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
-            JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#", false);
+            JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#", true);
 
-    private @NonNull TimeoutNode insertInQueue(final @NonNull RealCancelToken cancelToken, final boolean isTemporary) {
+    private @NonNull TimeoutNode insertIntoQueue(final @NonNull RealCancelToken cancelToken,
+                                                 final boolean isTemporary) {
         assert cancelToken != null;
 
         // Start the watchdog thread and create the head node when the first timeout is scheduled.
-        if (HEAD == null) {
-            HEAD = new TimeoutNode(0L, () -> {
-            }, null);
-            ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(new Watchdog()).start();
+        if (IDLE_SENTINEL == null) {
+            IDLE_SENTINEL = IDLE_SENTINEL_WATCHDOG_RUNNING;
+            ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(RealAsyncTimeout::watchdogLoop).start();
         }
 
         final var now = System.nanoTime();
@@ -189,108 +193,76 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         } else {
             timeoutAt = now + cancelToken.timeoutNanos;
         }
-        final var node = new TimeoutNode(
-                timeoutAt,
-                onTimeout,
+        final var node = new TimeoutNode(timeoutAt, onTimeout,
                 isTemporary ? cancelToken : null);
 
-        // Insert the node in sorted order.
-        final var remainingNanos = remainingNanos(node, now);
-        var prev = HEAD;
-        // Insert the node in sorted order.
-        while (true) {
-            if (prev.next == null || remainingNanos < remainingNanos(prev.next, now)) {
-                node.next = prev.next;
-                prev.next = node;
-                if (prev == HEAD) {
-                    // Wake up the watchdog when inserting at the front.
-                    CONDITION.signal();
-                }
-                break;
-            }
-            prev = prev.next;
+        // Insert the node into the queue.
+        QUEUE.add(node);
+        if (node.index == 1) {
+            // Wake up the watchdog when inserting at the front.
+            CONDITION.signal();
         }
         return node;
     }
 
     /**
-     * @return true if the node was removed from the queue
-     */
-    private static boolean removeFromQueue(final @NonNull TimeoutNode node) {
-        // Remove the node from the linked list.
-        var prev = HEAD;
-        while (prev != null) {
-            if (prev.next == node) {
-                prev.next = node.next;
-                node.next = null;
-                return true;
-            }
-            prev = prev.next;
-        }
-
-        return false; // node was not found in the queue
-    }
-
-    /**
-     * Removes and returns the node at the head of the list, waiting for it to time out if necessary. This returns
-     * {@link #HEAD} if there was no node at the head of the list when starting, and there continues to be no node after
-     * waiting {@link #IDLE_TIMEOUT_NANOS}. It returns null if a new node was inserted while waiting. Otherwise, this
-     * returns the node being waited on that has been removed.
+     * Removes and returns the next node to timeout, waiting for it to time out if necessary.
+     * <p>
+     * This returns {@link #IDLE_SENTINEL} if the queue was empty when starting, and it continues to be empty after
+     * waiting {@link #IDLE_TIMEOUT_NANOS}.
+     * <p>
+     * This returns null if a new node was inserted while waiting.
      */
     private static @Nullable TimeoutNode awaitTimeout() throws InterruptedException {
-        assert HEAD != null;
         // Get the next eligible node.
-        final var node = HEAD.next;
+        final var node = QUEUE.first();
 
         // The queue is empty. Wait until either something is enqueued or the idle timeout elapses.
         if (node == null) {
             final var startNanos = System.nanoTime();
-            final var ignored = CONDITION.await(IDLE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-            return (HEAD.next == null && System.nanoTime() - startNanos >= IDLE_TIMEOUT_NANOS)
-                    ? HEAD // The idle timeout elapsed.
+            final var ignored = CONDITION.awaitNanos(IDLE_TIMEOUT_NANOS);
+            assert IDLE_SENTINEL != null;
+            return (QUEUE.first() == null && System.nanoTime() - startNanos >= IDLE_TIMEOUT_NANOS)
+                    ? IDLE_SENTINEL // The idle timeout elapsed.
                     : null; // The situation has changed.
         }
 
         final var waitNanos = remainingNanos(node, System.nanoTime());
 
-        // The head of the queue hasn't timed out yet. Await that.
+        // The first node in the queue hasn't timed out yet. Await that.
         if (waitNanos > 0) {
             final var ignored = CONDITION.awaitNanos(waitNanos);
             return null;
         }
 
-        // The head of the queue has timed out. Remove it.
-        HEAD.next = node.next;
-        node.next = null;
+        // The first node in the queue has timed out. Remove it.
+        QUEUE.remove(node);
         return node;
     }
 
-    private static final class Watchdog implements Runnable {
-        @Override
-        public void run() {
-            while (true) {
+    private static void watchdogLoop() {
+        while (true) {
+            try {
+                TimeoutNode node;
+                LOCK.lock();
                 try {
-                    TimeoutNode node;
-                    LOCK.lock();
-                    try {
-                        node = awaitTimeout();
+                    node = awaitTimeout();
 
-                        // The queue is completely empty. Let this thread exit and let another watchdog thread be
-                        // created on the next call to scheduleTimeout().
-                        if (node == HEAD) {
-                            HEAD = null;
-                            return;
-                        }
-                    } finally {
-                        LOCK.unlock();
+                    // The queue is completely empty. Let this thread exit and let another watchdog thread get created
+                    // on the next call to enter().
+                    if (node == IDLE_SENTINEL) {
+                        IDLE_SENTINEL = null;
+                        return;
                     }
-
-                    // Close the timed out node, if one was found.
-                    if (node != null) {
-                        node.onTimeout.run();
-                    }
-                } catch (InterruptedException ignored) {
+                } finally {
+                    LOCK.unlock();
                 }
+
+                // Close the timed out node, if one was found.
+                if (node != null) {
+                    node.onTimeout.run();
+                }
+            } catch (InterruptedException ignored) {
             }
         }
     }
@@ -304,14 +276,15 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         return timeoutNode.getTimeoutAt() - now;
     }
 
-    public static final class TimeoutNode implements AsyncTimeout.Node {
+    public static final class TimeoutNode implements AsyncTimeout.Node, Comparable<TimeoutNode> {
         private final long timeoutAt;
         private final @NonNull Runnable onTimeout;
         private @Nullable RealCancelToken tmpCancelToken;
+
         /**
-         * The next node in the linked list.
+         * The index of this timeout node in {@link RealAsyncTimeout#QUEUE}, or -1 if this isn't currently in the heap.
          */
-        private @Nullable TimeoutNode next = null;
+        private int index = -1;
 
         private TimeoutNode(final long timeoutAt,
                             final @NonNull Runnable onTimeout,
@@ -328,6 +301,163 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         @Override
         public long getTimeoutAt() {
             return timeoutAt;
+        }
+
+        @Override
+        public int compareTo(final @NonNull TimeoutNode other) {
+            assert other != null;
+            return Long.compare(other.timeoutAt, timeoutAt);
+        }
+    }
+
+    /**
+     * A min-heap binary heap, stored in an array.
+     * <p>
+     * Nodes are {@link TimeoutNode} instances. To support fast random removals, each {@link TimeoutNode} knows its
+     * index in the heap.
+     * <p>
+     * The first node is at array index 1.
+     * <p>
+     * See <a href="https://en.wikipedia.org/wiki/Binary_heap">Binary heap</a>
+     */
+    static final class PriorityQueue {
+        int size = 0;
+        @Nullable
+        TimeoutNode @NonNull [] array = new TimeoutNode[8];
+
+        @Nullable
+        TimeoutNode first() {
+            return array[1];
+        }
+
+        void add(final @NonNull TimeoutNode node) {
+            assert node != null;
+
+            final var newSize = size + 1;
+            size = newSize;
+            if (newSize == array.length) {
+                array = Arrays.copyOf(array, newSize * 2);
+            }
+
+            heapifyUp(newSize, node);
+        }
+
+        /**
+         * @return true if the node was removed from the queue
+         */
+        boolean remove(final @NonNull TimeoutNode node) {
+            assert node != null;
+
+            if (node.index == -1) {
+                // node was not in the queue
+                return false;
+            }
+
+            final var oldSize = size;
+
+            // Take the heap's last node to fill this node's position.
+            final var removedIndex = node.index;
+            final var last = array[oldSize];
+            assert last != null;
+            node.index = -1;
+            array[oldSize] = null;
+            size = oldSize - 1;
+
+            if (node == last) {
+                return true; // The last node is the removed node.
+            }
+
+            final var nodeCompareToLast = node.compareTo(last);
+            if (nodeCompareToLast == 0) {
+                // The last node fits in the vacated spot.
+                array[removedIndex] = last;
+                last.index = removedIndex;
+            } else if (nodeCompareToLast < 0) {
+                // The last node might be too large for the vacated spot.
+                heapifyDown(removedIndex, last);
+            } else {
+                // The last node might be too small for the vacated spot.
+                heapifyUp(removedIndex, last);
+            }
+            return true;
+        }
+
+        /**
+         * Put {@code node} in the right position in the heap by moving it up the heap.
+         * <p>
+         * When this is done it'll put something in {@code vacantIndex}, and {@code node} somewhere in the heap.
+         *
+         * @param vacantIndex an index in {@link #array} that is vacant.
+         */
+        private void heapifyUp(final int vacantIndex, final @NonNull TimeoutNode node) {
+            assert node != null;
+
+            var _vacantIndex = vacantIndex;
+            while (true) {
+                final var parentIndex = _vacantIndex >> 1;
+                if (parentIndex == 0) {
+                    break; // No parent.
+                }
+
+                final var parentNode = array[parentIndex];
+                assert parentNode != null;
+                if (parentNode.compareTo(node) <= 0) {
+                    break; // No need to swap with the parent.
+                }
+
+                // Put our parent in the vacant index, and its index is the new vacant index.
+                parentNode.index = _vacantIndex;
+                array[_vacantIndex] = parentNode;
+                _vacantIndex = parentIndex;
+            }
+
+            System.out.println("heapifyUp: Node timeoutAt " + node.timeoutAt + " inserted at index " + _vacantIndex);
+            array[_vacantIndex] = node;
+            node.index = _vacantIndex;
+        }
+
+        /**
+         * Put {@code node} in the right position in the heap by moving it down the heap.
+         * <p>
+         * When this is done it'll put something in {@code vacantIndex}, and {@code node} somewhere in the heap.
+         *
+         * @param vacantIndex an index in {@link #array} that is vacant.
+         */
+        private void heapifyDown(final int vacantIndex, final @NonNull TimeoutNode node) {
+            assert node != null;
+
+            var _vacantIndex = vacantIndex;
+            while (true) {
+                final var leftIndex = _vacantIndex << 1;
+                final var rightIndex = leftIndex + 1;
+
+                final TimeoutNode smallestChild;
+                if (rightIndex <= size) {
+                    final var leftNode = array[leftIndex];
+                    final var rightNode = array[rightIndex];
+                    assert leftNode != null;
+                    assert rightNode != null;
+                    smallestChild = (leftNode.compareTo(rightNode) < 0) ? leftNode : rightNode;
+                } else if (leftIndex <= size) {
+                    smallestChild = array[leftIndex]; // Left node.
+                } else {
+                    break; // No children.
+                }
+
+                assert smallestChild != null;
+                if (node.compareTo(smallestChild) <= 0) {
+                    break; // No need to swap with the children.
+                }
+
+                // Put our smallest child in the vacant index, and its index is the new vacant index.
+                final var newVacantIndex = smallestChild.index;
+                smallestChild.index = _vacantIndex;
+                array[_vacantIndex] = smallestChild;
+                _vacantIndex = newVacantIndex;
+            }
+
+            array[_vacantIndex] = node;
+            node.index = _vacantIndex;
         }
     }
 }
