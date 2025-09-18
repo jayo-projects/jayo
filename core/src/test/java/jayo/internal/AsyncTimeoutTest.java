@@ -125,24 +125,30 @@ public final class AsyncTimeoutTest {
 
     @Test
     public void instancesAddedAtEnd() {
+        final var nodeA = new AtomicReference<AsyncTimeout.Node>();
+        final var nodeB = new AtomicReference<AsyncTimeout.Node>();
+        final var nodeC = new AtomicReference<AsyncTimeout.Node>();
+        final var nodeD = new AtomicReference<AsyncTimeout.Node>();
         Cancellable.run(Duration.ofMillis(100), cancelScope1 -> {
-            var nodeA = a.enter(0L);
-            var nodeB = b.enter(0L);
-            var nodeC = c.enter(0L);
-            var nodeD = d.enter(0L);
-            Cancellable.run(Duration.ofMillis(75), cancelScope2 ->
-                    Cancellable.run(Duration.ofMillis(50), cancelScope3 ->
-                            Cancellable.run(Duration.ofMillis(25), cancelScope4 -> {
-                                try {
-                                    Thread.sleep(125);
-                                } catch (InterruptedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            })));
-            assertTrue(a.exit(nodeA));
-            assertTrue(b.exit(nodeB));
-            assertTrue(c.exit(nodeC));
-            assertTrue(d.exit(nodeD));
+            nodeA.set(a.enter(0L));
+            Cancellable.run(Duration.ofMillis(75), cancelScope2 -> {
+                nodeB.set(b.enter(0L));
+                Cancellable.run(Duration.ofMillis(50), cancelScope3 -> {
+                    nodeC.set(c.enter(0L));
+                    Cancellable.run(Duration.ofMillis(25), cancelScope4 -> {
+                        nodeD.set(d.enter(0L));
+                        try {
+                            Thread.sleep(125);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                });
+            });
+            assertTrue(a.exit(nodeA.get()));
+            assertTrue(b.exit(nodeB.get()));
+            assertTrue(c.exit(nodeC.get()));
+            assertTrue(d.exit(nodeD.get()));
             assertTimedOut(a, b, c, d);
         });
     }
@@ -275,7 +281,7 @@ public final class AsyncTimeoutTest {
     }
 
     private AsyncTimeout recordingAsyncTimeout() {
-        AtomicReference<AsyncTimeout> asyncTimeoutRef = new AtomicReference<>();
+        final var asyncTimeoutRef = new AtomicReference<AsyncTimeout>();
         final var asyncTimeout = AsyncTimeout.create(() -> timedOut.add(asyncTimeoutRef.get()));
         asyncTimeoutRef.set(asyncTimeout);
         return asyncTimeout;

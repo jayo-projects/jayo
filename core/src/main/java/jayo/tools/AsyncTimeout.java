@@ -29,15 +29,17 @@ import java.util.Objects;
 
 /**
  * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to
- * implement timeouts where they aren't supported natively, such as to sockets or channels that are blocked on
+ * implement timeouts where they aren't supported natively, such as IO sockets or NIO channels that are blocked on
  * writing.
  * <p>
- * Subclasses must call {@link #create(Runnable)} to implement the action that will be called when a timeout occurs.
+ * Callers must use {@link #create(Runnable)} to implement the action that will be called when a timeout occurs.
  * This method will be invoked by the shared watchdog thread, so it should not do any long-running operations.
  * Otherwise, we risk starving other timeouts from being triggered.
  * <p>
  * Callers should call {@link #enter(long)} before doing work that is subject to timeouts, and {@link #exit(Node)}
  * afterward. The return value of {@link #exit(Node)} indicates whether a timeout was triggered.
+ * <p>
+ * Note: the call to the timeout action is asynchronous and may be called after {@link #exit(Node)}.
  */
 public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
