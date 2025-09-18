@@ -136,7 +136,7 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
 
     @Override
     public boolean isOpen() {
-        return socketChannel.isOpen();
+        return socketChannel.isOpen() && closeBits.get() == 0;
     }
 
     @Override

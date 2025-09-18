@@ -204,7 +204,7 @@ class NetworkTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    fun `close ok case`(networkFactory: NetworkFactory) {
+    fun `cancel ok case`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
                 val serverThread = thread(start = true) {
@@ -214,6 +214,50 @@ class NetworkTest {
                 assertThat(client.isOpen).isTrue()
                 client.cancel()
                 assertThat(client.isOpen).isFalse()
+                serverThread.join()
+            }
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun `reader is still usable after writer is closed`(networkFactory: NetworkFactory) {
+        networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
+            .use { server ->
+                val serverThread = thread(start = true) {
+                    val accepted = server.accept()
+                    accepted.writer.use { writer ->
+                        writer.write(TO_WRITE)
+                            .flush()
+                    }
+                }
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
+                client.writer.close()
+                assertThat(client.isOpen).isFalse
+
+                val stringRead = client.reader.readString()
+                assertThat(stringRead).isEqualTo(TO_WRITE)
+                serverThread.join()
+            }
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun `writer is still usable after reader is closed`(networkFactory: NetworkFactory) {
+        networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
+            .use { server ->
+                val serverThread = thread(start = true) {
+                    val accepted = server.accept()
+                    accepted.reader.close()
+                    assertThat(accepted.isOpen).isFalse
+                    accepted.writer.use { writer ->
+                        writer.write(TO_WRITE)
+                            .flush()
+                    }
+                }
+                val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
+
+                val stringRead = client.reader.readString()
+                assertThat(stringRead).isEqualTo(TO_WRITE)
                 serverThread.join()
             }
     }
@@ -354,7 +398,7 @@ class NetworkTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    fun `double close is ok`(networkFactory: NetworkFactory) {
+    fun `double cancel is ok`(networkFactory: NetworkFactory) {
         val closedServer = networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
         closedServer.close()
         closedServer.close()

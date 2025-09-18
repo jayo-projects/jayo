@@ -47,7 +47,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
     private long writeTimeoutNanos = 0L;
     final @NonNull RealWriter writer;
 
-    private final @NonNull AtomicInteger closeBits = new AtomicInteger();
+    final @NonNull AtomicInteger closeBits = new AtomicInteger();
     private static final int WRITER_CLOSED_BIT = 1;
     private static final int READER_CLOSED_BIT = 2;
     private static final int ALL_CLOSED_BITS = WRITER_CLOSED_BIT | READER_CLOSED_BIT;
