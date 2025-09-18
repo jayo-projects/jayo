@@ -10,6 +10,8 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
+import java.nio.charset.StandardCharsets;
 
 public final class RealHttpProxy extends AbstractProxy implements Proxy.Http {
     public RealHttpProxy(final @NonNull InetSocketAddress address,
@@ -38,5 +40,16 @@ public final class RealHttpProxy extends AbstractProxy implements Proxy.Http {
     @Override
     public String toString() {
         return "HTTP @ " + getHost() + ":" + getPort();
+    }
+
+    @Override
+    public @Nullable PasswordAuthentication getAuthentication() {
+        if (username == null) { // either both of them are set, or none
+            return null;
+        }
+
+        assert password != null;
+        final var passwordAsCharArray = new String(password.decrypt(), StandardCharsets.ISO_8859_1).toCharArray();
+        return new PasswordAuthentication(username, passwordAsCharArray);
     }
 }

@@ -13,8 +13,21 @@ import java.net.InetSocketAddress
 
 class HttpProxyTest {
     @Test
-    fun `Valid HTTP Proxy`() {
-        Proxy.http(InetSocketAddress(0), "Noël", charArrayOf('P', 'â', 'q', 'u', 'e', 's'))
+    fun `Valid HTTP Proxy without authentication`() {
+        val proxy = Proxy.http(InetSocketAddress(0))
+        val authentication = proxy.authentication
+        assertThat(authentication).isNull()
+    }
+
+    @Test
+    fun `Valid HTTP Proxy with authentication`() {
+        val username = "Noël"
+        val password = charArrayOf('P', 'â', 'q', 'u', 'e', 's')
+        val proxy = Proxy.http(InetSocketAddress(0), username, password)
+        val authentication = proxy.authentication
+        assertThat(authentication).isNotNull()
+        assertThat(authentication!!.userName).isEqualTo(username)
+        assertThat(authentication.password).isEqualTo(password)
     }
 
     @Test

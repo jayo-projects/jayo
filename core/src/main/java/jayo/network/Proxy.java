@@ -9,8 +9,10 @@ import jayo.internal.network.AbstractProxy;
 import jayo.internal.network.RealHttpProxy;
 import jayo.internal.network.RealSocksProxy;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.util.Objects;
 
 /**
@@ -109,5 +111,7 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
      * An HTTP proxy.
      */
     sealed interface Http extends Proxy permits RealHttpProxy {
+        @Nullable
+        PasswordAuthentication getAuthentication();
     }
 }
