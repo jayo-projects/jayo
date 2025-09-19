@@ -15,7 +15,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.net.SocketOption;
 
 /**
@@ -43,7 +42,7 @@ public sealed interface NetworkServer extends Closeable
      * If you need specific options, please use {@link #builder()} instead.
      * @throws jayo.JayoException If an I/O error occurs.
      */
-    static @NonNull NetworkServer bindTcp(final @NonNull SocketAddress localAddress) {
+    static @NonNull NetworkServer bindTcp(final @NonNull InetSocketAddress localAddress) {
         return builder().bindTcp(localAddress);
     }
 
@@ -168,7 +167,7 @@ public sealed interface NetworkServer extends Closeable
          * @throws jayo.JayoException If an I/O error occurs.
          */
         @NonNull
-        NetworkServer bindTcp(final @NonNull SocketAddress localAddress);
+        NetworkServer bindTcp(final @NonNull InetSocketAddress localAddress);
 
         /**
          * @return a deep copy of this builder.

@@ -7,15 +7,14 @@ package jayo.internal.network;
 
 import jayo.JayoException;
 import jayo.internal.SocketChannelNetworkSocket;
-import jayo.network.NetworkSocket;
 import jayo.network.NetworkServer;
+import jayo.network.NetworkSocket;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ProtocolFamily;
-import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Map;
@@ -34,7 +33,7 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
     ServerSocketChannelNetworkServer(
-            final @NonNull SocketAddress localAddress,
+            final @NonNull InetSocketAddress localAddress,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
             final int maxPendingConnections,

@@ -10,8 +10,8 @@ import jayo.network.NetworkServer;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.net.InetSocketAddress;
 import java.net.ProtocolFamily;
-import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.net.StandardProtocolFamily;
 import java.util.HashMap;
@@ -102,7 +102,8 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
         return this;
     }
 
-    public @NonNull NetworkServer bindTcp(final @NonNull SocketAddress localAddress) {
+    @Override
+    public @NonNull NetworkServer bindTcp(final @NonNull InetSocketAddress localAddress) {
         Objects.requireNonNull(localAddress);
 
         if (useNio) {

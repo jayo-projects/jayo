@@ -16,7 +16,6 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.util.Map;
 import java.util.Objects;
@@ -33,7 +32,7 @@ public final class ServerSocketNetworkServer implements NetworkServer {
     private final @NonNull ServerSocket serverSocket;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
-    ServerSocketNetworkServer(final @NonNull SocketAddress localAddress,
+    ServerSocketNetworkServer(final @NonNull InetSocketAddress localAddress,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                               final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
                               final int maxPendingConnections) {
