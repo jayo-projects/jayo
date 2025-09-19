@@ -90,6 +90,6 @@ configure(listOf(tasks.release, tasks.runBuildTasks)) {
 // when the Gradle version changes:
 // -> execute ./gradlew wrapper, then remove .gradle directory, then execute ./gradlew wrapper again
 tasks.wrapper {
-    gradleVersion = "9.0.0"
+    gradleVersion = "9.1.0"
     distributionType = Wrapper.DistributionType.ALL
 }
