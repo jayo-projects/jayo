@@ -46,7 +46,7 @@ class TlsSocketTest {
     @Test
     fun defaultTlsClientConfig() {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
-            val serverThread = thread(start = true) {
+            val serverThread = thread {
                 listener.accept().use { serverSocket ->
                     serverSocket.outputStream.write(42)
                 }
@@ -63,7 +63,7 @@ class TlsSocketTest {
     @Test
     fun fullTlsClientSocketBuilder() {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
-            val serverThread = thread(start = true) {
+            val serverThread = thread {
                 listener.accept().use { serverSocket ->
                     serverSocket.outputStream.write(42)
                 }
@@ -106,7 +106,7 @@ class TlsSocketTest {
     @Test
     fun handshakeCertificatesClientTlsSocket() {
         sslServerSocketFactory.createServerSocket(0 /* find free port */).use { listener ->
-            val serverThread = thread(start = true) {
+            val serverThread = thread {
                 listener.accept().use { serverSocket ->
                     serverSocket.outputStream.write(42)
                 }
@@ -137,7 +137,7 @@ class TlsSocketTest {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             var sslSession: SSLSession? = null
             var handshake: Handshake? = null
-            val serverThread = thread(start = true) {
+            val serverThread = thread {
                 val serverSocket = listener.accept()
                 val tlsServer = ServerTlsSocket.builder(serverHandshakeCertificates).kotlin {
                     waitForCloseConfirmation = true
@@ -166,7 +166,7 @@ class TlsSocketTest {
     fun handshakeCertificatesServerTlsSocket() {
         NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */)).use { listener ->
             var resolvedServerHandshakeCertificates: ServerHandshakeCertificates? = null
-            val serverThread = thread(start = true) {
+            val serverThread = thread {
                 val serverSocket = listener.accept()
                 val tlsServer = ServerTlsSocket.builder(serverHandshakeCertificates)
                     .build(serverSocket)

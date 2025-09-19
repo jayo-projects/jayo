@@ -41,7 +41,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            thread(start = true) {
+            thread {
                 cancel()
                 Thread.currentThread().interrupt()
                 val reader = socket.asJayoSocket().reader
@@ -63,7 +63,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            thread(start = true) {
+            thread {
                 cancel()
                 Thread.currentThread().interrupt()
                 val reader = socket.asJayoSocket().reader
@@ -85,7 +85,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            thread(start = true) {
+            thread {
                 cancel()
                 Thread.currentThread().interrupt()
                 val writer = socket.asJayoSocket().writer
@@ -110,7 +110,7 @@ class JayoSocketTest {
 
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         cancelScope {
-            thread(start = true) {
+            thread {
                 cancel()
                 Thread.currentThread().interrupt()
                 val writer = socket.asJayoSocket().writer

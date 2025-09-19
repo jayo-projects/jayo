@@ -44,7 +44,7 @@ class NetworkTest {
     fun `read ok case`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     val accepted = server.accept()
                     accepted.writer.use { writer ->
                         writer.write(TO_WRITE)
@@ -78,7 +78,7 @@ class NetworkTest {
     fun `negative read throws IllegalArgumentException`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
@@ -96,7 +96,7 @@ class NetworkTest {
     fun `several invocations of getReader() always return the same instance`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
@@ -115,7 +115,7 @@ class NetworkTest {
     ) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
@@ -133,12 +133,12 @@ class NetworkTest {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
                 cancelScope {
-                    thread(start = true) {
+                    thread {
                         cancel()
                         Thread.currentThread().interrupt()
                         val reader = client.reader
@@ -157,12 +157,12 @@ class NetworkTest {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
                 cancelScope {
-                    thread(start = true) {
+                    thread {
                         cancel()
                         Thread.currentThread().interrupt()
                         val reader = client.reader
@@ -181,12 +181,12 @@ class NetworkTest {
         var throwableAssert: AbstractThrowableAssert<*, *>? = null
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
                 cancelScope {
-                    thread(start = true) {
+                    thread {
                         cancel()
                         Thread.currentThread().interrupt()
                         val writer = client.writer
@@ -207,7 +207,7 @@ class NetworkTest {
     fun `cancel ok case`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder().connectTcp(server.localAddress)
@@ -223,7 +223,7 @@ class NetworkTest {
     fun `reader is still usable after writer is closed`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     val accepted = server.accept()
                     accepted.writer.use { writer ->
                         writer.write(TO_WRITE)
@@ -245,7 +245,7 @@ class NetworkTest {
     fun `writer is still usable after reader is closed`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     val accepted = server.accept()
                     accepted.reader.close()
                     assertThat(accepted.isOpen).isFalse
@@ -282,7 +282,7 @@ class NetworkTest {
     fun `default write timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     server.accept()
                 }
                 val client = networkFactory.networkSocketBuilder()
@@ -305,7 +305,7 @@ class NetworkTest {
     fun `default read timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     val accepted = server.accept()
                     accepted.writer.use { serverWriter ->
                         serverWriter.writeInt(1)
@@ -334,7 +334,7 @@ class NetworkTest {
     fun `default read timeout with declared timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     val accepted = server.accept()
                     accepted.writer.use { writer ->
                         writer.write(TO_WRITE)
@@ -357,7 +357,7 @@ class NetworkTest {
     fun `default server write timeout with declared timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder()
             .bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
-                val serverThread = thread(start = true) {
+                val serverThread = thread {
                     val accepted = server.accept()
                     accepted.writeTimeout = Duration.ofNanos(1)
                     accepted.writer.use { writer ->
