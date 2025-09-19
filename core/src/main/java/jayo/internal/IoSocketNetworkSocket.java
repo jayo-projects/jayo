@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketOption;
 import java.time.Duration;
 import java.util.Map;
@@ -240,7 +241,14 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
         if (socket.isClosed() || socket.isInputShutdown()) {
             return; // Nothing to do.
         }
-        socket.shutdownInput();
+        try {
+            socket.shutdownInput();
+        } catch (SocketException se) {
+            // avoid a rare closing race condition
+            if (!se.getMessage().equals("Socket is closed")) {
+                throw se;
+            }
+        }
     }
 
     @Override
@@ -285,7 +293,14 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
         if (socket.isClosed() || socket.isOutputShutdown()) {
             return; // Nothing to do.
         }
-        out.flush();
-        socket.shutdownOutput();
+        try {
+            out.flush();
+            socket.shutdownOutput();
+        } catch (SocketException se) {
+            // avoid a rare closing race condition
+            if (!se.getMessage().equals("Socket is closed")) {
+                throw se;
+            }
+        }
     }
 }
