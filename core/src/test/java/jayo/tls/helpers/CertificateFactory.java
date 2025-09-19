@@ -39,7 +39,6 @@ public class CertificateFactory {
         this.version = version;
         try {
             SSLContext sslContext = SSLContext.getInstance(version.getJavaName());
-            System.out.println("CertificateFactory TLS version: " + version);
             KeyStore ks = KeyStore.getInstance("JKS");
             try (InputStream keystoreFile = getClass().getClassLoader().getResourceAsStream("keystore.jks")) {
                 char[] password = "password".toCharArray();

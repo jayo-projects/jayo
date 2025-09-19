@@ -411,7 +411,6 @@ public final class RealAsyncTimeout implements AsyncTimeout {
                 _vacantIndex = parentIndex;
             }
 
-            System.out.println("heapifyUp: Node timeoutAt " + node.timeoutAt + " inserted at index " + _vacantIndex);
             array[_vacantIndex] = node;
             node.index = _vacantIndex;
         }

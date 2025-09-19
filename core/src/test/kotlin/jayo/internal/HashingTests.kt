@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test
 class HashingTests {
     @Test
     fun hashTest() {
-        val bytes = ByteArray(/*Segment.SIZE * 2 + 1*/33419) { 'a'.code.toByte() }
+        val bytes = ByteArray(Segment.SIZE * 2 + 1) { 'a'.code.toByte() }
         val expectedMd5 = "3ac15f278019c332ab4395eb3b1167b8"
 
         // ByteString
