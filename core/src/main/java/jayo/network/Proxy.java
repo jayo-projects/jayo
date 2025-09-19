@@ -12,7 +12,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
-import java.net.PasswordAuthentication;
+import java.nio.charset.Charset;
 import java.util.Objects;
 
 /**
@@ -30,7 +30,7 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
     }
 
     /**
-     * @param address the socket address of the proxy server.
+     * @param address  the socket address of the proxy server.
      * @param username the username to use for proxy authentication.
      * @param password the password to use for proxy authentication.
      * @return a SOCKS 5 proxy that requires authentication.
@@ -55,7 +55,7 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
     }
 
     /**
-     * @param address the socket address of the proxy server.
+     * @param address  the socket address of the proxy server.
      * @param username the username to use for proxy authentication.
      * @return a SOCKS 4 proxy that requires authentication.
      */
@@ -71,14 +71,14 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
      */
     static @NonNull Http http(final @NonNull InetSocketAddress address) {
         Objects.requireNonNull(address);
-        return new RealHttpProxy(address, null, null);
+        return new RealHttpProxy(address, null, null, null);
     }
 
     /**
-     * @param address the socket address of the proxy server.
+     * @param address  the socket address of the proxy server.
      * @param username the username to use for proxy authentication.
      * @param password the password to use for proxy authentication.
-     * @return an HTTP proxy that requires authentication.
+     * @return an HTTP proxy that requires authentication and uses UTF-8 to encode credentials.
      */
     static @NonNull Http http(final @NonNull InetSocketAddress address,
                               final @NonNull String username,
@@ -86,7 +86,25 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
         Objects.requireNonNull(address);
         Objects.requireNonNull(username);
         Objects.requireNonNull(password);
-        return new RealHttpProxy(address, username, password);
+        return new RealHttpProxy(address, username, password, null);
+    }
+
+    /**
+     * @param address  the socket address of the proxy server.
+     * @param username the username to use for proxy authentication.
+     * @param password the password to use for proxy authentication.
+     * @param charset  the charset to use for encoding credentials.
+     * @return an HTTP proxy that requires authentication and uses {@code charset} to encode credentials.
+     */
+    static @NonNull Http http(final @NonNull InetSocketAddress address,
+                              final @NonNull String username,
+                              final char @NonNull [] password,
+                              final @NonNull Charset charset) {
+        Objects.requireNonNull(address);
+        Objects.requireNonNull(username);
+        Objects.requireNonNull(password);
+        Objects.requireNonNull(charset);
+        return new RealHttpProxy(address, username, password, charset);
     }
 
     /**
@@ -112,6 +130,6 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
      */
     sealed interface Http extends Proxy permits RealHttpProxy {
         @Nullable
-        PasswordAuthentication getAuthentication();
+        HttpProxyAuth getAuthentication();
     }
 }

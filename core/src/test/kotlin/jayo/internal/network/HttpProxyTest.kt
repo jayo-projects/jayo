@@ -26,8 +26,21 @@ class HttpProxyTest {
         val proxy = Proxy.http(InetSocketAddress(0), username, password)
         val authentication = proxy.authentication
         assertThat(authentication).isNotNull()
-        assertThat(authentication!!.userName).isEqualTo(username)
+        assertThat(authentication!!.username).isEqualTo(username)
         assertThat(authentication.password).isEqualTo(password)
+        assertThat(authentication.charset).isEqualTo(Charsets.UTF_8)
+    }
+
+    @Test
+    fun `Valid HTTP Proxy with authentication and charset`() {
+        val username = "Noël"
+        val password = charArrayOf('P', 'â', 'q', 'u', 'e', 's')
+        val proxy = Proxy.http(InetSocketAddress(0), username, password, Charsets.ISO_8859_1)
+        val authentication = proxy.authentication
+        assertThat(authentication).isNotNull()
+        assertThat(authentication!!.username).isEqualTo(username)
+        assertThat(authentication.password).isEqualTo(password)
+        assertThat(authentication.charset).isEqualTo(Charsets.ISO_8859_1)
     }
 
     @Test

@@ -9,7 +9,7 @@ import org.jspecify.annotations.NonNull;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -24,8 +24,9 @@ final class SecureString {
     private final byte @NonNull [] iv;
     private final byte @NonNull [] encrypted;
 
-    SecureString(final char @NonNull [] toEncrypt) {
+    SecureString(final char @NonNull [] toEncrypt, final @NonNull Charset charset) {
         assert toEncrypt != null;
+        assert charset != null;
 
         try {
             secretKey = generateKey();
@@ -35,8 +36,8 @@ final class SecureString {
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(iv));
 
-            // conversion of char[] to ISO_8859_1 byte[]
-            byte[] toEncryptBytes = new String(toEncrypt).getBytes(StandardCharsets.ISO_8859_1);
+            // encode char[] to byte[] using the provided charset
+            byte[] toEncryptBytes = new String(toEncrypt).getBytes(charset);
 
             encrypted = cipher.doFinal(toEncryptBytes);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |

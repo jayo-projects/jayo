@@ -10,6 +10,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 
 public final class RealSocksProxy extends AbstractProxy implements Proxy.Socks {
     private final int version;
@@ -18,7 +19,7 @@ public final class RealSocksProxy extends AbstractProxy implements Proxy.Socks {
                           final int version,
                           final @Nullable String username,
                           final char @Nullable [] password) {
-        super(address, username, password);
+        super(address, username, password, StandardCharsets.ISO_8859_1);
         this.version = version;
     }
 

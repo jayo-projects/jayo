@@ -10,6 +10,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.regex.Pattern;
 
 public sealed abstract class AbstractProxy implements Proxy permits RealHttpProxy, RealSocksProxy {
@@ -17,13 +18,17 @@ public sealed abstract class AbstractProxy implements Proxy permits RealHttpProx
 
     private final @NonNull String host;
     private final int port;
+
     final @Nullable String username;
     final @Nullable SecureString password;
+    final @NonNull Charset charset;
 
     AbstractProxy(final @NonNull InetSocketAddress address,
                   final @Nullable String username,
-                  final char @Nullable [] password) {
+                  final char @Nullable [] password,
+                  final @NonNull Charset charset) {
         assert address != null;
+        assert charset != null;
 
         host = host(address);
         port = address.getPort();
@@ -47,7 +52,8 @@ public sealed abstract class AbstractProxy implements Proxy permits RealHttpProx
             }
         }
         this.username = username;
-        this.password = (password != null) ? new SecureString(password) : null;
+        this.password = (password != null) ? new SecureString(password, charset) : null;
+        this.charset = charset;
     }
 
     /**
