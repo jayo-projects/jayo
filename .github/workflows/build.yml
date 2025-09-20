@@ -6,7 +6,7 @@ jobs:
   Gradle-Build:
     strategy:
       matrix:
-        distribution: [ 'temurin', 'corretto' ]
+        distribution: [ 'corretto' ] # add temurin back when its 25 version is available
         java: [ '17', '21', '25' ] # replace '25' with '26' when Gradle, JMH & Kotlin support it
     runs-on: 'ubuntu-latest'
     steps:
