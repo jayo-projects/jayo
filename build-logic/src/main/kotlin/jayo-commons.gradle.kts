@@ -96,7 +96,15 @@ tasks {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
+    val testJavaVersion = System.getProperty("test.java.version", "").toIntOrNull()
     withType<Test> {
+        val javaToolchains = project.extensions.getByType<JavaToolchainService>()
+        if (testJavaVersion != null) {
+            javaLauncher.set(javaToolchains.launcherFor {
+                languageVersion.set(JavaLanguageVersion.of(testJavaVersion))
+            })
+        }
+
         useJUnitPlatform {
             if (isCI.isPresent) {
                 excludeTags("no-ci")
@@ -104,6 +112,7 @@ tasks {
                 excludeTags("slow")
             }
         }
+
         testLogging {
             events = setOf(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
             exceptionFormat = TestExceptionFormat.FULL
