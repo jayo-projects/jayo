@@ -23,9 +23,8 @@ package jayo.internal
 
 import jayo.*
 import jayo.JayoException
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.assertThrows
 import java.util.zip.Deflater
 import java.util.zip.Inflater
 import kotlin.test.Test
@@ -64,11 +63,9 @@ class DeflateKotlinTest {
         val data = Buffer().write("They're moving in herds. They do move in herds.")
         val deflaterWriter = DeflaterRawWriter((Buffer() as RawWriter).buffered(), deflater)
 
-        val ioe = assertThrows(JayoException::class.java) {
+        assertThrows<JayoClosedResourceException> {
             deflaterWriter.writeFrom(data, data.bytesAvailable())
         }
-
-        assertTrue(ioe.cause!!.cause is NullPointerException)
     }
 
     /**

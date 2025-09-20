@@ -55,7 +55,7 @@ class TlsSocketTest {
             val encryptedEndpoint = NetworkSocket.connectTcp(address)
             assertThatThrownBy { ClientTlsSocket.create(encryptedEndpoint) }
                 .isInstanceOf(JayoTlsException::class.java)
-                .hasMessageStartingWith("PKIX path building failed")
+                .hasMessageContaining("PKIX path building failed")
             serverThread.join(1)
         }
     }

@@ -14,7 +14,7 @@ plugins {
 }
 
 multiRelease {
-    targetVersions(17, 21)
+    targetVersions(17, 21, 25)
 }
 
 // Temporary workaround for https://github.com/melix/mrjar-gradle-plugin/issues/3.

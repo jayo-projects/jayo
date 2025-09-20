@@ -23,7 +23,7 @@
 package jayo.internal;
 
 import jayo.Buffer;
-import jayo.JayoException;
+import jayo.JayoClosedResourceException;
 import jayo.RawWriter;
 import org.jspecify.annotations.NonNull;
 
@@ -96,8 +96,13 @@ public final class DeflaterRawWriter implements RawWriter {
             try {
                 deflated = deflater.deflate(dstTail.data, dstTail.limit, Segment.SIZE - dstTail.limit,
                         syncFlush ? Deflater.SYNC_FLUSH : Deflater.NO_FLUSH);
-            } catch (NullPointerException npe) {
-                throw new JayoException("Deflater already closed", new IOException(npe));
+            } catch (NullPointerException npe) { // for Java < 25
+                throw new JayoClosedResourceException(new IOException("Deflater has been closed", npe));
+            } catch (IllegalStateException ise) { // for Java >= 25
+                if (ise.getMessage().equals("Deflater has been closed")) {
+                    throw new JayoClosedResourceException(new IOException("Deflater has been closed", ise));
+                }
+                throw ise; // Rethrow unexpected exceptions.
             }
 
             if (deflated > 0) {
