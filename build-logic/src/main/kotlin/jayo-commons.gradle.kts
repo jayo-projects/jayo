@@ -98,11 +98,10 @@ tasks {
 
     val testJavaVersion = System.getProperty("test.java.version", "").toIntOrNull()
     withType<Test> {
-        val javaToolchains = project.extensions.getByType<JavaToolchainService>()
         if (testJavaVersion != null) {
-            javaLauncher.set(javaToolchains.launcherFor {
-                languageVersion.set(JavaLanguageVersion.of(testJavaVersion))
-            })
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(testJavaVersion)
+            }
         }
 
         useJUnitPlatform {

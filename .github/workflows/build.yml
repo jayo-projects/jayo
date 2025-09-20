@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distribution: [ 'zulu' ] # add temurin and corretto back when its 25 version is available
+        distribution: [ 'corretto' ] # add temurin back when its 25 version is available
         java-version: [ '17', '21', '25' ] # replace '25' with '26' when Gradle, JMH & Kotlin support it
 
     steps:
