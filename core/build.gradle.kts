@@ -21,8 +21,10 @@ multiRelease {
 // Remove this block when https://github.com/melix/mrjar-gradle-plugin/pull/10 is released.
 configurations.matching { config -> config.name.startsWith("java21") }
     .configureEach {
-        val noPrefix = this.name.replace("java21", "")
-        val sharedName = "${noPrefix.substring(0, 1).lowercase(Locale.getDefault())}${noPrefix.substring(1)}"
+        val noPrefix = this.name
+            .replace("java21", "")
+            .replace("java25", "")
+        val sharedName = "${noPrefix.take(1).lowercase(Locale.getDefault())}${noPrefix.substring(1)}"
         val sharedConfig = configurations.findByName(sharedName)
 
         if (sharedConfig != null) {
