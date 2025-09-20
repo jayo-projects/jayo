@@ -14,13 +14,13 @@ import java.net.InetSocketAddress
 class SocksProxyTest {
     @Test
     fun `Valid Socks V5 Proxy`() {
-        Proxy.socks5(InetSocketAddress(0), "Noël", charArrayOf('P', 'â', 'q', 'u', 'e', 's'))
+        Proxy.socks5(InetSocketAddress(0), "Noël", "Pâques")
     }
 
     @Test
     fun `Socks V5 Proxy with invalid username`() {
         assertThatThrownBy {
-            Proxy.socks5(InetSocketAddress(0), "€", charArrayOf('a', 'b', 'c'))
+            Proxy.socks5(InetSocketAddress(0), "€", "abs")
         }.isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage("Invalid username, must be ISO_8859_1 compatible")
     }
@@ -28,7 +28,7 @@ class SocksProxyTest {
     @Test
     fun `Socks V5 Proxy with username too long`() {
         assertThatThrownBy {
-            Proxy.socks5(InetSocketAddress(0), "a".repeat(256), charArrayOf('a', 'b', 'c'))
+            Proxy.socks5(InetSocketAddress(0), "a".repeat(256), "abs")
         }.isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage("Username too long, must be less than 256 characters")
     }
@@ -36,7 +36,7 @@ class SocksProxyTest {
     @Test
     fun `Socks V5 Proxy with invalid password`() {
         assertThatThrownBy {
-            Proxy.socks5(InetSocketAddress(0), "abc", charArrayOf('€'))
+            Proxy.socks5(InetSocketAddress(0), "abc", "€")
         }.isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage("Invalid password, must be ISO_8859_1 compatible")
     }
@@ -44,7 +44,7 @@ class SocksProxyTest {
     @Test
     fun `Socks V5 Proxy with password too long`() {
         assertThatThrownBy {
-            Proxy.socks5(InetSocketAddress(0), "abc", CharArray(256) { 'a' })
+            Proxy.socks5(InetSocketAddress(0), "abc", String(CharArray(256) { 'a' }))
         }.isInstanceOf(IllegalArgumentException::class.java)
             .hasMessage("Password too long, must be less than 256 characters")
     }
@@ -73,7 +73,7 @@ class SocksProxyTest {
     @Test
     fun `Socks Proxy equals tests`() {
         val address1 = InetSocketAddress("jayo.dev", 123)
-        val proxy1 = Proxy.socks5(address1, "Noël", charArrayOf('P', 'â', 'q', 'u', 'e', 's'))
+        val proxy1 = Proxy.socks5(address1, "Noël", "Pâques")
         val address2 = InetSocketAddress("jayo.dev", 123)
         val proxy2 = Proxy.socks5(address2)
         assertThat(proxy1).isEqualTo(proxy2)
@@ -86,7 +86,7 @@ class SocksProxyTest {
     @Test
     fun `Socks Proxy hashCode tests`() {
         val address1 = InetSocketAddress("jayo.dev", 123)
-        val proxy1 = Proxy.socks5(address1, "Noël", charArrayOf('P', 'â', 'q', 'u', 'e', 's'))
+        val proxy1 = Proxy.socks5(address1, "Noël", "Pâques")
         val address2 = InetSocketAddress("jayo.dev", 123)
         val proxy2 = Proxy.socks5(address2)
         assertThat(proxy1.hashCode()).isEqualTo(proxy2.hashCode())
@@ -99,7 +99,7 @@ class SocksProxyTest {
     @Test
     fun `Socks Proxy toString test`() {
         val address1 = InetSocketAddress("127.0.0.1", 123)
-        val proxy1 = Proxy.socks5(address1, "Noël", charArrayOf('P', 'â', 'q', 'u', 'e', 's'))
+        val proxy1 = Proxy.socks5(address1, "Noël", "Pâques")
         assertThat(proxy1.toString()).isEqualTo("Socks v5 @ 127.0.0.1:123")
     }
 }

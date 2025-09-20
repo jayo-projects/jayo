@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
 
 /**
  * A partial implementation of SOCKS Protocol Version 5.
- * See <a href="https://www.ietf.org/rfc/rfc1928.txt">RFC 1928</a>.
+ * @see <a href="https://www.ietf.org/rfc/rfc1928.txt">RFC 1928</a>.
  */
 public final class SocksProxyServer {
     private static final byte VERSION_5 = 5;

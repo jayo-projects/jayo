@@ -11,15 +11,34 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Pattern;
 
 public final class RealSocksProxy extends AbstractProxy implements Proxy.Socks {
+    private static final Pattern NON_LATIN1_PATTERN = Pattern.compile("[^\\x00-\\xFF]+");
+
     private final int version;
 
     public RealSocksProxy(final @NonNull InetSocketAddress address,
                           final int version,
                           final @Nullable String username,
-                          final char @Nullable [] password) {
+                          final @Nullable String password) {
         super(address, username, password, StandardCharsets.ISO_8859_1);
+        if (username != null) {
+            if (username.length() > 255) {
+                throw new IllegalArgumentException("Username too long, must be less than 256 characters");
+            }
+            if (NON_LATIN1_PATTERN.matcher(username).find()) {
+                throw new IllegalArgumentException("Invalid username, must be ISO_8859_1 compatible");
+            }
+        }
+        if (password != null) {
+            if (password.length() > 255) {
+                throw new IllegalArgumentException("Password too long, must be less than 256 characters");
+            }
+            if (NON_LATIN1_PATTERN.matcher(password).find()) {
+                throw new IllegalArgumentException("Invalid password, must be ISO_8859_1 compatible");
+            }
+        }
         this.version = version;
     }
 

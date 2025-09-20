@@ -37,7 +37,7 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
      */
     static @NonNull Socks socks5(final @NonNull InetSocketAddress address,
                                  final @NonNull String username,
-                                 final char @NonNull [] password) {
+                                 final @NonNull String password) {
         Objects.requireNonNull(address);
         Objects.requireNonNull(username);
         Objects.requireNonNull(password);
@@ -82,7 +82,7 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
      */
     static @NonNull Http http(final @NonNull InetSocketAddress address,
                               final @NonNull String username,
-                              final char @NonNull [] password) {
+                              final @NonNull String password) {
         Objects.requireNonNull(address);
         Objects.requireNonNull(username);
         Objects.requireNonNull(password);
@@ -98,7 +98,7 @@ public sealed interface Proxy permits AbstractProxy, Proxy.Http, Proxy.Socks {
      */
     static @NonNull Http http(final @NonNull InetSocketAddress address,
                               final @NonNull String username,
-                              final char @NonNull [] password,
+                              final @NonNull String password,
                               final @NonNull Charset charset) {
         Objects.requireNonNull(address);
         Objects.requireNonNull(username);

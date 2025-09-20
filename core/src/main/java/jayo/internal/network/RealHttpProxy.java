@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 public final class RealHttpProxy extends AbstractProxy implements Proxy.Http {
     public RealHttpProxy(final @NonNull InetSocketAddress address,
                          final @Nullable String username,
-                         final char @Nullable [] password,
+                         final @Nullable String password,
                          final @Nullable Charset charset) {
         super(address, username, password, (charset != null) ? charset : StandardCharsets.UTF_8);
     }

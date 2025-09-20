@@ -11,21 +11,18 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
-import java.util.regex.Pattern;
 
 public sealed abstract class AbstractProxy implements Proxy permits RealHttpProxy, RealSocksProxy {
-    private static final Pattern NON_LATIN1_PATTERN = Pattern.compile("[^\\x00-\\xFF]+");
-
     private final @NonNull String host;
     private final int port;
 
     final @Nullable String username;
-    final @Nullable SecureString password;
+    final @Nullable SecurePassword password;
     final @NonNull Charset charset;
 
     AbstractProxy(final @NonNull InetSocketAddress address,
                   final @Nullable String username,
-                  final char @Nullable [] password,
+                  final @Nullable String password,
                   final @NonNull Charset charset) {
         assert address != null;
         assert charset != null;
@@ -33,26 +30,8 @@ public sealed abstract class AbstractProxy implements Proxy permits RealHttpProx
         host = host(address);
         port = address.getPort();
 
-        if (username != null) {
-            if (username.length() > 255) {
-                throw new IllegalArgumentException("Username too long, must be less than 256 characters");
-            }
-            if (NON_LATIN1_PATTERN.matcher(username).find()) {
-                throw new IllegalArgumentException("Invalid username, must be ISO_8859_1 compatible");
-            }
-        }
-        if (password != null) {
-            if (password.length > 255) {
-                throw new IllegalArgumentException("Password too long, must be less than 256 characters");
-            }
-            for (final char charAt : password) {
-                if (charAt > 255) {
-                    throw new IllegalArgumentException("Invalid password, must be ISO_8859_1 compatible");
-                }
-            }
-        }
         this.username = username;
-        this.password = (password != null) ? new SecureString(password, charset) : null;
+        this.password = (password != null) ? new SecurePassword(password, charset) : null;
         this.charset = charset;
     }
 

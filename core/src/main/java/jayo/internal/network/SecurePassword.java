@@ -15,7 +15,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
-final class SecureString {
+final class SecurePassword {
     private static final @NonNull String ALGORITHM = "AES";
     private static final @NonNull String TRANSFORMATION = "AES/CFB/PKCS5Padding";
     private static final @NonNull SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -24,7 +24,7 @@ final class SecureString {
     private final byte @NonNull [] iv;
     private final byte @NonNull [] encrypted;
 
-    SecureString(final char @NonNull [] toEncrypt, final @NonNull Charset charset) {
+    SecurePassword(final @NonNull String toEncrypt, final @NonNull Charset charset) {
         assert toEncrypt != null;
         assert charset != null;
 
@@ -33,11 +33,10 @@ final class SecureString {
             iv = generateIv();
 
             // encrypt
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            final var cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(iv));
 
-            // encode char[] to byte[] using the provided charset
-            byte[] toEncryptBytes = new String(toEncrypt).getBytes(charset);
+            final var toEncryptBytes = toEncrypt.getBytes(charset);
 
             encrypted = cipher.doFinal(toEncryptBytes);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
@@ -64,7 +63,7 @@ final class SecureString {
     }
 
     private static byte @NonNull [] generateIv() {
-        byte[] iv = new byte[16];
+        final var iv = new byte[16];
         SECURE_RANDOM.nextBytes(iv);
         return iv;
     }

@@ -118,7 +118,7 @@ class NetworkWithSocksProxyTest {
                     }
                     val proxy = if (credentials != null) {
                         val username = if (authSuccess) credentials.userName else "error"
-                        Proxy.socks5(proxy.address, username, credentials.password)
+                        Proxy.socks5(proxy.address, username, String(credentials.password))
                     } else {
                         Proxy.socks5(proxy.address)
                     }
