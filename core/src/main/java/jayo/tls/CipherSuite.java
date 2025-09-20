@@ -33,12 +33,12 @@ import static jayo.internal.tls.RealCipherSuite.init;
  * <p>
  * <b>Not all cipher suites are supported on all platforms.</b> As newer cipher suites are created (for stronger
  * privacy, better performance, etc.) they will be adopted by the platform and then exposed here.
- * <p>
- * See <a href="https://docs.oracle.com/en/java/javase/21/security/oracle-providers.html">JDK Providers</a> which lists
- * the cipher suites supported by Oracle.
- * <p>
- * See <a href="https://github.com/google/conscrypt/blob/master/common/src/main/java/org/conscrypt/NativeCrypto.java">
+ * <ul>
+ * <li>See <a href="https://docs.oracle.com/en/java/javase/21/security/oracle-providers.html">JDK Providers</a> which
+ * lists the cipher suites supported by Oracle.
+ * <li>See <a href="https://github.com/google/conscrypt/blob/master/common/src/main/java/org/conscrypt/NativeCrypto.java">
  * NativeCrypto.java</a> which lists the cipher suites supported by Google's Conscrypt.
+ * </ul>
  */
 public sealed interface CipherSuite permits RealCipherSuite {
 

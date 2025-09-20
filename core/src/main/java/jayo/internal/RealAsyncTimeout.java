@@ -318,7 +318,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      * <p>
      * The first node is at array index 1.
      * <p>
-     * See <a href="https://en.wikipedia.org/wiki/Binary_heap">Binary heap</a>
+     * @see <a href="https://en.wikipedia.org/wiki/Binary_heap">Binary heap</a>
      */
     static final class PriorityQueue {
         int size = 0;
