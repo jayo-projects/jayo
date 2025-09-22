@@ -13,6 +13,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.io.OutputStream
 import java.net.Socket
 import java.util.stream.IntStream
 
@@ -57,6 +58,9 @@ class SerializationTest {
         )
         val socket = object : Socket() {
             override fun getInputStream() = buffer.asInputStream()
+            override fun getOutputStream() = object : OutputStream() {
+                override fun write(b: Int) = Unit
+            }
             override fun isConnected() = true
         }
         val reader = socket.asJayoSocket().reader
