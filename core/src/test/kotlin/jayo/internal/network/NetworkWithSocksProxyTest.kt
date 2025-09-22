@@ -142,8 +142,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V4 Proxy test with NIO and IPv6`() {
         assertThatThrownBy {
             socks4(
-                NetworkSocket.builder().protocol(NetworkProtocol.IPv6),
-                NetworkServer.builder().protocol(NetworkProtocol.IPv6)
+                NetworkSocket.builder().useNio(false).protocol(NetworkProtocol.IPv6),
+                NetworkServer.builder().useNio(false).protocol(NetworkProtocol.IPv6)
             )
         }.isInstanceOf(JayoSocketException::class.java)
             .hasMessage("SOCKS4 : SOCKS V4 only supports IPv4 socket address")
