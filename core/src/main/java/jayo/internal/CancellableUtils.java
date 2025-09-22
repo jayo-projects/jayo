@@ -19,15 +19,8 @@ public final class CancellableUtils {
     private CancellableUtils() {
     }
 
-    /**
-     * We use {@code InheritableThreadLocal} so it is propagated to child threads
-     */
-    private static final ThreadLocal<Deque<RealCancelToken>> CANCEL_TOKENS = new InheritableThreadLocal<>() {
-        @Override
-        protected Deque<RealCancelToken> initialValue() {
-            return new ConcurrentLinkedDeque<>();
-        }
-    };
+    private static final ThreadLocal<Deque<RealCancelToken>> CANCEL_TOKENS =
+            ThreadLocal.withInitial(ConcurrentLinkedDeque::new);
 
     public static @Nullable RealCancelToken getCancelToken() {
         final var cancelTokens = CANCEL_TOKENS.get();

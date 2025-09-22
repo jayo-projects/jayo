@@ -110,9 +110,7 @@ public final class JavaVersionUtils {
             final var thread = new Thread(
                     null,
                     runnable,
-                    prefix + threadCounter.getAndIncrement(),
-                    0,
-                    true);
+                    prefix + threadCounter.getAndIncrement());
             thread.setDaemon(isDaemon);
             return thread;
         }

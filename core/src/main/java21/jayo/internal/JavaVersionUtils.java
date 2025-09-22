@@ -38,7 +38,6 @@ public final class JavaVersionUtils {
         assert prefix != null;
         return Thread.ofVirtual()
                 .name(prefix, 0)
-                .inheritInheritableThreadLocals(true)
                 .factory();
     }
 
