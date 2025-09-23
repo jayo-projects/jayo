@@ -99,7 +99,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
 
             final var dst = (RealBuffer) destination;
             // get the cancel token immediately; if present, it will be used in all IO calls of this read operation
-            var cancelToken = CancellableUtils.getCancelToken();
+            final var cancelToken = JavaVersionUtils.getCancelToken();
             if (cancelToken != null) {
                 cancelToken.timeoutNanos = readTimeoutNanos;
                 try {
@@ -111,13 +111,9 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
 
             if (readTimeoutNanos != 0L) {
                 // use timeoutNanos to create a temporary cancel token, just for this read operation
-                cancelToken = new RealCancelToken(readTimeoutNanos, 0L, false);
-                CancellableUtils.addCancelToken(cancelToken);
-                try {
-                    return read(dst, byteCount, cancelToken);
-                } finally {
-                    CancellableUtils.finishCancelToken(cancelToken);
-                }
+                final var newCancelToken = new RealCancelToken(readTimeoutNanos, 0L);
+                return JavaVersionUtils.callCancellable(newCancelToken, ignored ->
+                        read(dst, byteCount, newCancelToken));
             }
             // no need for cancellation
             return read(dst, byteCount, null);
@@ -129,7 +125,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             CancelToken.throwIfReached(cancelToken);
             final var dstTail = dst.writableTail(1);
             final var toRead = (int) Math.min(byteCount, Segment.SIZE - dstTail.limit);
-            final int bytesRead = timeout.withTimeout(cancelToken, () -> {
+            final int bytesRead = timeout.withTimeout(cancelToken, ignored -> {
                 try {
                     return AbstractNetworkSocket.this.read(dstTail, toRead);
                 } catch (IOException e) {
@@ -152,8 +148,8 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
 
         @Override
         public void close() {
-            final var cancelToken = CancellableUtils.getCancelToken();
-            timeout.withTimeout(cancelToken, () ->
+            final var cancelToken = JavaVersionUtils.getCancelToken();
+            timeout.withTimeout(cancelToken, ignored ->
                     switch (setBitsOrZero(closeBits, READER_CLOSED_BIT)) {
                         // If setBitOrZero() returns 0, this reader is already closed.
                         case 0 -> null;
@@ -192,7 +188,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
 
             final var src = (RealBuffer) source;
             // get the cancel token immediately; if present, it will be used in all IO calls of this write operation
-            var cancelToken = CancellableUtils.getCancelToken();
+            final var cancelToken = JavaVersionUtils.getCancelToken();
             if (cancelToken != null) {
                 cancelToken.timeoutNanos = writeTimeoutNanos;
                 try {
@@ -202,13 +198,9 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
                 }
             } else if (writeTimeoutNanos != 0L) {
                 // use timeoutNanos to create a temporary cancel token, just for this write operation
-                cancelToken = new RealCancelToken(writeTimeoutNanos, 0L, false);
-                CancellableUtils.addCancelToken(cancelToken);
-                try {
-                    AbstractNetworkSocket.this.write(src, byteCount, cancelToken);
-                } finally {
-                    CancellableUtils.finishCancelToken(cancelToken);
-                }
+                final var newCancelToken = new RealCancelToken(writeTimeoutNanos, 0L);
+                JavaVersionUtils.runCancellable(newCancelToken, ignored ->
+                        AbstractNetworkSocket.this.write(src, byteCount, newCancelToken));
             } else {
                 // no need for cancellation
                 AbstractNetworkSocket.this.write(src, byteCount, null);
@@ -217,8 +209,8 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
 
         @Override
         public void flush() {
-            final var cancelToken = CancellableUtils.getCancelToken();
-            timeout.withTimeout(cancelToken, () -> {
+            final var cancelToken = JavaVersionUtils.getCancelToken();
+            timeout.withTimeout(cancelToken, ignored -> {
                 try {
                     AbstractNetworkSocket.this.flush();
                     return null;
@@ -230,8 +222,8 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
 
         @Override
         public void close() {
-            final var cancelToken = CancellableUtils.getCancelToken();
-            timeout.withTimeout(cancelToken, () ->
+            final var cancelToken = JavaVersionUtils.getCancelToken();
+            timeout.withTimeout(cancelToken, ignored ->
                     switch (setBitsOrZero(closeBits, WRITER_CLOSED_BIT)) {
                         // If setBitOrZero() returns 0, this writer is already closed.
                         case 0 -> null;

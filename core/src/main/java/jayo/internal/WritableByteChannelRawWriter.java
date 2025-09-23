@@ -44,7 +44,7 @@ public final class WritableByteChannelRawWriter implements RawWriter {
         }
 
         // get the cancel token immediately, if present it will be used in all I/O calls
-        final var cancelToken = CancellableUtils.getCancelToken();
+        final var cancelToken = JavaVersionUtils.getCancelToken();
 
         final var src = (RealBuffer) source;
         var remaining = byteCount;

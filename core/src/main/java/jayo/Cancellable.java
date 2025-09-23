@@ -5,7 +5,8 @@
 
 package jayo;
 
-import jayo.internal.RealCancellable;
+import jayo.internal.RealCancelToken;
+import jayo.internal.JavaVersionUtils;
 import org.jspecify.annotations.NonNull;
 
 import java.time.Duration;
@@ -38,8 +39,18 @@ public final class Cancellable {
     public static void run(final @NonNull Duration timeout, final @NonNull Consumer<CancelScope> block) {
         Objects.requireNonNull(timeout);
         Objects.requireNonNull(block);
-        final var cancellable = new RealCancellable(timeout.toNanos());
-        cancellable.run(block);
+        JavaVersionUtils.runCancellable(new RealCancelToken(timeout.toNanos()), block);
+    }
+
+    /**
+     * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
+     * occurred. All I/O operations invoked in this code block, including children threads, will respect the cancel
+     * scope actions: manual cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition}
+     * signal...
+     */
+    public static void run(final @NonNull Consumer<CancelScope> block) {
+        Objects.requireNonNull(block);
+        JavaVersionUtils.runCancellable(new RealCancelToken(0L), block);
     }
 
     /**
@@ -56,20 +67,7 @@ public final class Cancellable {
     public static <T> T call(final @NonNull Duration timeout, final @NonNull Function<CancelScope, T> block) {
         Objects.requireNonNull(timeout);
         Objects.requireNonNull(block);
-        final var cancellable = new RealCancellable(timeout.toNanos());
-        return cancellable.call(block);
-    }
-
-    /**
-     * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
-     * occurred. All I/O operations invoked in this code block, including children threads, will respect the cancel
-     * scope actions: manual cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition}
-     * signal...
-     */
-    public static void run(final @NonNull Consumer<CancelScope> block) {
-        Objects.requireNonNull(block);
-        final var cancellable = new RealCancellable();
-        cancellable.run(block);
+        return JavaVersionUtils.callCancellable(new RealCancelToken(timeout.toNanos()), block);
     }
 
     /**
@@ -80,7 +78,6 @@ public final class Cancellable {
      */
     public static <T> T call(final @NonNull Function<CancelScope, T> block) {
         Objects.requireNonNull(block);
-        final var cancellable = new RealCancellable();
-        return cancellable.call(block);
+        return JavaVersionUtils.callCancellable(new RealCancelToken(0L), block);
     }
 }

@@ -39,7 +39,7 @@ public final class GatheringByteChannelRawWriter implements RawWriter {
         }
 
         // get the cancel token immediately, if present it will be used in all I/O calls
-        final var cancelToken = CancellableUtils.getCancelToken();
+        final var cancelToken = JavaVersionUtils.getCancelToken();
 
         if (LOGGER.isLoggable(TRACE)) {
             LOGGER.log(TRACE, "GatheringByteChannelRawWriter: Start writing {0} bytes from Buffer#{1} " +

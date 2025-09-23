@@ -263,7 +263,7 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             final var head = src.head;
             assert head != null;
             final var toWrite = (int) Math.min(remaining, head.limit - head.pos);
-            timeout.withTimeout(cancelToken, () -> {
+            timeout.withTimeout(cancelToken, ignored -> {
                 try {
                     out.write(head.data, head.pos, toWrite);
                     return null;

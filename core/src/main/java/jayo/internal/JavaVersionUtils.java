@@ -5,11 +5,15 @@
 
 package jayo.internal;
 
+import jayo.CancelScope;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.ref.Cleaner;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -24,15 +28,11 @@ public final class JavaVersionUtils {
     }
 
     static {
-        LOGGER.log(INFO, "Using Java 17 compatibility");
-    }
-
-    /**
-     * Java 17 has no virtual Thread support, so we use platform threads.
-     */
-    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix, final boolean isDaemon) {
-        assert prefix != null;
-        return new PlatformThreadFactory(prefix, isDaemon);
+        LOGGER.log(INFO, """
+     
+     Jayo runs in Java 17 mode :
+      ☒ virtual threads,
+      ☒ scoped value""".stripIndent());
     }
 
     /**
@@ -48,6 +48,92 @@ public final class JavaVersionUtils {
                 new SynchronousQueue<>(),
                 threadFactory(prefix, isDaemon)
         );
+    }
+
+    /**
+     * Java 17 has no virtual Thread support, so we use platform threads.
+     */
+    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix, final boolean isDaemon) {
+        assert prefix != null;
+        return new PlatformThreadFactory(prefix, isDaemon);
+    }
+
+    private static final class PlatformThreadFactory implements ThreadFactory {
+        private final @NonNull String prefix;
+        private final boolean isDaemon;
+        private final @NonNull AtomicInteger threadCounter = new AtomicInteger();
+
+        private PlatformThreadFactory(final @NonNull String prefix, final boolean isDaemon) {
+            assert prefix != null;
+
+            this.prefix = prefix;
+            this.isDaemon = isDaemon;
+        }
+
+        @Override
+        public @NonNull Thread newThread(final @NonNull Runnable runnable) {
+            assert runnable != null;
+
+            final var thread = new Thread(runnable, prefix + threadCounter.getAndIncrement());
+            thread.setDaemon(isDaemon);
+            return thread;
+        }
+    }
+
+    private static final ThreadLocal<CancellationContext> CANCELLATION_CONTEXT = new ThreadLocal<>();
+
+    public static @Nullable RealCancelToken getCancelToken() {
+        final var cancellationContext = CANCELLATION_CONTEXT.get();
+        return (cancellationContext != null) ? cancellationContext.getCancelToken() : null;
+    }
+
+    public static void runCancellable(final @NonNull RealCancelToken cancelToken,
+                                      final @NonNull Consumer<CancelScope> block) {
+        assert cancelToken != null;
+        assert block != null;
+
+        var cancellationContext = CANCELLATION_CONTEXT.get();
+        if (cancellationContext != null) {
+            cancellationContext.addCancelToken(cancelToken);
+            try {
+                block.accept(cancelToken);
+                return;
+            } finally {
+                cancelToken.finished = true;
+            }
+        }
+
+        cancellationContext = new CancellationContext(cancelToken);
+        CANCELLATION_CONTEXT.set(cancellationContext);
+        try {
+            block.accept(cancelToken);
+        } finally {
+            CANCELLATION_CONTEXT.remove();
+        }
+    }
+
+    public static <T> T callCancellable(final @NonNull RealCancelToken cancelToken,
+                                 final @NonNull Function<CancelScope, T> block) {
+        assert cancelToken != null;
+        assert block != null;
+
+        var cancellationContext = CANCELLATION_CONTEXT.get();
+        if (cancellationContext != null) {
+            cancellationContext.addCancelToken(cancelToken);
+            try {
+                return block.apply(cancelToken);
+            } finally {
+                cancelToken.finished = true;
+            }
+        }
+
+        cancellationContext = new CancellationContext(cancelToken);
+        CANCELLATION_CONTEXT.set(cancellationContext);
+        try {
+            return block.apply(cancelToken);
+        } finally {
+            CANCELLATION_CONTEXT.remove();
+        }
     }
 
     /**
@@ -79,7 +165,7 @@ public final class JavaVersionUtils {
     /**
      * Java 17 has no {@code thread.threadId()} final method.
      */
-    static long threadId(final @NonNull Thread thread) {
+    public static long threadId(final @NonNull Thread thread) {
         assert thread != null;
         return thread.getId();
     }
@@ -89,30 +175,5 @@ public final class JavaVersionUtils {
      */
     static @NonNull Cleaner cleaner() {
         return Cleaner.create();
-    }
-
-    private static final class PlatformThreadFactory implements ThreadFactory {
-        private final @NonNull String prefix;
-        private final boolean isDaemon;
-        private final @NonNull AtomicInteger threadCounter = new AtomicInteger();
-
-        private PlatformThreadFactory(final @NonNull String prefix, final boolean isDaemon) {
-            assert prefix != null;
-
-            this.prefix = prefix;
-            this.isDaemon = isDaemon;
-        }
-
-        @Override
-        public @NonNull Thread newThread(final @NonNull Runnable runnable) {
-            assert runnable != null;
-
-            final var thread = new Thread(
-                    null,
-                    runnable,
-                    prefix + threadCounter.getAndIncrement());
-            thread.setDaemon(isDaemon);
-            return thread;
-        }
     }
 }
