@@ -46,29 +46,29 @@ class TimeoutTest {
         var cancelToken: RealCancelToken?
         cancelScope(smallerNanos) {
             val expectedDeadlineNanoTime = System.nanoTime() + smallerNanos.inWholeNanoseconds
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(1_000_000))
             cancelScope(biggerNanos) {
-                cancelToken = CancellableUtils.getCancelToken()
+                cancelToken = JavaVersionUtils.getCancelToken()
                 assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(1_000_000))
             }
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(1_000_000))
         }
 
-        cancelToken = CancellableUtils.getCancelToken()
+        cancelToken = JavaVersionUtils.getCancelToken()
         assertThat(cancelToken).isNull()
 
         cancelScope(biggerNanos) {
             val expectedDeadlineNanoTime = System.nanoTime() + biggerNanos.inWholeNanoseconds
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(350_000))
             cancelScope(smallerNanos) {
                 val expectedDeadlineNanoTime2 = System.nanoTime() + smallerNanos.inWholeNanoseconds
-                cancelToken = CancellableUtils.getCancelToken()
+                cancelToken = JavaVersionUtils.getCancelToken()
                 assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime2, offset(100_000))
             }
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(1_000_000))
         }
     }
@@ -77,14 +77,14 @@ class TimeoutTest {
     fun intersectWithPrefersNonZeroDeadline() {
         var cancelToken: RealCancelToken?
         cancelScope {
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isEqualTo(0L)
             cancelScope(biggerNanos) {
                 val expectedDeadlineNanoTime = System.nanoTime() + biggerNanos.inWholeNanoseconds
-                cancelToken = CancellableUtils.getCancelToken()
+                cancelToken = JavaVersionUtils.getCancelToken()
                 assertThat(cancelToken!!.deadlineNanoTime).isCloseTo(expectedDeadlineNanoTime, offset(350_000))
             }
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken!!.deadlineNanoTime).isEqualTo(0L)
         }
     }
@@ -93,10 +93,10 @@ class TimeoutTest {
     fun shield() {
         var cancelToken: RealCancelToken?
         cancelScope(biggerNanos) {
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken!!.shielded).isFalse()
             shield()
-            cancelToken = CancellableUtils.getCancelToken()
+            cancelToken = JavaVersionUtils.getCancelToken()
             assertThat(cancelToken).isNull()
         }
     }

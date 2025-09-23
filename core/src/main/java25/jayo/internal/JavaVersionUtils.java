@@ -19,7 +19,7 @@ import java.util.function.Function;
 import static java.lang.System.Logger.Level.INFO;
 
 /**
- * Java 21 utils
+ * Java 25 utils
  */
 @SuppressWarnings("unused")
 public final class JavaVersionUtils {
@@ -32,9 +32,9 @@ public final class JavaVersionUtils {
     static {
         LOGGER.log(INFO, """
      
-     Jayo runs in Java 21 mode :
+     Jayo runs in Java 25 mode :
       ☑ virtual threads,
-      ☒ scoped value""".stripIndent());
+      ☑ scoped value""".stripIndent());
     }
 
     /**
@@ -58,11 +58,10 @@ public final class JavaVersionUtils {
                 .factory();
     }
 
-    private static final ThreadLocal<CancellationContext> CANCELLATION_CONTEXT = new ThreadLocal<>();
+    private static final ScopedValue<CancellationContext> CANCELLATION_CONTEXT = ScopedValue.newInstance();
 
     public static @Nullable RealCancelToken getCancelToken() {
-        final var cancellationContext = CANCELLATION_CONTEXT.get();
-        return (cancellationContext != null) ? cancellationContext.getCancelToken() : null;
+        return CANCELLATION_CONTEXT.isBound() ? CANCELLATION_CONTEXT.get().getCancelToken() : null;
     }
 
     public static void runCancellable(final @NonNull RealCancelToken cancelToken,
@@ -70,8 +69,8 @@ public final class JavaVersionUtils {
         assert cancelToken != null;
         assert block != null;
 
-        var cancellationContext = CANCELLATION_CONTEXT.get();
-        if (cancellationContext != null) {
+        if (CANCELLATION_CONTEXT.isBound()) {
+            final var cancellationContext = CANCELLATION_CONTEXT.get();
             cancellationContext.addCancelToken(cancelToken);
             try {
                 block.accept(cancelToken);
@@ -81,13 +80,8 @@ public final class JavaVersionUtils {
             }
         }
 
-        cancellationContext = new CancellationContext(cancelToken);
-        CANCELLATION_CONTEXT.set(cancellationContext);
-        try {
-            block.accept(cancelToken);
-        } finally {
-            CANCELLATION_CONTEXT.remove();
-        }
+        final var cancellationContext = new CancellationContext(cancelToken);
+        ScopedValue.where(CANCELLATION_CONTEXT, cancellationContext).run(() -> block.accept(cancelToken));
     }
 
     public static <T> T callCancellable(final @NonNull RealCancelToken cancelToken,
@@ -95,8 +89,8 @@ public final class JavaVersionUtils {
         assert cancelToken != null;
         assert block != null;
 
-        var cancellationContext = CANCELLATION_CONTEXT.get();
-        if (cancellationContext != null) {
+        if (CANCELLATION_CONTEXT.isBound()) {
+            final var cancellationContext = CANCELLATION_CONTEXT.get();
             cancellationContext.addCancelToken(cancelToken);
             try {
                 return block.apply(cancelToken);
@@ -105,13 +99,8 @@ public final class JavaVersionUtils {
             }
         }
 
-        cancellationContext = new CancellationContext(cancelToken);
-        CANCELLATION_CONTEXT.set(cancellationContext);
-        try {
-            return block.apply(cancelToken);
-        } finally {
-            CANCELLATION_CONTEXT.remove();
-        }
+        final var cancellationContext = new CancellationContext(cancelToken);
+        return ScopedValue.where(CANCELLATION_CONTEXT, cancellationContext).call(() -> block.apply(cancelToken));
     }
 
     /**

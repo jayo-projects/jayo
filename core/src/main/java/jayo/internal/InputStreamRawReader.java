@@ -66,7 +66,7 @@ public final class InputStreamRawReader implements RawReader {
             return 0L;
         }
 
-        final var cancelToken = CancellableUtils.getCancelToken();
+        final var cancelToken = JavaVersionUtils.getCancelToken();
         CancelToken.throwIfReached(cancelToken);
 
         final var dst = (RealBuffer) destination;

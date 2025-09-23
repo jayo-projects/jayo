@@ -6,7 +6,7 @@
 package jayo.tools;
 
 import jayo.JayoInterruptedIOException;
-import jayo.internal.CancellableUtils;
+import jayo.internal.JavaVersionUtils;
 import jayo.internal.RealCancelToken;
 import org.jspecify.annotations.Nullable;
 
@@ -20,7 +20,7 @@ public interface CancelToken {
      * @return the current CancelToken, if at least one is present in the thread context.
      */
     static @Nullable CancelToken getCancelToken() {
-        return CancellableUtils.getCancelToken();
+        return JavaVersionUtils.getCancelToken();
     }
 
     /**

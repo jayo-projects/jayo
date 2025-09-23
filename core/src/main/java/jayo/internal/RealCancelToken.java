@@ -24,34 +24,45 @@ package jayo.internal;
 import jayo.CancelScope;
 import jayo.JayoInterruptedIOException;
 import jayo.JayoTimeoutException;
+import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.concurrent.locks.Condition;
 
-/**
- * CancelToken is thread safe
- */
-public final class RealCancelToken implements CancelScope, jayo.tools.CancelToken {
+public final class RealCancelToken implements CancelScope, CancelToken {
     long timeoutNanos;
     final long deadlineNanoTime;
+
+    // These volatile statuses can be changed by other threads
     volatile boolean cancelled;
     volatile boolean shielded = false;
     volatile boolean finished = false;
 
+    final long threadId;
+    @Nullable
+    RealCancelToken next = null;
+
     public RealCancelToken(final long deadlineNanos) {
         this(0L,
                 // the deadline is set immediately
-                (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L,
-                false);
+                (deadlineNanos > 0L) ? (System.nanoTime() + deadlineNanos) : 0L);
+    }
+
+    RealCancelToken(final long timeoutNanos,
+                    final long deadlineNanoTime) {
+        this(timeoutNanos, deadlineNanoTime, false, JavaVersionUtils.threadId(Thread.currentThread()));
     }
 
     RealCancelToken(final long timeoutNanos,
                     final long deadlineNanoTime,
-                    final boolean cancelled) {
+                    final boolean cancelled,
+                    final long threadId) {
         this.timeoutNanos = timeoutNanos;
         this.deadlineNanoTime = deadlineNanoTime;
         this.cancelled = cancelled;
+        this.threadId = threadId;
     }
 
     @Override
@@ -64,21 +75,14 @@ public final class RealCancelToken implements CancelScope, jayo.tools.CancelToke
         cancelled = true;
     }
 
-    /**
-     * Called when the code block that was executed with this CancelToken is finished
-     */
-    void finish() {
-        finished = true;
-    }
-
     @Override
     public void awaitSignal(final @NonNull Condition condition) {
         Objects.requireNonNull(condition);
-        final var cancelToken = CancellableUtils.getCancelToken();
+        final var cancelToken = JavaVersionUtils.getCancelToken();
         assert cancelToken != null;
 
         try {
-            // CancelToken is finished, shielded or there is no timeout and no deadline : wait forever.
+            // CancelToken is finished, shielded, or there is no timeout and no deadline: wait forever.
             if (cancelToken.finished || cancelToken.shielded ||
                     (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
                 condition.await();
@@ -103,7 +107,7 @@ public final class RealCancelToken implements CancelScope, jayo.tools.CancelToke
             // await for condition
             remainingNanos = condition.awaitNanos(remainingNanos);
 
-            // check again if timeout was reached immediately after condition is notified.
+            // check again if timeout was reached immediately after the condition is notified.
             if (remainingNanos <= 0) {
                 cancel();
                 throw new JayoTimeoutException("timeout");
@@ -118,11 +122,11 @@ public final class RealCancelToken implements CancelScope, jayo.tools.CancelToke
     @Override
     public void waitUntilNotified(final @NonNull Object monitor) {
         Objects.requireNonNull(monitor);
-        final var cancelToken = CancellableUtils.getCancelToken();
+        final var cancelToken = JavaVersionUtils.getCancelToken();
         assert cancelToken != null;
 
         try {
-            // CancelToken is finished, shielded or there is no timeout and no deadline : wait forever.
+            // CancelToken is finished, shielded, or there is no timeout and no deadline: wait forever.
             if (cancelToken.finished || cancelToken.shielded ||
                     (cancelToken.deadlineNanoTime == 0L && cancelToken.timeoutNanos == 0L)) {
                 monitor.wait();
