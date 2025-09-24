@@ -12,6 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        distribution: [ 'temurin', 'corretto' ]
         java-version: [ '17', '21', '25' ]
 
     steps:
@@ -24,7 +25,7 @@ jobs:
       - name: Setup java
         uses: actions/setup-java@v5
         with:
-          distribution: 'corretto'
+          distribution: ${{ matrix.distribution }}
           java-version: 25
 
       - name: Execute tests, including slow tests
