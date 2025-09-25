@@ -165,7 +165,7 @@ public final class JavaVersionUtils {
     /**
      * Java 17 has no {@code thread.threadId()} final method.
      */
-    public static long threadId(final @NonNull Thread thread) {
+    static long threadId(final @NonNull Thread thread) {
         assert thread != null;
         return thread.getId();
     }
