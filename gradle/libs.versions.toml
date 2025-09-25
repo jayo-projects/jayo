@@ -11,7 +11,7 @@ mrjar = "0.1.1"
 # https://github.com/melix/jmh-gradle-plugin/tags (for benchmarks)
 jmhPlugin = "0.7.3"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
-shadow = "9.1.0"
+shadow = "9.2.1"
 # https://github.com/researchgate/gradle-release/releases
 release = "3.1.0"
 
@@ -29,7 +29,7 @@ conscrypt = "2.5.2"
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
 junit = "5.13.4"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
-assertj = "3.27.4"
+assertj = "3.27.6"
 # https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
 amazonCorretto = "2.5.0"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-jdk-platform-logging
