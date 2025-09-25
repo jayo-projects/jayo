@@ -38,6 +38,8 @@ public final class JavaVersionUtils {
     }
 
     /**
+     * The internal executor for Jayo subprojects like jayo-http.
+     * <p>
      * Java 21 has virtual Thread support, so we use them through
      * {@link Executors#newThreadPerTaskExecutor(ThreadFactory)} with our {@link #threadFactory(String, boolean)}.
      */
@@ -47,6 +49,8 @@ public final class JavaVersionUtils {
     }
 
     /**
+     * The internal thread factory for jayo (core) and its subprojects like jayo-http.
+     * <p>
      * Java 21 has virtual Thread support, so we use them.
      *
      * @implNote the {@code isDaemon} parameter is ignored, virtual threads are always daemon threads.
@@ -55,6 +59,7 @@ public final class JavaVersionUtils {
         assert prefix != null;
         return Thread.ofVirtual()
                 .name(prefix, 0)
+                .inheritInheritableThreadLocals(false)
                 .factory();
     }
 

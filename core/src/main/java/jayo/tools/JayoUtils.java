@@ -50,6 +50,13 @@ public final class JayoUtils {
     private JayoUtils() {
     }
 
+    /**
+     * Note: feel free to use this method to build an executor for your own purposes, but it has been optimized for our
+     * IO-oriented subprojects like jayo-http. It may not be the best option for other uses.
+     * @return a new executor for running async tasks.
+     * @implNote New threads created by this executor will <b>not inherit thread-local variables</b> from the
+     * constructing thread.
+     */
     public static @NonNull ExecutorService executorService(final @NonNull String prefix, final boolean isDaemon) {
         Objects.requireNonNull(prefix);
         return JavaVersionUtils.executorService(prefix, isDaemon);
