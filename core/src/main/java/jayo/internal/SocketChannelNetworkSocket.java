@@ -56,7 +56,7 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
             final NetworkSocket networkSocket;
             if (connectTimeout != null) {
                 final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
-                networkSocket = asyncTimeout.withTimeout(cancelToken, ignored ->
+                networkSocket = asyncTimeout.withTimeout(cancelToken, () ->
                         connect(socketChannel, peerAddress, asyncTimeout, proxy));
             } else {
                 networkSocket = connect(socketChannel, peerAddress, asyncTimeout, proxy);
@@ -221,7 +221,7 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
             final var firstSourceIndex = new Wrapper.Int(); // index of the first source in the array of sources with remaining bytes to write
             while (true) {
                 CancelToken.throwIfReached(cancelToken);
-                final var written = timeout.withTimeout(cancelToken, ignored -> {
+                final var written = timeout.withTimeout(cancelToken, () -> {
                     try {
                         return socketChannel.write(sources, firstSourceIndex.value,
                                 sources.length - firstSourceIndex.value);

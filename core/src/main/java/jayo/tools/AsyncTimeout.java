@@ -25,7 +25,6 @@ import jayo.internal.RealAsyncTimeout;
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 /**
  * This timeout uses a background watchdog thread to take action exactly when the timeout occurs. Use this to
@@ -36,12 +35,15 @@ import java.util.function.Function;
  * This method will be invoked by the shared watchdog thread, so it should not do any long-running operations.
  * Otherwise, we risk starving other timeouts from being triggered.
  * <p>
- * Callers should call {@link #withTimeout(long, Function)} to do work that is subject to timeouts.
+ * Callers should call {@link #enter(long)} before doing work that is subject to timeouts, use the returned node and
+ * call {@link Node#exit()} when this work is finished. Its boolean result indicates whether the timeout occurred.
+ * <p>
+ * Note: the call to the timeout action is asynchronous and may be called after {@link Node#exit()}.
  */
 public sealed interface AsyncTimeout permits RealAsyncTimeout {
     /**
-     * @param onTimeout this code block will be invoked by the watchdog thread when the time to execute the code block
-     *                  passed to {@link #withTimeout(long, Function)} has exceeded the timeout.
+     * @param onTimeout this code block will be invoked by the watchdog thread when the time between calls to
+     *                  {@link #enter(long)} and {@link Node#exit()} has exceeded the timeout.
      * @return a new {@link AsyncTimeout}
      */
     static @NonNull AsyncTimeout create(final @NonNull Runnable onTimeout) {
@@ -50,10 +52,17 @@ public sealed interface AsyncTimeout permits RealAsyncTimeout {
     }
 
     /**
-     * Execute {@code block} with timeout support. Use the {@link Node} argument to {@linkplain Node#exit() exit} the
-     * work that is subject to timeouts, its boolean result indicates whether the timeout occurred.
+     * Call this method when starting doing work that is subject to timeouts. Use the returned {@link Node} and call
+     * {@linkplain Node#exit() exit} when this work is finished. Its boolean result indicates whether the timeout
+     * occurred.
+     *
+     * @param defaultTimeout the default timeout (in nanoseconds). It will be used as a fallback for this operation only
+     *                       if no timeout is present in the cancellable context. It must be non-negative. A timeout of
+     *                       zero is interpreted as an infinite timeout.
+     * @see Node#exit()
      */
-    <T> T withTimeout(final long defaultTimeout, final @NonNull Function<@NonNull Node, T> block);
+    @NonNull
+    Node enter(final long defaultTimeout);
 
     /**
      * A node in the AsyncTimeout queue.

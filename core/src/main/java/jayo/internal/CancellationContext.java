@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * The cancellation context in the scope of a cancellable block.
  * <p>
  * It may be accessed concurrently by multiple asynchronous tasks inside a {@code StructuredTaskScope}, so we use a
- * {@code lock} to ensure thread safety.
+ * {@link Lock} to ensure thread safety.
  */
 final class CancellationContext {
     private final @NonNull Lock lock = new ReentrantLock();
@@ -42,9 +42,9 @@ final class CancellationContext {
             while (current != null) {
                 final var next = current.next;
                 if (current.threadId != threadId && current.threadId != initialThreadId) {
-                    // the current cancel token was not added by the current thread or the initial thread, skip it.
+                    // the current cancel token was not added by the current thread or the initial thread, skip it
                 } else if (current.finished) {
-                    // a finished cancel token does not apply anymore
+                    // a finished cancel token does not apply anymore, we remove it from the queue
                     if (previous == null) {
                         head = next;
                     } else {
@@ -94,7 +94,7 @@ final class CancellationContext {
     }
 
     /**
-     * Applies the intersection between this {@code one} and {@code two}.
+     * @return a new cancel token that is the intersection between two cancel tokens.
      */
     private static @NonNull RealCancelToken intersect(final @NonNull RealCancelToken current,
                                                       final @NonNull RealCancelToken next) {

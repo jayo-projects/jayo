@@ -125,7 +125,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             CancelToken.throwIfReached(cancelToken);
             final var dstTail = dst.writableTail(1);
             final var toRead = (int) Math.min(byteCount, Segment.SIZE - dstTail.limit);
-            final int bytesRead = timeout.withTimeout(cancelToken, ignored -> {
+            final int bytesRead = timeout.withTimeout(cancelToken, () -> {
                 try {
                     return AbstractNetworkSocket.this.read(dstTail, toRead);
                 } catch (IOException e) {
@@ -149,7 +149,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         @Override
         public void close() {
             final var cancelToken = JavaVersionUtils.getCancelToken();
-            timeout.withTimeout(cancelToken, ignored ->
+            timeout.withTimeout(cancelToken, () ->
                     switch (setBitsOrZero(closeBits, READER_CLOSED_BIT)) {
                         // If setBitOrZero() returns 0, this reader is already closed.
                         case 0 -> null;
@@ -210,7 +210,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         @Override
         public void flush() {
             final var cancelToken = JavaVersionUtils.getCancelToken();
-            timeout.withTimeout(cancelToken, ignored -> {
+            timeout.withTimeout(cancelToken, () -> {
                 try {
                     AbstractNetworkSocket.this.flush();
                     return null;
@@ -223,7 +223,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         @Override
         public void close() {
             final var cancelToken = JavaVersionUtils.getCancelToken();
-            timeout.withTimeout(cancelToken, ignored ->
+            timeout.withTimeout(cancelToken, () ->
                     switch (setBitsOrZero(closeBits, WRITER_CLOSED_BIT)) {
                         // If setBitOrZero() returns 0, this writer is already closed.
                         case 0 -> null;
