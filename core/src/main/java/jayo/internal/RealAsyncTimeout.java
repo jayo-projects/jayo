@@ -29,12 +29,11 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class RealAsyncTimeout implements AsyncTimeout {
     private static final Lock LOCK = new ReentrantLock();
@@ -48,8 +47,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     }
 
     @Override
-    public <T> T withTimeout(final long defaultTimeout, final @NonNull Function<@NonNull Node, T> block) {
-        Objects.requireNonNull(block);
+    public @NonNull Node enter(final long defaultTimeout) {
         if (defaultTimeout < 0L) {
             throw new IllegalArgumentException("defaultTimeout < 0: " + defaultTimeout);
         }
@@ -57,52 +55,34 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         final var cancelToken = JavaVersionUtils.getCancelToken();
         // A timeout is already defined, use it
         if (cancelToken != null) {
-            return withTimeout(cancelToken, false, false, block);
+            return enter(cancelToken);
         }
 
         // no default timeout, no-op
         if (defaultTimeout == 0L) {
-            return block.apply(TimeoutNodeNone.INSTANCE);
+            return TimeoutNodeNone.INSTANCE;
         }
 
         // use defaultTimeout to create a temporary cancel token
         final var tmpCancelToken = new RealCancelToken(defaultTimeout);
-        return JavaVersionUtils.callCancellable(tmpCancelToken, ignored ->
-                withTimeout(tmpCancelToken, true, false, block));
+        return enter(tmpCancelToken);
     }
 
     /**
-     * Surrounds {@code block} with calls to {@link #enter(RealCancelToken, boolean)} and {@link Node#exit()} , throwing
+     * Surrounds {@code block} with calls to {@link #enter(RealCancelToken)} and {@link Node#exit()}, throwing
      * a {@linkplain jayo.JayoTimeoutException JayoTimeoutException} if a timeout occurred.
      */
-    public <T> T withTimeout(final @Nullable RealCancelToken cancelToken,
-                             final @NonNull Function<@NonNull Node, T> block) {
-        return withTimeout(cancelToken, false, true, block);
-    }
-
-    /**
-     * Surrounds {@code block} with calls to {@link #enter(RealCancelToken, boolean)} and {@link Node#exit()} (only if
-     * the {@code exitWhenDone} parameter is true). With the {@code exitWhenDone} parameter, this method will throw a
-     * {@linkplain jayo.JayoTimeoutException JayoTimeoutException} if a timeout occurred.
-     */
-    private <T> T withTimeout(final @Nullable RealCancelToken cancelToken,
-                              final boolean isTemporary,
-                              final boolean exitWhenDone,
-                              final @NonNull Function<@NonNull Node, T> block) {
+    public <T> T withTimeout(final @Nullable RealCancelToken cancelToken, final @NonNull Supplier<T> block) {
         assert block != null;
 
         if (cancelToken == null) {
-            return block.apply(TimeoutNodeNone.INSTANCE);
+            return block.get();
         }
 
-        final var node = enter(cancelToken, isTemporary);
-        if (!exitWhenDone) {
-            return block.apply(node);
-        }
-
+        final var node = enter(cancelToken);
         var throwOnTimeout = false;
         try {
-            final var result = block.apply(node);
+            final var result = block.get();
             throwOnTimeout = true;
             return result;
         } catch (JayoException e) {
@@ -118,7 +98,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         }
     }
 
-    private @NonNull Node enter(final @NonNull RealCancelToken cancelToken, final boolean isTemporary) {
+    private @NonNull Node enter(final @NonNull RealCancelToken cancelToken) {
         assert cancelToken != null;
 
         // CancelToken is finished, shielded, or there is no timeout and no deadline: don't bother with the queue.
@@ -129,7 +109,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
 
         LOCK.lock();
         try {
-            return insertIntoQueue(cancelToken, isTemporary);
+            return insertIntoQueue(cancelToken);
         } finally {
             LOCK.unlock();
         }
@@ -168,13 +148,13 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     private static final @NonNull PriorityQueue QUEUE = new PriorityQueue();
     private static @Nullable TimeoutNode IDLE_SENTINEL = null;
 
-    private static final @NonNull TimeoutNode IDLE_SENTINEL_WATCHDOG_RUNNING = new TimeoutNode(0L, () -> {
-    }, null);
+    // @formatter:off
+    private static final @NonNull TimeoutNode IDLE_SENTINEL_WATCHDOG_RUNNING = new TimeoutNode(0L, () -> {});
+    // @formatter:on
     private static final ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
             JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#", true);
 
-    private @NonNull TimeoutNode insertIntoQueue(final @NonNull RealCancelToken cancelToken,
-                                                 final boolean isTemporary) {
+    private @NonNull TimeoutNode insertIntoQueue(final @NonNull RealCancelToken cancelToken) {
         assert cancelToken != null;
 
         // Start the watchdog thread and create the head node when the first timeout is scheduled.
@@ -190,8 +170,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         } else {
             timeoutAt = now + cancelToken.timeoutNanos;
         }
-        final var node = new TimeoutNode(timeoutAt, onTimeout,
-                isTemporary ? cancelToken : null);
+        final var node = new TimeoutNode(timeoutAt, onTimeout);
 
         // Insert the node into the queue.
         QUEUE.add(node);
@@ -276,22 +255,18 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     public static final class TimeoutNode implements AsyncTimeout.Node, Comparable<TimeoutNode> {
         private final long timeoutAt;
         private final @NonNull Runnable onTimeout;
-        private @Nullable RealCancelToken tmpCancelToken;
 
         /**
          * The index of this timeout node in {@link RealAsyncTimeout#QUEUE}, or -1 if this isn't currently in the heap.
          */
         private int index = -1;
 
-        private TimeoutNode(final long timeoutAt,
-                            final @NonNull Runnable onTimeout,
-                            final @Nullable RealCancelToken tmpCancelToken) {
+        TimeoutNode(final long timeoutAt, final @NonNull Runnable onTimeout) {
             assert timeoutAt >= 0L;
             assert onTimeout != null;
 
             this.timeoutAt = timeoutAt;
             this.onTimeout = onTimeout;
-            this.tmpCancelToken = tmpCancelToken;
         }
 
 
@@ -304,12 +279,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         public boolean exit() {
             LOCK.lock();
             try {
-                final var hasTimeout = !QUEUE.remove(this);
-                if (tmpCancelToken != null) {
-                    tmpCancelToken.finished = true;
-                    tmpCancelToken = null;
-                }
-                return hasTimeout;
+                return !QUEUE.remove(this);
             } finally {
                 LOCK.unlock();
             }
@@ -318,7 +288,15 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         @Override
         public int compareTo(final @NonNull TimeoutNode other) {
             assert other != null;
-            return Long.compare(other.timeoutAt, timeoutAt);
+            return Long.compare(timeoutAt, other.timeoutAt);
+        }
+
+        @Override
+        public @NonNull String toString() {
+            return "TimeoutNode{" +
+                    "timeoutAt=" + timeoutAt +
+                    ", indexInQueue=" + index +
+                    '}';
         }
     }
 
@@ -346,7 +324,6 @@ public final class RealAsyncTimeout implements AsyncTimeout {
      * index in the heap.
      * <p>
      * The first node is at array index 1.
-     * <p>
      *
      * @see <a href="https://en.wikipedia.org/wiki/Binary_heap">Binary heap</a>
      */
@@ -355,8 +332,7 @@ public final class RealAsyncTimeout implements AsyncTimeout {
         @Nullable
         TimeoutNode @NonNull [] array = new TimeoutNode[8];
 
-        @Nullable
-        TimeoutNode first() {
+        private @Nullable TimeoutNode first() {
             return array[1];
         }
 

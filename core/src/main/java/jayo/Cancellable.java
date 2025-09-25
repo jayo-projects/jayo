@@ -28,13 +28,13 @@ public final class Cancellable {
 
     /**
      * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
-     * occurred. All I/O operations invoked in this code block, including children threads, will wait at most
-     * {@code timeout} time before aborting, and will also respect the cancel scope actions: manual cancellation, await
-     * for {@linkplain java.util.concurrent.locks.Condition Condition} signal...
+     * occurred. All I/O operations invoked in this code block will wait at most {@code timeout} time before aborting,
+     * and will also respect the cancel scope actions: manual cancellation, await for
+     * {@linkplain java.util.concurrent.locks.Condition Condition} signal...
      * <p>
      * The provided timeout is used to set a deadline of now plus {@code timeout} time. This deadline will start when
      * the associated cancellable code {@code block} will start executing. All I/O operations invoked in this
-     * cancellable code block, and in children threads, will regularly check if this deadline is reached.
+     * cancellable code block will check if this deadline is reached.
      */
     public static void run(final @NonNull Duration timeout, final @NonNull Consumer<CancelScope> block) {
         Objects.requireNonNull(timeout);
@@ -44,9 +44,8 @@ public final class Cancellable {
 
     /**
      * Execute {@code block} in a cancellable context, throwing a {@link JayoInterruptedIOException} if a cancellation
-     * occurred. All I/O operations invoked in this code block, including children threads, will respect the cancel
-     * scope actions: manual cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition}
-     * signal...
+     * occurred. All I/O operations invoked in this code block will respect the cancel scope actions: manual
+     * cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition} signal...
      */
     public static void run(final @NonNull Consumer<CancelScope> block) {
         Objects.requireNonNull(block);
@@ -55,14 +54,13 @@ public final class Cancellable {
 
     /**
      * Execute {@code block} in a cancellable context, and return its result, throwing a
-     * {@link JayoInterruptedIOException} if a cancellation occurred. All I/O operations invoked in this code block,
-     * including children threads, will wait at most {@code timeout} time before aborting, and will also respect the
-     * cancel scope actions: manual cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition}
-     * signal...
+     * {@link JayoInterruptedIOException} if a cancellation occurred. All I/O operations invoked in this code block will
+     * wait at most {@code timeout} time before aborting, and will also respect the cancel scope actions: manual
+     * cancellation, await for {@linkplain java.util.concurrent.locks.Condition Condition} signal...
      * <p>
      * The provided timeout is used to set a deadline of now plus {@code timeout} time. This deadline will start when
      * the associated cancellable code {@code block} will start executing. All I/O operations invoked in this
-     * cancellable code block, and in children threads, will regularly check if this deadline is reached.
+     * cancellable code block will check if this deadline is reached.
      */
     public static <T> T call(final @NonNull Duration timeout, final @NonNull Function<CancelScope, T> block) {
         Objects.requireNonNull(timeout);
@@ -72,8 +70,8 @@ public final class Cancellable {
 
     /**
      * Execute {@code block} in a cancellable context, and return its result, throwing a
-     * {@link JayoInterruptedIOException} if a cancellation occurred. All I/O operations invoked in this code block,
-     * including children threads, will respect the cancel scope actions: manual cancellation, await for
+     * {@link JayoInterruptedIOException} if a cancellation occurred. All I/O operations invoked in this code block will
+     * respect the cancel scope actions: manual cancellation, await for
      * {@linkplain java.util.concurrent.locks.Condition Condition} signal...
      */
     public static <T> T call(final @NonNull Function<CancelScope, T> block) {
