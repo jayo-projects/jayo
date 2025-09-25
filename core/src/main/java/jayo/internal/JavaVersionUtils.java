@@ -36,6 +36,8 @@ public final class JavaVersionUtils {
     }
 
     /**
+     * The internal executor for Jayo subprojects like jayo-http.
+     * <p>
      * Java 17 has no virtual Thread support, so we use pooled platform threads through {@link ThreadPoolExecutor} with
      * our {@link #threadFactory(String, boolean)}.
      */
@@ -51,6 +53,8 @@ public final class JavaVersionUtils {
     }
 
     /**
+     * The internal thread factory for jayo (core) and its subprojects like jayo-http.
+     * <p>
      * Java 17 has no virtual Thread support, so we use platform threads.
      */
     public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix, final boolean isDaemon) {
@@ -74,7 +78,12 @@ public final class JavaVersionUtils {
         public @NonNull Thread newThread(final @NonNull Runnable runnable) {
             assert runnable != null;
 
-            final var thread = new Thread(runnable, prefix + threadCounter.getAndIncrement());
+            final var thread = new Thread(
+                    null,
+                    runnable,
+                    prefix + threadCounter.getAndIncrement(),
+                    0L,
+                    false);
             thread.setDaemon(isDaemon);
             return thread;
         }
