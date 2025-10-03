@@ -52,12 +52,13 @@ https://www.rfc-editor.org/rfc/rfc9000.html#name-datagram-size
 * Scoped Values (incubator)
 
 ### Java 21
-* Project Loom [virtual threads](https://openjdk.org/jeps/444) are promoted as stable.
+* Project Loom [virtual threads](https://openjdk.org/jeps/444) are promoted as stable. Introduce virtual threads to the
+Java Platform. Virtual threads are lightweight threads that dramatically reduce the effort of writing, maintaining, and
+observing high-throughput concurrent applications.
 * [Structured Concurrency](https://openjdk.org/jeps/453) (preview): treats multiple tasks running in different threads
 as a single unit of work, thereby streamlining error handling and cancellation, improving reliability, and enhancing
 observability.
-* [Scoped Values](https://openjdk.org/jeps/446) (preview): enable the sharing of immutable data within and across
-threads. They are preferred to thread-local variables, especially when using large numbers of virtual threads.
+* Scoped Values (preview)
 * [Sequenced Collections](https://www.baeldung.com/java-21-sequenced-collections) This feature injects new interfaces
 into the existing Java collections hierarchy, offering a seamless mechanism to access the first and last elements of a
 collection using built-in default methods, and provides support to obtain a reversed view of the collection.
@@ -72,9 +73,22 @@ balance the need for predictable deallocation with the need to prevent untimely 
 crashes or, worse, to silent memory corruption.
 
 ### Java 23
-* [Key Derivation Function API](https://openjdk.org/jeps/478) (preview): Introduce an API for Key Derivation Functions
-(KDFs), which are cryptographic algorithms for deriving additional keys from a secret key and other data. It will allow
-TLS 1.3 enhancements and Argon2 password-hashing KDF implementation in the JDK.
+* Key Derivation Function API (preview)
+* Loom related better support of `synchronized` blocks.
+
+### Java 25
+* [Scoped Values](https://openjdk.org/jeps/506) is promoted as stable. Enable the sharing of immutable data within and
+across threads. They are preferred to thread-local variables, especially when using large numbers of virtual threads.
+* [Key Derivation Function API](https://openjdk.org/jeps/510) is promoted as stable. Introduce an API for Key Derivation
+Functions (KDFs), which are cryptographic algorithms for deriving additional keys from a secret key and other data. It
+will allow TLS 1.3 enhancements and Argon2 password-hashing KDF implementation in the JDK.
+* [PEM Encodings of Cryptographic Objects](https://openjdk.org/jeps/470) (preview): Introduce an API for encoding
+objects that represent cryptographic keys, certificates, and certificate revocation lists into the widely used
+Privacy-Enhanced Mail (PEM) transport format, and for decoding from that format back into objects.
+
+### Java 26
+* [HTTP/3 for the HTTP Client API](https://openjdk.org/jeps/517): Update the HTTP Client API to support the HTTP/3
+ protocol, so that libraries and applications can interact with HTTP/3 servers with minimal code change.
 
 ## Some inspirations
 
