@@ -26,3 +26,14 @@ object JayoTestUtil {
     @JvmStatic
     val isGraalVmImage = System.getProperty("org.graalvm.nativeimage.imagecode") != null
 }
+
+internal inline fun threadName(name: String, block: () -> Unit) {
+    val currentThread = Thread.currentThread()
+    val oldName = currentThread.name
+    currentThread.name = name
+    try {
+        block()
+    } finally {
+        currentThread.name = oldName
+    }
+}
