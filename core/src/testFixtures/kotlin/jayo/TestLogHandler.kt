@@ -52,14 +52,14 @@ class TestLogHandler(
 
     private var previousLevel: Level? = null
 
-    override fun beforeEach(context: ExtensionContext?) {
+    override fun beforeEach(context: ExtensionContext) {
         appender.start()
         previousLevel = logger.level
         logger.level = Level.TRACE
         logger.addAppender(appender)
     }
 
-    override fun afterEach(context: ExtensionContext?) {
+    override fun afterEach(context: ExtensionContext) {
         logger.level = previousLevel
         logger.detachAppender(appender)
     }
