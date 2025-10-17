@@ -51,80 +51,6 @@ import static java.lang.System.Logger.Level.WARNING;
 public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.AbstractNetworkSocket");
 
-    @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-    public static @NonNull NetworkSocket connect(
-            final @NonNull InetSocketAddress peerAddress,
-            final @Nullable Duration connectTimeout,
-            final Proxy.@Nullable Socks proxy,
-            final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions
-    ) {
-        assert peerAddress != null;
-        assert socketOptions != null;
-
-        final var socket = new Socket();
-        try {
-            for (final var socketOption : socketOptions.entrySet()) {
-                socket.setOption(socketOption.getKey(), socketOption.getValue());
-            }
-
-            final var asyncTimeout = buildAsyncTimeout(socket);
-            final var networkSocket = connect(socket, peerAddress, connectTimeout, asyncTimeout, proxy);
-
-            if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client AbstractNetworkSocket connected to {0}, socket options = {1}",
-                        peerAddress, socketOptions);
-            }
-
-            return networkSocket;
-        } catch (IOException e) {
-            if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client AbstractNetworkSocket failed to connect to " + peerAddress, e);
-            }
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    private static NetworkSocket connect(final @NonNull Socket socket,
-                                         final @NonNull InetSocketAddress peerAddress,
-                                         final @Nullable Duration connectTimeout,
-                                         final @NonNull RealAsyncTimeout asyncTimeout,
-                                         final Proxy.@Nullable Socks proxy) {
-        assert socket != null;
-        assert peerAddress != null;
-        assert asyncTimeout != null;
-
-        try {
-            if (proxy != null) {
-                // connect to the proxy and use it to reach peer
-                connect(socket, new InetSocketAddress(proxy.getHost(), proxy.getPort()), connectTimeout);
-                final var proxyNetEndpoint = new IoSocketNetworkSocket(socket, asyncTimeout);
-                if (!(proxy instanceof RealSocksProxy socksProxy)) {
-                    throw new IllegalArgumentException("proxy is not a RealSocksProxy");
-                }
-                return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
-            }
-            // connect to peer
-            connect(socket, peerAddress, connectTimeout);
-            return new IoSocketNetworkSocket(socket, asyncTimeout);
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    private static void connect(final @NonNull Socket socket,
-                                final @NonNull InetSocketAddress inetSocketAddress,
-                                final @Nullable Duration connectTimeout) throws IOException {
-        assert socket != null;
-        assert inetSocketAddress != null;
-
-        if (connectTimeout != null) {
-            final var connectTimeoutMillis = getTimeoutAsMillis(connectTimeout);
-            socket.connect(inetSocketAddress, (int) connectTimeoutMillis);
-        } else {
-            socket.connect(inetSocketAddress);
-        }
-    }
-
     private static int getTimeoutAsMillis(final @NonNull Duration timeout) {
         assert timeout != null;
 
@@ -133,6 +59,12 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             throw new IllegalArgumentException("The timeout in millis is too large, should be <= Integer.MAX_VALUE");
         }
         return (int) timeoutMillis;
+    }
+
+    private static void throwIfClosed(final @NonNull Socket socket) {
+        if (socket.isClosed()) {
+            throw new JayoClosedResourceException();
+        }
     }
 
     @NonNull
@@ -184,13 +116,13 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
 
     @Override
     public @NonNull InetSocketAddress getLocalAddress() {
-        throwIfClosed();
+        throwIfClosed(socket);
         return (InetSocketAddress) socket.getLocalSocketAddress();
     }
 
     @Override
     public @NonNull InetSocketAddress getPeerAddress() {
-        throwIfClosed();
+        throwIfClosed(socket);
         return (InetSocketAddress) socket.getRemoteSocketAddress();
     }
 
@@ -198,16 +130,10 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
     public <T> @Nullable T getOption(final @NonNull SocketOption<T> name) {
         Objects.requireNonNull(name);
         try {
-            throwIfClosed();
+            throwIfClosed(socket);
             return socket.getOption(name);
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
-        }
-    }
-
-    private void throwIfClosed() {
-        if (socket.isClosed()) {
-            throw new JayoClosedResourceException();
         }
     }
 
@@ -300,6 +226,122 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             // avoid a rare closing race condition
             if (!se.getMessage().equals("Socket is closed")) {
                 throw se;
+            }
+        }
+    }
+
+    public static final class Unconnected implements NetworkSocket.Unconnected {
+        private final @Nullable Duration connectTimeout;
+        private final @NonNull Socket socket;
+
+        @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
+        public Unconnected(final @Nullable Duration connectTimeout,
+                           final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions) {
+            assert socketOptions != null;
+
+            this.connectTimeout = connectTimeout;
+            final var socket = new Socket();
+            try {
+                for (final var socketOption : socketOptions.entrySet()) {
+                    socket.setOption(socketOption.getKey(), socketOption.getValue());
+                }
+
+                this.socket = socket;
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
+            }
+        }
+
+        @Override
+        public @NonNull NetworkSocket connect(@NonNull InetSocketAddress peerAddress) {
+            Objects.requireNonNull(peerAddress);
+            return connectPrivate(peerAddress, null);
+        }
+
+        @Override
+        public @NonNull NetworkSocket connect(@NonNull InetSocketAddress peerAddress, Proxy.@NonNull Socks proxy) {
+            Objects.requireNonNull(peerAddress);
+            Objects.requireNonNull(proxy);
+            return connectPrivate(peerAddress, proxy);
+        }
+
+        private @NonNull NetworkSocket connectPrivate(final @NonNull InetSocketAddress peerAddress,
+                                                      final Proxy.@Nullable Socks proxy) {
+            assert peerAddress != null;
+
+            try {
+                final var asyncTimeout = buildAsyncTimeout(socket);
+                final var networkSocket = connect(peerAddress, connectTimeout, asyncTimeout, proxy);
+
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "new client AbstractNetworkSocket connected to {0}", peerAddress);
+                }
+
+                return networkSocket;
+            } catch (IOException e) {
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG, "new client AbstractNetworkSocket failed to connect to " + peerAddress, e);
+                }
+                throw JayoException.buildJayoException(e);
+            }
+        }
+
+        private NetworkSocket connect(final @NonNull InetSocketAddress peerAddress,
+                                      final @Nullable Duration connectTimeout,
+                                      final @NonNull RealAsyncTimeout asyncTimeout,
+                                      final Proxy.@Nullable Socks proxy) throws IOException {
+            assert peerAddress != null;
+            assert asyncTimeout != null;
+
+            if (proxy != null) {
+                // connect to the proxy and use it to reach peer
+                connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()), connectTimeout);
+                final var proxyNetEndpoint = new IoSocketNetworkSocket(socket, asyncTimeout);
+                if (!(proxy instanceof RealSocksProxy socksProxy)) {
+                    throw new IllegalArgumentException("proxy is not a RealSocksProxy");
+                }
+                return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
+            }
+            // connect to peer
+            connect(peerAddress, connectTimeout);
+            return new IoSocketNetworkSocket(socket, asyncTimeout);
+        }
+
+        private void connect(final @NonNull InetSocketAddress inetSocketAddress,
+                             final @Nullable Duration connectTimeout) throws IOException {
+            assert inetSocketAddress != null;
+
+            if (connectTimeout != null) {
+                final var connectTimeoutMillis = getTimeoutAsMillis(connectTimeout);
+                socket.connect(inetSocketAddress, (int) connectTimeoutMillis);
+            } else {
+                socket.connect(inetSocketAddress);
+            }
+        }
+
+        @Override
+        public @NonNull InetSocketAddress getLocalAddress() {
+            throwIfClosed(socket);
+            return (InetSocketAddress) socket.getLocalSocketAddress();
+        }
+
+        @Override
+        public <T> @Nullable T getOption(final @NonNull SocketOption<T> name) {
+            Objects.requireNonNull(name);
+            try {
+                throwIfClosed(socket);
+                return socket.getOption(name);
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
+            }
+        }
+
+        @Override
+        public void cancel() {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
             }
         }
     }

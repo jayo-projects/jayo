@@ -110,7 +110,7 @@ public sealed interface NetworkServer extends Closeable
     /**
      * The builder used to create a {@link NetworkServer}.
      */
-    sealed interface Builder extends Cloneable permits NetworkServerBuilder {
+    sealed interface Builder permits NetworkServerBuilder {
         /**
          * Sets the value of a socket option to set on the
          * {@linkplain NetworkServer#accept() accepted network sockets}.
@@ -168,11 +168,5 @@ public sealed interface NetworkServer extends Closeable
          */
         @NonNull
         NetworkServer bindTcp(final @NonNull InetSocketAddress localAddress);
-
-        /**
-         * @return a deep copy of this builder.
-         */
-        @NonNull
-        Builder clone();
     }
 }

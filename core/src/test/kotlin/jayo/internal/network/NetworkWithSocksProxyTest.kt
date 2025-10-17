@@ -122,7 +122,7 @@ class NetworkWithSocksProxyTest {
                     } else {
                         Proxy.socks5(proxy.address)
                     }
-                    val client = clientBuilder.connectTcp(server.localAddress, proxy)
+                    val client = clientBuilder.openTcp().connect(server.localAddress, proxy)
 
                     val stringRead = client.reader.readString()
                     assertThat(stringRead).isEqualTo(TO_WRITE)
@@ -220,7 +220,7 @@ class NetworkWithSocksProxyTest {
                     } else {
                         Proxy.socks4(proxy.address)
                     }
-                    val client = clientBuilder.connectTcp(server.localAddress, proxy)
+                    val client = clientBuilder.openTcp().connect(server.localAddress, proxy)
 
                     val stringRead = client.reader.readString()
                     assertThat(stringRead).isEqualTo(TO_WRITE)

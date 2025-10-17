@@ -34,71 +34,6 @@ import static jayo.internal.Utils.TIMEOUT_WRITE_SIZE;
 public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.SocketChannelNetworkSocket");
 
-    @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-    public static @NonNull NetworkSocket connect(
-            final @NonNull InetSocketAddress peerAddress,
-            final @Nullable Duration connectTimeout,
-            final Proxy.@Nullable Socks proxy,
-            final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
-            final @Nullable ProtocolFamily family) {
-        assert peerAddress != null;
-        assert socketOptions != null;
-
-        try {
-            // SocketChannel defaults to blocking-mode, that's precisely what we want
-            final var socketChannel = (family != null) ? SocketChannel.open(family) : SocketChannel.open();
-
-            for (final var socketOption : socketOptions.entrySet()) {
-                socketChannel.setOption(socketOption.getKey(), socketOption.getValue());
-            }
-
-            final var asyncTimeout = buildAsyncTimeout(socketChannel);
-            final NetworkSocket networkSocket;
-            if (connectTimeout != null) {
-                final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
-                networkSocket = asyncTimeout.withTimeout(cancelToken, () ->
-                        connect(socketChannel, peerAddress, asyncTimeout, proxy));
-            } else {
-                networkSocket = connect(socketChannel, peerAddress, asyncTimeout, proxy);
-            }
-
-            if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketChannelNetworkSocket connected to {0}, protocol family " +
-                        "= {1}, socket options = {2}", peerAddress, family, socketOptions);
-            }
-
-            return networkSocket;
-        } catch (IOException e) {
-            if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG,
-                        "new client SocketChannelNetworkSocket failed to connect to " + peerAddress, e);
-            }
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
-    private static @NonNull NetworkSocket connect(final @NonNull SocketChannel socketChannel,
-                                                  final @NonNull InetSocketAddress peerAddress,
-                                                  final @NonNull RealAsyncTimeout asyncTimeout,
-                                                  final Proxy.@Nullable Socks proxy) {
-        try {
-            if (proxy != null) {
-                // connect to the proxy and use it to reach peer
-                socketChannel.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
-                final var proxyNetEndpoint = new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
-                if (!(proxy instanceof RealSocksProxy socksProxy)) {
-                    throw new IllegalArgumentException("proxy is not a RealSocksProxy");
-                }
-                return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
-            }
-            // connect to peer
-            socketChannel.connect(peerAddress);
-            return new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
-    }
-
     @NonNull
     private static RealAsyncTimeout buildAsyncTimeout(final @NonNull SocketChannel socketChannel) {
         assert socketChannel != null;
@@ -249,5 +184,118 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
             return; // Nothing to do.
         }
         socketChannel.shutdownOutput();
+    }
+
+    public static final class Unconnected implements NetworkSocket.Unconnected {
+        private final @Nullable Duration connectTimeout;
+        private final @NonNull SocketChannel socketChannel;
+
+        @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
+        public Unconnected(final @Nullable Duration connectTimeout,
+                           final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                           final @Nullable ProtocolFamily family) {
+            assert socketOptions != null;
+
+            this.connectTimeout = connectTimeout;
+            try {
+                // SocketChannel defaults to blocking-mode, that's precisely what we want
+                final var socketChannel = (family != null) ? SocketChannel.open(family) : SocketChannel.open();
+
+                for (final var socketOption : socketOptions.entrySet()) {
+                    socketChannel.setOption(socketOption.getKey(), socketOption.getValue());
+                }
+
+                this.socketChannel = socketChannel;
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
+            }
+        }
+
+        @Override
+        public @NonNull NetworkSocket connect(@NonNull InetSocketAddress peerAddress) {
+            Objects.requireNonNull(peerAddress);
+            return connectPrivate(peerAddress, null);
+        }
+
+        @Override
+        public @NonNull NetworkSocket connect(@NonNull InetSocketAddress peerAddress, Proxy.@NonNull Socks proxy) {
+            Objects.requireNonNull(peerAddress);
+            Objects.requireNonNull(proxy);
+            return connectPrivate(peerAddress, proxy);
+        }
+
+        private @NonNull NetworkSocket connectPrivate(final @NonNull InetSocketAddress peerAddress,
+                                                      final Proxy.@Nullable Socks proxy) {
+            assert peerAddress != null;
+
+            final var asyncTimeout = buildAsyncTimeout(socketChannel);
+            final NetworkSocket networkSocket;
+            if (connectTimeout != null) {
+                final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
+                networkSocket = asyncTimeout.withTimeout(cancelToken, () ->
+                        connect(peerAddress, asyncTimeout, proxy));
+            } else {
+                networkSocket = connect(peerAddress, asyncTimeout, proxy);
+            }
+
+            if (LOGGER.isLoggable(DEBUG)) {
+                LOGGER.log(DEBUG, "new client SocketChannelNetworkSocket connected to {0}", peerAddress);
+            }
+
+            return networkSocket;
+        }
+
+        private @NonNull NetworkSocket connect(final @NonNull InetSocketAddress peerAddress,
+                                               final @NonNull RealAsyncTimeout asyncTimeout,
+                                               final Proxy.@Nullable Socks proxy) {
+            try {
+                if (proxy != null) {
+                    // connect to the proxy and use it to reach peer
+                    socketChannel.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
+                    final var proxyNetEndpoint = new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
+                    if (!(proxy instanceof RealSocksProxy socksProxy)) {
+                        throw new IllegalArgumentException("proxy is not a RealSocksProxy");
+                    }
+                    return new SocksNetworkSocket(socksProxy, proxyNetEndpoint, peerAddress);
+                }
+                // connect to peer
+                socketChannel.connect(peerAddress);
+                return new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
+            } catch (IOException e) {
+                if (LOGGER.isLoggable(DEBUG)) {
+                    LOGGER.log(DEBUG,
+                            "new client SocketChannelNetworkSocket failed to connect to " + peerAddress, e);
+                }
+                throw JayoException.buildJayoException(e);
+            }
+        }
+
+        @Override
+        public @NonNull InetSocketAddress getLocalAddress() {
+            try {
+                return (InetSocketAddress) socketChannel.getLocalAddress();
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
+            }
+        }
+
+        @Override
+        public <T> @Nullable T getOption(final @NonNull SocketOption<T> name) {
+            Objects.requireNonNull(name);
+            try {
+                return socketChannel.getOption(name);
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
+            }
+        }
+
+        @Override
+        public void cancel() {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                throw JayoException.buildJayoException(e);
+            }
+        }
     }
 }

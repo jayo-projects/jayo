@@ -28,7 +28,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,9 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static jayo.internal.Utils.setBitsOrZero;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
-/**
- * A {@link NetworkSocket} backed by an underlying {@linkplain Socket IO Socket}.
- */
 public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         permits IoSocketNetworkSocket, SocketChannelNetworkSocket {
     final @NonNull RealAsyncTimeout timeout;

@@ -8,6 +8,8 @@ package jayo.network;
 import jayo.JayoClosedResourceException;
 import jayo.Socket;
 import jayo.internal.AbstractNetworkSocket;
+import jayo.internal.IoSocketNetworkSocket;
+import jayo.internal.SocketChannelNetworkSocket;
 import jayo.internal.network.NetworkSocketBuilder;
 import jayo.internal.network.SocksNetworkSocket;
 import org.jspecify.annotations.NonNull;
@@ -33,7 +35,8 @@ import java.time.Duration;
  *
  * @see Socket
  */
-public sealed interface NetworkSocket extends Socket permits AbstractNetworkSocket, SocksNetworkSocket {
+public sealed interface NetworkSocket extends RawNetworkSocket, Socket
+        permits AbstractNetworkSocket, SocksNetworkSocket {
     /**
      * @return a new client-side TCP {@link NetworkSocket} backed by an underlying
      * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} connected to the server using the provided
@@ -46,7 +49,7 @@ public sealed interface NetworkSocket extends Socket permits AbstractNetworkSock
      * @throws jayo.JayoException If an I/O error occurs.
      */
     static @NonNull NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress) {
-        return builder().connectTcp(peerAddress);
+        return builder().openTcp().connect(peerAddress);
     }
 
     /**
@@ -55,14 +58,6 @@ public sealed interface NetworkSocket extends Socket permits AbstractNetworkSock
     static @NonNull Builder builder() {
         return new NetworkSocketBuilder();
     }
-
-    /**
-     * @return the local socket address that this network socket's underlying socket is bound to.
-     * @throws JayoClosedResourceException If this network socket is closed.
-     * @throws jayo.JayoException          If an I/O error occurs.
-     */
-    @NonNull
-    InetSocketAddress getLocalAddress();
 
     /**
      * @return the peer socket address to which this network socket's underlying socket is connected.
@@ -78,17 +73,6 @@ public sealed interface NetworkSocket extends Socket permits AbstractNetworkSock
     default Proxy.@Nullable Socks getProxy() {
         return null;
     }
-
-    /**
-     * @param <T>  The type of the socket option value.
-     * @param name The socket option.
-     * @return The value of the socket option. A value of {@code null} may be a valid value for some socket options.
-     * @throws UnsupportedOperationException If this network socket does not support the socket option.
-     * @throws JayoClosedResourceException   If this network socket is closed.
-     * @throws jayo.JayoException            If an I/O error occurs.
-     * @see java.net.StandardSocketOptions
-     */
-    <T> @Nullable T getOption(final @NonNull SocketOption<T> name);
 
     /**
      * @return the timeout that will apply on each low-level read operation of the network socket.
@@ -117,7 +101,7 @@ public sealed interface NetworkSocket extends Socket permits AbstractNetworkSock
     /**
      * The builder used to create a client-side {@link NetworkSocket}.
      */
-    sealed interface Builder extends Cloneable permits NetworkSocketBuilder {
+    sealed interface Builder permits NetworkSocketBuilder {
         /**
          * Sets the timeout for establishing the connection to the peer, including the proxy initialization if one is
          * used. Default is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -157,12 +141,25 @@ public sealed interface NetworkSocket extends Socket permits AbstractNetworkSock
         Builder useNio(final boolean useNio);
 
         /**
-         * @return a new client-side TCP {@link NetworkSocket} connected to the server using the provided
+         * @return a new {@linkplain Unconnected unconnected client-side TCP socket}.
+         * @throws jayo.JayoException If an I/O error occurs.
+         */
+        @NonNull
+        Unconnected openTcp();
+    }
+
+    /**
+     * An unconnected client-side {@link RawNetworkSocket}.
+     */
+    sealed interface Unconnected extends RawNetworkSocket
+            permits IoSocketNetworkSocket.Unconnected, SocketChannelNetworkSocket.Unconnected {
+        /**
+         * @return a new client-side {@link NetworkSocket} connected to the server using the provided
          * {@code peerAddress} socket address.
          * @throws jayo.JayoException If an I/O error occurs.
          */
         @NonNull
-        NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress);
+        NetworkSocket connect(final @NonNull InetSocketAddress peerAddress);
 
         /**
          * @return a new client-side TCP {@link NetworkSocket} connected to the server using the provided
@@ -171,12 +168,6 @@ public sealed interface NetworkSocket extends Socket permits AbstractNetworkSock
          * @throws jayo.JayoException If an I/O error occurs.
          */
         @NonNull
-        NetworkSocket connectTcp(final @NonNull InetSocketAddress peerAddress, final Proxy.@NonNull Socks proxy);
-
-        /**
-         * @return a deep copy of this builder.
-         */
-        @NonNull
-        Builder clone();
+        NetworkSocket connect(final @NonNull InetSocketAddress peerAddress, final Proxy.@NonNull Socks proxy);
     }
 }

@@ -138,7 +138,7 @@ public sealed interface TlsSocket extends Socket permits ClientTlsSocket, Server
     /**
      * The abstract builder used to create a {@link TlsSocket} instance.
      */
-    sealed interface Builder<T extends Builder<T, U>, U extends Parameterizer> extends Cloneable
+    sealed interface Builder<T extends Builder<T, U>, U extends Parameterizer>
             permits AbstractTlsSocket.Builder, ClientTlsSocket.Builder, ServerTlsSocket.Builder {
         /**
          * Whether to wait for TLS close confirmation when calling {@link TlsSocket#cancel()}. Default is {@code false}
@@ -185,12 +185,6 @@ public sealed interface TlsSocket extends Socket permits ClientTlsSocket, Server
         U createParameterizer(final @NonNull Socket encryptedSocket,
                               final @NonNull String peerHost,
                               final int peerPort);
-
-        /**
-         * @return a deep copy of this builder.
-         */
-        @NonNull
-        T clone();
     }
 
     sealed interface Parameterizer permits AbstractTlsSocket.Parameterizer, ClientTlsSocket.Parameterizer,
