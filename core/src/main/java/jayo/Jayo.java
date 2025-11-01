@@ -29,7 +29,6 @@ import jayo.network.NetworkSocket;
 import org.jspecify.annotations.NonNull;
 
 import java.io.*;
-import java.net.Socket;
 import java.nio.channels.*;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -53,26 +52,61 @@ public final class Jayo {
     }
 
     /**
-     * @return a new writer that buffers writes to the raw {@code writer}. The returned writer will batch writes to
+     * @return a new writer that buffers writes to the {@code rawWriter}. The returned writer will batch writes to
      * {@code writer}. On each write operation, the underlying buffer will automatically emit all the complete
      * segment(s), if any.
      * <p>
      * Use this wherever you write to a raw writer to get ergonomic and efficient access to data.
      */
-    public static @NonNull Writer buffer(final @NonNull RawWriter writer) {
-        Objects.requireNonNull(writer);
-        return new RealWriter(writer);
+    public static @NonNull Writer buffer(final @NonNull RawWriter rawWriter) {
+        Objects.requireNonNull(rawWriter);
+        return new RealWriter(rawWriter);
     }
 
     /**
-     * @return a new reader that buffers reads from the raw {@code reader}. The returned reader will perform bulk reads
+     * @return a new reader that buffers reads from the raw {@code rawReader}. The returned reader will perform bulk reads
      * into its underlying buffer.
      * <p>
      * Use this wherever you read from a raw reader to get ergonomic and efficient access to data.
      */
-    public static @NonNull Reader buffer(final @NonNull RawReader reader) {
-        Objects.requireNonNull(reader);
-        return new RealReader(reader);
+    public static @NonNull Reader buffer(final @NonNull RawReader rawReader) {
+        Objects.requireNonNull(rawReader);
+        return new RealReader(rawReader);
+    }
+
+    /**
+     * @return a new socket that buffers read and writes from the {@code rawSocket}.
+     */
+    public static @NonNull Socket buffer(final @NonNull RawSocket rawSocket) {
+        Objects.requireNonNull(rawSocket);
+        return new Socket() {
+            private boolean isCanceled = false;
+
+            @Override
+            public @NonNull Reader getReader() {
+                return buffer(rawSocket.getReader());
+            }
+
+            @Override
+            public @NonNull Writer getWriter() {
+                return buffer(rawSocket.getWriter());
+            }
+
+            @Override
+            public void cancel() {
+                isCanceled = true;
+            }
+
+            @Override
+            public boolean isOpen() {
+                return !isCanceled;
+            }
+
+            @Override
+            public @NonNull Object getUnderlying() {
+                return rawSocket;
+            }
+        };
     }
 
     /**
@@ -210,7 +244,7 @@ public final class Jayo {
      * {@linkplain #reader(InputStream) Jayo.reader(ioSocket.getInputStream())} because this socket honors timeouts.
      * When a socket operation times out, this socket is asynchronously closed by a watchdog thread.
      */
-    public static @NonNull NetworkSocket socket(final @NonNull Socket ioSocket) {
+    public static @NonNull NetworkSocket socket(final java.net.@NonNull Socket ioSocket) {
         Objects.requireNonNull(ioSocket);
         return new IoSocketNetworkSocket(ioSocket);
     }

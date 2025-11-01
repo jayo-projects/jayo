@@ -25,6 +25,8 @@ import org.jspecify.annotations.NonNull;
 
 /**
  * A raw {@link Socket}.
+ *
+ * @see Jayo#closeQuietly(RawSocket)
  */
 public interface RawSocket {
     @NonNull

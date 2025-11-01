@@ -30,7 +30,9 @@ import org.jspecify.annotations.NonNull;
  * </pre>
  * A socket is open upon creation until the reader or the writer is closed, or the socket is
  * {@linkplain #cancel() canceled}. Once canceled, any further attempt to read, write or flush will fail immediately
- * with a {@linkplain JayoException JayoException}..
+ * with a {@linkplain JayoException JayoException}.
+ *
+ * @see Jayo#closeQuietly(RawSocket)
  */
 public interface Socket extends RawSocket {
     /**
@@ -57,7 +59,7 @@ public interface Socket extends RawSocket {
 
     /**
      * @return the underlying resource. For example, a {@linkplain java.net.Socket IO Socket}, a
-     * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} or another {@link Socket}.
+     * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} or another {@link Socket} / {@link RawSocket}.
      */
     @NonNull
     Object getUnderlying();
