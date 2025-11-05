@@ -32,7 +32,9 @@ import org.jspecify.annotations.NonNull;
  * This class uses a buffer to decouple reader and writer. This buffer has a user-specified maximum size. When a
  * producer thread outruns its consumer, the buffer fills up and eventually writes to the writer will block until the
  * consumer has caught up. Symmetrically, if a consumer outruns its producer, reads block until there is data to be
- * read. Limits on the amount of time spent waiting for the other party can be configured by using
+ * read.
+ * <p>
+ * Limits on the amount of time spent waiting for the other party can be configured by using
  * {@linkplain Cancellable#call(java.time.Duration, java.util.function.Function) call with timeout} or
  * {@linkplain Cancellable#run(java.time.Duration, java.util.function.Consumer) run with timeout}.
  * <p>

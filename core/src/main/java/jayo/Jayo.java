@@ -261,6 +261,37 @@ public final class Jayo {
     }
 
     /**
+     * @return an array of two symmetric sockets, <i>A</i> (element 0) and <i>B</i> (element 1) that are mutually
+     * connected:
+     * <ul>
+     * <li>Pipe AB connects <i>A</i>’s writer to <i>B</i>’s reader.
+     * <li>Pipe BA connects <i>B</i>’s writer to <i>A</i>’s reader.
+     * </ul>
+     * Each pipe uses a buffer to decouple reader and writer. This buffer has a user-specified maximum size. When a
+     * socket writer outruns its corresponding reader, the buffer fills up and eventually writes to the writer will
+     * block until the reader has caught up. Symmetrically, if a reader outruns its writer, reads block until there is
+     * data to be read.
+     * <p>
+     * There is a buffer for Pipe AB and another for Pipe BA. The maximum amount of memory that could be held by the two
+     * sockets together is {@code maxBufferSize * 2}.
+     * <p>
+     * Limits on the amount of time spent waiting for the other party can be configured by using
+     * {@linkplain Cancellable#call(java.time.Duration, java.util.function.Function) call with timeout} or
+     * {@linkplain Cancellable#run(java.time.Duration, java.util.function.Consumer) run with timeout}.
+     * <p>
+     * When the writer is closed, reader reads will continue to complete normally until the buffer is exhausted. At that
+     * point reads will return -1, indicating the end of the stream. But if the reader is closed first, writes to the
+     * writer will immediately fail with a {@link JayoException}.
+     * <p>
+     * Canceling either socket immediately fails all reads and writes on both sockets.
+     */
+    public static @NonNull RawSocket @NonNull [] inMemorySocketPair(final long maxBufferSize) {
+        final var ab = Pipe.create(maxBufferSize);
+        final var ba = Pipe.create(maxBufferSize);
+        return new RawSocket[]{new PipeRawSocket(ab, ba), new PipeRawSocket(ba, ab)};
+    }
+
+    /**
      * Closes this {@code socket}, ignoring any {@link JayoException}.
      */
     public static void closeQuietly(final @NonNull RawSocket socket) {
