@@ -95,11 +95,6 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
      */
     private @Nullable RealBuffer suppliedDecryptedBuffer;
 
-    /**
-     * The number of bytes produced by the current read operation.
-     */
-    private int bytesToReturn;
-
     private int remainingBytesToRead;
 
     public AbstractTlsSocket(
@@ -163,8 +158,6 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
                 throw new IllegalArgumentException("byteCount < 0: " + byteCount);
             }
 
-            final var dst = (RealBuffer) destination;
-
             readLock.lock();
             try {
                 if (invalid || shutdownSent) {
@@ -172,43 +165,41 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
                 }
 
                 // the decrypted buffer may already have available data
-                suppliedDecryptedBuffer = dst;
-                bytesToReturn = (int) decryptedBuffer.bytesAvailable();
+                if (!decryptedBuffer.exhausted()) {
+                    decryptedBuffer.readAtMostTo(destination, byteCount);
+                }
 
-                while (true) {
-                    if (bytesToReturn > 0) {
-                        if (decryptedBuffer.exhausted()) {
-                            return bytesToReturn;
-                        } else {
-                            final var toTransfer = Math.min(bytesToReturn, byteCount);
-                            dst.writeFrom(decryptedBuffer, toTransfer);
-                            return toTransfer;
-                        }
-                    }
+                if (shutdownReceived) {
+                    return -1L;
+                }
 
-                    if (shutdownReceived) {
-                        return -1L;
-                    }
-
-                    switch (engine.getHandshakeStatus()) {
-                        case NEED_UNWRAP, NEED_WRAP -> writeAndHandshake();
-                        case NOT_HANDSHAKING, FINISHED -> {
-                            readAndUnwrap();
-                            if (shutdownReceived) {
+                suppliedDecryptedBuffer = (RealBuffer) destination;
+                try {
+                    while (true) {
+                        switch (engine.getHandshakeStatus()) {
+                            case NEED_UNWRAP, NEED_WRAP -> writeAndHandshake();
+                            case NOT_HANDSHAKING, FINISHED -> {
+                                final var bytesRead = readAndUnwrap();
+                                if (bytesRead > 0) {
+                                    return bytesRead;
+                                }
+                                if (shutdownReceived) {
+                                    return -1L;
+                                }
+                            }
+                            case NEED_TASK -> handleTask();
+                            // Unsupported stage eg: NEED_UNWRAP_AGAIN
+                            default -> {
                                 return -1L;
                             }
                         }
-                        case NEED_TASK -> handleTask();
-                        // Unsupported stage eg: NEED_UNWRAP_AGAIN
-                        default -> {
-                            return -1L;
-                        }
                     }
+                } finally {
+                    suppliedDecryptedBuffer = null;
                 }
             } catch (TlsEOFException e) {
                 return -1L;
             } finally {
-                suppliedDecryptedBuffer = null;
                 readLock.unlock();
             }
         }
@@ -225,7 +216,8 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
         }
     }
 
-    private void readAndUnwrap() throws TlsEOFException {
+    private int readAndUnwrap() throws TlsEOFException {
+        var bytesToReturn = 0;
         while (true) {
             if (remainingBytesToRead == 0) {
                 remainingBytesToRead = readFromReader(); // maybe IO block
@@ -239,24 +231,25 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
             if (result.bytesProduced() > 0) {
                 bytesToReturn += result.bytesProduced();
                 if (remainingBytesToRead == 0) {
-                    return;
+                    break;
                 }
             }
             if (result.getStatus() == Status.CLOSED) {
                 shutdownReceived = true;
-                return;
+                break;
             }
             if (result.getStatus() == Status.BUFFER_UNDERFLOW) {
                 throw new IllegalStateException();
             }
             if (result.getHandshakeStatus() == HandshakeStatus.FINISHED) {
-                return;
+                break;
             }
             final var status = engine.getHandshakeStatus();
             if (status == HandshakeStatus.NEED_TASK || status == HandshakeStatus.NEED_WRAP) {
-                return;
+                break;
             }
         }
+        return bytesToReturn;
     }
 
     private @NonNull SSLEngineResult unwrap() {
@@ -548,8 +541,8 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
                     writeToWriter(); // IO block
                 }
                 case NEED_UNWRAP -> {
-                    readAndUnwrap();
-                    if (bytesToReturn > 0) {
+                    final var bytesRead = readAndUnwrap();
+                    if (bytesRead > 0) {
                         return;
                     }
                 }

@@ -29,6 +29,7 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
 import java.util.*
+import java.util.concurrent.ThreadFactory
 
 object TestUtil {
     // Necessary to make an internal member visible to Java.
@@ -196,9 +197,10 @@ object TestUtil {
     }
 
     @JvmStatic
-    fun newThread(task: Runnable): Thread {
-        return JavaVersionUtils.threadFactory("JayoTests#", true).newThread(task)
-    }
+    fun newThreadFactory(): ThreadFactory = JavaVersionUtils.threadFactory("JayoTests#", true)
+
+    @JvmStatic
+    fun newThread(task: Runnable): Thread = newThreadFactory().newThread(task)
 
     @JvmStatic
     fun assumeNotWindows() = assertFalse(System.getProperty("os.name").lowercase(Locale.getDefault()).contains("win"))

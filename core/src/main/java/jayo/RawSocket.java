@@ -39,9 +39,8 @@ public interface RawSocket {
      * Fail any in-flight and future operations. After canceling:
      * <ul>
      * <li>Any attempt to write or flush {@linkplain #getWriter() writer} will fail immediately with a
-     * {@linkplain JayoException JayoException}.
-     * <li>Any attempt to read {@linkplain #getReader() reader} will fail immediately with a
-     * {@linkplain JayoException JayoException}.
+     * {@link JayoException}.
+     * <li>Any attempt to read {@linkplain #getReader() reader} will fail immediately with a {@link JayoException}.
      * </ul>
      * Closing the reader and the writer will complete normally even after a socket has been canceled.
      * <p>
