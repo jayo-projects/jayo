@@ -22,6 +22,7 @@
 package jayo.internal
 
 import jayo.cancelScope
+import jayo.internal.RealCancelToken.SHIELDED
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Offset.offset
 import org.junit.jupiter.api.Test
@@ -97,7 +98,7 @@ class TimeoutTest {
             assertThat(cancelToken!!.shielded).isFalse()
             shield()
             cancelToken = JavaVersionUtils.getCancelToken()
-            assertThat(cancelToken).isNull()
+            assertThat(cancelToken).isSameAs(SHIELDED)
         }
     }
 }

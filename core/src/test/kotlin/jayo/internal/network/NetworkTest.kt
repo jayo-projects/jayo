@@ -351,7 +351,7 @@ class NetworkTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    fun `default read timeout with declared timeout`(networkFactory: NetworkFactory) {
+    fun `default read timeout does not apply with declared timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
                 val serverThread = thread {
@@ -364,7 +364,7 @@ class NetworkTest {
                     .openTcp().connect(server.localAddress)
                 client.readTimeout = Duration.ofNanos(1)
 
-                val stringRead = cancelScope(timeout = 10.seconds) {
+                val stringRead = cancelScope(timeout = 1.seconds) {
                     client.reader.readString()
                 }
                 assertThat(stringRead).isEqualTo(TO_WRITE)
@@ -374,7 +374,31 @@ class NetworkTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
-    fun `default server write timeout with declared timeout`(networkFactory: NetworkFactory) {
+    fun `default read timeout does not apply with shielded cancel scope`(networkFactory: NetworkFactory) {
+        networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
+            .use { server ->
+                val serverThread = thread {
+                    val accepted = server.accept()
+                    accepted.writer.use { writer ->
+                        writer.write(TO_WRITE)
+                    }
+                }
+                val client = networkFactory.networkSocketBuilder()
+                    .openTcp().connect(server.localAddress)
+                client.readTimeout = Duration.ofNanos(1)
+
+                val stringRead = cancelScope {
+                    shield() // shield the cancel scope
+                    client.reader.readString()
+                }
+                assertThat(stringRead).isEqualTo(TO_WRITE)
+                serverThread.join()
+            }
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun `default server write timeout does not apply with declared timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder()
             .bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
                 val serverThread = thread {
@@ -382,6 +406,30 @@ class NetworkTest {
                     accepted.writeTimeout = Duration.ofNanos(1)
                     accepted.writer.use { writer ->
                         cancelScope(timeout = 10.seconds) {
+                            writer.write(TO_WRITE)
+                                .flush()
+                        }
+                    }
+                }
+                val client = networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
+
+                val stringRead = client.reader.readString()
+                assertThat(stringRead).isEqualTo(TO_WRITE)
+                serverThread.join()
+            }
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun `default server write timeout does not apply with shielded cancel scope`(networkFactory: NetworkFactory) {
+        networkFactory.networkServerBuilder()
+            .bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->
+                val serverThread = thread {
+                    val accepted = server.accept()
+                    accepted.writeTimeout = Duration.ofNanos(1)
+                    accepted.writer.use { writer ->
+                        cancelScope {
+                            shield() // shield the cancel scope
                             writer.write(TO_WRITE)
                                 .flush()
                         }

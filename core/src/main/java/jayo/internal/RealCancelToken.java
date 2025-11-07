@@ -32,6 +32,11 @@ import java.util.Objects;
 import java.util.concurrent.locks.Condition;
 
 public final class RealCancelToken implements CancelScope, CancelToken {
+    static final @NonNull RealCancelToken SHIELDED = new RealCancelToken(0L);
+    static {
+        SHIELDED.shielded = true;
+    }
+
     long timeoutNanos;
     final long deadlineNanoTime;
 

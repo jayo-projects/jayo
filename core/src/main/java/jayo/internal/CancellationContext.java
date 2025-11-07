@@ -11,6 +11,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static jayo.internal.RealCancelToken.SHIELDED;
+
 /**
  * The cancellation context in the scope of a cancellable block.
  * <p>
@@ -53,7 +55,10 @@ final class CancellationContext {
                     current.next = null;
 
                 } else if (current.shielded) {
-                    // a shielded cancel token prevents from applying itself and previous ones
+                    // a shielded cancel token prevents from applying itself and oldest ones
+                    if (result == null) {
+                        result = SHIELDED;
+                    }
                     break;
 
                 } else if (result == null) {

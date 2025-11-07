@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static jayo.internal.RealCancelToken.SHIELDED;
 import static jayo.internal.Utils.setBitsOrZero;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
@@ -96,6 +97,11 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             final var dst = (RealBuffer) destination;
             // get the cancel token immediately; if present, it will be used in all IO calls of this read operation
             final var cancelToken = JavaVersionUtils.getCancelToken();
+            if (SHIELDED == cancelToken) {
+                // no need for cancellation
+                return read(dst, byteCount, null);
+            }
+
             if (cancelToken != null) {
                 cancelToken.timeoutNanos = readTimeoutNanos;
                 try {
@@ -111,6 +117,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
                 return JavaVersionUtils.callCancellable(newCancelToken, ignored ->
                         read(dst, byteCount, newCancelToken));
             }
+
             // no need for cancellation
             return read(dst, byteCount, null);
         }
@@ -185,7 +192,10 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             final var src = (RealBuffer) source;
             // get the cancel token immediately; if present, it will be used in all IO calls of this write operation
             final var cancelToken = JavaVersionUtils.getCancelToken();
-            if (cancelToken != null) {
+            if (SHIELDED == cancelToken) {
+                // no need for cancellation
+                AbstractNetworkSocket.this.write(src, byteCount, null);
+            } else if (cancelToken != null) {
                 cancelToken.timeoutNanos = writeTimeoutNanos;
                 try {
                     AbstractNetworkSocket.this.write(src, byteCount, cancelToken);
