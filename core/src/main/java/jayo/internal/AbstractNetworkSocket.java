@@ -28,12 +28,12 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static jayo.internal.RealCancelToken.SHIELDED;
-import static jayo.internal.Utils.setBitsOrZero;
 import static jayo.tools.JayoUtils.checkOffsetAndCount;
 
 public sealed abstract class AbstractNetworkSocket implements NetworkSocket
@@ -44,7 +44,19 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
     private long writeTimeoutNanos = 0L;
     final @NonNull RealWriter writer;
 
-    final @NonNull AtomicInteger closeBits = new AtomicInteger();
+    @SuppressWarnings("FieldMayBeFinal")
+    volatile int closeBits = 0;
+    // VarHandle mechanics
+    private static final @NonNull VarHandle CLOSE_BITS_HANDLE;
+
+    static {
+        try {
+            CLOSE_BITS_HANDLE = MethodHandles.lookup()
+                    .findVarHandle(AbstractNetworkSocket.class, "closeBits", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
     private static final int WRITER_CLOSED_BIT = 1;
     private static final int READER_CLOSED_BIT = 2;
     private static final int ALL_CLOSED_BITS = WRITER_CLOSED_BIT | READER_CLOSED_BIT;
@@ -153,7 +165,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         public void close() {
             final var cancelToken = JavaVersionUtils.getCancelToken();
             timeout.withTimeout(cancelToken, () ->
-                    switch (setBitsOrZero(closeBits, READER_CLOSED_BIT)) {
+                    switch (setBitsOrZero(READER_CLOSED_BIT)) {
                         // If setBitOrZero() returns 0, this reader is already closed.
                         case 0 -> null;
                         // Release the socket if both streams are closed.
@@ -230,7 +242,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         public void close() {
             final var cancelToken = JavaVersionUtils.getCancelToken();
             timeout.withTimeout(cancelToken, () ->
-                    switch (setBitsOrZero(closeBits, WRITER_CLOSED_BIT)) {
+                    switch (setBitsOrZero(WRITER_CLOSED_BIT)) {
                         // If setBitOrZero() returns 0, this writer is already closed.
                         case 0 -> null;
                         // Release the socket if both streams are closed.
@@ -253,6 +265,22 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         @Override
         public @NonNull String toString() {
             return "RawWriter(" + getUnderlying() + ")";
+        }
+    }
+
+    /**
+     * @return the new value of the bit field if a change was made, or {@code 0} if no change was made.
+     */
+    private int setBitsOrZero(final int bits) {
+        while (true) {
+            final var current = closeBits;
+            if ((current & bits) != 0) {
+                return 0; // At least one bit is already set.
+            }
+            final var updated = current | bits;
+            if (CLOSE_BITS_HANDLE.compareAndSet(this, current, updated)) {
+                return updated;
+            }
         }
     }
 

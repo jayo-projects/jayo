@@ -39,7 +39,6 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Utils {
     // un-instantiable
@@ -351,19 +350,5 @@ public final class Utils {
         return String.format(
                 "status=%s,handshakeStatus=%s,bytesProduced=%d,bytesConsumed=%d",
                 result.getStatus(), result.getHandshakeStatus(), result.bytesProduced(), result.bytesConsumed());
-    }
-
-    /**
-     * @return the new value of the bit field if a change was made, or {@code 0} if no change was made.
-     */
-    static int setBitsOrZero(final @NonNull AtomicInteger atomicInteger, final int bits) {
-        assert atomicInteger != null;
-
-        while (true) {
-            int current = atomicInteger.get();
-            if ((current & bits) != 0) return 0; // At least one bit is already set.
-            int updated = current | bits;
-            if (atomicInteger.compareAndSet(current, updated)) return updated;
-        }
     }
 }
