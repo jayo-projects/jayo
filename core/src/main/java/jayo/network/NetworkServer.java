@@ -5,15 +5,14 @@
 
 package jayo.network;
 
-import jayo.Socket;
 import jayo.JayoClosedResourceException;
+import jayo.Socket;
 import jayo.internal.network.NetworkServerBuilder;
 import jayo.internal.network.ServerSocketChannelNetworkServer;
 import jayo.internal.network.ServerSocketNetworkServer;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 
@@ -29,7 +28,7 @@ import java.net.SocketOption;
  * <p>
  * Please read {@link Socket} javadoc for the socket rationale.
  */
-public sealed interface NetworkServer extends Closeable
+public sealed interface NetworkServer extends AutoCloseable
         permits ServerSocketChannelNetworkServer, ServerSocketNetworkServer {
     /**
      * @return a new TCP {@link NetworkServer} backed by an underlying
@@ -137,7 +136,7 @@ public sealed interface NetworkServer extends Closeable
 
         /**
          * Sets the maximum number of pending connections on the {@link NetworkServer} that will be built using this
-         *  builder. Default is zero. If the value is zero, an implementation-specific default is used.
+         * builder. Default is zero. If the value is zero, an implementation-specific default is used.
          */
         @NonNull
         Builder maxPendingConnections(final int maxPendingConnections);

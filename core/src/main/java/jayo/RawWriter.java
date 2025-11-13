@@ -27,8 +27,6 @@ package jayo;
 
 import org.jspecify.annotations.NonNull;
 
-import java.io.Closeable;
-import java.io.Flushable;
 import java.io.OutputStream;
 
 /**
@@ -55,11 +53,11 @@ import java.io.OutputStream;
  * efficiently.
  * <h3>Interop with OutputStream</h3>
  * Use {@link Jayo#writer(OutputStream)} to adapt an {@code OutputStream} to a {@code RawWriter}. Use
- * {@link Writer#asOutputStream()} to adapt a {@code RawWriter} to an {@code OutputStream}.
+ * {@link Writer#asOutputStream()} to adapt a {@code Writer} to an {@code OutputStream}.
  *
  * @implSpec Implementors should abstain from throwing exceptions other than those that are documented below.
  */
-public interface RawWriter extends Closeable, Flushable {
+public interface RawWriter extends AutoCloseable {
     /**
      * Removes {@code byteCount} bytes from {@code source} and appends them to this writer.
      *
@@ -78,7 +76,6 @@ public interface RawWriter extends Closeable, Flushable {
      * @throws JayoClosedResourceException if this writer is closed.
      * @throws JayoException               if an I/O error occurs.
      */
-    @Override
     void flush();
 
     /**

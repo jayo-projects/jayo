@@ -27,7 +27,6 @@ package jayo;
 
 import org.jspecify.annotations.NonNull;
 
-import java.io.Closeable;
 import java.io.InputStream;
 
 /**
@@ -62,11 +61,11 @@ import java.io.InputStream;
  * Reader has a stronger {@code skip} method: {@link Reader#skip(long)} won't return prematurely.
  * <h3>Interop with InputStream</h3>
  * Use {@link Jayo#reader(InputStream)} to adapt an {@code InputStream} to a {@code RawReader}. Use
- * {@link Reader#asInputStream()} to adapt a {@code RawReader} to an {@code InputStream}.
+ * {@link Reader#asInputStream()} to adapt a {@code Reader} to an {@code InputStream}.
  *
  * @implSpec Implementors should abstain from throwing exceptions other than those that are documented below.
  */
-public interface RawReader extends Closeable {
+public interface RawReader extends AutoCloseable {
     /**
      * Removes at least 1, and up to {@code byteCount} bytes from this and appends them to {@code destination}.
      *
