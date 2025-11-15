@@ -163,12 +163,11 @@ public final class RealAsyncTimeout implements AsyncTimeout {
             ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY.newThread(RealAsyncTimeout::watchdogLoop).start();
         }
 
-        final var now = System.nanoTime();
         final long timeoutAt;
         if (cancelToken.deadlineNanoTime > 0L) {
             timeoutAt = cancelToken.deadlineNanoTime;
         } else {
-            timeoutAt = now + cancelToken.timeoutNanos;
+            timeoutAt = System.nanoTime() + cancelToken.timeoutNanos;
         }
         final var node = new TimeoutNode(timeoutAt, onTimeout);
 
