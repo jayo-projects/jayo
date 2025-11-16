@@ -39,7 +39,11 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
 
     private static final int MAX_DATA_SIZE = 16 * 1024; // 2^14 bytes
     // @formatter:off
-    static final int MAX_ENCRYPTED_PACKET_BYTE_SIZE =
+    /**
+     * The max number of bytes that a TLS encrypted packet can contain, this is also the fixed size of each
+     * {@link Buffer}'s segment.
+     */
+    public static final int MAX_ENCRYPTED_PACKET_BYTE_SIZE =
             21            // header + iv
           + MAX_DATA_SIZE // data
           + 256           // max padding

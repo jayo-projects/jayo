@@ -21,15 +21,17 @@
 
 package jayo.tools;
 
+import jayo.internal.tls.RealHandshake;
 import jayo.internal.tls.RealHandshakeCertificates;
-import jayo.tls.ClientHandshakeCertificates;
-import jayo.tls.HeldCertificate;
-import jayo.tls.ServerHandshakeCertificates;
+import jayo.tls.*;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
+import java.security.cert.Certificate;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * This class exposes TLS methods for test purpose
@@ -67,5 +69,26 @@ public final class JayoTlsUtils {
             final @NonNull ServerHandshakeCertificates serverCertificates) {
         Objects.requireNonNull(serverCertificates);
         return ((RealHandshakeCertificates) serverCertificates).getSslContext();
+    }
+
+    public static @NonNull Handshake createHandshake(
+            final @NonNull Protocol protocol,
+            final @NonNull TlsVersion tlsVersion,
+            final @NonNull CipherSuite cipherSuite,
+            final @NonNull List<Certificate> localCertificates,
+            final @NonNull Supplier<@NonNull List<Certificate>> peerCertificatesFn) {
+        Objects.requireNonNull(protocol);
+        Objects.requireNonNull(tlsVersion);
+        Objects.requireNonNull(cipherSuite);
+        Objects.requireNonNull(localCertificates);
+        Objects.requireNonNull(peerCertificatesFn);
+
+        return new RealHandshake(
+                protocol,
+                tlsVersion,
+                cipherSuite,
+                localCertificates,
+                peerCertificatesFn
+        );
     }
 }
