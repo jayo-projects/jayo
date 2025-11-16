@@ -26,10 +26,26 @@ import static java.lang.System.Logger.Level.INFO;
 public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkSocketBuilder");
 
-    private @Nullable Duration connectTimeout = null;
-    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions = new HashMap<>();
-    private @Nullable ProtocolFamily protocolFamily = null;
-    private boolean useNio = true;
+    private @Nullable Duration connectTimeout;
+    private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
+    private @Nullable ProtocolFamily protocolFamily;
+    private boolean useNio;
+
+    public NetworkSocketBuilder() {
+        this(null, new HashMap<>(), null, true);
+    }
+
+    private NetworkSocketBuilder(final @Nullable Duration connectTimeout,
+                                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                                 final @Nullable ProtocolFamily protocolFamily,
+                                 final boolean useNio) {
+        assert socketOptions != null;
+
+        this.connectTimeout = connectTimeout;
+        this.socketOptions = socketOptions;
+        this.protocolFamily = protocolFamily;
+        this.useNio = useNio;
+    }
 
     @Override
     public @NonNull NetworkSocketBuilder connectTimeout(final @NonNull Duration connectTimeout) {
@@ -78,5 +94,15 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
         }
 
         return new IoSocketNetworkSocket.Unconnected(connectTimeout, socketOptions);
+    }
+
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
+    @Override
+    public @NonNull NetworkSocketBuilder clone() {
+        return new NetworkSocketBuilder(
+                connectTimeout,
+                new HashMap<>(socketOptions),
+                protocolFamily,
+                useNio);
     }
 }

@@ -101,7 +101,7 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
     /**
      * The builder used to create a client-side {@link NetworkSocket}.
      */
-    sealed interface Builder permits NetworkSocketBuilder {
+    sealed interface Builder extends Cloneable permits NetworkSocketBuilder {
         /**
          * Sets the timeout for establishing the connection to the peer, including the proxy initialization if one is
          * used. Default is zero. A timeout of zero is interpreted as an infinite timeout.
@@ -139,6 +139,12 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
          */
         @NonNull
         Builder useNio(final boolean useNio);
+
+        /**
+         * @return a deep copy of this builder.
+         */
+        @NonNull
+        Builder clone();
 
         /**
          * @return a new {@linkplain Unconnected unconnected client-side TCP socket}.

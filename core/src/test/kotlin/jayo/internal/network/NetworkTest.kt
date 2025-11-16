@@ -6,12 +6,16 @@
 package jayo.internal.network
 
 import jayo.*
+import jayo.internal.IoSocketNetworkSocket
+import jayo.internal.SocketChannelNetworkSocket
 import jayo.internal.TestUtil.SEGMENT_SIZE
+import jayo.network.NetworkSocket
 import org.assertj.core.api.AbstractThrowableAssert
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -37,6 +41,30 @@ class NetworkTest {
 
         @JvmField
         val UNREACHABLE_ADDRESS_IPV4 = InetSocketAddress("198.51.100.1", 8080)
+    }
+
+    @Test
+    fun `test builder and clone it`() {
+        val builder = NetworkSocket.builder()
+            .option(StandardSocketOptions.SO_REUSEADDR, true)
+            .useNio(false)
+        val unconnected = builder.openTcp()
+        assertThat(unconnected.getOption(StandardSocketOptions.SO_REUSEADDR)).isTrue()
+        assertThat(unconnected).isInstanceOf(IoSocketNetworkSocket.Unconnected::class.java)
+
+        val clonedBuilder = builder.clone()
+
+        // change values of the initial builder
+        builder.option(StandardSocketOptions.SO_REUSEADDR, false)
+            .useNio(true)
+        val newConnected = builder.openTcp()
+        assertThat(newConnected.getOption(StandardSocketOptions.SO_REUSEADDR)).isFalse()
+        assertThat(newConnected).isInstanceOf(SocketChannelNetworkSocket.Unconnected::class.java)
+
+        // verify socket using the builder's clone kept the original configuration
+        val clonedUnconnected = clonedBuilder.openTcp()
+        assertThat(clonedUnconnected.getOption(StandardSocketOptions.SO_REUSEADDR)).isTrue()
+        assertThat(clonedUnconnected).isInstanceOf(IoSocketNetworkSocket.Unconnected::class.java)
     }
 
     @ParameterizedTest
