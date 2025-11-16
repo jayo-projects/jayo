@@ -27,7 +27,7 @@ conscrypt = "2.5.2"
 
 # test + test fixtures
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-junit = "6.0.0"
+junit = "6.0.1"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
 assertj = "3.27.6"
 # https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
@@ -35,7 +35,7 @@ amazonCorretto = "2.5.0"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-jdk-platform-logging
 slf4j = "2.0.17"
 # https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-logback = "1.5.20"
+logback = "1.5.21"
 
 # third-parties
 # https://github.com/Kotlin/kotlinx.serialization/releases
@@ -47,7 +47,7 @@ jmh = "1.37"
 # https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
 jackson = "2.20.1"
 # https://github.com/square/okio/tags
-okio = "3.16.2"
+okio = "3.16.3"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
