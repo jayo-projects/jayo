@@ -30,10 +30,14 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.ServerSocketChannelNetworkServer");
 
     private final @NonNull ServerSocketChannel serverSocketChannel;
+    private final long readTimeoutNanos;
+    private final long writeTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
 
     ServerSocketChannelNetworkServer(
             final @NonNull InetSocketAddress localAddress,
+            final long readTimeoutNanos,
+            final long writeTimeoutNanos,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
             final @NonNull Map<@NonNull SocketOption, @Nullable Object> serverSocketOptions,
             final int maxPendingConnections,
@@ -66,6 +70,8 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
             throw JayoException.buildJayoException(e);
         }
 
+        this.readTimeoutNanos = readTimeoutNanos;
+        this.writeTimeoutNanos = writeTimeoutNanos;
         this.socketOptions = socketOptions;
     }
 
@@ -81,7 +87,7 @@ public final class ServerSocketChannelNetworkServer implements NetworkServer {
                         socketChannel.getRemoteAddress(), socketOptions);
             }
 
-            return new SocketChannelNetworkSocket(socketChannel);
+            return new SocketChannelNetworkSocket(socketChannel, readTimeoutNanos, writeTimeoutNanos);
         } catch (IOException e) {
             if (LOGGER.isLoggable(DEBUG)) {
                 LOGGER.log(DEBUG, "ServerSocketChannelNetworkServer failed to accept a client connection", e);

@@ -48,13 +48,17 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
 
     private final @NonNull SocketChannel socketChannel;
 
-    public SocketChannelNetworkSocket(final @NonNull SocketChannel socketChannel) {
-        this(socketChannel, buildAsyncTimeout(socketChannel));
+    public SocketChannelNetworkSocket(final @NonNull SocketChannel socketChannel,
+                                      final long readTimeoutNanos,
+                                      final long writeTimeoutNanos) {
+        this(socketChannel, readTimeoutNanos, writeTimeoutNanos, buildAsyncTimeout(socketChannel));
     }
 
     private SocketChannelNetworkSocket(final @NonNull SocketChannel socketChannel,
+                                       final long readTimeoutNanos,
+                                       final long writeTimeoutNanos,
                                        final @NonNull RealAsyncTimeout timeout) {
-        super(timeout);
+        super(readTimeoutNanos, writeTimeoutNanos, timeout);
         assert socketChannel != null;
 
         this.socketChannel = socketChannel;
@@ -188,15 +192,21 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
 
     public static final class Unconnected implements NetworkSocket.Unconnected {
         private final @Nullable Duration connectTimeout;
+        private final long readTimeoutNanos;
+        private final long writeTimeoutNanos;
         private final @NonNull SocketChannel socketChannel;
 
         @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
         public Unconnected(final @Nullable Duration connectTimeout,
+                           final long readTimeoutNanos,
+                           final long writeTimeoutNanos,
                            final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                            final @Nullable ProtocolFamily family) {
             assert socketOptions != null;
 
             this.connectTimeout = connectTimeout;
+            this.readTimeoutNanos = readTimeoutNanos;
+            this.writeTimeoutNanos = writeTimeoutNanos;
             try {
                 // SocketChannel defaults to blocking-mode, that's precisely what we want
                 final var socketChannel = (family != null) ? SocketChannel.open(family) : SocketChannel.open();
@@ -252,7 +262,8 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
                 if (proxy != null) {
                     // connect to the proxy and use it to reach peer
                     socketChannel.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
-                    final var proxyNetEndpoint = new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
+                    final var proxyNetEndpoint = new SocketChannelNetworkSocket(
+                            socketChannel, readTimeoutNanos, writeTimeoutNanos, asyncTimeout);
                     if (!(proxy instanceof RealSocksProxy socksProxy)) {
                         throw new IllegalArgumentException("proxy is not a RealSocksProxy");
                     }
@@ -260,7 +271,7 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
                 }
                 // connect to peer
                 socketChannel.connect(peerAddress);
-                return new SocketChannelNetworkSocket(socketChannel, asyncTimeout);
+                return new SocketChannelNetworkSocket(socketChannel, readTimeoutNanos, writeTimeoutNanos, asyncTimeout);
             } catch (IOException e) {
                 if (LOGGER.isLoggable(DEBUG)) {
                     LOGGER.log(DEBUG,
@@ -277,6 +288,17 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
             } catch (IOException e) {
                 throw JayoException.buildJayoException(e);
             }
+        }
+
+        @Override
+        public @NonNull Duration getReadTimeout() {
+            return Duration.ofNanos(readTimeoutNanos);
+        }
+
+
+        @Override
+        public @NonNull Duration getWriteTimeout() {
+            return Duration.ofNanos(writeTimeoutNanos);
         }
 
         @Override

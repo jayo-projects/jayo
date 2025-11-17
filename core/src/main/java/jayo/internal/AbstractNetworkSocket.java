@@ -39,9 +39,9 @@ import static jayo.tools.JayoUtils.checkOffsetAndCount;
 public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         permits IoSocketNetworkSocket, SocketChannelNetworkSocket {
     final @NonNull RealAsyncTimeout timeout;
-    long readTimeoutNanos = 0L;
+    long readTimeoutNanos;
     final @NonNull RealReader reader;
-    private long writeTimeoutNanos = 0L;
+    private long writeTimeoutNanos;
     final @NonNull RealWriter writer;
 
     @SuppressWarnings("FieldMayBeFinal")
@@ -61,9 +61,13 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
     private static final int READER_CLOSED_BIT = 2;
     private static final int ALL_CLOSED_BITS = WRITER_CLOSED_BIT | READER_CLOSED_BIT;
 
-    AbstractNetworkSocket(final @NonNull RealAsyncTimeout timeout) {
+    AbstractNetworkSocket(final long readTimeoutNanos,
+                          final long writeTimeoutNanos,
+                          final @NonNull RealAsyncTimeout timeout) {
         assert timeout != null;
 
+        this.readTimeoutNanos = readTimeoutNanos;
+        this.writeTimeoutNanos = writeTimeoutNanos;
         this.timeout = timeout;
         reader = new RealReader(new SocketRawReader());
         writer = new RealWriter(new SocketRawWriter());

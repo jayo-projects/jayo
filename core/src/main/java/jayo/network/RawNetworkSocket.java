@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
+import java.time.Duration;
 
 /**
  * A raw network socket is either the client-side or server-side end of a socket-based connection between two peers.
@@ -24,6 +25,18 @@ public sealed interface RawNetworkSocket permits NetworkSocket, NetworkSocket.Un
      */
     @NonNull
     InetSocketAddress getLocalAddress();
+
+    /**
+     * @return the timeout that applies on each low-level read operation of this network socket.
+     */
+    @NonNull
+    Duration getReadTimeout();
+
+    /**
+     * @return the timeout that applies on each low-level write operation of this network socket.
+     */
+    @NonNull
+    Duration getWriteTimeout();
 
     /**
      * @param <T>  The type of the socket option value.

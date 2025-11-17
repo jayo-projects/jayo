@@ -51,16 +51,6 @@ import static java.lang.System.Logger.Level.WARNING;
 public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.AbstractNetworkSocket");
 
-    private static int getTimeoutAsMillis(final @NonNull Duration timeout) {
-        assert timeout != null;
-
-        final var timeoutMillis = timeout.toMillis();
-        if (timeoutMillis > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("The timeout in millis is too large, should be <= Integer.MAX_VALUE");
-        }
-        return (int) timeoutMillis;
-    }
-
     private static void throwIfClosed(final @NonNull Socket socket) {
         if (socket.isClosed()) {
             throw new JayoClosedResourceException();
@@ -83,12 +73,17 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
     private final @NonNull InputStream in;
     private final @NonNull OutputStream out;
 
-    public IoSocketNetworkSocket(final @NonNull Socket socket) {
-        this(socket, buildAsyncTimeout(socket));
+    public IoSocketNetworkSocket(final @NonNull Socket socket,
+                                 final long readTimeoutNanos,
+                                 final long writeTimeoutNanos) {
+        this(socket, readTimeoutNanos, writeTimeoutNanos, buildAsyncTimeout(socket));
     }
 
-    private IoSocketNetworkSocket(final @NonNull Socket socket, final @NonNull RealAsyncTimeout timeout) {
-        super(timeout);
+    private IoSocketNetworkSocket(final @NonNull Socket socket,
+                                  final long readTimeoutNanos,
+                                  final long writeTimeoutNanos,
+                                  final @NonNull RealAsyncTimeout timeout) {
+        super(readTimeoutNanos, writeTimeoutNanos, timeout);
         assert socket != null;
 
         this.socket = socket;
@@ -232,14 +227,20 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
 
     public static final class Unconnected implements NetworkSocket.Unconnected {
         private final @Nullable Duration connectTimeout;
+        private final long readTimeoutNanos;
+        private final long writeTimeoutNanos;
         private final @NonNull Socket socket;
 
         @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
         public Unconnected(final @Nullable Duration connectTimeout,
+                           final long readTimeoutNanos,
+                           final long writeTimeoutNanos,
                            final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions) {
             assert socketOptions != null;
 
             this.connectTimeout = connectTimeout;
+            this.readTimeoutNanos = readTimeoutNanos;
+            this.writeTimeoutNanos = writeTimeoutNanos;
             final var socket = new Socket();
             try {
                 for (final var socketOption : socketOptions.entrySet()) {
@@ -296,7 +297,8 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             if (proxy != null) {
                 // connect to the proxy and use it to reach peer
                 connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()), connectTimeout);
-                final var proxyNetEndpoint = new IoSocketNetworkSocket(socket, asyncTimeout);
+                final var proxyNetEndpoint = new IoSocketNetworkSocket(
+                        socket, readTimeoutNanos, writeTimeoutNanos, asyncTimeout);
                 if (!(proxy instanceof RealSocksProxy socksProxy)) {
                     throw new IllegalArgumentException("proxy is not a RealSocksProxy");
                 }
@@ -304,7 +306,7 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
             }
             // connect to peer
             connect(peerAddress, connectTimeout);
-            return new IoSocketNetworkSocket(socket, asyncTimeout);
+            return new IoSocketNetworkSocket(socket, readTimeoutNanos, writeTimeoutNanos, asyncTimeout);
         }
 
         private void connect(final @NonNull InetSocketAddress inetSocketAddress,
@@ -326,6 +328,17 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
         }
 
         @Override
+        public @NonNull Duration getReadTimeout() {
+            return Duration.ofNanos(readTimeoutNanos);
+        }
+
+
+        @Override
+        public @NonNull Duration getWriteTimeout() {
+            return Duration.ofNanos(writeTimeoutNanos);
+        }
+
+        @Override
         public <T> @Nullable T getOption(final @NonNull SocketOption<T> name) {
             Objects.requireNonNull(name);
             try {
@@ -344,5 +357,15 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
                 throw JayoException.buildJayoException(e);
             }
         }
+    }
+
+    private static int getTimeoutAsMillis(final @NonNull Duration timeout) {
+        assert timeout != null;
+
+        final var timeoutMillis = timeout.toMillis();
+        if (timeoutMillis > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("The timeout in millis is too large, should be <= Integer.MAX_VALUE");
+        }
+        return (int) timeoutMillis;
     }
 }

@@ -27,21 +27,27 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkSocketBuilder");
 
     private @Nullable Duration connectTimeout;
+    private long readTimeoutNanos;
+    private long writeTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
     private @Nullable ProtocolFamily protocolFamily;
     private boolean useNio;
 
     public NetworkSocketBuilder() {
-        this(null, new HashMap<>(), null, true);
+        this(null, 0L, 0L, new HashMap<>(), null, true);
     }
 
     private NetworkSocketBuilder(final @Nullable Duration connectTimeout,
+                                 final long readTimeoutNanos,
+                                 final long writeTimeoutNanos,
                                  final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                                  final @Nullable ProtocolFamily protocolFamily,
                                  final boolean useNio) {
         assert socketOptions != null;
 
         this.connectTimeout = connectTimeout;
+        this.readTimeoutNanos = readTimeoutNanos;
+        this.writeTimeoutNanos = writeTimeoutNanos;
         this.socketOptions = socketOptions;
         this.protocolFamily = protocolFamily;
         this.useNio = useNio;
@@ -51,6 +57,20 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     public @NonNull NetworkSocketBuilder connectTimeout(final @NonNull Duration connectTimeout) {
         Objects.requireNonNull(connectTimeout);
         this.connectTimeout = connectTimeout;
+        return this;
+    }
+
+    @Override
+    public @NonNull NetworkSocketBuilder readTimeout(final @NonNull Duration readTimeout) {
+        Objects.requireNonNull(readTimeout);
+        this.readTimeoutNanos = readTimeout.toNanos();
+        return this;
+    }
+
+    @Override
+    public @NonNull NetworkSocketBuilder writeTimeout(final @NonNull Duration writeTimeout) {
+        Objects.requireNonNull(writeTimeout);
+        this.writeTimeoutNanos = writeTimeout.toNanos();
         return this;
     }
 
@@ -90,10 +110,12 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     @Override
     public NetworkSocket.@NonNull Unconnected openTcp() {
         if (useNio) {
-            return new SocketChannelNetworkSocket.Unconnected(connectTimeout, socketOptions, protocolFamily);
+            return new SocketChannelNetworkSocket.Unconnected(connectTimeout, readTimeoutNanos, writeTimeoutNanos,
+                    socketOptions, protocolFamily);
         }
 
-        return new IoSocketNetworkSocket.Unconnected(connectTimeout, socketOptions);
+        return new IoSocketNetworkSocket.Unconnected(connectTimeout, readTimeoutNanos, writeTimeoutNanos,
+                socketOptions);
     }
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
@@ -101,6 +123,8 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     public @NonNull NetworkSocketBuilder clone() {
         return new NetworkSocketBuilder(
                 connectTimeout,
+                readTimeoutNanos,
+                writeTimeoutNanos,
                 new HashMap<>(socketOptions),
                 protocolFamily,
                 useNio);

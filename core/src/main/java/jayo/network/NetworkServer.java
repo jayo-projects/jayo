@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
+import java.time.Duration;
 
 /**
  * A server backed by an underlying network server socket. This socket is <b>guaranteed to be bound</b>.
@@ -109,7 +110,29 @@ public sealed interface NetworkServer extends AutoCloseable
     /**
      * The builder used to create a {@link NetworkServer}.
      */
-    sealed interface Builder permits NetworkServerBuilder {
+    sealed interface Builder extends Cloneable permits NetworkServerBuilder {
+        /**
+         * Sets the default read timeout of all read operations of the
+         * {@linkplain NetworkServer#accept() accepted network sockets}. Default is zero. A timeout of zero is
+         * interpreted as an infinite timeout.
+         * <p>
+         * Note: after the socket is accepted, you can change the read timeout at any time by calling
+         * {@link NetworkSocket#setReadTimeout(Duration)}.
+         */
+        @NonNull
+        Builder readTimeout(final @NonNull Duration readTimeout);
+
+        /**
+         * Sets the default write timeout of all write operations of the
+         * {@linkplain NetworkServer#accept() accepted network sockets}. Default is zero. A timeout of zero is
+         * interpreted as an infinite timeout.
+         * <p>
+         * Note: after the socket is accepted, you can change the read timeout at any time by calling
+         * {@link NetworkSocket#setReadTimeout(Duration)}.
+         */
+        @NonNull
+        Builder writeTimeout(final @NonNull Duration writeTimeout);
+
         /**
          * Sets the value of a socket option to set on the
          * {@linkplain NetworkServer#accept() accepted network sockets}.
@@ -160,6 +183,12 @@ public sealed interface NetworkServer extends AutoCloseable
          */
         @NonNull
         Builder useNio(final boolean useNio);
+
+        /**
+         * @return a deep copy of this builder.
+         */
+        @NonNull
+        Builder clone();
 
         /**
          * @return a new TCP {@link NetworkServer} bound to the provided {@code localAddress} socket address.

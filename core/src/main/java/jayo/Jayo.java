@@ -246,7 +246,7 @@ public final class Jayo {
      */
     public static @NonNull NetworkSocket socket(final java.net.@NonNull Socket ioSocket) {
         Objects.requireNonNull(ioSocket);
-        return new IoSocketNetworkSocket(ioSocket);
+        return new IoSocketNetworkSocket(ioSocket, 0L, 0L);
     }
 
     /**
@@ -257,7 +257,7 @@ public final class Jayo {
      */
     public static @NonNull NetworkSocket socket(final @NonNull SocketChannel nioSocketChannel) {
         Objects.requireNonNull(nioSocketChannel);
-        return new SocketChannelNetworkSocket(nioSocketChannel);
+        return new SocketChannelNetworkSocket(nioSocketChannel, 0L, 0L);
     }
 
     /**

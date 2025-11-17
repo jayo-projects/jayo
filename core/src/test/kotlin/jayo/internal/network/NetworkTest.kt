@@ -426,6 +426,69 @@ class NetworkTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
+    fun `client timeout various cases`(networkFactory: NetworkFactory) {
+        networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */))
+            .use { server ->
+                val serverThread = thread {
+                    server.accept()
+                    server.accept()
+                }
+                val clientBuilderWithTimeouts = networkFactory.networkSocketBuilder()
+                    .readTimeout(Duration.ofDays(1))
+                    .writeTimeout(Duration.ofDays(2))
+                val unconnectedClient = clientBuilderWithTimeouts.openTcp()
+                assertThat(unconnectedClient.readTimeout).isEqualTo(Duration.ofDays(1))
+                assertThat(unconnectedClient.writeTimeout).isEqualTo(Duration.ofDays(2))
+
+                val client = unconnectedClient.connect(server.localAddress)
+                assertThat(client.readTimeout).isEqualTo(Duration.ofDays(1))
+                assertThat(client.writeTimeout).isEqualTo(Duration.ofDays(2))
+                client.readTimeout = Duration.ofHours(1)
+                client.writeTimeout = Duration.ofHours(2)
+                assertThat(client.readTimeout).isEqualTo(Duration.ofHours(1))
+                assertThat(client.writeTimeout).isEqualTo(Duration.ofHours(2))
+
+                val client2 = clientBuilderWithTimeouts.openTcp().connect(server.localAddress)
+                // not affected by the first client timeout changes
+                assertThat(client2.readTimeout).isEqualTo(Duration.ofDays(1))
+                assertThat(client2.writeTimeout).isEqualTo(Duration.ofDays(2))
+
+                serverThread.join()
+            }
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    fun `server timeout various cases`(networkFactory: NetworkFactory) {
+        networkFactory.networkServerBuilder()
+            .readTimeout(Duration.ofDays(1))
+            .writeTimeout(Duration.ofDays(2))
+            .bindTcp(InetSocketAddress(0 /* find free port */))
+            .use { server ->
+                val clientThread = thread {
+                    networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
+                    networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
+                }
+                val accepted = server.accept()
+                assertThat(accepted.readTimeout).isEqualTo(Duration.ofDays(1))
+                assertThat(accepted.writeTimeout).isEqualTo(Duration.ofDays(2))
+
+                accepted.readTimeout = Duration.ofHours(1)
+                accepted.writeTimeout = Duration.ofHours(2)
+                assertThat(accepted.readTimeout).isEqualTo(Duration.ofHours(1))
+                assertThat(accepted.writeTimeout).isEqualTo(Duration.ofHours(2))
+
+                val accepted2 = server.accept()
+                // not affected by the first server timeout changes
+                assertThat(accepted2.readTimeout).isEqualTo(Duration.ofDays(1))
+                assertThat(accepted2.writeTimeout).isEqualTo(Duration.ofDays(2))
+
+                clientThread.join()
+            }
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
     fun `default server write timeout does not apply with declared timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder()
             .bindTcp(InetSocketAddress(0 /* find free port */)).use { server ->

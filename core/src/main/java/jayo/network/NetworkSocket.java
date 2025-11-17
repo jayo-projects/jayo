@@ -68,35 +68,29 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
     InetSocketAddress getPeerAddress();
 
     /**
+     * Sets the timeout that will apply on each low-level read operation of this network socket. A timeout of zero is
+     * interpreted as an infinite timeout.
+     *
+     * @see NetworkSocket.Builder#readTimeout(Duration)
+     * @see NetworkServer.Builder#readTimeout(Duration)
+     */
+    void setReadTimeout(final @NonNull Duration readTimeout);
+
+    /**
+     * Sets the timeout that will apply on each low-level write operation of this network socket. A timeout of zero is
+     * interpreted as an infinite timeout.
+     *
+     * @see NetworkSocket.Builder#writeTimeout(Duration)
+     * @see NetworkServer.Builder#writeTimeout(Duration)
+     */
+    void setWriteTimeout(final @NonNull Duration writeTimeout);
+
+    /**
      * @return the {@link Proxy.Socks} that is used as intermediary between this and the peer, if any.
      */
     default Proxy.@Nullable Socks getProxy() {
         return null;
     }
-
-    /**
-     * @return the timeout that will apply on each low-level read operation of the network socket.
-     */
-    @NonNull
-    Duration getReadTimeout();
-
-    /**
-     * Sets the timeout that will apply on each low-level read operation of the network socket. Default is zero. A
-     * timeout of zero is interpreted as an infinite timeout.
-     */
-    void setReadTimeout(final @NonNull Duration readTimeout);
-
-    /**
-     * @return the timeout that will apply on each low-level write operation of the network socket.
-     */
-    @NonNull
-    Duration getWriteTimeout();
-
-    /**
-     * Sets the timeout that will apply on each low-level write operation of the network socket. Default is zero. A
-     * timeout of zero is interpreted as an infinite timeout.
-     */
-    void setWriteTimeout(final @NonNull Duration writeTimeout);
 
     /**
      * The builder used to create a client-side {@link NetworkSocket}.
@@ -108,6 +102,26 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
          */
         @NonNull
         Builder connectTimeout(final @NonNull Duration connectTimeout);
+
+        /**
+         * Sets the default read timeout that will apply on each low-level read operation of the network socket.
+         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
+         * <p>
+         * Note: after the socket is created, you can change the read timeout at any time by calling
+         * {@link NetworkSocket#setReadTimeout(Duration)}.
+         */
+        @NonNull
+        Builder readTimeout(final @NonNull Duration readTimeout);
+
+        /**
+         * Sets the default write timeout that will apply on each low-level write operation of the network socket.
+         * Default is zero. A timeout of zero is interpreted as an infinite timeout.
+         * <p>
+         * Note: after the socket is created, you can change the write timeout at any time by calling
+         * {@link NetworkSocket#setWriteTimeout(Duration)}.
+         */
+        @NonNull
+        Builder writeTimeout(final @NonNull Duration writeTimeout);
 
         /**
          * Sets the value of a socket option to set on the network socket.
