@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
@@ -194,19 +195,24 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
         private final @Nullable Duration connectTimeout;
         private final long readTimeoutNanos;
         private final long writeTimeoutNanos;
+        private final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier;
         private final @NonNull SocketChannel socketChannel;
 
         @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-        public Unconnected(final @Nullable Duration connectTimeout,
-                           final long readTimeoutNanos,
-                           final long writeTimeoutNanos,
-                           final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
-                           final @Nullable ProtocolFamily family) {
+        public Unconnected(
+                final @Nullable Duration connectTimeout,
+                final long readTimeoutNanos,
+                final long writeTimeoutNanos,
+                final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                final @Nullable ProtocolFamily family,
+                final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier
+        ) {
             assert socketOptions != null;
 
             this.connectTimeout = connectTimeout;
             this.readTimeoutNanos = readTimeoutNanos;
             this.writeTimeoutNanos = writeTimeoutNanos;
+            this.peerAddressModifier = peerAddressModifier;
             try {
                 // SocketChannel defaults to blocking-mode, that's precisely what we want
                 final var socketChannel = (family != null) ? SocketChannel.open(family) : SocketChannel.open();
@@ -238,18 +244,21 @@ public final class SocketChannelNetworkSocket extends AbstractNetworkSocket {
                                                       final Proxy.@Nullable Socks proxy) {
             assert peerAddress != null;
 
+            final var resolvedPeerAddress = (peerAddressModifier != null)
+                    ? peerAddressModifier.apply(peerAddress)
+                    : peerAddress;
             final var asyncTimeout = buildAsyncTimeout(socketChannel);
             final NetworkSocket networkSocket;
             if (connectTimeout != null) {
                 final var cancelToken = new RealCancelToken(connectTimeout.toNanos());
                 networkSocket = asyncTimeout.withTimeout(cancelToken, () ->
-                        connect(peerAddress, asyncTimeout, proxy));
+                        connect(resolvedPeerAddress, asyncTimeout, proxy));
             } else {
-                networkSocket = connect(peerAddress, asyncTimeout, proxy);
+                networkSocket = connect(resolvedPeerAddress, asyncTimeout, proxy);
             }
 
             if (LOGGER.isLoggable(DEBUG)) {
-                LOGGER.log(DEBUG, "new client SocketChannelNetworkSocket connected to {0}", peerAddress);
+                LOGGER.log(DEBUG, "new client SocketChannelNetworkSocket connected to {0}", resolvedPeerAddress);
             }
 
             return networkSocket;

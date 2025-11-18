@@ -41,6 +41,7 @@ import java.net.SocketOption;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
@@ -229,18 +230,23 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
         private final @Nullable Duration connectTimeout;
         private final long readTimeoutNanos;
         private final long writeTimeoutNanos;
+        private final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier;
         private final @NonNull Socket socket;
 
         @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-        public Unconnected(final @Nullable Duration connectTimeout,
-                           final long readTimeoutNanos,
-                           final long writeTimeoutNanos,
-                           final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions) {
+        public Unconnected(
+                final @Nullable Duration connectTimeout,
+                final long readTimeoutNanos,
+                final long writeTimeoutNanos,
+                final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier
+        ) {
             assert socketOptions != null;
 
             this.connectTimeout = connectTimeout;
             this.readTimeoutNanos = readTimeoutNanos;
             this.writeTimeoutNanos = writeTimeoutNanos;
+            this.peerAddressModifier = peerAddressModifier;
             final var socket = new Socket();
             try {
                 for (final var socketOption : socketOptions.entrySet()) {
@@ -270,18 +276,21 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
                                                       final Proxy.@Nullable Socks proxy) {
             assert peerAddress != null;
 
+            final var resolvedPeerAddress = (peerAddressModifier != null)
+                    ? peerAddressModifier.apply(peerAddress)
+                    : peerAddress;
             try {
                 final var asyncTimeout = buildAsyncTimeout(socket);
-                final var networkSocket = connect(peerAddress, connectTimeout, asyncTimeout, proxy);
+                final var networkSocket = connect(resolvedPeerAddress, connectTimeout, asyncTimeout, proxy);
 
                 if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "new client AbstractNetworkSocket connected to {0}", peerAddress);
+                    LOGGER.log(DEBUG, "new client AbstractNetworkSocket connected to {0}", resolvedPeerAddress);
                 }
 
                 return networkSocket;
             } catch (IOException e) {
                 if (LOGGER.isLoggable(DEBUG)) {
-                    LOGGER.log(DEBUG, "new client AbstractNetworkSocket failed to connect to " + peerAddress, e);
+                    LOGGER.log(DEBUG, "new client AbstractNetworkSocket failed to connect to " + resolvedPeerAddress, e);
                 }
                 throw JayoException.buildJayoException(e);
             }

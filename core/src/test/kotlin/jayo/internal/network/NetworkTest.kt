@@ -22,6 +22,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import java.net.InetSocketAddress
 import java.net.StandardSocketOptions
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.stream.Stream
 import kotlin.concurrent.thread
 import kotlin.time.Duration.Companion.seconds
@@ -79,8 +80,15 @@ class NetworkTest {
                             .flush()
                     }
                 }
-                val client = networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
+                val connected = AtomicBoolean()
+                val client = networkFactory.networkSocketBuilder()
+                    .onConnect { peerAddress ->
+                        connected.set(true)
+                        peerAddress
+                    }
+                    .openTcp().connect(server.localAddress)
 
+                assertThat(connected).isTrue()
                 val stringRead = client.reader.readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 assertThat(client.isOpen).isTrue()

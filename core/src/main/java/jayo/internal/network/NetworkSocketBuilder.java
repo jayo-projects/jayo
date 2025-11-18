@@ -12,6 +12,7 @@ import jayo.network.NetworkSocket;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
+import java.net.InetSocketAddress;
 import java.net.ProtocolFamily;
 import java.net.SocketOption;
 import java.net.StandardProtocolFamily;
@@ -19,6 +20,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -32,17 +34,28 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
     private @Nullable ProtocolFamily protocolFamily;
     private boolean useNio;
+    private @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier;
 
     public NetworkSocketBuilder() {
-        this(null, 0L, 0L, new HashMap<>(), null, true);
+        this(
+                /*connectTimeout*/ null,
+                /*readTimeoutNanos*/ 0L,
+                /*writeTimeoutNanos*/ 0L,
+                /*socketOptions*/ new HashMap<>(),
+                /*protocolFamily*/ null,
+                /*useNio*/ true,
+                /*peerAddressModifier*/ null);
     }
 
-    private NetworkSocketBuilder(final @Nullable Duration connectTimeout,
-                                 final long readTimeoutNanos,
-                                 final long writeTimeoutNanos,
-                                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
-                                 final @Nullable ProtocolFamily protocolFamily,
-                                 final boolean useNio) {
+    private NetworkSocketBuilder(
+            final @Nullable Duration connectTimeout,
+            final long readTimeoutNanos,
+            final long writeTimeoutNanos,
+            final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+            final @Nullable ProtocolFamily protocolFamily,
+            final boolean useNio,
+            final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier
+    ) {
         assert socketOptions != null;
 
         this.connectTimeout = connectTimeout;
@@ -51,6 +64,7 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
         this.socketOptions = socketOptions;
         this.protocolFamily = protocolFamily;
         this.useNio = useNio;
+        this.peerAddressModifier = peerAddressModifier;
     }
 
     @Override
@@ -108,14 +122,21 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     }
 
     @Override
+    public @NonNull NetworkSocketBuilder onConnect(
+            final @NonNull Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier) {
+        this.peerAddressModifier = Objects.requireNonNull(peerAddressModifier);
+        return this;
+    }
+
+    @Override
     public NetworkSocket.@NonNull Unconnected openTcp() {
         if (useNio) {
             return new SocketChannelNetworkSocket.Unconnected(connectTimeout, readTimeoutNanos, writeTimeoutNanos,
-                    socketOptions, protocolFamily);
+                    socketOptions, protocolFamily, peerAddressModifier);
         }
 
         return new IoSocketNetworkSocket.Unconnected(connectTimeout, readTimeoutNanos, writeTimeoutNanos,
-                socketOptions);
+                socketOptions, peerAddressModifier);
     }
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
@@ -127,6 +148,7 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
                 writeTimeoutNanos,
                 new HashMap<>(socketOptions),
                 protocolFamily,
-                useNio);
+                useNio,
+                peerAddressModifier);
     }
 }

@@ -18,6 +18,7 @@ import org.jspecify.annotations.Nullable;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.time.Duration;
+import java.util.function.Function;
 
 /**
  * A network socket is either the client-side or server-side end of a socket-based connection between two peers.
@@ -153,6 +154,17 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
          */
         @NonNull
         Builder useNio(final boolean useNio);
+
+        /**
+         * This method exists mainly to support debugging or testing. You may also use it to redirect to another peer
+         * address. For debugging purpose, debug then return the argument address.
+         *
+         * @param peerAddressModifier a function to select the {@link InetSocketAddress} to connect to, based on the
+         *                            initially targeted peer address.
+         */
+        @NonNull
+        Builder onConnect(
+                final @NonNull Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier);
 
         /**
          * @return a deep copy of this builder.
