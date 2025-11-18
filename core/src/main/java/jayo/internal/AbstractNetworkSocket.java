@@ -285,6 +285,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             if (CLOSE_BITS_HANDLE.compareAndSet(this, current, updated)) {
                 return updated;
             }
+            Thread.onSpinWait();
         }
     }
 

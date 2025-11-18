@@ -249,6 +249,7 @@ final class SegmentPool {
         while (true) {
             final var first = firstRef.get();
             if (first == DOOR) {
+                Thread.onSpinWait();
                 continue; // A take() is currently in progress.
             }
 
@@ -264,6 +265,7 @@ final class SegmentPool {
             if (firstRef.compareAndSet(first, segment)) {
                 return;
             }
+            Thread.onSpinWait();
         }
     }
 
@@ -276,6 +278,7 @@ final class SegmentPool {
             final var first = firstRef.get();
 
             if (first == DOOR) {
+                Thread.onSpinWait();
                 continue; // A take() is currently in progress.
             }
 
@@ -299,6 +302,7 @@ final class SegmentPool {
             if (firstRef.compareAndSet(first, segment)) {
                 return;
             }
+            Thread.onSpinWait();
         }
     }
 
