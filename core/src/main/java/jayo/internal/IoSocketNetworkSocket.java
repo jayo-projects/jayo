@@ -41,7 +41,7 @@ import java.net.SocketOption;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
@@ -230,17 +230,15 @@ public final class IoSocketNetworkSocket extends AbstractNetworkSocket {
         private final @Nullable Duration connectTimeout;
         private final long readTimeoutNanos;
         private final long writeTimeoutNanos;
-        private final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier;
+        private final @Nullable UnaryOperator<@NonNull InetSocketAddress> peerAddressModifier;
         private final @NonNull Socket socket;
 
         @SuppressWarnings({"unchecked", "RawUseOfParameterized"})
-        public Unconnected(
-                final @Nullable Duration connectTimeout,
-                final long readTimeoutNanos,
-                final long writeTimeoutNanos,
-                final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
-                final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier
-        ) {
+        public Unconnected(final @Nullable Duration connectTimeout,
+                           final long readTimeoutNanos,
+                           final long writeTimeoutNanos,
+                           final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                           final @Nullable UnaryOperator<@NonNull InetSocketAddress> peerAddressModifier) {
             assert socketOptions != null;
 
             this.connectTimeout = connectTimeout;

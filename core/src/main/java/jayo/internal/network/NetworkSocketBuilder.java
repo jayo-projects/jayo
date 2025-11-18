@@ -20,7 +20,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -34,7 +34,7 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
     private @Nullable ProtocolFamily protocolFamily;
     private boolean useNio;
-    private @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier;
+    private @Nullable UnaryOperator<@NonNull InetSocketAddress> peerAddressModifier;
 
     public NetworkSocketBuilder() {
         this(
@@ -47,15 +47,13 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
                 /*peerAddressModifier*/ null);
     }
 
-    private NetworkSocketBuilder(
-            final @Nullable Duration connectTimeout,
-            final long readTimeoutNanos,
-            final long writeTimeoutNanos,
-            final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
-            final @Nullable ProtocolFamily protocolFamily,
-            final boolean useNio,
-            final @Nullable Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier
-    ) {
+    private NetworkSocketBuilder(final @Nullable Duration connectTimeout,
+                                 final long readTimeoutNanos,
+                                 final long writeTimeoutNanos,
+                                 final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
+                                 final @Nullable ProtocolFamily protocolFamily,
+                                 final boolean useNio,
+                                 final @Nullable UnaryOperator<@NonNull InetSocketAddress> peerAddressModifier) {
         assert socketOptions != null;
 
         this.connectTimeout = connectTimeout;
@@ -123,7 +121,7 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
 
     @Override
     public @NonNull NetworkSocketBuilder onConnect(
-            final @NonNull Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier) {
+            final @NonNull UnaryOperator<@NonNull InetSocketAddress> peerAddressModifier) {
         this.peerAddressModifier = Objects.requireNonNull(peerAddressModifier);
         return this;
     }

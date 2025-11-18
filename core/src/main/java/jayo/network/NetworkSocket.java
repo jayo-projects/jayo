@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.time.Duration;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * A network socket is either the client-side or server-side end of a socket-based connection between two peers.
@@ -163,8 +163,7 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
          *                            initially targeted peer address.
          */
         @NonNull
-        Builder onConnect(
-                final @NonNull Function<@NonNull InetSocketAddress, @NonNull InetSocketAddress> peerAddressModifier);
+        Builder onConnect(final @NonNull UnaryOperator<@NonNull InetSocketAddress> peerAddressModifier);
 
         /**
          * @return a deep copy of this builder.
