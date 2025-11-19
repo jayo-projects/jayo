@@ -105,24 +105,53 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
         Builder connectTimeout(final @NonNull Duration connectTimeout);
 
         /**
+         * @return the currently configured timeout for establishing the connection to the peer, including the proxy
+         * initialization if one is used.
+         * @see #connectTimeout(Duration)
+         */
+        @NonNull
+        Duration getConnectTimeout();
+
+        /**
          * Sets the default read timeout that will apply on each low-level read operation of the network socket.
          * Default is zero. A timeout of zero is interpreted as an infinite timeout.
          * <p>
          * Note: after the socket is created, you can change the read timeout at any time by calling
-         * {@link NetworkSocket#setReadTimeout(Duration)}.
+         * {@linkplain NetworkSocket#setReadTimeout(Duration) NetworkSocket.setReadTimeout(Duration)}.
          */
         @NonNull
         Builder readTimeout(final @NonNull Duration readTimeout);
+
+        /**
+         * @return the currently configured default read timeout that will apply on each low-level read operation of the
+         * network socket.
+         * <p>
+         * Note: after the socket is created, you can change the read timeout at any time by calling
+         * {@linkplain NetworkSocket#setReadTimeout(Duration) NetworkSocket.setReadTimeout(Duration)}.
+         * @see #readTimeout(Duration)
+         */
+        @NonNull
+        Duration getReadTimeout();
 
         /**
          * Sets the default write timeout that will apply on each low-level write operation of the network socket.
          * Default is zero. A timeout of zero is interpreted as an infinite timeout.
          * <p>
          * Note: after the socket is created, you can change the write timeout at any time by calling
-         * {@link NetworkSocket#setWriteTimeout(Duration)}.
+         * {@linkplain NetworkSocket#setWriteTimeout(Duration) NetworkSocket.setWriteTimeout(Duration)}.
          */
         @NonNull
         Builder writeTimeout(final @NonNull Duration writeTimeout);
+
+        /**
+         * @return the currently configured default write timeout that will apply on each low-level write operation of
+         * the network socket.
+         * Note: after the socket is created, you can change the write timeout at any time by calling
+         * {@linkplain NetworkSocket#setWriteTimeout(Duration) NetworkSocket.setWriteTimeout(Duration)}.
+         * @see #writeTimeout(Duration)
+         */
+        @NonNull
+        Duration getWriteTimeout();
 
         /**
          * Sets the value of a socket option to set on the network socket.

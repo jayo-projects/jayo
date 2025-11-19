@@ -67,10 +67,20 @@ public final class NetworkServerBuilder implements NetworkServer.Builder {
     }
 
     @Override
+    public @NonNull Duration getReadTimeout() {
+        return Duration.ofNanos(readTimeoutNanos);
+    }
+
+    @Override
     public @NonNull NetworkServerBuilder writeTimeout(final @NonNull Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout);
         this.writeTimeoutNanos = writeTimeout.toNanos();
         return this;
+    }
+
+    @Override
+    public @NonNull Duration getWriteTimeout() {
+        return Duration.ofNanos(writeTimeoutNanos);
     }
 
     @Override

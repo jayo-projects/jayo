@@ -8,6 +8,7 @@
 package jayo.network
 
 import jayo.JayoDslMarker
+import java.net.InetSocketAddress
 import java.net.SocketOption
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -72,5 +73,19 @@ public value class NetworkSocketBuilderDsl(private val builder: NetworkSocket.Bu
         get() = error("unsupported")
         set(value) {
             builder.useNio(value)
+        }
+
+    /**
+     * This method exists mainly to support debugging or testing. You may also use it to redirect to another peer
+     * address. For debugging purpose, debug then return the argument address.
+     *
+     * You must provide a function to select the [InetSocketAddress] to connect to, based on the initially targeted peer
+     * address.
+     */
+    public var onConnect: (InetSocketAddress) -> InetSocketAddress
+        @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
+        get() = error("unsupported")
+        set(value) {
+            builder.onConnect(value)
         }
 }

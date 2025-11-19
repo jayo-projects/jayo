@@ -28,7 +28,7 @@ import static java.lang.System.Logger.Level.INFO;
 public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     private static final System.Logger LOGGER = System.getLogger("jayo.network.NetworkSocketBuilder");
 
-    private @Nullable Duration connectTimeout;
+    private @NonNull Duration connectTimeout;
     private long readTimeoutNanos;
     private long writeTimeoutNanos;
     private final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions;
@@ -38,7 +38,7 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
 
     public NetworkSocketBuilder() {
         this(
-                /*connectTimeout*/ null,
+                /*connectTimeout*/ Duration.ZERO,
                 /*readTimeoutNanos*/ 0L,
                 /*writeTimeoutNanos*/ 0L,
                 /*socketOptions*/ new HashMap<>(),
@@ -47,13 +47,14 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
                 /*peerAddressModifier*/ null);
     }
 
-    private NetworkSocketBuilder(final @Nullable Duration connectTimeout,
+    private NetworkSocketBuilder(final @NonNull Duration connectTimeout,
                                  final long readTimeoutNanos,
                                  final long writeTimeoutNanos,
                                  final @NonNull Map<@NonNull SocketOption, @Nullable Object> socketOptions,
                                  final @Nullable ProtocolFamily protocolFamily,
                                  final boolean useNio,
                                  final @Nullable UnaryOperator<@NonNull InetSocketAddress> peerAddressModifier) {
+        assert connectTimeout != null;
         assert socketOptions != null;
 
         this.connectTimeout = connectTimeout;
@@ -67,9 +68,13 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
 
     @Override
     public @NonNull NetworkSocketBuilder connectTimeout(final @NonNull Duration connectTimeout) {
-        Objects.requireNonNull(connectTimeout);
-        this.connectTimeout = connectTimeout;
+        this.connectTimeout = Objects.requireNonNull(connectTimeout);
         return this;
+    }
+
+    @Override
+    public @NonNull Duration getConnectTimeout() {
+        return connectTimeout;
     }
 
     @Override
@@ -80,10 +85,20 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     }
 
     @Override
+    public @NonNull Duration getReadTimeout() {
+        return Duration.ofNanos(readTimeoutNanos);
+    }
+
+    @Override
     public @NonNull NetworkSocketBuilder writeTimeout(final @NonNull Duration writeTimeout) {
         Objects.requireNonNull(writeTimeout);
         this.writeTimeoutNanos = writeTimeout.toNanos();
         return this;
+    }
+
+    @Override
+    public @NonNull Duration getWriteTimeout() {
+        return Duration.ofNanos(writeTimeoutNanos);
     }
 
     @Override

@@ -323,9 +323,11 @@ class NetworkTest {
     fun `default connect timeout`(networkFactory: NetworkFactory) {
         networkFactory.networkServerBuilder().bindTcp(InetSocketAddress(0 /* find free port */)).use {
             assertThatThrownBy {
-                networkFactory.networkSocketBuilder()
+                val builder = networkFactory.networkSocketBuilder()
                     .connectTimeout(Duration.ofMillis(1))
-                    .openTcp().connect(UNREACHABLE_ADDRESS_IPV4)
+                assertThat(builder.connectTimeout).isEqualTo(Duration.ofMillis(1))
+
+                builder.openTcp().connect(UNREACHABLE_ADDRESS_IPV4)
             }.isInstanceOf(JayoTimeoutException::class.java)
                 .hasMessageEndingWith("timeout")
         }
@@ -444,6 +446,9 @@ class NetworkTest {
                 val clientBuilderWithTimeouts = networkFactory.networkSocketBuilder()
                     .readTimeout(Duration.ofDays(1))
                     .writeTimeout(Duration.ofDays(2))
+                assertThat(clientBuilderWithTimeouts.readTimeout).isEqualTo(Duration.ofDays(1))
+                assertThat(clientBuilderWithTimeouts.writeTimeout).isEqualTo(Duration.ofDays(2))
+
                 val unconnectedClient = clientBuilderWithTimeouts.openTcp()
                 assertThat(unconnectedClient.readTimeout).isEqualTo(Duration.ofDays(1))
                 assertThat(unconnectedClient.writeTimeout).isEqualTo(Duration.ofDays(2))
@@ -468,10 +473,14 @@ class NetworkTest {
     @ParameterizedTest
     @MethodSource("parameters")
     fun `server timeout various cases`(networkFactory: NetworkFactory) {
-        networkFactory.networkServerBuilder()
+        val builder = networkFactory.networkServerBuilder()
             .readTimeout(Duration.ofDays(1))
             .writeTimeout(Duration.ofDays(2))
-            .bindTcp(InetSocketAddress(0 /* find free port */))
+
+        assertThat(builder.readTimeout).isEqualTo(Duration.ofDays(1))
+        assertThat(builder.writeTimeout).isEqualTo(Duration.ofDays(2))
+
+        builder.bindTcp(InetSocketAddress(0 /* find free port */))
             .use { server ->
                 val clientThread = thread {
                     networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
