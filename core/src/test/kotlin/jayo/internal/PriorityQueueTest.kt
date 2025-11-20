@@ -27,11 +27,10 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.lang.Integer.numberOfTrailingZeros
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeUnit.NANOSECONDS
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.nanoseconds
 
 class PriorityQueueTest {
-    private val TIME_UNIT = TimeUnit.SECONDS
+    private val TIME_UNIT = TimeUnit.NANOSECONDS
 
     @Test
     fun insertedElementIsSmallerThanItsAncestors() {
@@ -176,7 +175,7 @@ class PriorityQueueTest {
     }
 
     private fun AsyncTimeout(value: Long) =
-        TimeoutNode(value.seconds.inWholeNanoseconds, {})
+        TimeoutNode(value.nanoseconds.inWholeNanoseconds, {})
 
     private fun String.toHeap(): PriorityQueue {
         val nodeValues = trimMargin()
@@ -188,7 +187,7 @@ class PriorityQueueTest {
         val result = PriorityQueue()
 
         for (i in nodeValues) {
-            result.add(AsyncTimeout(i))
+            AsyncTimeout(i).let { result.add(it) }
         }
 
         val formattedBack = result.toDebugString()
@@ -225,7 +224,7 @@ class PriorityQueueTest {
                 ) {
                     append(".".repeat(nodeWidth))
                 } else {
-                    val nodeValue = TIME_UNIT.convert(array[index++]!!.timeoutAt, NANOSECONDS).toString()
+                    val nodeValue = array[index++]!!.timeoutAt.toString()
                     append(".".repeat(nodeWidth - nodeValue.length))
                     append(nodeValue)
                 }
