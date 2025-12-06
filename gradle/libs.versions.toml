@@ -11,7 +11,7 @@ mrjar = "0.1.1"
 # https://github.com/melix/jmh-gradle-plugin/tags (for benchmarks)
 jmhPlugin = "0.7.3"
 # https://github.com/GradleUp/shadow/releases (for benchmarks)
-shadow = "9.2.2"
+shadow = "9.3.0"
 # https://github.com/researchgate/gradle-release/releases
 release = "3.1.0"
 
@@ -21,7 +21,7 @@ jspecify = "1.0.0"
 
 # main -> optional dependencies
 # https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk18on
-bouncycastle = "1.82"
+bouncycastle = "1.83"
 # https://mvnrepository.com/artifact/org.conscrypt/conscrypt-openjdk-uber
 conscrypt = "2.5.2"
 
