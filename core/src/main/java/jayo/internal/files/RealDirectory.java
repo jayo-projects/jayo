@@ -49,7 +49,7 @@ public final /*Valhalla 'value class'*/ class RealDirectory implements Directory
         assert path != null;
 
         try {
-            return checkAndBuildDirectory(Files.createFile(path));
+            return checkAndBuildDirectory(Files.createDirectory(path));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
@@ -62,7 +62,7 @@ public final /*Valhalla 'value class'*/ class RealDirectory implements Directory
             return checkAndBuildDirectory(path);
         }
         try {
-            return checkAndBuildDirectory(Files.createFile(path));
+            return checkAndBuildDirectory(Files.createDirectory(path));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
         }
