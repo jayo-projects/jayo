@@ -3,8 +3,9 @@
  * Use of this source code is governed by the Apache 2.0 license.
  */
 
-package jayo;
+package jayo.files;
 
+import jayo.JayoException;
 import org.jspecify.annotations.NonNull;
 
 import java.io.FileNotFoundException;

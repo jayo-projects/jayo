@@ -51,8 +51,8 @@ Maven:
 
 Jayo is written in Java without the use of any external dependencies, to be as light as possible.
 
-We also love Kotlin ! Jayo is fully usable and optimized from Kotlin code thanks to `@NonNull` annotations, Kotlin
-friendly method naming (`get*` and `set*`) and Kotlin extension functions are natively included in this project.
+We also love Kotlin ! Jayo is fully usable and optimized from Kotlin code thanks to JSpecify nullability annotations,
+Kotlin friendly method naming (`get*` and `set*`) and Kotlin extension functions are natively included in this project.
 
 Jayo's source code is derived and inspired from [Okio](https://github.com/square/okio), but does not preserve backward
 compatibility with it.
@@ -62,7 +62,7 @@ By the way, Jayo simply refers to **Ja**va **IO**, revisited.
 See the project website (*coming soon*) for documentation and APIs.
 
 Jayo is a Multi-Release JAR with base Java version set to 17. Its Java 21 sources activate internal use of virtual
-threads.
+threads, and its Java 25 sources use ScopedValue instead of ThreadLocal.
 
 *Contributions are very welcome, simply clone this repo and submit a PR when your fix, new feature, or optimization is
 ready !*
@@ -71,8 +71,7 @@ ready !*
 
 [Jayo](./core) offers solid I/O foundations by providing the tools we need for binary data manipulation
 * `Buffer` is a mutable sequence of bytes one can easily write to and read from.
-* `ByteString` is an immutable and serializable sequence of bytes that stores a String related binary content as-is.
-  * `Utf8` is a specific `ByteString` that contains UTF-8 encoded bytes only with a lot more functions.
+* `ByteString` is an immutable and serializable sequence of bytes that stores a String-related binary content as-is.
 * `RawReader` and `RawWriter`, and mostly their buffered versions `Reader` and `Writer`, offer great improvements over
 `InputStream` and `OutputStream`.
 * `NetworkSocket` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
@@ -81,6 +80,20 @@ Jayo also provides some useful tools for TLS
 * `ClientTlsSocket` and `ServerTlsSocket` are easy-to-use APIs based on Jayo's reader and writer, that allow to
 secure JVM applications with minimal added complexity.
 * `JssePlatform` eases access to platform-specific Java Secure Socket Extension (JSSE) features.
+
+### Files
+
+A `java.io.File` can indeed be a file. \
+But... it can also be a directory; weird. \
+Furthermore, it can also refer to a file or a directory that does not exist; now it gets even weirder! \
+
+Jayo tries to clarify things. To do that, this module only provides :
+* `jayo.files.File`, that is guaranteed to be a real existing file.
+* `jayo.files.Directory`, that is guaranteed to be a real existing directory.
+
+Operations on files and directories are different, they need two dedicated types.
+
+### Synchronous I/O
 
 When used within Java 21+ virtual threads (see [Project Loom](https://openjdk.org/projects/loom/)), synchronous I/O will
 use non-blocking network APIs and trigger rapid context switches between a few platform OS-level threads instead of
@@ -97,7 +110,7 @@ from Jayo's readers thanks to [kotlinx.serialization](https://github.com/Kotlin/
 
 ## Build
 
-You need a JDK 21 to build Jayo.
+You need a JDK 25 to build Jayo.
 
 1. Clone this repo
 
