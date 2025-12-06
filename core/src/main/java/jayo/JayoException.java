@@ -5,6 +5,8 @@
 
 package jayo;
 
+import jayo.files.JayoFileAlreadyExistsException;
+import jayo.files.JayoFileNotFoundException;
 import jayo.network.JayoConnectException;
 import jayo.network.JayoSocketException;
 import jayo.network.JayoUnknownHostException;
@@ -72,9 +74,8 @@ public class JayoException extends UncheckedIOException {
      */
     public static JayoException buildJayoException(final @NonNull IOException ioException) {
         Objects.requireNonNull(ioException);
-        if (ioException instanceof EOFException eofException) {
-            return new JayoEOFException(eofException);
-        }
+
+        // File-system-related exceptions
         if (ioException instanceof FileNotFoundException fileNotFoundException) {
             return new JayoFileNotFoundException(fileNotFoundException);
         }
@@ -84,22 +85,10 @@ public class JayoException extends UncheckedIOException {
         if (ioException instanceof FileAlreadyExistsException faeException) {
             return new JayoFileAlreadyExistsException(faeException);
         }
-        if (ioException instanceof ProtocolException protocolException) {
-            return new JayoProtocolException(protocolException);
-        }
+
+        // Network-related exceptions
         if (ioException instanceof SocketTimeoutException stoException) {
             return new JayoTimeoutException(stoException);
-        }
-        if (ioException instanceof InterruptedIOException interuptIOException) {
-            return new JayoInterruptedIOException(interuptIOException);
-        }
-        if (ioException instanceof UnknownHostException unknownHostException) {
-            return new JayoUnknownHostException(unknownHostException);
-        }
-
-        // Socket related exceptions
-        if (ioException instanceof ClosedChannelException closedChanException) {
-            return new JayoClosedResourceException(closedChanException);
         }
         if (ioException instanceof ConnectException connectException) {
             return new JayoConnectException(connectException);
@@ -115,8 +104,11 @@ public class JayoException extends UncheckedIOException {
         if (ioException instanceof UnknownServiceException unknownServiceException) {
             return new JayoUnknownServiceException(unknownServiceException);
         }
+        if (ioException instanceof UnknownHostException unknownHostException) {
+            return new JayoUnknownHostException(unknownHostException);
+        }
 
-        // TLS/SSL related exceptions
+        // TLS/SSL-related exceptions
         if (ioException instanceof SSLHandshakeException sslHandshakeException) {
             return new JayoTlsHandshakeException(sslHandshakeException);
         }
@@ -125,6 +117,20 @@ public class JayoException extends UncheckedIOException {
         }
         if (ioException instanceof SSLException sslException) {
             return new JayoTlsException(sslException);
+        }
+
+        // others
+        if (ioException instanceof EOFException eofException) {
+            return new JayoEOFException(eofException);
+        }
+        if (ioException instanceof InterruptedIOException interruptedIOException) {
+            return new JayoInterruptedIOException(interruptedIOException);
+        }
+        if (ioException instanceof ProtocolException protocolException) {
+            return new JayoProtocolException(protocolException);
+        }
+        if (ioException instanceof ClosedChannelException closedChanException) {
+            return new JayoClosedResourceException(closedChanException);
         }
 
         // default
