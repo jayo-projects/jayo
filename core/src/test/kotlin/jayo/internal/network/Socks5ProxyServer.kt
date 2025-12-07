@@ -22,7 +22,6 @@
 package jayo.internal.network
 
 import jayo.*
-import jayo.internal.network.SocksNetworkSocket.*
 import jayo.network.NetworkSocket
 import jayo.network.NetworkServer
 import java.io.Closeable
@@ -55,8 +54,8 @@ class Socks5ProxyServer(
 
     internal fun acceptClient() {
         val client = networkServer.accept()
-        val fromReader = client.reader
-        val fromWriter = client.writer
+        val fromReader = client.reader.buffered()
+        val fromWriter = client.writer.buffered()
 
         try {
             // Read the hello.

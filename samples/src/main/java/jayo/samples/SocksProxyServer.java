@@ -82,8 +82,8 @@ public final class SocksProxyServer {
 
     private void handleClient(final NetworkSocket client) {
         try {
-            final Reader fromReader = client.getReader();
-            final Writer fromWriter = client.getWriter();
+            final Reader fromReader = Jayo.buffer(client.getReader());
+            final Writer fromWriter = Jayo.buffer(client.getWriter());
             // Read the hello.
             final int socksVersion = fromReader.readByte();
             if (socksVersion != VERSION_5) {

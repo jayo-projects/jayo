@@ -12,7 +12,7 @@ package jayo.samples.tls;
 
 import jayo.Buffer;
 import jayo.RawReader;
-import jayo.Socket;
+import jayo.RawSocket;
 import jayo.network.NetworkServer;
 import jayo.tls.ServerHandshakeCertificates;
 import jayo.tls.ServerTlsSocket;
@@ -38,10 +38,10 @@ public class TlsSocketServer {
         try (NetworkServer server = NetworkServer.bindTcp(new InetSocketAddress(10000))) {
             // accept encrypted connections
             System.out.println("Waiting for connection...");
-            Socket accepted = server.accept();
+            RawSocket accepted = server.accept();
             // create the ServerTlsSocket, combining the socket socket and the server handshake certificates,
             // using minimal options
-            Socket tlsSocket = ServerTlsSocket.builder(handshakeCertificates).build(accepted);
+            RawSocket tlsSocket = ServerTlsSocket.builder(handshakeCertificates).build(accepted);
             try (RawReader decryptedReader = tlsSocket.getReader()) {
                 Buffer buffer = Buffer.create();
                 // write to stdout all data sent by the client

@@ -348,4 +348,14 @@ public final class RealPipe implements Pipe {
             lock.unlock();
         }
     }
+
+    @Override
+    public boolean isOpen() {
+        lock.lock();
+        try {
+            return !canceled && !writerClosed && !readerClosed;
+        } finally {
+            lock.unlock();
+        }
+    }
 }

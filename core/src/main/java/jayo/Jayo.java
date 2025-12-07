@@ -80,31 +80,27 @@ public final class Jayo {
     public static @NonNull Socket buffer(final @NonNull RawSocket rawSocket) {
         Objects.requireNonNull(rawSocket);
         return new Socket() {
-            private boolean isCanceled = false;
+            private final @NonNull Reader reader = buffer(rawSocket.getReader());
+            private final @NonNull Writer writer = buffer(rawSocket.getWriter());
 
             @Override
             public @NonNull Reader getReader() {
-                return buffer(rawSocket.getReader());
+                return reader;
             }
 
             @Override
             public @NonNull Writer getWriter() {
-                return buffer(rawSocket.getWriter());
+                return writer;
             }
 
             @Override
             public void cancel() {
-                isCanceled = true;
+                rawSocket.cancel();
             }
 
             @Override
             public boolean isOpen() {
-                return !isCanceled;
-            }
-
-            @Override
-            public @NonNull Object getUnderlying() {
-                return rawSocket;
+                return rawSocket.isOpen();
             }
         };
     }

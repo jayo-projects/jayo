@@ -10,7 +10,9 @@
 
 package jayo.internal.tls;
 
+import jayo.Jayo;
 import jayo.JayoException;
+import jayo.RawSocket;
 import jayo.Socket;
 import jayo.internal.AbstractTlsSocket;
 import jayo.tls.*;
@@ -140,47 +142,53 @@ public final class RealServerTlsSocket extends AbstractTlsSocket implements Serv
         }
 
         @Override
-        public @NonNull ServerTlsSocket build(final @NonNull Socket encryptedSocket) {
+        public @NonNull ServerTlsSocket build(final @NonNull RawSocket encryptedSocket) {
             Objects.requireNonNull(encryptedSocket);
 
+            final var socket = Jayo.buffer(encryptedSocket);
+
             final var handshakeCertificates = handshakeCertificatesStrategy.getHandshakeCertificates(() ->
-                    getServerNameIndication(encryptedSocket));
+                    getServerNameIndication(socket));
 
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext().createSSLEngine();
             engine.setUseClientMode(false);
             return new RealServerTlsSocket(
-                    encryptedSocket,
+                    socket,
                     handshakeCertificates,
                     waitForCloseConfirmation,
                     engine);
         }
 
         @Override
-        public @NonNull Parameterizer createParameterizer(final @NonNull Socket encryptedSocket) {
+        public @NonNull Parameterizer createParameterizer(final @NonNull RawSocket encryptedSocket) {
             Objects.requireNonNull(encryptedSocket);
 
+            final var socket = Jayo.buffer(encryptedSocket);
+
             final var handshakeCertificates = handshakeCertificatesStrategy.getHandshakeCertificates(() ->
-                    getServerNameIndication(encryptedSocket));
+                    getServerNameIndication(socket));
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine();
             engine.setUseClientMode(false);
-            return new Parameterizer(encryptedSocket, handshakeCertificates, engine);
+            return new Parameterizer(socket, handshakeCertificates, engine);
         }
 
         @Override
-        public @NonNull Parameterizer createParameterizer(final @NonNull Socket encryptedSocket,
+        public @NonNull Parameterizer createParameterizer(final @NonNull RawSocket encryptedSocket,
                                                           final @NonNull String peerHost,
                                                           final int peerPort) {
             Objects.requireNonNull(encryptedSocket);
             Objects.requireNonNull(peerHost);
             assert peerPort > 0;
 
+            final var socket = Jayo.buffer(encryptedSocket);
+
             final var handshakeCertificates = handshakeCertificatesStrategy.getHandshakeCertificates(() ->
-                    getServerNameIndication(encryptedSocket));
+                    getServerNameIndication(socket));
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine(peerHost, peerPort);
             engine.setUseClientMode(false);
-            return new Parameterizer(encryptedSocket, handshakeCertificates, engine);
+            return new Parameterizer(socket, handshakeCertificates, engine);
         }
 
         private @Nullable SNIServerName getServerNameIndication(final @NonNull Socket encryptedSocket) {

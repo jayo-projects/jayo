@@ -21,7 +21,10 @@
 
 package jayo.internal;
 
-import jayo.*;
+import jayo.Buffer;
+import jayo.JayoException;
+import jayo.RawReader;
+import jayo.RawWriter;
 import jayo.network.NetworkSocket;
 import jayo.tools.CancelToken;
 import org.jspecify.annotations.NonNull;
@@ -40,9 +43,9 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         permits IoSocketNetworkSocket, SocketChannelNetworkSocket {
     final @NonNull RealAsyncTimeout timeout;
     long readTimeoutNanos;
-    final @NonNull RealReader reader;
+    final @NonNull RawReader reader;
     private long writeTimeoutNanos;
-    final @NonNull RealWriter writer;
+    final @NonNull RawWriter writer;
 
     @SuppressWarnings("FieldMayBeFinal")
     volatile int closeBits = 0;
@@ -57,6 +60,7 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
             throw new ExceptionInInitializerError(e);
         }
     }
+
     private static final int WRITER_CLOSED_BIT = 1;
     private static final int READER_CLOSED_BIT = 2;
     private static final int ALL_CLOSED_BITS = WRITER_CLOSED_BIT | READER_CLOSED_BIT;
@@ -69,17 +73,17 @@ public sealed abstract class AbstractNetworkSocket implements NetworkSocket
         this.readTimeoutNanos = readTimeoutNanos;
         this.writeTimeoutNanos = writeTimeoutNanos;
         this.timeout = timeout;
-        reader = new RealReader(new SocketRawReader());
-        writer = new RealWriter(new SocketRawWriter());
+        reader = new SocketRawReader();
+        writer = new SocketRawWriter();
     }
 
     @Override
-    public final @NonNull Reader getReader() {
+    public final @NonNull RawReader getReader() {
         return reader;
     }
 
     @Override
-    public final @NonNull Writer getWriter() {
+    public final @NonNull RawWriter getWriter() {
         return writer;
     }
 

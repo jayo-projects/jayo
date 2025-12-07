@@ -75,7 +75,7 @@ class NetworkTest {
             .use { server ->
                 val serverThread = thread {
                     val accepted = server.accept()
-                    accepted.writer.use { writer ->
+                    accepted.writer.buffered().use { writer ->
                         writer.write(TO_WRITE)
                             .flush()
                     }
@@ -89,7 +89,7 @@ class NetworkTest {
                     .openTcp().connect(server.localAddress)
 
                 assertThat(connected).isTrue()
-                val stringRead = client.reader.readString()
+                val stringRead = client.reader.buffered().readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 assertThat(client.isOpen).isTrue()
                 serverThread.join()
@@ -177,7 +177,7 @@ class NetworkTest {
                     thread {
                         cancel()
                         Thread.currentThread().interrupt()
-                        val reader = client.reader
+                        val reader = client.reader.buffered()
                         throwableAssert = assertThatThrownBy { reader.readByte() }
                     }.join()
                 }
@@ -201,7 +201,7 @@ class NetworkTest {
                     thread {
                         cancel()
                         Thread.currentThread().interrupt()
-                        val reader = client.reader
+                        val reader = client.reader.buffered()
                         throwableAssert = assertThatThrownBy { reader.readByte() }
                     }.join()
                 }
@@ -225,7 +225,7 @@ class NetworkTest {
                     thread {
                         cancel()
                         Thread.currentThread().interrupt()
-                        val writer = client.writer
+                        val writer = client.writer.buffered()
                         throwableAssert = assertThatThrownBy {
                             writer.writeByte(0)
                                 .flush()
@@ -281,7 +281,7 @@ class NetworkTest {
             .use { server ->
                 val serverThread = thread {
                     val accepted = server.accept()
-                    accepted.writer.use { writer ->
+                    accepted.writer.buffered().use { writer ->
                         writer.write(TO_WRITE)
                             .flush()
                     }
@@ -290,7 +290,7 @@ class NetworkTest {
                 client.writer.close()
                 assertThat(client.isOpen).isFalse
 
-                val stringRead = client.reader.readString()
+                val stringRead = client.reader.buffered().readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 serverThread.join()
             }
@@ -305,14 +305,14 @@ class NetworkTest {
                     val accepted = server.accept()
                     accepted.reader.close()
                     assertThat(accepted.isOpen).isFalse
-                    accepted.writer.use { writer ->
+                    accepted.writer.buffered().use { writer ->
                         writer.write(TO_WRITE)
                             .flush()
                     }
                 }
                 val client = networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
 
-                val stringRead = client.reader.readString()
+                val stringRead = client.reader.buffered().readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 serverThread.join()
             }
@@ -348,7 +348,7 @@ class NetworkTest {
                 client.writeTimeout = Duration.ofNanos(1)
 
                 assertThatThrownBy {
-                    client.writer.write(TO_WRITE)
+                    client.writer.buffered().write(TO_WRITE)
                         .flush()
                 }.isInstanceOf(JayoTimeoutException::class.java)
                     .hasMessageEndingWith("timeout")
@@ -365,7 +365,7 @@ class NetworkTest {
             .use { server ->
                 val serverThread = thread {
                     val accepted = server.accept()
-                    accepted.writer.use { serverWriter ->
+                    accepted.writer.buffered().use { serverWriter ->
                         serverWriter.writeInt(1)
                             .flush()
                         Thread.sleep(500)
@@ -376,7 +376,7 @@ class NetworkTest {
                     .openTcp().connect(server.localAddress)
                 client.readTimeout = Duration.ofMillis(300)
 
-                client.reader.use { clientReader ->
+                client.reader.buffered().use { clientReader ->
                     assertThat(clientReader.readInt()).isEqualTo(1)
 
                     assertThatThrownBy { clientReader.readInt() }
@@ -394,7 +394,7 @@ class NetworkTest {
             .use { server ->
                 val serverThread = thread {
                     val accepted = server.accept()
-                    accepted.writer.use { writer ->
+                    accepted.writer.buffered().use { writer ->
                         writer.write(TO_WRITE)
                     }
                 }
@@ -403,7 +403,7 @@ class NetworkTest {
                 client.readTimeout = Duration.ofNanos(1)
 
                 val stringRead = cancelScope(timeout = 1.seconds) {
-                    client.reader.readString()
+                    client.reader.buffered().readString()
                 }
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 serverThread.join()
@@ -417,7 +417,7 @@ class NetworkTest {
             .use { server ->
                 val serverThread = thread {
                     val accepted = server.accept()
-                    accepted.writer.use { writer ->
+                    accepted.writer.buffered().use { writer ->
                         writer.write(TO_WRITE)
                     }
                 }
@@ -427,7 +427,7 @@ class NetworkTest {
 
                 val stringRead = cancelScope {
                     shield() // shield the cancel scope
-                    client.reader.readString()
+                    client.reader.buffered().readString()
                 }
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 serverThread.join()
@@ -512,7 +512,7 @@ class NetworkTest {
                 val serverThread = thread {
                     val accepted = server.accept()
                     accepted.writeTimeout = Duration.ofNanos(1)
-                    accepted.writer.use { writer ->
+                    accepted.writer.buffered().use { writer ->
                         cancelScope(timeout = 10.seconds) {
                             writer.write(TO_WRITE)
                                 .flush()
@@ -521,7 +521,7 @@ class NetworkTest {
                 }
                 val client = networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
 
-                val stringRead = client.reader.readString()
+                val stringRead = client.reader.buffered().readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 serverThread.join()
             }
@@ -535,7 +535,7 @@ class NetworkTest {
                 val serverThread = thread {
                     val accepted = server.accept()
                     accepted.writeTimeout = Duration.ofNanos(1)
-                    accepted.writer.use { writer ->
+                    accepted.writer.buffered().use { writer ->
                         cancelScope {
                             shield() // shield the cancel scope
                             writer.write(TO_WRITE)
@@ -545,7 +545,7 @@ class NetworkTest {
                 }
                 val client = networkFactory.networkSocketBuilder().openTcp().connect(server.localAddress)
 
-                val stringRead = client.reader.readString()
+                val stringRead = client.reader.buffered().readString()
                 assertThat(stringRead).isEqualTo(TO_WRITE)
                 serverThread.join()
             }

@@ -10,9 +10,7 @@
 
 package jayo.samples.tls;
 
-import jayo.Reader;
-import jayo.Socket;
-import jayo.Writer;
+import jayo.*;
 import jayo.network.NetworkSocket;
 import jayo.tls.ClientTlsSocket;
 
@@ -29,9 +27,9 @@ public class TlsSocketClient {
             "GET https://www.howsmyssl.com/a/check HTTP/1.0\nHost: www.howsmyssl.com\n\n";
 
     public static void main(String... args) throws IOException {
-        Socket client = NetworkSocket.connectTcp(new InetSocketAddress(DOMAIN, 443));
+        RawSocket client = NetworkSocket.connectTcp(new InetSocketAddress(DOMAIN, 443));
         // create the ClientTlsSocket using minimal options
-        Socket tlsSocket = ClientTlsSocket.create(client);
+        Socket tlsSocket = Jayo.buffer(ClientTlsSocket.create(client));
         try (Writer toEncryptWriter = tlsSocket.getWriter();
              Reader decryptedReader = tlsSocket.getReader()) {
             // do HTTP interaction and print result

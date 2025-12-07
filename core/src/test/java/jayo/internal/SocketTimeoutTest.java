@@ -49,7 +49,7 @@ public final class SocketTimeoutTest {
     @Test
     public void readWithoutTimeout() throws Exception {
         try (var socket = socket(ONE_MB, 0);
-             var reader = Jayo.socket(socket).getReader()) {
+             var reader = Jayo.buffer(Jayo.socket(socket).getReader())) {
             Cancellable.run(Duration.ofMillis(500), _scope -> reader.require(ONE_MB));
         }
     }
@@ -57,7 +57,7 @@ public final class SocketTimeoutTest {
     @Test
     public void readWithTimeout() throws Exception {
         try (var socket = socket(0, 0);
-             var reader = Jayo.socket(socket).getReader()) {
+             var reader = Jayo.buffer(Jayo.socket(socket).getReader())) {
             Cancellable.run(Duration.ofMillis(25), _scope ->
                     assertThatThrownBy(() -> reader.require(ONE_MB))
                             // we may fail when expecting 1MB and socket is reading, or after the read, exception is not
@@ -69,7 +69,7 @@ public final class SocketTimeoutTest {
     @Test
     public void readWitManualCancellation() throws Exception {
         try (var socket = socket(ONE_MB, 0);
-             var reader = Jayo.socket(socket).getReader()) {
+             var reader = Jayo.buffer(Jayo.socket(socket).getReader())) {
             Cancellable.run(scope -> {
                 scope.cancel();
                 assertThatThrownBy(() -> reader.require(ONE_MB))

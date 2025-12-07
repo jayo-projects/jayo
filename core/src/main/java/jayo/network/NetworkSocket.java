@@ -6,6 +6,7 @@
 package jayo.network;
 
 import jayo.JayoClosedResourceException;
+import jayo.RawSocket;
 import jayo.Socket;
 import jayo.internal.AbstractNetworkSocket;
 import jayo.internal.IoSocketNetworkSocket;
@@ -33,10 +34,8 @@ import java.util.function.UnaryOperator;
  * Note: {@link NetworkSocket} honors timeout. When a read or write operation times out, the socket is asynchronously
  * closed by a watchdog thread. By default, no read nor write timeout is set, use {@link #setReadTimeout(Duration)} and
  * {@link #setWriteTimeout(Duration)} methods to set them.
- *
- * @see Socket
  */
-public sealed interface NetworkSocket extends RawNetworkSocket, Socket
+public sealed interface NetworkSocket extends RawNetworkSocket, RawSocket
         permits AbstractNetworkSocket, SocksNetworkSocket {
     /**
      * @return a new client-side TCP {@link NetworkSocket} backed by an underlying
@@ -92,6 +91,13 @@ public sealed interface NetworkSocket extends RawNetworkSocket, Socket
     default Proxy.@Nullable Socks getProxy() {
         return null;
     }
+
+    /**
+     * @return the underlying resource. For example, a {@linkplain java.net.Socket IO Socket}, a
+     * {@linkplain java.nio.channels.SocketChannel NIO SocketChannel} or another {@link Socket} / {@link RawSocket}.
+     */
+    @NonNull
+    Object getUnderlying();
 
     /**
      * The builder used to create a client-side {@link NetworkSocket}.

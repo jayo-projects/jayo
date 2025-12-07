@@ -65,8 +65,8 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
     private final @NonNull SSLEngine engine;
     private final boolean waitForCloseConfirmation;
     private final @NonNull SSLSession tlsSession;
-    private final @NonNull Reader reader;
-    private final @NonNull Writer writer;
+    private final @NonNull RawReader reader;
+    private final @NonNull RawWriter writer;
 
     private final @NonNull Lock readLock = new ReentrantLock();
     private final @NonNull Lock writeLock = new ReentrantLock();
@@ -125,28 +125,23 @@ public sealed abstract class AbstractTlsSocket implements TlsSocket permits Real
             throw new IllegalArgumentException("DTLS not supported");
         }
 
-        reader = new RealReader(new TlsSocketRawReader());
-        writer = new RealWriter(new TlsSocketRawWriter());
+        reader = new TlsSocketRawReader();
+        writer = new TlsSocketRawWriter();
     }
 
     @Override
-    public final @NonNull Reader getReader() {
+    public final @NonNull RawReader getReader() {
         return reader;
     }
 
     @Override
-    public final @NonNull Writer getWriter() {
+    public final @NonNull RawWriter getWriter() {
         return writer;
     }
 
     @Override
     public final @NonNull SSLSession getSession() {
         return tlsSession;
-    }
-
-    @Override
-    public final @NonNull Socket getUnderlying() {
-        return encryptedSocket;
     }
 
     // read

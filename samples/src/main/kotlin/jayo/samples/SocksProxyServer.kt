@@ -81,8 +81,8 @@ class KotlinSocksProxyServer {
 
     private fun handleClient(client: NetworkSocket) {
         try {
-            val fromReader = client.reader
-            val fromWriter = client.writer
+            val fromReader = client.reader.buffered()
+            val fromWriter = client.writer.buffered()
             // Read the hello.
             val socksVersion = fromReader.readByte()
             if (socksVersion != VERSION_5) {

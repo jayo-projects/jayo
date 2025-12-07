@@ -45,7 +45,7 @@ class Socks5ProxyServer(private val credentials: PasswordAuthentication? = null)
     private lateinit var networkServer: NetworkServer
     private lateinit var executor: ExecutorService
     private val connectionCount = AtomicInteger()
-    private val openSockets: MutableSet<Socket> = ConcurrentHashMap.newKeySet()
+    private val openSockets: MutableSet<RawSocket> = ConcurrentHashMap.newKeySet()
 
     fun play() {
         networkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */))
@@ -96,8 +96,8 @@ class Socks5ProxyServer(private val credentials: PasswordAuthentication? = null)
         val name = "SocksProxy ${from.peerAddress}"
         threadName(name) {
             try {
-                val fromReader = from.reader
-                val fromWriter = from.writer
+                val fromReader = from.reader.buffered()
+                val fromWriter = from.writer.buffered()
                 hello(fromReader, fromWriter)
                 acceptCommand(from.localAddress, fromReader, fromWriter)
                 openSockets.add(from)

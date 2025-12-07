@@ -10,6 +10,8 @@
 
 package jayo.internal.tls;
 
+import jayo.Jayo;
+import jayo.RawSocket;
 import jayo.Socket;
 import jayo.internal.AbstractTlsSocket;
 import jayo.tls.ClientHandshakeCertificates;
@@ -78,21 +80,24 @@ public final class RealClientTlsSocket extends AbstractTlsSocket implements Clie
         }
 
         @Override
-        public @NonNull ClientTlsSocket build(final @NonNull Socket encryptedSocket) {
+        public @NonNull ClientTlsSocket build(final @NonNull RawSocket encryptedSocket) {
             Objects.requireNonNull(encryptedSocket);
+
+            final var socket = Jayo.buffer(encryptedSocket);
 
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext().createSSLEngine();
             engine.setUseClientMode(true);
             return new RealClientTlsSocket(
-                    encryptedSocket,
+                    socket,
                     handshakeCertificates,
                     waitForCloseConfirmation,
                     engine);
         }
 
         @Override
-        public @NonNull Parameterizer createParameterizer(final @NonNull Socket encryptedSocket) {
+        public @NonNull Parameterizer createParameterizer(final @NonNull RawSocket encryptedSocket) {
             Objects.requireNonNull(encryptedSocket);
+
             final var engine = ((RealHandshakeCertificates) handshakeCertificates).getSslContext()
                     .createSSLEngine();
             engine.setUseClientMode(true);
@@ -100,7 +105,7 @@ public final class RealClientTlsSocket extends AbstractTlsSocket implements Clie
         }
 
         @Override
-        public @NonNull Parameterizer createParameterizer(final @NonNull Socket encryptedSocket,
+        public @NonNull Parameterizer createParameterizer(final @NonNull RawSocket encryptedSocket,
                                                           final @NonNull String peerHost,
                                                           final int peerPort) {
             Objects.requireNonNull(encryptedSocket);
@@ -120,9 +125,9 @@ public final class RealClientTlsSocket extends AbstractTlsSocket implements Clie
 
         public final class Parameterizer extends AbstractTlsSocket.Parameterizer
                 implements ClientTlsSocket.Parameterizer {
-            private final @NonNull Socket encryptedSocket;
+            private final @NonNull RawSocket encryptedSocket;
 
-            private Parameterizer(final @NonNull Socket encryptedSocket, final @NonNull SSLEngine engine) {
+            private Parameterizer(final @NonNull RawSocket encryptedSocket, final @NonNull SSLEngine engine) {
                 super(engine);
                 assert encryptedSocket != null;
                 this.encryptedSocket = encryptedSocket;
@@ -146,7 +151,7 @@ public final class RealClientTlsSocket extends AbstractTlsSocket implements Clie
             @Override
             public @NonNull ClientTlsSocket build() {
                 return new RealClientTlsSocket(
-                        encryptedSocket,
+                        Jayo.buffer(encryptedSocket),
                         handshakeCertificates,
                         waitForCloseConfirmation,
                         engine);

@@ -5,6 +5,7 @@
 
 package jayo.internal.network
 
+import jayo.buffered
 import jayo.internal.TestUtil.SEGMENT_SIZE
 import jayo.network.*
 import org.assertj.core.api.Assertions.assertThat
@@ -111,7 +112,7 @@ class NetworkWithSocksProxyTest {
                 Socks5ProxyServer(serverBuilder, executor, credentials).use { proxy ->
                     executor.execute {
                         val accepted = server.accept()
-                        accepted.writer.use { writer ->
+                        accepted.writer.buffered().use { writer ->
                             writer.write(TO_WRITE)
                                 .flush()
                         }
@@ -124,7 +125,7 @@ class NetworkWithSocksProxyTest {
                     }
                     val client = clientBuilder.openTcp().connect(server.localAddress, proxy)
 
-                    val stringRead = client.reader.readString()
+                    val stringRead = client.reader.buffered().readString()
                     assertThat(stringRead).isEqualTo(TO_WRITE)
                 }
             }
@@ -209,7 +210,7 @@ class NetworkWithSocksProxyTest {
                 Socks4ProxyServer(serverBuilder, executor, username).use { proxy ->
                     executor.execute {
                         val accepted = server.accept()
-                        accepted.writer.use { writer ->
+                        accepted.writer.buffered().use { writer ->
                             writer.write(TO_WRITE)
                                 .flush()
                         }
@@ -222,7 +223,7 @@ class NetworkWithSocksProxyTest {
                     }
                     val client = clientBuilder.openTcp().connect(server.localAddress, proxy)
 
-                    val stringRead = client.reader.readString()
+                    val stringRead = client.reader.buffered().readString()
                     assertThat(stringRead).isEqualTo(TO_WRITE)
                 }
             }

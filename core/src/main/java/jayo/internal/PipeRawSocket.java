@@ -54,4 +54,9 @@ public final class PipeRawSocket implements RawSocket {
         readerPipe.cancel();
         writerPipe.cancel();
     }
+
+    @Override
+    public boolean isOpen() {
+        return readerPipe.isOpen() && writerPipe.isOpen();
+    }
 }

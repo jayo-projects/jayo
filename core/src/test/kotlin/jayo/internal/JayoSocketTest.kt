@@ -44,7 +44,7 @@ class JayoSocketTest {
             thread {
                 cancel()
                 Thread.currentThread().interrupt()
-                val reader = socket.asJayoSocket().reader
+                val reader = socket.asJayoSocket().reader.buffered()
                 throwableAssert = assertThatThrownBy { reader.readByte() }
             }.join()
         }
@@ -66,7 +66,7 @@ class JayoSocketTest {
             thread {
                 cancel()
                 Thread.currentThread().interrupt()
-                val reader = socket.asJayoSocket().reader
+                val reader = socket.asJayoSocket().reader.buffered()
                 throwableAssert = assertThatThrownBy { reader.readByte() }
             }.join()
         }
@@ -88,7 +88,7 @@ class JayoSocketTest {
             thread {
                 cancel()
                 Thread.currentThread().interrupt()
-                val writer = socket.asJayoSocket().writer
+                val writer = socket.asJayoSocket().writer.buffered()
                 throwableAssert = assertThatThrownBy {
                     writer.writeByte(0)
                     writer.flush()
@@ -113,7 +113,7 @@ class JayoSocketTest {
             thread {
                 cancel()
                 Thread.currentThread().interrupt()
-                val writer = socket.asJayoSocket().writer
+                val writer = socket.asJayoSocket().writer.buffered()
                 throwableAssert = assertThatThrownBy {
                     writer.writeByte(0)
                     writer.flush()

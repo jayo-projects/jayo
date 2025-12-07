@@ -10,10 +10,10 @@
 
 package jayo.tls.helpers;
 
-import jayo.Socket;
+import jayo.RawSocket;
 import jayo.internal.ChunkingSocket;
-import jayo.network.NetworkSocket;
 import jayo.network.NetworkServer;
+import jayo.network.NetworkSocket;
 import jayo.tls.*;
 import jayo.tls.helpers.SocketGroups.*;
 
@@ -130,8 +130,8 @@ public class SocketPairFactory {
     }
 
     private TlsSocket createTlsClientSocket(Optional<String> cipher,
-                                              InetSocketAddress address,
-                                              SNIHostName clientSniHostName) {
+                                            InetSocketAddress address,
+                                            SNIHostName clientSniHostName) {
         final var parameterizer = ClientTlsSocket.builder(certificateFactory.getClientHandshakeCertificates())
                 .createParameterizer(NetworkSocket.connectTcp(address));
         cipher.ifPresent(c -> parameterizer.setEnabledCipherSuites(List.of(CipherSuite.fromJavaName(c))));
@@ -211,7 +211,7 @@ public class SocketPairFactory {
                 AtomicReference<SocketGroup> serverPair = new AtomicReference<>();
                 var thread = new Thread(() -> {
                     NetworkSocket rawServerSocket = server.accept();
-                    Socket plainServerSocket;
+                    RawSocket plainServerSocket;
                     if (chunkSizeConfig.isPresent()) {
                         Optional<Integer> internalSize = chunkSizeConfig.get().serverChunkSize.internalSize;
                         if (internalSize.isPresent()) {
@@ -235,7 +235,7 @@ public class SocketPairFactory {
                 thread.start();
 
                 NetworkSocket rawClient = NetworkSocket.connectTcp(address);
-                Socket plainClientSocket;
+                RawSocket plainClientSocket;
                 if (chunkSizeConfig.isPresent()) {
                     Optional<Integer> internalSize = chunkSizeConfig.get().clientChuckSize.internalSize;
                     if (internalSize.isPresent()) {

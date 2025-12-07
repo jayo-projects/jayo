@@ -61,8 +61,8 @@ public final class SocksNetworkSocket implements NetworkSocket {
         this.delegate = delegate;
         this.peerAddress = peerAddress;
 
-        reader = delegate.getReader();
-        writer = delegate.getWriter();
+        reader = Jayo.buffer(delegate.getReader());
+        writer = Jayo.buffer(delegate.getWriter());
 
         // initialize the proxy communication
         try {
@@ -297,12 +297,12 @@ public final class SocksNetworkSocket implements NetworkSocket {
     }
 
     @Override
-    public @NonNull Reader getReader() {
+    public @NonNull RawReader getReader() {
         return reader;
     }
 
     @Override
-    public @NonNull Writer getWriter() {
+    public @NonNull RawWriter getWriter() {
         return writer;
     }
 

@@ -10,7 +10,7 @@
 
 package jayo.tls;
 
-import jayo.Socket;
+import jayo.RawSocket;
 import jayo.network.NetworkServer;
 import jayo.tls.helpers.CertificateFactory;
 import jayo.tls.helpers.SocketPairFactory;
@@ -39,7 +39,7 @@ public class FailTest {
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
-        Socket serverSocket = server.accept();
+        RawSocket serverSocket = server.accept();
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> {
             final var parameterizer = ServerTlsSocket.builder(nameOpt ->
@@ -70,7 +70,7 @@ public class FailTest {
         InetSocketAddress address = new InetSocketAddress(factory.localhost, chosenPort);
         SocketChannel clientChannel = SocketChannel.open(address);
 
-        Socket serverSocket = server.accept();
+        RawSocket serverSocket = server.accept();
 
         Runnable serverFn = () -> TlsTestUtil.cannotFail(() -> assertThatThrownBy(() -> {
             final var parameterizer = ServerTlsSocket.builder(nameOpt ->

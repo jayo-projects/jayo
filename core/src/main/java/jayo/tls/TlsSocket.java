@@ -10,10 +10,7 @@
 
 package jayo.tls;
 
-import jayo.JayoException;
-import jayo.Reader;
-import jayo.Socket;
-import jayo.Writer;
+import jayo.*;
 import jayo.internal.AbstractTlsSocket;
 import org.jspecify.annotations.NonNull;
 
@@ -40,21 +37,21 @@ import java.util.List;
  * @see ClientTlsSocket
  * @see ServerTlsSocket
  */
-public sealed interface TlsSocket extends Socket permits ClientTlsSocket, ServerTlsSocket, AbstractTlsSocket {
+public sealed interface TlsSocket extends RawSocket permits ClientTlsSocket, ServerTlsSocket, AbstractTlsSocket {
 
     /**
      * @return a reader that reads decrypted plaintext data from this TLS socket.
      */
     @Override
     @NonNull
-    Reader getReader();
+    RawReader getReader();
 
     /**
      * @return a writer to write plaintext data to be encrypted by this TLS socket.
      */
     @Override
     @NonNull
-    Writer getWriter();
+    RawWriter getWriter();
 
     /**
      * @return the {@link SSLSession} of the TLS connection, that holds parameters of the ongoing TLS session.
@@ -129,13 +126,6 @@ public sealed interface TlsSocket extends Socket permits ClientTlsSocket, Server
     void cancel();
 
     /**
-     * @return the underlying {@link Socket} that read and write encrypted data.
-     */
-    @Override
-    @NonNull
-    Socket getUnderlying();
-
-    /**
      * The abstract builder used to create a {@link TlsSocket} instance.
      */
     sealed interface Builder<T extends Builder<T, U>, U extends Parameterizer>
@@ -163,10 +153,10 @@ public sealed interface TlsSocket extends Socket permits ClientTlsSocket, Server
          * requires an existing {@link Socket} for encrypted bytes (typically, but not necessarily associated with a
          * network socket).
          *
-         * @see #createParameterizer(Socket, String, int)
+         * @see #createParameterizer(RawSocket, String, int)
          */
         @NonNull
-        U createParameterizer(final @NonNull Socket encryptedSocket);
+        U createParameterizer(final @NonNull RawSocket encryptedSocket);
 
         /**
          * Create a new {@linkplain TlsSocket.Parameterizer TLS parameterizer} using advisory peer information. It
@@ -182,7 +172,7 @@ public sealed interface TlsSocket extends Socket permits ClientTlsSocket, Server
          * @param peerPort the non-authoritative port.
          */
         @NonNull
-        U createParameterizer(final @NonNull Socket encryptedSocket,
+        U createParameterizer(final @NonNull RawSocket encryptedSocket,
                               final @NonNull String peerHost,
                               final int peerPort);
     }

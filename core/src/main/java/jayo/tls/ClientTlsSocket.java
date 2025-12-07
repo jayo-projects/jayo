@@ -5,6 +5,7 @@
 
 package jayo.tls;
 
+import jayo.RawSocket;
 import jayo.Socket;
 import jayo.internal.tls.RealClientTlsSocket;
 import org.jspecify.annotations.NonNull;
@@ -28,7 +29,7 @@ public sealed interface ClientTlsSocket extends TlsSocket permits RealClientTlsS
      * <p>
      * If you need any specific configuration, please use {@link #builder(ClientHandshakeCertificates)} instead.
      */
-    static @NonNull ClientTlsSocket create(final @NonNull Socket encryptedSocket) {
+    static @NonNull ClientTlsSocket create(final @NonNull RawSocket encryptedSocket) {
         Objects.requireNonNull(encryptedSocket);
         return builder(ClientHandshakeCertificates.create())
                 .build(encryptedSocket);
@@ -57,11 +58,11 @@ public sealed interface ClientTlsSocket extends TlsSocket permits RealClientTlsS
          * Create a new {@linkplain ClientTlsSocket client-side TLS socket}, it requires an existing
          * {@link Socket} for encrypted bytes (typically, but not necessarily associated with a network socket).
          * <p>
-         * If you need TLS parameterization, please use {@link #createParameterizer(Socket)} or
-         * {@link #createParameterizer(Socket, String, int)} instead.
+         * If you need TLS parameterization, please use {@link #createParameterizer(RawSocket)} or
+         * {@link #createParameterizer(RawSocket, String, int)} instead.
          */
         @NonNull
-        ClientTlsSocket build(final @NonNull Socket encryptedSocket);
+        ClientTlsSocket build(final @NonNull RawSocket encryptedSocket);
     }
 
     sealed interface Parameterizer extends TlsSocket.Parameterizer

@@ -75,13 +75,13 @@ open class SocketReaderBenchmark {
             "jayo-io" -> {
                 clientOutputStream = clientSocket.getOutputStream()
                 val jayoSocket = clientSocket.asJayoSocket()
-                jayoReader = jayoSocket.reader
+                jayoReader = jayoSocket.reader.buffered()
             }
 
             "jayo-nio" -> {
                 clientOutputStream = clientSocketChannel.writer().buffered().asOutputStream()
                 val jayoSocket = clientSocketChannel.asJayoSocket()
-                jayoReader = jayoSocket.reader
+                jayoReader = jayoSocket.reader.buffered()
             }
 
             "okio" -> {

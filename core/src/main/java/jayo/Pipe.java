@@ -76,11 +76,17 @@ public sealed interface Pipe permits RealPipe {
      * <li>Any attempt to read {@linkplain #getReader() reader} will fail immediately with a {@link JayoException}.
      * <li>Any attempt to {@linkplain #fold(RawWriter) fold} will fail immediately with a {@link JayoException}.
      * </ul>
-     * Closing the reader and the writer will complete normally even after a socket has been canceled. If this writer
+     * Closing the reader and the writer will complete normally even after a pipe has been canceled. If this writer
      * has been folded, closing it will also close the folded writer. This operation may block.
      * <p>
      * This operation may be called by any thread at any time. It is safe to call concurrently while operating on the
      * reader or the writer.
      */
     void cancel();
+
+    /**
+     * @return {@code true} if this pipe is open, ensuring that neither {@linkplain #getReader() reader} nor
+     * {@linkplain #getWriter() writer} are closed and this pipe is not {@linkplain #cancel() canceled}.
+     */
+    boolean isOpen();
 }

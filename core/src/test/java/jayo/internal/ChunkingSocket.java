@@ -13,20 +13,20 @@ package jayo.internal;
 import jayo.*;
 import org.jspecify.annotations.NonNull;
 
-public class ChunkingSocket implements Socket {
+public class ChunkingSocket implements RawSocket {
     private final SocketChannelNetworkSocket wrapped;
-    private final Reader reader;
-    private final Writer writer;
+    private final RawReader reader;
+    private final RawWriter writer;
 
-    public ChunkingSocket(Socket _wrapped, int chunkSize) {
+    public ChunkingSocket(RawSocket _wrapped, int chunkSize) {
         this.wrapped = ((SocketChannelNetworkSocket) _wrapped);
 
-        final var rawReader = wrapped.reader.reader;
-        final var newRawReader = new RawReader() {
+        final var rawReader = wrapped.reader;
+        reader = new RawReader() {
             @Override
-            public long readAtMostTo(final @NonNull Buffer writer, final long byteCount) {
+            public long readAtMostTo(final @NonNull Buffer writer1, final long byteCount) {
                 final var readSize = Math.min(chunkSize, byteCount);
-                return rawReader.readAtMostTo(writer, readSize);
+                return rawReader.readAtMostTo(writer1, readSize);
             }
 
             @Override
@@ -34,10 +34,9 @@ public class ChunkingSocket implements Socket {
                 rawReader.close();
             }
         };
-        reader = Jayo.buffer(newRawReader);
 
-        final var rawWriter = wrapped.writer.writer;
-        final var newRawWriter = new RawWriter() {
+        final var rawWriter = wrapped.writer;
+        writer = new RawWriter() {
             @Override
             public void writeFrom(final @NonNull Buffer source, final long byteCount) {
                 var remaining = byteCount;
@@ -58,16 +57,15 @@ public class ChunkingSocket implements Socket {
                 rawWriter.close();
             }
         };
-        writer = Jayo.buffer(newRawWriter);
     }
 
     @Override
-    public @NonNull Reader getReader() {
+    public @NonNull RawReader getReader() {
         return reader;
     }
 
     @Override
-    public @NonNull Writer getWriter() {
+    public @NonNull RawWriter getWriter() {
         return writer;
     }
 
@@ -79,10 +77,5 @@ public class ChunkingSocket implements Socket {
     @Override
     public boolean isOpen() {
         return wrapped.isOpen();
-    }
-
-    @Override
-    public @NonNull Socket getUnderlying() {
-        return wrapped;
     }
 }

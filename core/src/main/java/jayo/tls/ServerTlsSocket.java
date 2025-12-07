@@ -5,6 +5,7 @@
 
 package jayo.tls;
 
+import jayo.RawSocket;
 import jayo.Socket;
 import jayo.internal.tls.RealServerTlsSocket;
 import org.jspecify.annotations.NonNull;
@@ -65,11 +66,11 @@ public sealed interface ServerTlsSocket extends TlsSocket permits RealServerTlsS
          * Create a new {@linkplain ServerTlsSocket server-side TLS socket}, it requires an existing
          * {@link Socket} for encrypted bytes (typically, but not necessarily associated with a network socket).
          * <p>
-         * If you need TLS parameterization, please use {@link #createParameterizer(Socket)} or
-         * {@link #createParameterizer(Socket, String, int)} instead.
+         * If you need TLS parameterization, please use {@link #createParameterizer(RawSocket)} or
+         * {@link #createParameterizer(RawSocket, String, int)} instead.
          */
         @NonNull
-        ServerTlsSocket build(final @NonNull Socket encryptedSocket);
+        ServerTlsSocket build(final @NonNull RawSocket encryptedSocket);
     }
 
     sealed interface Parameterizer extends TlsSocket.Parameterizer

@@ -5,6 +5,7 @@
 
 package jayo.internal;
 
+import jayo.Jayo;
 import jayo.Reader;
 import jayo.Writer;
 import jayo.network.NetworkSocket;
@@ -22,7 +23,7 @@ public class SocketTest {
         try (NetworkServer listener = NetworkServer.bindTcp(new InetSocketAddress(0))) {
             Thread serverThread = new Thread(() -> {
                 NetworkSocket serverSocket = listener.accept();
-                try (Writer serverWriter = serverSocket.getWriter()) {
+                try (Writer serverWriter = Jayo.buffer(serverSocket.getWriter())) {
                     serverWriter.write("The Answer to the Ultimate Question of Life is ")
                             .writeUtf8CodePoint('4')
                             .writeUtf8CodePoint('2');
@@ -30,7 +31,7 @@ public class SocketTest {
             });
             serverThread.start();
             NetworkSocket clientSocket = NetworkSocket.connectTcp(listener.getLocalAddress());
-            try (Reader clientReader = clientSocket.getReader()) {
+            try (Reader clientReader = Jayo.buffer(clientSocket.getReader())) {
                 assertThat(clientReader.readString())
                         .isEqualTo("The Answer to the Ultimate Question of Life is 42");
             }

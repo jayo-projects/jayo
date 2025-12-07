@@ -38,8 +38,8 @@ class Socks4ProxyServer(
 
     internal fun acceptClient() {
         val client = networkServer.accept()
-        val fromReader = client.reader
-        val fromWriter = client.writer
+        val fromReader = client.reader.buffered()
+        val fromWriter = client.writer.buffered()
 
         try {
             // Read the hello.

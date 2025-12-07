@@ -11,7 +11,7 @@
 package jayo.samples.tls;
 
 import jayo.Buffer;
-import jayo.Reader;
+import jayo.RawReader;
 import jayo.network.NetworkServer;
 import jayo.network.NetworkSocket;
 import jayo.tls.ServerHandshakeCertificates;
@@ -56,7 +56,7 @@ public class TlsSniSocketServer {
             NetworkSocket accepted = server.accept();
             // create the ServerTlsSocket, combining the socket socket and the SSLContext, using minimal options
             ServerTlsSocket tlsSocket = ServerTlsSocket.builder(exampleHandshakeCertificatesFactory).build(accepted);
-            try (Reader decryptedReader = tlsSocket.getReader()) {
+            try (RawReader decryptedReader = tlsSocket.getReader()) {
                 Buffer buffer = Buffer.create();
                 // write to stdout all data sent by the client
                 while (decryptedReader.readAtMostTo(buffer, 10000L) != -1) {

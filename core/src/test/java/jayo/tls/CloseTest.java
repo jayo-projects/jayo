@@ -50,7 +50,7 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientGroup.plain.cancel();
             assertThat(clientGroup.tls.isShutdownSent()).isFalse();
@@ -60,7 +60,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(-1);
             assertThat(serverGroup.tls.isShutdownReceived()).isFalse();
             assertThat(serverGroup.tls.isShutdownSent()).isFalse();
@@ -91,7 +91,7 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientWriter.flush();
             clientGroup.plain.cancel();
@@ -102,7 +102,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -136,7 +136,7 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientWriter.flush();
             client.cancel();
@@ -147,7 +147,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             assertThat(serverGroup.tls.isOpen()).isTrue();
             buffer.flip();
@@ -183,7 +183,7 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientWriter.flush();
             client.cancel();
@@ -194,7 +194,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -228,14 +228,14 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientWriter.flush();
             client.cancel();
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -270,7 +270,7 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientWriter.flush();
             assertThat(client.shutdown()).isFalse();
@@ -281,7 +281,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -315,7 +315,7 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientWriter.flush();
             // send first close_notify
@@ -331,7 +331,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));
@@ -369,7 +369,7 @@ public class CloseTest {
         TlsSocket client = clientGroup.tls;
         TlsSocket server = serverGroup.tls;
         Runnable clientFn = TlsTestUtil.cannotFailRunnable(() -> {
-            Writer clientWriter = client.getWriter()
+            Writer clientWriter = Jayo.buffer(client.getWriter())
                     .write(data);
             clientWriter.flush();
             // send first close_notify
@@ -385,7 +385,7 @@ public class CloseTest {
         });
         Runnable serverFn = TlsTestUtil.cannotFailRunnable(() -> {
             ByteBuffer buffer = ByteBuffer.allocate(1);
-            Reader serverReader = server.getReader();
+            Reader serverReader = Jayo.buffer(server.getReader());
             assertThat(serverReader.readAtMostTo(buffer)).isEqualTo(1);
             buffer.flip();
             assertThat(buffer).isEqualTo(ByteBuffer.wrap(data));

@@ -10,7 +10,7 @@
 
 package jayo.tls.helpers;
 
-import jayo.Socket;
+import jayo.RawSocket;
 import jayo.Jayo;
 import jayo.tls.TlsSocket;
 
@@ -31,10 +31,10 @@ public class InteroperabilityUtils {
     }
 
     public static class EndpointReader implements Reader {
-        private final Socket socket;
+        private final RawSocket socket;
         private final jayo.Reader jayoReader;
 
-        public EndpointReader(Socket socket) {
+        public EndpointReader(RawSocket socket) {
             this.socket = socket;
             this.jayoReader = Jayo.buffer(socket.getReader());
         }

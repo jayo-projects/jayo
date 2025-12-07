@@ -63,7 +63,7 @@ class SerializationTest {
             }
             override fun isConnected() = true
         }
-        val reader = socket.asJayoSocket().reader
+        val reader = socket.asJayoSocket().reader.buffered()
         val decoded = kotlinxSerializationMapper.decodeFromReader(
             DefaultPixelEvent.serializer(),
             reader
