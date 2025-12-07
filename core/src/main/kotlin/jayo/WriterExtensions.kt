@@ -15,13 +15,13 @@ package jayo
 /**
  * Writes two bytes containing a short, in the little-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeShortLe(0x1234)
  * assertEquals(0x3412, buffer.readShort())
  * ```
  *
  * @param s the short to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeShortLe(s: Short) {
     this.writeShort(java.lang.Short.reverseBytes(s))
@@ -30,13 +30,13 @@ public fun Writer.writeShortLe(s: Short) {
 /**
  * Writes four bytes containing an int, in the little-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeIntLe(0x12345678)
  * assertEquals(0x78563412, buffer.readInt())
  * ```
  *
  * @param i the int to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeIntLe(i: Int) {
     this.writeInt(Integer.reverseBytes(i))
@@ -45,13 +45,13 @@ public fun Writer.writeIntLe(i: Int) {
 /**
  * Writes eight bytes containing a long, in the little-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeLongLe(0x123456789ABCDEF0)
  * assertEquals(0xF0DEBC9A78563412U.toLong(), buffer.readLong())
  * ```
  *
  * @param l the long to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeLongLe(l: Long) {
     this.writeLong(java.lang.Long.reverseBytes(l))
@@ -60,13 +60,13 @@ public fun Writer.writeLongLe(l: Long) {
 /**
  * Writes an unsigned byte to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeUByte(255U)
  * assertContentEquals(byteArrayOf(-1), buffer.readByteArray())
  * ```
  *
  * @param b the byte to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeUByte(b: UByte) {
     writeByte(b.toByte())
@@ -75,13 +75,13 @@ public fun Writer.writeUByte(b: UByte) {
 /**
  * Writes two bytes containing an unsigned short, in the big-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeUShort(65535U)
  * assertContentEquals(byteArrayOf(-1, -1), buffer.readByteArray())
  * ```
  *
  * @param s the unsigned short to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeUShort(s: UShort) {
     writeShort(s.toShort())
@@ -90,13 +90,13 @@ public fun Writer.writeUShort(s: UShort) {
 /**
  * Writes four bytes containing an unsigned int, in the big-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeUInt(4294967295U)
  * assertContentEquals(byteArrayOf(-1, -1, -1, -1), buffer.readByteArray())
  * ```
  *
  * @param i the unsigned int to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeUInt(i: UInt) {
     writeInt(i.toInt())
@@ -105,12 +105,12 @@ public fun Writer.writeUInt(i: UInt) {
 /**
  * Writes eight bytes containing an unsigned long, in the big-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeULong(18446744073709551615UL)
  * assertContentEquals(byteArrayOf(-1, -1, -1, -1, -1, -1, -1, -1), buffer.readByteArray())
  * ```
  * @param l the unsigned long to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeULong(l: ULong) {
     writeLong(l.toLong())
@@ -119,12 +119,12 @@ public fun Writer.writeULong(l: ULong) {
 /**
  * Writes two bytes containing an unsigned short, in the little-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeUShortLe(0x1234U)
  * assertEquals(0x3412U, buffer.readUShort())
  * ```
  * @param s the unsigned short to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeUShortLe(s: UShort) {
     writeShortLe(s.toShort())
@@ -133,12 +133,12 @@ public fun Writer.writeUShortLe(s: UShort) {
 /**
  * Writes four bytes containing an unsigned int, in the little-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeUIntLe(0x12345678U)
  * assertEquals(0x78563412U, buffer.readUInt())
  * ```
  * @param i the unsigned int to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeUIntLe(i: UInt) {
     writeIntLe(i.toInt())
@@ -147,12 +147,12 @@ public fun Writer.writeUIntLe(i: UInt) {
 /**
  * Writes eight bytes containing an unsigned long, in the little-endian order, to this writer.
  * ```
- * val buffer = buffer()
+ * val buffer = Buffer()
  * buffer.writeULongLe(0x123456789ABCDEF0U)
  * assertEquals(0xF0DEBC9A78563412U, buffer.readULong())
  * ```
  * @param l the unsigned long to be written.
- * @throws JayoClosedResourceException if this writer is closed.
+ * @throws IllegalStateException if this writer is closed.
  */
 public fun Writer.writeULongLe(l: ULong) {
     writeLongLe(l.toLong())

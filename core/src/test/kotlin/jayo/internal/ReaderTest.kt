@@ -109,7 +109,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.exhausted()
             }
         }
@@ -135,7 +135,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readByte()
             }
         }
@@ -158,7 +158,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readShort()
             }
         }
@@ -226,7 +226,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readInt()
             }
         }
@@ -313,7 +313,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readLong()
             }
         }
@@ -420,7 +420,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readAtMostTo(writer, 10)
             }
         }
@@ -450,7 +450,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         }
 
         reader.close()
-        assertFailsWith<JayoClosedResourceException> {
+        assertFailsWith<IllegalStateException> {
             reader.readAtMostTo(RealBuffer(), 1L)
         }
     }
@@ -504,7 +504,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readTo(writer, 9999)
             }
         }
@@ -558,7 +558,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readTo(writer)
             }
         }
@@ -630,7 +630,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readTo(array)
             }
         }
@@ -730,7 +730,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.readByteArray(3)
             }
         }
@@ -807,7 +807,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
 
         if (reader is RealReader) {
             reader.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 reader.skip(1)
             }
         }
@@ -2049,7 +2049,7 @@ abstract class AbstractReaderTest internal constructor(private val factory: Read
         val input = reader.asInputStream()
         input.close()
 
-        assertFailsWith<JayoClosedResourceException> { reader.readByte() }
+        assertFailsWith<IllegalStateException> { reader.readByte() }
     }
 
     @Test

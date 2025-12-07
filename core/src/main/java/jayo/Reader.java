@@ -90,14 +90,14 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <p>
      * It is never correct to use the return value of this method to allocate a buffer intended to hold all data in this
      * reader.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     long bytesAvailable();
 
     /**
      * @return {@code false} if the buffered data already contains at least one byte, else new data will be requested
      * from the downstream. If this reader is definitely exhausted, it returns {@code true}.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     boolean exhausted();
 
@@ -111,8 +111,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @param byteCount the number of bytes that the buffer should contain.
      * @return a boolean value indicating if the requirement was successfully fulfilled. {@code false} indicates that
      * this reader was exhausted before containing {@code byteCount} bytes of data.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     boolean request(final long byteCount);
 
@@ -125,10 +125,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * definitely exhausted before reaching this goal.
      *
      * @param byteCount the number of bytes that the buffer should contain.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException         if this reader is exhausted before containing {@code byteCount} bytes of
+     *                                  data.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     void require(final long byteCount);
 
@@ -136,9 +136,9 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * Reads and discards {@code byteCount} bytes from this reader.
      *
      * @param byteCount the number of bytes to be skipped.
-     * @throws JayoEOFException            if this reader is exhausted before skipping the requested number of bytes.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException         if this reader is exhausted before skipping the requested number of bytes.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     void skip(final long byteCount);
 
@@ -146,8 +146,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * Removes a byte from this reader and returns it.
      *
      * @return the read byte value.
-     * @throws JayoEOFException            if there are no more bytes to read.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      if there are no more bytes to read.
+     * @throws IllegalStateException if this reader is closed.
      */
     byte readByte();
 
@@ -171,8 +171,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @return the read short value.
-     * @throws JayoEOFException            if there are not enough data to read a short value.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      if there are not enough data to read a short value.
+     * @throws IllegalStateException if this reader is closed.
      */
     short readShort();
 
@@ -200,8 +200,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @return the read int value.
-     * @throws JayoEOFException            if there are not enough data to read an int value.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      if there are not enough data to read an int value.
+     * @throws IllegalStateException if this reader is closed.
      */
     int readInt();
 
@@ -237,8 +237,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @return the read long value.
-     * @throws JayoEOFException            if there are not enough data to read a long value.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      if there are not enough data to read a long value.
+     * @throws IllegalStateException if this reader is closed.
      */
     long readLong();
 
@@ -261,10 +261,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @return the read decimal long value.
-     * @throws NumberFormatException       if the found digits do not fit into a long, or a decimal number was not
-     *                                     present.
-     * @throws JayoEOFException            if this reader is exhausted before a call of this method.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws NumberFormatException if the found digits do not fit into a long, or a decimal number was not
+     *                               present.
+     * @throws JayoEOFException      if this reader is exhausted before a call of this method.
+     * @throws IllegalStateException if this reader is closed.
      */
     long readDecimalLong();
 
@@ -287,10 +287,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @return the read hexadecimal-long value.
-     * @throws NumberFormatException       if the found hexadecimal does not fit into a long, or a hexadecimal number
-     *                                     was not present.
-     * @throws JayoEOFException            if this reader is exhausted before a call of this method.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws NumberFormatException if the found hexadecimal does not fit into a long, or a hexadecimal number
+     *                               was not present.
+     * @throws JayoEOFException      if this reader is exhausted before a call of this method.
+     * @throws IllegalStateException if this reader is closed.
      */
     long readHexadecimalUnsignedLong();
 
@@ -323,14 +323,14 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param options a list of several potential prefixes.
      * @return the index of the matching prefix in the {@code options} list, or {@code -1} if none matched.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     int select(final @NonNull Options options);
 
     /**
      * Removes all bytes from this reader and returns them as a byte array.
      *
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     byte @NonNull [] readByteArray();
 
@@ -338,10 +338,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * Removes {@code byteCount} bytes from this reader and returns them as a byte array.
      *
      * @param byteCount the number of bytes to read from this reader.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException         if this reader is exhausted before containing {@code byteCount} bytes of
+     *                                  data.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     byte @NonNull [] readByteArray(final long byteCount);
 
@@ -349,7 +349,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * Removes all bytes from this reader and returns them as a byte string.
      *
      * @return the byte string containing all bytes from this reader.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     @NonNull
     ByteString readByteString();
@@ -359,10 +359,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param byteCount the number of bytes to read from this reader.
      * @return the byte string containing {@code byteCount} bytes from this reader.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException         if this reader is exhausted before containing {@code byteCount} bytes of
+     *                                  data.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
     ByteString readByteString(final long byteCount);
@@ -395,7 +395,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * }
      * </pre>
      *
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     @Nullable
     String readLine();
@@ -428,7 +428,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * }
      * </pre>
      *
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     @Nullable
     String readLine(final @NonNull Charset charset);
@@ -440,8 +440,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <p>
      * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match.
      *
-     * @throws JayoEOFException            if a line break was not encountered.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      if a line break was not encountered.
+     * @throws IllegalStateException if this reader is closed.
      */
     @NonNull
     String readLineStrict();
@@ -453,8 +453,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * <p>
      * This method is safe. No bytes are discarded if the match fails, and the caller is free to try another match.
      *
-     * @throws JayoEOFException            if a line break was not encountered.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      if a line break was not encountered.
+     * @throws IllegalStateException if this reader is closed.
      */
     @NonNull
     String readLineStrict(final @NonNull Charset charset);
@@ -483,10 +483,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @param limit the maximum UTF-8 bytes constituting a returned string.
-     * @throws JayoEOFException            when this reader does not contain a string consisting with at most
-     *                                     {@code limit} bytes followed by line break characters.
-     * @throws IllegalArgumentException    when {@code limit} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException         when this reader does not contain a string consisting with at most
+     *                                  {@code limit} bytes followed by line break characters.
+     * @throws IllegalArgumentException when {@code limit} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
     String readLineStrict(final long limit);
@@ -515,10 +515,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @param limit the maximum UTF-8 bytes constituting a returned string.
-     * @throws JayoEOFException            when this reader does not contain a string consisting with at most
-     *                                     {@code limit} bytes followed by line break characters.
-     * @throws IllegalArgumentException    when {@code limit} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException         when this reader does not contain a string consisting with at most
+     *                                  {@code limit} bytes followed by line break characters.
+     * @throws IllegalArgumentException when {@code limit} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
     String readLineStrict(final long limit, final @NonNull Charset charset);
@@ -535,8 +535,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * UTF-16 surrogates (U+d800..U+dfff) and overlong encodings (such as {@code 0xc080} for the NUL character in
      * modified UTF-8).
      *
-     * @throws JayoEOFException            when this reader is exhausted before a complete code point can be read.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      when this reader is exhausted before a complete code point can be read.
+     * @throws IllegalStateException if this reader is closed.
      */
     int readUtf8CodePoint();
 
@@ -558,7 +558,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * }
      * </pre>
      *
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     @NonNull
     String readString();
@@ -585,10 +585,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @param byteCount the number of bytes to read from this reader for string decoding.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws JayoEOFException         if this reader is exhausted before containing {@code byteCount} bytes of
+     *                                  data.
+     * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
     String readString(final long byteCount);
@@ -611,7 +611,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * }
      * </pre>
      *
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     @NonNull
     String readString(final @NonNull Charset charset);
@@ -639,10 +639,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @param byteCount the number of bytes to read from this reader for string decoding.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws JayoEOFException         if this reader is exhausted before containing {@code byteCount} bytes of
+     *                                  data.
+     * @throws IllegalStateException    if this reader is closed.
      */
     @NonNull
     String readString(final long byteCount, final @NonNull Charset charset);
@@ -652,7 +652,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param destination the array to which data will be written from this reader.
      * @return the number of bytes read, or {@code -1} if this reader is exhausted.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     int readAtMostTo(final byte @NonNull [] destination);
 
@@ -674,9 +674,9 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * Removes exactly {@code destination.length} bytes from this reader and copies them into {@code destination}.
      *
      * @param destination the byte array to which data will be written from this reader.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code destination.length}
-     *                                     bytes of data.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws JayoEOFException      if this reader is exhausted before containing {@code destination.length}
+     *                               bytes of data.
+     * @throws IllegalStateException if this reader is closed.
      */
     void readTo(final byte @NonNull [] destination);
 
@@ -687,11 +687,11 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @param destination the byte array to which data will be written from this reader.
      * @param offset      the start offset (inclusive) in the {@code destination} of the first byte to copy.
      * @param byteCount   the number of bytes to copy.
-     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of {@code destination}
-     *                                     indices.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code destination}
+     *                                   indices.
+     * @throws JayoEOFException          if this reader is exhausted before containing {@code byteCount} bytes of
+     *                                   data.
+     * @throws IllegalStateException     if this reader is closed.
      */
     void readTo(final byte @NonNull [] destination, final int offset, final int byteCount);
 
@@ -700,9 +700,9 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param destination the destination to which data will be written from this reader.
      * @param byteCount   the number of bytes to copy.
-     * @throws JayoEOFException            if this reader is exhausted before containing {@code byteCount} bytes of
-     *                                     data.
-     * @throws JayoClosedResourceException if this reader or {@code destination} is closed.
+     * @throws JayoEOFException      if this reader is exhausted before containing {@code byteCount} bytes of
+     *                               data.
+     * @throws IllegalStateException if this reader or {@code destination} is closed.
      */
     void readTo(final @NonNull RawWriter destination, final long byteCount);
 
@@ -711,7 +711,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param destination the destination to which data will be written from this reader.
      * @return the total number of bytes written to {@code destination} which will be {@code 0L} if this reader is exhausted.
-     * @throws JayoClosedResourceException if this reader or {@code destination} is closed.
+     * @throws IllegalStateException if this reader or {@code destination} is closed.
      */
     long readAllTo(final @NonNull RawWriter destination);
 
@@ -730,7 +730,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @param b the byte value to find.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     long indexOf(final byte b);
 
@@ -751,8 +751,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param b          the byte value to find.
      * @param startIndex the start of the range (inclusive) to find {@code b}.
-     * @throws IllegalArgumentException    if {@code startIndex} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException if {@code startIndex} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     long indexOf(final byte b, final long startIndex);
 
@@ -777,8 +777,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @param b          the byte value to find.
      * @param startIndex the start of the range (inclusive) to find {@code b}.
      * @param endIndex   the end of the range (exclusive) to find {@code b}.
-     * @throws IllegalArgumentException    when {@code startIndex > endIndex} or either of indexes is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException when {@code startIndex > endIndex} or either of indexes is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     long indexOf(final byte b, final long startIndex, final long endIndex);
 
@@ -790,7 +790,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * will be requested from the downstream. The scan terminates at the reader's exhaustion.
      *
      * @param byteString the sequence of bytes to find within the reader.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     long indexOf(final @NonNull ByteString byteString);
 
@@ -803,8 +803,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param byteString the sequence of bytes to find within this reader.
      * @param startIndex the start of the range (inclusive) to find {@code byteString}.
-     * @throws IllegalArgumentException    if {@code startIndex} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException if {@code startIndex} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     long indexOf(final @NonNull ByteString byteString, final long startIndex);
 
@@ -820,8 +820,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @param byteString the sequence of bytes to find within this reader.
      * @param startIndex the start of the range (inclusive) to find {@code byteString}.
      * @param endIndex   the end of the range (exclusive) to find {@code byteString}.
-     * @throws IllegalArgumentException    if {@code startIndex} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException if {@code startIndex} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     long indexOf(final @NonNull ByteString byteString, final long startIndex, final long endIndex);
 
@@ -843,7 +843,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * </pre>
      *
      * @param targetBytes the byte sequence we try to find within the reader.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     long indexOfElement(final @NonNull ByteString targetBytes);
 
@@ -866,8 +866,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param targetBytes the byte sequence we try to find within the reader.
      * @param startIndex  the start of the range (inclusive) to find any of the bytes in {@code targetBytes}.
-     * @throws IllegalArgumentException    if {@code startIndex} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalArgumentException if {@code startIndex} is negative.
+     * @throws IllegalStateException    if this reader is closed.
      */
     long indexOfElement(final @NonNull ByteString targetBytes, final long startIndex);
 
@@ -891,8 +891,8 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      *
      * @param offset     the start offset (inclusive) in this reader to compare with {@code byteString}.
      * @param byteString the sequence of bytes we are comparing to.
-     * @throws IndexOutOfBoundsException   if {@code offset} is out of range of this reader's indices.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IndexOutOfBoundsException if {@code offset} is out of range of this reader's indices.
+     * @throws IllegalStateException     if this reader is closed.
      */
     boolean rangeEquals(final long offset, final @NonNull ByteString byteString);
 
@@ -919,10 +919,10 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * @param byteString       the sequence of bytes we are comparing to.
      * @param byteStringOffset the start offset (inclusive) in the byte string's data to compare with this reader.
      * @param byteCount        the number of bytes to compare.
-     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of this reader's
-     *                                     indices, or if {@code byteStringOffset} or {@code byteCount} is out of range
-     *                                     of {@code byteString} indices.
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of this reader's
+     *                                   indices, or if {@code byteStringOffset} or {@code byteCount} is out of range
+     *                                   of {@code byteString} indices.
+     * @throws IllegalStateException     if this reader is closed.
      */
     boolean rangeEquals(final long offset,
                         final @NonNull ByteString byteString,
@@ -950,7 +950,7 @@ public sealed interface Reader extends RawReader permits Buffer, RealReader {
      * }
      * </pre>
      *
-     * @throws JayoClosedResourceException if this reader is closed.
+     * @throws IllegalStateException if this reader is closed.
      */
     @NonNull
     Reader peek();

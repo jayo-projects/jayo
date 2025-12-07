@@ -16,7 +16,7 @@ package jayo
  * Removes two bytes from this reader and returns a short composed of them according to the little-endian order.
  *
  * @throws JayoEOFException if there are not enough data to read a short value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readShortLe(): Short {
     return java.lang.Short.reverseBytes(readShort())
@@ -26,7 +26,7 @@ public fun Reader.readShortLe(): Short {
  * Removes four bytes from this reader and returns an integer composed of them according to the little-endian order.
  *
  * @throws JayoEOFException if there are not enough data to read an int value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readIntLe(): Int {
     return Integer.reverseBytes(readInt())
@@ -36,7 +36,7 @@ public fun Reader.readIntLe(): Int {
  * Removes eight bytes from this reader and returns a long composed of them according to the little-endian order.
  *
  * @throws JayoEOFException if there are not enough data to read a long value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readLongLe(): Long {
     return java.lang.Long.reverseBytes(readLong())
@@ -46,7 +46,7 @@ public fun Reader.readLongLe(): Long {
  * Removes an unsigned byte from this reader and returns it.
  *
  * @throws JayoEOFException when there are no more bytes to read.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readUByte(): UByte = readByte().toUByte()
 
@@ -54,7 +54,7 @@ public fun Reader.readUByte(): UByte = readByte().toUByte()
  * Removes two bytes from this reader and returns an unsigned short composed of them according to the big-endian order.
  *
  * @throws JayoEOFException if there are not enough data to read an unsigned short value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readUShort(): UShort = readShort().toUShort()
 
@@ -63,7 +63,7 @@ public fun Reader.readUShort(): UShort = readShort().toUShort()
  * order.
  *
  * @throws JayoEOFException if there are not enough data to read an unsigned int value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readUInt(): UInt = readInt().toUInt()
 
@@ -71,7 +71,7 @@ public fun Reader.readUInt(): UInt = readInt().toUInt()
  * Removes eight bytes from this reader and returns an unsigned long composed of them according to the big-endian order.
  *
  * @throws JayoEOFException if there are not enough data to read an unsigned long value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readULong(): ULong = readLong().toULong()
 
@@ -80,7 +80,7 @@ public fun Reader.readULong(): ULong = readLong().toULong()
  * order.
  *
  * @throws JayoEOFException if there are not enough data to read an unsigned short value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readUShortLe(): UShort = readShortLe().toUShort()
 
@@ -89,7 +89,7 @@ public fun Reader.readUShortLe(): UShort = readShortLe().toUShort()
  * order.
  *
  * @throws JayoEOFException if there are not enough data to read an unsigned int value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readUIntLe(): UInt = readIntLe().toUInt()
 
@@ -98,6 +98,6 @@ public fun Reader.readUIntLe(): UInt = readIntLe().toUInt()
  * order.
  *
  * @throws JayoEOFException if there are not enough data to read an unsigned long value.
- * @throws JayoClosedResourceException if this reader is closed.
+ * @throws IllegalStateException if this reader is closed.
  */
 public fun Reader.readULongLe(): ULong = readLongLe().toULong()

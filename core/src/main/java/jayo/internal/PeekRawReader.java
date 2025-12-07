@@ -22,7 +22,6 @@
 package jayo.internal;
 
 import jayo.Buffer;
-import jayo.JayoClosedResourceException;
 import jayo.RawReader;
 import jayo.Reader;
 import org.jspecify.annotations.NonNull;
@@ -68,7 +67,7 @@ final class PeekRawReader implements RawReader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         final var bufferHead = buffer.head;

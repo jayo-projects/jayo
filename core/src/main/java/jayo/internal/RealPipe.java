@@ -75,7 +75,7 @@ public final class RealPipe implements Pipe {
                 lock.lock();
                 try {
                     if (readerClosed) {
-                        throw new JayoClosedResourceException();
+                        throw new IllegalStateException("closed");
                     }
                     if (canceled) {
                         throw new JayoException("canceled");
@@ -149,7 +149,7 @@ public final class RealPipe implements Pipe {
                 lock.lock();
                 try {
                     if (writerClosed) {
-                        throw new JayoClosedResourceException();
+                        throw new IllegalStateException("closed");
                     }
                     if (canceled) {
                         throw new JayoException("canceled");
@@ -212,7 +212,7 @@ public final class RealPipe implements Pipe {
                 try {
                     // check if the writer is closed
                     if (writerClosed) {
-                        throw new JayoClosedResourceException();
+                        throw new IllegalStateException("closed");
                     }
                     if (canceled) {
                         throw new JayoException("canceled");

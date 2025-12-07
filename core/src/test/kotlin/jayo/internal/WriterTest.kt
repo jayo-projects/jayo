@@ -97,10 +97,10 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(0, data.bytesAvailable())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.write(reader)
             }
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.write(reader, 1, 1)
             }
         }
@@ -113,7 +113,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(0, data.bytesAvailable())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.write("")
             }
         }
@@ -126,7 +126,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals("Buffer(size=1 hex=ba)", data.toString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeByte(0xba.toByte())
             }
         }
@@ -158,7 +158,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals("Buffer(size=2 hex=ab01)", data.toString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeShort(0xab01.toShort())
             }
         }
@@ -187,7 +187,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals("Buffer(size=4 hex=00197760)", data.toString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeInt(0x197760)
             }
         }
@@ -237,7 +237,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals("Buffer(size=8 hex=123456789abcdef0)", data.toString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeLong(0x123456789abcdef0L)
             }
         }
@@ -277,7 +277,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(0, reader.bytesAvailable())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeAllFrom(reader)
             }
         }
@@ -295,7 +295,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals("ef", reader.readString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeFrom(reader as RawReader, 4)
             }
         }
@@ -315,7 +315,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals("abcdabcd", data.readString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeFrom(reader, 8)
             }
         }
@@ -348,7 +348,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeFrom(reader, 8)
             }
         }
@@ -436,7 +436,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertLongDecimalString("1000000000000000000", 1000000000000000000L)
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeDecimalLong(0L)
             }
         }
@@ -474,7 +474,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertHexadecimalUnsignedLongString("989680", 10000000L)
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeHexadecimalUnsignedLong(0L)
             }
         }
@@ -498,7 +498,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals("0123456789", data.readString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.write("0123456789")
             }
         }
@@ -511,7 +511,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(0x10ffff, data.readUtf8CodePoint())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.writeUtf8CodePoint(1)
             }
         }
@@ -573,7 +573,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(ByteString.of(*"74c999cb8872616ec999cb8c73c3b472".decodeHex()), data.readByteString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.write("təˈranəˌsôr".encodeToByteString())
             }
         }
@@ -586,7 +586,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertEquals(ByteString.of(*"72616ec999".decodeHex()), data.readByteString())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.write("təˈranəˌsôr".encodeToByteString(), 5, 5)
             }
         }
@@ -631,7 +631,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
 
         val out = writer.asOutputStream()
         out.close()
-        assertFailsWith<JayoClosedResourceException> { writer.writeByte(0) }
+        assertFailsWith<IllegalStateException> { writer.writeByte(0) }
     }
 
     @Test
@@ -668,7 +668,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
             return
         }
         writer.close()
-        assertFailsWith<JayoClosedResourceException> {
+        assertFailsWith<IllegalStateException> {
             writer.writeAllFrom(ByteBuffer.allocate(10))
         }
     }
@@ -681,7 +681,7 @@ abstract class AbstractWriterTest internal constructor(private val factory: Writ
         assertArrayEquals(expected.decodeHex(), data.readByteArray())
         if (writer is RealWriter) {
             writer.close()
-            assertFailsWith<JayoClosedResourceException> {
+            assertFailsWith<IllegalStateException> {
                 writer.write("təˈranəˌsôr", Charset.forName("utf-32be"))
             }
         }

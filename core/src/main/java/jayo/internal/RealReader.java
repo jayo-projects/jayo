@@ -61,7 +61,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         if (buffer.bytesAvailable() == 0L) {
@@ -96,7 +96,7 @@ public final class RealReader implements Reader {
     public int select(final @NonNull Options options) {
         Objects.requireNonNull(options);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         final var _options = (RealOptions) options;
 
@@ -341,7 +341,7 @@ public final class RealReader implements Reader {
     @Override
     public long bytesAvailable() {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         return buffer.byteSize;
     }
@@ -349,7 +349,7 @@ public final class RealReader implements Reader {
     @Override
     public boolean exhausted() {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         return buffer.exhausted() && reader.readAtMostTo(buffer, Segment.SIZE) == -1L;
     }
@@ -360,7 +360,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         while (buffer.byteSize < byteCount) {
             if (reader.readAtMostTo(buffer, Segment.SIZE) == -1L) {
@@ -451,7 +451,7 @@ public final class RealReader implements Reader {
             throw new IllegalArgumentException("byteCount < 0L: " + byteCount);
         }
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         final var skipped = skipPrivate(byteCount);
         if (skipped < byteCount) {
@@ -485,7 +485,7 @@ public final class RealReader implements Reader {
     @Override
     public long indexOf(final byte b, final long startIndex, final long endIndex) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         if (startIndex < 0L || startIndex > endIndex) {
             throw new IllegalArgumentException("startIndex=" + startIndex + " endIndex=" + endIndex);
@@ -537,7 +537,7 @@ public final class RealReader implements Reader {
                          final long endIndex) {
         Objects.requireNonNull(byteString);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         checkOffsetAndCount(byteString.byteSize(), byteStringOffset, byteCount);
 
@@ -631,7 +631,7 @@ public final class RealReader implements Reader {
     public long indexOfElement(final @NonNull ByteString targetBytes, final long startIndex) {
         Objects.requireNonNull(targetBytes);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         if (startIndex < 0L) {
             throw new IllegalArgumentException("startIndex < 0: " + startIndex);
@@ -666,7 +666,7 @@ public final class RealReader implements Reader {
                                final int byteCount) {
         Objects.requireNonNull(byteString);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         if (byteCount < 0 ||

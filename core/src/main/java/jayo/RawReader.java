@@ -72,9 +72,9 @@ public interface RawReader extends AutoCloseable {
      * @param destination the destination to write the data from this reader.
      * @param byteCount   the number of bytes to read.
      * @return the number of bytes read, or {@code -1L} if this reader is exhausted.
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this reader is closed.
-     * @throws JayoException               if an I/O error occurs.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this reader is closed.
+     * @throws JayoException            if an I/O error occurs.
      */
     long readAtMostTo(final @NonNull Buffer destination, final long byteCount);
 

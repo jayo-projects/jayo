@@ -81,7 +81,7 @@ public final class RealInflaterRawReader implements InflaterRawReader {
             throw new IllegalArgumentException("byteCount < 0: " + byteCount);
         }
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         if (byteCount == 0L) {

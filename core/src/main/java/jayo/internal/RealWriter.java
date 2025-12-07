@@ -53,7 +53,7 @@ public final class RealWriter implements Writer {
     public void writeFrom(final @NonNull Buffer source, final long byteCount) {
         Objects.requireNonNull(source);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeFrom(source, byteCount);
@@ -65,7 +65,7 @@ public final class RealWriter implements Writer {
         Objects.requireNonNull(byteString);
 
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.write(byteString);
@@ -78,7 +78,7 @@ public final class RealWriter implements Writer {
                                  final int byteCount) {
         Objects.requireNonNull(byteString);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.write(byteString, offset, byteCount);
@@ -89,7 +89,7 @@ public final class RealWriter implements Writer {
     public @NonNull Writer write(final @NonNull String string) {
         Objects.requireNonNull(string);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.write(string);
@@ -101,7 +101,7 @@ public final class RealWriter implements Writer {
         Objects.requireNonNull(string);
         Objects.requireNonNull(charset);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.write(string, charset);
@@ -111,7 +111,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeUtf8CodePoint(final int codePoint) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeUtf8CodePoint(codePoint);
@@ -122,7 +122,7 @@ public final class RealWriter implements Writer {
     public @NonNull Writer write(final byte @NonNull [] source) {
         Objects.requireNonNull(source);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.write(source);
@@ -135,7 +135,7 @@ public final class RealWriter implements Writer {
                                  final int byteCount) {
         Objects.requireNonNull(source);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         return writePrivate(source, offset, byteCount);
@@ -154,7 +154,7 @@ public final class RealWriter implements Writer {
     public int writeAllFrom(final @NonNull ByteBuffer source) {
         Objects.requireNonNull(source);
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         final var totalBytesRead = buffer.writeAllFrom(source);
@@ -169,7 +169,7 @@ public final class RealWriter implements Writer {
         var totalBytesRead = 0L;
         while (true) {
             if (closed) {
-                throw new JayoClosedResourceException();
+                throw new IllegalStateException("closed");
             }
 
             final var readCount = source.readAtMostTo(buffer, Segment.SIZE);
@@ -192,7 +192,7 @@ public final class RealWriter implements Writer {
         var _byteCount = byteCount;
         while (_byteCount > 0L) {
             if (closed) {
-                throw new JayoClosedResourceException();
+                throw new IllegalStateException("closed");
             }
 
             final var read = source.readAtMostTo(buffer, _byteCount);
@@ -208,7 +208,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeByte(final byte b) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeByte(b);
@@ -218,7 +218,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeShort(final short s) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeShort(s);
@@ -228,7 +228,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeInt(final int i) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeInt(i);
@@ -238,7 +238,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeLong(final long l) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeLong(l);
@@ -248,7 +248,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeDecimalLong(final long l) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeDecimalLong(l);
@@ -258,7 +258,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer writeHexadecimalUnsignedLong(final long l) {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
 
         buffer.writeHexadecimalUnsignedLong(l);
@@ -268,7 +268,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer emitCompleteSegments() {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         final var byteCount = buffer.completeSegmentByteCount();
         if (byteCount > 0L) {
@@ -280,7 +280,7 @@ public final class RealWriter implements Writer {
     @Override
     public @NonNull Writer emit() {
         if (closed) {
-            throw new JayoClosedResourceException();
+            throw new IllegalStateException("closed");
         }
         if (buffer.byteSize > 0L) {
             writer.writeFrom(buffer, buffer.byteSize);

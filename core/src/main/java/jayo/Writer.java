@@ -84,7 +84,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param source the byte array source.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer write(final byte @NonNull [] source);
@@ -96,9 +96,9 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param offset    the start offset (inclusive) in the byte array's data.
      * @param byteCount the number of bytes to write.
      * @return {@code this}
-     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of {@code source}
-     *                                     indices.
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of {@code source}
+     *                                   indices.
+     * @throws IllegalStateException     if this writer is closed.
      */
     @NonNull
     Writer write(final byte @NonNull [] source,
@@ -110,7 +110,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param byteString the byte string source.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer write(final @NonNull ByteString byteString);
@@ -122,9 +122,9 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param offset     the start offset (inclusive) in the byte string's data.
      * @param byteCount  the number of bytes to write.
      * @return {@code this}
-     * @throws IndexOutOfBoundsException   if {@code offset} or {@code byteCount} is out of range of
-     *                                     {@code byteString} indices.
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IndexOutOfBoundsException if {@code offset} or {@code byteCount} is out of range of
+     *                                   {@code byteString} indices.
+     * @throws IllegalStateException     if this writer is closed.
      */
     @NonNull
     Writer write(final @NonNull ByteString byteString,
@@ -146,7 +146,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param string the string to be encoded.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer write(final @NonNull String string);
@@ -167,7 +167,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param string  the string to be encoded.
      * @param charset the charset to use for encoding.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer write(final @NonNull String string, final @NonNull Charset charset);
@@ -177,7 +177,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param codePoint the codePoint to be written.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer writeUtf8CodePoint(final int codePoint);
@@ -191,8 +191,8 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param source    the source to consume data from.
      * @param byteCount the number of bytes to consume from {@code source} and to write into this writer.
      * @return {@code this}
-     * @throws IllegalArgumentException    if {@code byteCount} is negative.
-     * @throws JayoClosedResourceException if this writer or {@code source} is closed.
+     * @throws IllegalArgumentException if {@code byteCount} is negative.
+     * @throws IllegalStateException    if this writer or {@code source} is closed.
      */
     @NonNull
     Writer writeFrom(final @NonNull RawReader source, final long byteCount);
@@ -202,7 +202,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param b the byte to be written.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer writeByte(final byte b);
@@ -226,7 +226,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param s the short to be written.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer writeShort(final short s);
@@ -254,7 +254,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param i the int to be written.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer writeInt(final int i);
@@ -290,7 +290,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param l the long to be written.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer writeLong(final long l);
@@ -313,7 +313,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param l the long to be written.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer writeDecimalLong(final long l);
@@ -336,7 +336,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param l the long to be written.
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer writeHexadecimalUnsignedLong(final long l);
@@ -347,7 +347,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * @param source the byte buffer to read data from.
      * @return the number of bytes read, which will be {@code 0} if {@code source} has no
      * {@linkplain ByteBuffer#hasRemaining() remaining} bytes.
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     int writeAllFrom(final @NonNull ByteBuffer source);
 
@@ -356,7 +356,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      *
      * @param source the source to consume data from.
      * @return the number of bytes read, which will be {@code 0L} if {@code source} is exhausted.
-     * @throws JayoClosedResourceException if this writer or {@code source} is closed.
+     * @throws IllegalStateException if this writer or {@code source} is closed.
      */
     long writeAllFrom(final @NonNull RawReader source);
 
@@ -384,7 +384,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * }
      * </pre>
      *
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @Override
     void flush();
@@ -423,7 +423,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * </pre>
      *
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer emit();
@@ -458,7 +458,7 @@ public sealed interface Writer extends RawWriter permits Buffer, RealWriter {
      * </pre>
      *
      * @return {@code this}
-     * @throws JayoClosedResourceException if this writer is closed.
+     * @throws IllegalStateException if this writer is closed.
      */
     @NonNull
     Writer emitCompleteSegments();

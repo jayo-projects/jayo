@@ -230,10 +230,10 @@ class PipeTest {
         pipe.writer.close()
         assertThatThrownBy {
             pipe.writer.writeFrom(Buffer().write("abc"), 3)
-        }.isInstanceOf(JayoClosedResourceException::class.java)
+        }.isInstanceOf(IllegalStateException::class.java)
         assertThatThrownBy {
             pipe.writer.flush()
-        }.isInstanceOf(JayoClosedResourceException::class.java)
+        }.isInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -259,7 +259,7 @@ class PipeTest {
         pipe.reader.close()
         assertThatThrownBy {
             pipe.reader.readAtMostTo(Buffer(), 3)
-        }.isInstanceOf(JayoClosedResourceException::class.java)
+        }.isInstanceOf(IllegalStateException::class.java)
     }
 
     @Test
@@ -402,7 +402,7 @@ class PipeTest {
         pipewriter.emit()
         assertEquals("world", foldedwriterBuffer.readString(5))
 
-        assertFailsWith<JayoClosedResourceException> {
+        assertFailsWith<IllegalStateException> {
             pipereader.readString()
         }
 
@@ -447,7 +447,7 @@ class PipeTest {
     fun accessReaderAfterFold() {
         val pipe = Pipe(100L)
         pipe.fold(Buffer())
-        assertFailsWith<JayoClosedResourceException> {
+        assertFailsWith<IllegalStateException> {
             pipe.reader.readAtMostTo(Buffer(), 1L)
         }
     }
