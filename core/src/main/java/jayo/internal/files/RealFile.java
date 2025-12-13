@@ -130,7 +130,7 @@ public final /*Valhalla 'value class'*/ class RealFile implements File {
     }
 
     @Override
-    public long getSize() {
+    public long byteSize() {
         if (!Files.exists(path)) {
             throw new JayoFileNotFoundException("file does not exist anymore");
         }
@@ -147,7 +147,7 @@ public final /*Valhalla 'value class'*/ class RealFile implements File {
     }
 
     @Override
-    public @NonNull FileMetadata getMetadata() {
+    public @NonNull FileMetadata metadata() {
         if (!Files.exists(path)) {
             throw new JayoFileNotFoundException("file does not exist anymore");
         }
@@ -196,6 +196,9 @@ public final /*Valhalla 'value class'*/ class RealFile implements File {
         if (!Files.exists(path)) {
             throw new JayoFileNotFoundException("file does not exist anymore");
         }
+        if (Files.isDirectory(destination)) {
+            throw new JayoException("destination is a directory");
+        }
         final var destFile = createIfNotExists(destination);
         try (final var bytesIn = Jayo.reader(path); final var bytesOut = Jayo.buffer(destFile.writer())) {
             bytesOut.writeAllFrom(bytesIn);
@@ -213,8 +216,4 @@ public final /*Valhalla 'value class'*/ class RealFile implements File {
             throw JayoException.buildJayoException(e);
         }
     }
-
-//    public boolean isAbsolute() {
-//        return path.isAbsolute();
-//    }
 }

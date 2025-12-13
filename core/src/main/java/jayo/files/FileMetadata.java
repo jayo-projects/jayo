@@ -54,7 +54,7 @@ import java.time.Instant;
  */
 public sealed interface FileMetadata permits RealFileMetadata {
     /**
-     * @return true if this file is a container of bytes. If this is true, then {@link File#getSize()} has a
+     * @return true if this file is a container of bytes. If this is true, then {@link File#byteSize()} has a
      * non-negative value.
      */
     boolean isRegularFile();

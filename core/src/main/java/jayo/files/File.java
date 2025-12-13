@@ -108,7 +108,7 @@ public sealed interface File permits RealFile {
      * {@code -1L} for them.
      * @throws JayoFileNotFoundException if the file does not exist anymore.
      */
-    long getSize();
+    long byteSize();
 
     /**
      * @return the {@code path} of this file.
@@ -123,7 +123,7 @@ public sealed interface File permits RealFile {
      *                                   problem, or other issue.
      */
     @NonNull
-    FileMetadata getMetadata();
+    FileMetadata metadata();
 
     /**
      * @param digest the chosen message digest algorithm to use for hashing.
