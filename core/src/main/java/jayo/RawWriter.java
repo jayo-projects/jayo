@@ -65,7 +65,6 @@ public interface RawWriter extends AutoCloseable {
      * @param byteCount the number of bytes to write.
      * @throws IndexOutOfBoundsException if the {@code source}'s byte size is below {@code byteCount} or
      *                                   {@code byteCount} is negative.
-     * @throws IllegalStateException     if this writer is closed.
      * @throws JayoException             if an I/O error occurs.
      */
     void writeFrom(final @NonNull Buffer source, final long byteCount);
