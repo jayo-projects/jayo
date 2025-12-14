@@ -80,6 +80,15 @@ public sealed interface Directory permits RealDirectory {
     Path getPath();
 
     /**
+     * In general, one may expect that for a path like {@code Path.of("home", "Downloads")} the name is
+     * {@code Downloads}.
+     *
+     * @return the name of this directory.
+     */
+    @NonNull
+    String getName();
+
+    /**
      * Atomically moves this directory to {@code destination} if the underlying file system supports it. All
      * subdirectories and files contained in this directory are also moved to {@code destination}.
      * <p>
@@ -109,6 +118,8 @@ public sealed interface Directory permits RealDirectory {
     void delete();
 
     /**
+     * Lists the entries in this directory. This method does not recurse into subdirectories.
+     *
      * @return a list of the entries in this directory.
      * @throws JayoFileNotFoundException if the directory does not exist anymore.
      * @throws jayo.JayoException        if an I/O error occurred.

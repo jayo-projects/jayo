@@ -96,7 +96,7 @@ public sealed interface File permits RealFile {
      * In general, one may expect that for a path like {@code Path.of("home", "Downloads", "file.txt")} the name is
      * {@code file.txt}.
      *
-     * @return the file name of this file.
+     * @return the name of this file.
      */
     @NonNull
     String getName();

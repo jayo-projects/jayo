@@ -93,6 +93,15 @@ public final /*Valhalla 'value class'*/ class RealDirectory implements Directory
     }
 
     @Override
+    public @NonNull String getName() {
+        final var dirNamePath = path.getFileName();
+        if (dirNamePath == null) {
+            throw new IllegalStateException("Jayo prevent zero element directories, meaning with no name.");
+        }
+        return dirNamePath.toString();
+    }
+
+    @Override
     public void atomicMove(final @NonNull Path destination) {
         if (!Files.exists(path)) {
             throw new JayoFileNotFoundException("directory does not exist anymore");
