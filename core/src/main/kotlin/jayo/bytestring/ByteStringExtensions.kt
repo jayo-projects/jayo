@@ -41,7 +41,7 @@ import java.nio.charset.Charset
  */
 public fun ByteString.utf8Length(): Int = Utf8Utils.length(this)
 
-        /**
+/**
  * @return a new [ByteString] containing a copy of `byteCount` bytes of this byte array starting at `offset`. Do not
  * provide values for `byteCount` and `offset` if you want a full copy of this byte array.
  */
@@ -66,7 +66,7 @@ public fun String.encodeToByteString(charset: Charset = Charsets.UTF_8): ByteStr
 
 /**
  * Decodes the Base64-encoded bytes and returns the result as a [ByteString].
- * Returns null if this is not a Base64-encoded sequence of bytes.
+ * Returns null if this is not a valid Base64-encoded sequence of bytes.
  */
 public fun CharSequence.decodeBase64(): ByteString? = ByteString.decodeBase64(this)
 

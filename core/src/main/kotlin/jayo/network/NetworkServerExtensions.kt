@@ -25,8 +25,7 @@ public fun NetworkServer.Builder.kotlin(
 @JvmInline
 public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Builder) {
     /**
-     * Sets the value of a socket option to set on the [accepted network sockets][NetworkServer.accept] by the
-     * [NetworkServer] built by this configuration.
+     * Sets the value of a socket option to set on the [accepted network sockets][NetworkServer.accept].
      *
      * @param name  The socket option
      * @param value The value of the socket option. A value of `null` may be a valid value for some socket options.
@@ -37,7 +36,7 @@ public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Bu
     }
 
     /**
-     * Sets the value of a socket option to set on the [NetworkServer] built by this builder.
+     * Sets the value of a socket option to set on the [NetworkServer] that will be built using this builder.
      *
      * @param name  The socket option
      * @param value The value of the socket option. A value of `null` may be a valid value for some socket options.
@@ -48,8 +47,8 @@ public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Bu
     }
 
     /**
-     * Sets the maximum number of pending connections on the [NetworkServer] built by this builder. Default is zero. If
-     * the value is zero, an implementation specific default is used.
+     * Sets the maximum number of pending connections on the [NetworkServer] that will be built using this builder.
+     * Default is zero. If the value is zero, an implementation-specific default is used.
      */
     public var maxPendingConnections: Int
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
@@ -59,10 +58,10 @@ public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Bu
         }
 
     /**
-     * Sets the [network protocol][NetworkProtocol] to use when opening the underlying NIO sockets. The default protocol
-     * is platform (and possibly configuration) dependent and therefore unspecified.
+     * Sets the [network protocol][NetworkProtocol] to use when opening the underlying NIO server sockets: `IPv4` or
+     * `IPv6`. The default protocol is platform (and possibly configuration) dependent and therefore unspecified.
      *
-     * **This option is only available for Java NIO**, so Java NIO mode is forced when this parameter is set !
+     * **This option is only available for Java NIO**, so Java NIO mode is forced when this parameter is set!
      *
      * See [java.net.preferIPv4Stack](https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6)
      * system property
@@ -75,7 +74,7 @@ public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Bu
         }
 
     /**
-     * If true the underlying server sockets will be Java NIO ones, if false they will be Java IO ones. Default is
+     * If true, the underlying server socket will be a Java NIO one, if false, it will be a Java IO one. Default is
      * `true`.
      */
     public var useNio: Boolean

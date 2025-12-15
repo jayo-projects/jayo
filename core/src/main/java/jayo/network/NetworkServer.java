@@ -199,7 +199,7 @@ public sealed interface NetworkServer extends AutoCloseable
         Builder protocol(final @NonNull NetworkProtocol protocol);
 
         /**
-         * If true, the underlying server sockets will be Java NIO ones. If false, they will be Java IO ones. Default is
+         * If true, the underlying server socket will be a Java NIO one. If false, it will be a Java IO one. Default is
          * {@code true}.
          */
         @NonNull

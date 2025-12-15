@@ -7,5 +7,5 @@
 
 package jayo
 
-/** Build a new [Buffer] */
+/** @return a new [Buffer] */
 public fun Buffer(): Buffer = Buffer.create()

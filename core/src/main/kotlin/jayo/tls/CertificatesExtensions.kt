@@ -28,7 +28,7 @@ import java.security.cert.X509Certificate
 
 /**
  * Decodes a multiline string that contains a [certificate][certificatePem] which is
- * [PEM-encoded][https://tools.ietf.org/html/rfc7468]. A typical input string looks like this:
+ * [PEM-encoded](https://tools.ietf.org/html/rfc7468). A typical input string looks like this:
  *
  * ```
  * -----BEGIN CERTIFICATE-----
@@ -46,6 +46,6 @@ import java.security.cert.X509Certificate
 public fun String.decodeCertificatePem(): X509Certificate = CertificateUtils.decodeCertificatePem(this)
 
 /**
- * @return the certificate encoded in [PEM format][https://tools.ietf.org/html/rfc7468].
+ * @return the certificate encoded in [PEM format](https://tools.ietf.org/html/rfc7468).
  */
 public fun X509Certificate.certificatePem(): String = CertificateUtils.certificatePem(this)
