@@ -299,7 +299,7 @@ public final class Jayo {
     }
 
     /**
-     * Consumes all this reader and return its hash.
+     * Consumes all bytes from this reader and return its hash.
      *
      * @param reader the reader
      * @param digest the chosen message digest algorithm to use for hashing.
@@ -310,7 +310,7 @@ public final class Jayo {
     }
 
     /**
-     * Consumes all this reader and return its MAC result.
+     * Consumes all bytes from this reader and return its MAC result.
      *
      * @param reader the reader
      * @param hMac   the chosen "Message Authentication Code" (MAC) algorithm to use.

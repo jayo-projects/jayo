@@ -8,6 +8,6 @@
 package jayo
 
 /**
- * Build a new [Pipe]. This pipe's buffer that decouples reader and writer has a maximum size of [maxBufferSize].
+ * @return a new [Pipe]. This pipe's buffer that decouples reader and writer has a maximum size of [maxBufferSize].
  */
 public fun Pipe(maxBufferSize: Long): Pipe = Pipe.create(maxBufferSize)

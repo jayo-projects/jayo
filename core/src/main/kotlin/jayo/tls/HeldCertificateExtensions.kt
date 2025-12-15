@@ -59,7 +59,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
     }
 
     /**
-     * Set this certificate's common name (CN). If unset a random string will be used.
+     * Set this certificate's common name (CN). If unset, a random string will be used.
      *
      * Historically this held the hostname of TLS certificate, but that practice was deprecated by
      * [RFC 2818][https://tools.ietf.org/html/rfc2818] and replaced with [addSubjectAlternativeName].
@@ -72,7 +72,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
         }
 
     /**
-     * Sets the certificate's organizational unit (OU). If unset this field will be omitted.
+     * Sets the certificate's organizational unit (OU). If unset, this field will be omitted.
      */
     public var organizationalUnit: String
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
@@ -82,7 +82,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
         }
 
     /**
-     * Sets this certificate's serial number. If unset the serial number will be 1.
+     * Sets this certificate's serial number. If unset, the serial number will be `1`.
      */
     public var serialNumber: Long
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
@@ -92,7 +92,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
         }
 
     /**
-     * Sets this certificate's serial number. If unset the serial number will be 1.
+     * Sets this certificate's serial number. If unset, the serial number will be `1`.
      */
     public var serialNumberBigInteger: BigInteger
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
@@ -102,7 +102,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
         }
 
     /**
-     * Sets the public/private key pair used for this certificate. If unset a key pair will be generated.
+     * Sets the public/private key pair used for this certificate. If unset, a key pair will be generated.
      */
     public var keyPair: KeyPair
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
@@ -112,7 +112,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
         }
 
     /**
-     * Sets the public/private key pair used for this certificate. If unset a key pair will be generated.
+     * Sets the public/private key pair used for this certificate. If unset, a key pair will be generated.
      */
     public var keyPairFromPublicPrivateKey: Pair<PublicKey, PrivateKey>
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
@@ -122,7 +122,7 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
         }
 
     /**
-     * Set the certificate that will issue this certificate. If unset the certificate will be self-signed.
+     * Set the certificate that will issue this certificate. If unset, the certificate will be self-signed.
      */
     public var signedBy: HeldCertificate?
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
@@ -135,9 +135,9 @@ public value class HeldCertificateBuilderDsl internal constructor(private val bu
      * Set this certificate to be a signing certificate, with up to `maxIntermediateCas` intermediate signing
      * certificates beneath it.
      *
-     * By default, this certificate cannot not sign other certificates. Set this to 0 so this certificate can sign other
-     * certificates (but those certificates cannot themselves sign certificates). Set this to 1 so this certificate can
-     * sign intermediate certificates that can themselves sign certificates. Add one for each additional layer of
+     * By default, this certificate cannot sign other certificates. Set this to `0` so this certificate can sign other
+     * certificates (but those certificates cannot themselves sign certificates). Set this to `1` so this certificate
+     * can sign intermediate certificates that can themselves sign certificates. Add one for each additional layer of
      * intermediates to permit.
      */
     public fun certificateAuthority(maxIntermediateCas: Int) {

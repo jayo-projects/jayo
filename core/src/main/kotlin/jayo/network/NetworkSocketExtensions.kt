@@ -39,7 +39,7 @@ public value class NetworkSocketBuilderDsl(private val builder: NetworkSocket.Bu
         }
 
     /**
-     * Sets the value of a socket option to set on the network sockets produced by this builder.
+     * Sets the value of a socket option to set on the network socket.
      *
      * @param name  The socket option
      * @param value The value of the socket option. A value of `null` may be a valid value for some socket options.
@@ -50,10 +50,10 @@ public value class NetworkSocketBuilderDsl(private val builder: NetworkSocket.Bu
     }
 
     /**
-     * Sets the [network protocol][NetworkProtocol] to use when opening the underlying NIO sockets. The default protocol
-     * is platform (and possibly configuration) dependent and therefore unspecified.
+     * Sets the [network protocol][NetworkProtocol] to use when opening the underlying NIO sockets: `IPv4` or `IPv6`.
+     * The default protocol is platform (and possibly configuration) dependent and therefore unspecified.
      *
-     * **This option is only available for Java NIO**, so Java NIO mode is forced when this parameter is set !
+     * **This option is only available for Java NIO**, so Java NIO mode is forced when this parameter is set!
      *
      * See [java.net.preferIPv4Stack](https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6)
      * system property
@@ -66,7 +66,7 @@ public value class NetworkSocketBuilderDsl(private val builder: NetworkSocket.Bu
         }
 
     /**
-     * If true the socket will be a Java NIO one, if false it will be a Java IO one. Default is `true`.
+     * If true, the underlying socket will be a Java NIO one, if false, it will be a Java IO one. Default is `true`.
      */
     public var useNio: Boolean
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)

@@ -33,12 +33,12 @@ import java.util.zip.Inflater
  * @return a new reader that buffers reads from the raw `reader`. The returned reader will perform bulk reads into its
  * underlying buffer.
  *
- * Use this wherever you read a reader to get ergonomic and efficient access to data.
+ * Use this wherever you read from a raw reader to get ergonomic and efficient access to data.
  */
 public fun RawReader.buffered(): Reader = RealReader(this)
 
 /**
- * Consumes all this reader and return its hash.
+ * Consumes all bytes from this reader and return its hash.
  *
  * @param digest the chosen message digest algorithm to use for hashing.
  * @return the hash of this reader.
@@ -46,7 +46,7 @@ public fun RawReader.buffered(): Reader = RealReader(this)
 public fun RawReader.hash(digest: Digest): ByteString = Jayo.hash(this, digest)
 
 /**
- * Consumes all this reader and return its MAC result.
+ * Consumes all bytes from this reader and return its MAC result.
  *
  * @param hMac the chosen "Message Authentication Code" (MAC) algorithm to use.
  * @param key the key to use for this MAC operation.
