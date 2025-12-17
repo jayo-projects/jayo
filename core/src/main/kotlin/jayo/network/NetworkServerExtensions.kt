@@ -12,13 +12,12 @@ import java.net.SocketOption
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-public fun NetworkServer.Builder.kotlin(
-    config: NetworkServerBuilderDsl.() -> Unit
-): NetworkServer.Builder {
+public fun networkServerBuilder(config: NetworkServerBuilderDsl.() -> Unit): NetworkServer.Builder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(NetworkServerBuilderDsl(this))
-    return this
+    val builder = NetworkServer.builder()
+    config(NetworkServerBuilderDsl(builder))
+    return builder
 }
 
 @JayoDslMarker

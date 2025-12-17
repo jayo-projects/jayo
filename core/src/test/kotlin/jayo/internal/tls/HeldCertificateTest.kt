@@ -27,7 +27,7 @@ import jayo.tls.HeldCertificate.CertificateKeyFormat.ECDSA_256
 import jayo.tls.HeldCertificate.CertificateKeyFormat.RSA_2048
 import jayo.tls.HeldCertificate.decode
 import jayo.tls.JssePlatformRule
-import jayo.tls.build
+import jayo.tls.heldCertificateBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.data.Offset.offset
 import org.bouncycastle.asn1.x509.GeneralName
@@ -137,30 +137,30 @@ class HeldCertificateTest {
     @Test
     fun fullHeldCertificateBuilder() {
         val heldCertificate =
-            HeldCertificate.builder().build {
-                commonName = "cash.app"
-                organizationalUnit = "cash"
+            heldCertificateBuilder {
+                commonName = "jayo.dev"
+                organizationalUnit = "jayo"
                 // 5 seconds starting on 1970-01-01.
                 validityInterval = Instant.ofEpochMilli(5000L) to Instant.ofEpochMilli(10000L)
                 addSubjectAlternativeName("1.1.1.1")
-                addSubjectAlternativeName("cash.app")
-            }
+                addSubjectAlternativeName("jayo.dev")
+            }.build()
         val certificate = heldCertificate.certificate
         assertThat(certificate.notBefore.time).isEqualTo(5000L)
         assertThat(certificate.notAfter.time).isEqualTo(10000L)
         assertThat(certificate.getSubjectX500Principal().name).isEqualTo(
-            "CN=cash.app,OU=cash",
+            "CN=jayo.dev,OU=jayo",
         )
         assertThat(certificate.subjectAlternativeNames.toList()).containsExactly(
             listOf(GeneralName.iPAddress, "1.1.1.1"),
-            listOf(GeneralName.dNSName, "cash.app"),
+            listOf(GeneralName.dNSName, "jayo.dev"),
         )
 
         val now = System.currentTimeMillis()
         val heldCertificateWithDuration =
-            HeldCertificate.builder().build {
+            heldCertificateBuilder {
                 duration = 5.seconds
-            }
+            }.build()
         val certificateWithDuration = heldCertificateWithDuration.certificate
         val deltaMillis = 1000.0
         val durationMillis = 5000L

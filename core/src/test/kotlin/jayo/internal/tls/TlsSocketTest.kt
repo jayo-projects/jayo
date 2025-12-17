@@ -70,9 +70,9 @@ class TlsSocketTest {
             }
             val address = InetSocketAddress(localhost, listener.localPort)
             val encryptedEndpoint = NetworkSocket.connectTcp(address)
-            val parameterizer = ClientTlsSocket.builder(clientHandshakeCertificates).kotlin {
-                waitForCloseConfirmation = true
-            }.createParameterizer(encryptedEndpoint)
+            val parameterizer = ClientTlsSocket.builder(clientHandshakeCertificates)
+                .waitForCloseConfirmation(true)
+                .createParameterizer(encryptedEndpoint)
 
             assertThat(parameterizer.enabledProtocols).isEmpty()
             val protocol = Protocol.HTTP_1_1
@@ -139,9 +139,9 @@ class TlsSocketTest {
             var handshake: Handshake? = null
             val serverThread = thread {
                 val serverSocket = listener.accept()
-                val tlsServer = ServerTlsSocket.builder(serverHandshakeCertificates).kotlin {
-                    waitForCloseConfirmation = true
-                }.build(serverSocket)
+                val tlsServer = ServerTlsSocket.builder(serverHandshakeCertificates)
+                    .waitForCloseConfirmation(true)
+                    .build(serverSocket)
                 tlsServer.writer.buffered()
                     .writeInt(42)
                     .flush()
