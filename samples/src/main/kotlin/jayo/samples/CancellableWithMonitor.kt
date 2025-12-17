@@ -38,6 +38,7 @@ private class DiceWithMonitor {
         val roll = random.nextInt(1, 7)
         println("Rolled: $roll")
         total += roll
+        @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
         (this as Object).notifyAll()
     }
 
