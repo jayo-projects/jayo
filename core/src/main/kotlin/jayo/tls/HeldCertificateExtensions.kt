@@ -19,11 +19,12 @@ import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
-public fun HeldCertificate.Builder.build(config: HeldCertificateBuilderDsl.() -> Unit): HeldCertificate {
+public fun heldCertificateBuilder(config: HeldCertificateBuilderDsl.() -> Unit): HeldCertificate.Builder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(HeldCertificateBuilderDsl(this))
-    return build()
+    val builder = HeldCertificate.builder()
+    config(HeldCertificateBuilderDsl(builder))
+    return builder
 }
 
 @JayoDslMarker

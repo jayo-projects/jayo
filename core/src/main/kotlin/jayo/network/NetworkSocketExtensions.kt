@@ -15,13 +15,12 @@ import kotlin.contracts.contract
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
-public fun NetworkSocket.Builder.kotlin(
-    config: NetworkSocketBuilderDsl.() -> Unit
-): NetworkSocket.Builder {
+public fun networkSocketBuilder(config: NetworkSocketBuilderDsl.() -> Unit): NetworkSocket.Builder {
     contract { callsInPlace(config, InvocationKind.EXACTLY_ONCE) }
 
-    config(NetworkSocketBuilderDsl(this))
-    return this
+    val builder = NetworkSocket.builder()
+    config(NetworkSocketBuilderDsl(builder))
+    return builder
 }
 
 @JayoDslMarker
