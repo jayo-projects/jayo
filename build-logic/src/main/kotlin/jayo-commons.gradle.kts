@@ -1,7 +1,7 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode.Strict
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_3
 import kotlin.jvm.optionals.getOrNull
 
 plugins {
@@ -28,8 +28,8 @@ val koverage = mapOf(
 kotlin {
     // for all targets: main / test / testFixtures
     compilerOptions {
-        languageVersion.set(KOTLIN_2_0)
-        apiVersion.set(KOTLIN_2_0)
+        languageVersion.set(KOTLIN_2_3)
+        apiVersion.set(KOTLIN_2_3)
         explicitApi = Strict
         freeCompilerArgs.addAll(
             "-Xnullability-annotations=@org.jspecify.annotations:strict", // not really sure if this helps ;)

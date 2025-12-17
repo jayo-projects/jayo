@@ -1,11 +1,11 @@
 [versions]
 # plugins
 # https://github.com/JetBrains/kotlin/releases
-kotlin = "2.2.21"
+kotlin = "2.3.0"
 # https://github.com/Kotlin/dokka/releases
 dokka = "2.1.0"
 # https://github.com/Kotlin/kotlinx-kover/releases
-kover = "0.9.3"
+kover = "0.9.4"
 # https://github.com/melix/mrjar-gradle-plugin/releases
 mrjar = "0.1.1"
 # https://github.com/melix/jmh-gradle-plugin/tags (for benchmarks)
@@ -35,7 +35,7 @@ amazonCorretto = "2.5.0"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-jdk-platform-logging
 slf4j = "2.0.17"
 # https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-logback = "1.5.21"
+logback = "1.5.22"
 
 # third-parties
 # https://github.com/Kotlin/kotlinx.serialization/releases

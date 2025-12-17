@@ -47,8 +47,8 @@ jmh {
 //    includes.set(listOf("""jayo\.benchmarks\.JsonSerializationBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SlowReaderBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SlowWriterBenchmark.*"""))
-    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
-//    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
+    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
 }
 
 tasks {
