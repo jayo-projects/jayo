@@ -57,6 +57,10 @@ public final /*Valhalla 'value class'*/ class RealFile implements File {
         assert path != null;
 
         try {
+            final var parent = path.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
             return checkAndBuildFile(Files.createFile(path));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
@@ -69,11 +73,7 @@ public final /*Valhalla 'value class'*/ class RealFile implements File {
         if (Files.exists(path)) {
             return checkAndBuildFile(path);
         }
-        try {
-            return checkAndBuildFile(Files.createFile(path));
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
+        return create(path);
     }
 
     private static @NonNull File checkAndBuildFile(final @NonNull Path path) {

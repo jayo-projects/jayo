@@ -49,6 +49,10 @@ public final /*Valhalla 'value class'*/ class RealDirectory implements Directory
         assert path != null;
 
         try {
+            final var parent = path.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
             return checkAndBuildDirectory(Files.createDirectory(path));
         } catch (IOException e) {
             throw JayoException.buildJayoException(e);
@@ -61,11 +65,7 @@ public final /*Valhalla 'value class'*/ class RealDirectory implements Directory
         if (Files.exists(path)) {
             return checkAndBuildDirectory(path);
         }
-        try {
-            return checkAndBuildDirectory(Files.createDirectory(path));
-        } catch (IOException e) {
-            throw JayoException.buildJayoException(e);
-        }
+        return create(path);
     }
 
     private static @NonNull Directory checkAndBuildDirectory(final @NonNull Path path) {

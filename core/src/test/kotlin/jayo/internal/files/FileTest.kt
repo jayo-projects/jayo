@@ -69,12 +69,34 @@ class FileTest {
     }
 
     @Test
+    fun createFileAndParent() {
+        val fileParentPath = tempDirPath.resolve("fileParentPath")
+        val filename = "file.txt"
+        val file = fileParentPath.resolve(filename)
+        assertThat(fileParentPath.exists()).isFalse()
+        assertThat(file.exists()).isFalse()
+        File.create(file)
+        assertThat(file.exists()).isTrue()
+    }
+
+    @Test
     fun createFileIfNotExists() {
         val filename = "file.txt"
         val file = tempDirPath.resolve(filename)
         assertThat(file.exists()).isFalse()
         File.createIfNotExists(file)
         assertThat(file.exists()).isTrue()
+        File.createIfNotExists(file)
+        assertThat(file.exists()).isTrue()
+    }
+
+    @Test
+    fun createFileIfNotExistsAndParent() {
+        val fileParentPath = tempDirPath.resolve("fileParentPath")
+        val filename = "file.txt"
+        val file = fileParentPath.resolve(filename)
+        assertThat(fileParentPath.exists()).isFalse()
+        assertThat(file.exists()).isFalse()
         File.createIfNotExists(file)
         assertThat(file.exists()).isTrue()
     }

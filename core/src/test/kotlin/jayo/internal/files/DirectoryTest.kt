@@ -61,11 +61,31 @@ class DirectoryTest {
     }
 
     @Test
+    fun createDirectoryAndParent() {
+        val otherDirParentPath = tempDirPath.resolve("otherDirParentPath")
+        val otherDirPath = otherDirParentPath.resolve("otherDir")
+        assertThat(otherDirParentPath.exists()).isFalse()
+        assertThat(otherDirPath.exists()).isFalse()
+        Directory.create(otherDirPath)
+        assertThat(otherDirPath.exists()).isTrue()
+    }
+
+    @Test
     fun createDirectoryIfNotExists() {
         val otherDirPath = tempDirPath.resolve("otherDir")
         assertThat(otherDirPath.exists()).isFalse()
         Directory.createIfNotExists(otherDirPath)
         assertThat(otherDirPath.exists()).isTrue()
+        Directory.createIfNotExists(otherDirPath)
+        assertThat(otherDirPath.exists()).isTrue()
+    }
+
+    @Test
+    fun createDirectoryIfNotExistsAndParent() {
+        val otherDirParentPath = tempDirPath.resolve("otherDirParentPath")
+        val otherDirPath = otherDirParentPath.resolve("otherDir")
+        assertThat(otherDirParentPath.exists()).isFalse()
+        assertThat(otherDirPath.exists()).isFalse()
         Directory.createIfNotExists(otherDirPath)
         assertThat(otherDirPath.exists()).isTrue()
     }
