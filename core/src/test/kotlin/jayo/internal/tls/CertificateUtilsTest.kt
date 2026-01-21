@@ -22,7 +22,7 @@
 package jayo.internal.tls
 
 import jayo.tls.certificatePem
-import jayo.tls.decodeCertificatePem
+import jayo.tools.CertificateUtils
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -44,7 +44,7 @@ class CertificateUtilsTest {
       -----END CERTIFICATE-----
       
       """.trimIndent()
-        val certificate = certificateString.decodeCertificatePem()
+        val certificate = CertificateUtils.decodeCertificatePem(certificateString)
         assertThat(certificate.certificatePem()).isEqualTo(certificateString)
     }
 }

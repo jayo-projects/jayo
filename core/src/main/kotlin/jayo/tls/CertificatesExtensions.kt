@@ -27,25 +27,6 @@ import jayo.tools.CertificateUtils
 import java.security.cert.X509Certificate
 
 /**
- * Decodes a multiline string that contains a [certificate][certificatePem] which is
- * [PEM-encoded](https://tools.ietf.org/html/rfc7468). A typical input string looks like this:
- *
- * ```
- * -----BEGIN CERTIFICATE-----
- * MIIBYTCCAQegAwIBAgIBKjAKBggqhkjOPQQDAjApMRQwEgYDVQQLEwtlbmdpbmVl
- * cmluZzERMA8GA1UEAxMIY2FzaC5hcHAwHhcNNzAwMTAxMDAwMDA1WhcNNzAwMTAx
- * MDAwMDEwWjApMRQwEgYDVQQLEwtlbmdpbmVlcmluZzERMA8GA1UEAxMIY2FzaC5h
- * cHAwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASda8ChkQXxGELnrV/oBnIAx3dD
- * ocUOJfdz4pOJTP6dVQB9U3UBiW5uSX/MoOD0LL5zG3bVyL3Y6pDwKuYvfLNhoyAw
- * HjAcBgNVHREBAf8EEjAQhwQBAQEBgghjYXNoLmFwcDAKBggqhkjOPQQDAgNIADBF
- * AiAyHHg1N6YDDQiY920+cnI5XSZwEGhAtb9PYWO8bLmkcQIhAI2CfEZf3V/obmdT
- * yyaoEufLKVXhrTQhRfodTeigi4RX
- * -----END CERTIFICATE-----
- * ```
- */
-public fun String.decodeCertificatePem(): X509Certificate = CertificateUtils.decodeCertificatePem(this)
-
-/**
  * @return the certificate encoded in [PEM format](https://tools.ietf.org/html/rfc7468).
  */
 public fun X509Certificate.certificatePem(): String = CertificateUtils.certificatePem(this)

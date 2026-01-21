@@ -21,19 +21,15 @@
 
 package jayo.internal.tls
 
-import jayo.*
-import jayo.bytestring.ByteString
-import jayo.bytestring.decodeBase64
-import jayo.bytestring.decodeHex
-import jayo.bytestring.encodeToByteString
-import jayo.bytestring.toByteString
+import jayo.Buffer
+import jayo.bytestring.*
 import jayo.internal.tls.Adapters.DerAdapterValue
 import jayo.internal.tls.Certificate.*
 import jayo.internal.tls.ObjectIdentifiers.*
 import jayo.tls.HeldCertificate
 import jayo.tls.HeldCertificate.CertificateKeyFormat.ECDSA_256
 import jayo.tls.HeldCertificate.CertificateKeyFormat.RSA_2048
-import jayo.tls.decodeCertificatePem
+import jayo.tools.CertificateUtils
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.math.BigInteger
@@ -86,7 +82,7 @@ class DerCertificatesTest {
       |
       """.trimMargin()
 
-        val javaCertificate = certificatePem.decodeCertificatePem()
+        val javaCertificate = CertificateUtils.decodeCertificatePem(certificatePem)
         val okHttpCertificate =
             CertificateAdapters.CERTIFICATE
                 .fromDer(certificateByteString)
@@ -183,7 +179,7 @@ class DerCertificatesTest {
       |
       """.trimMargin()
 
-        val javaCertificate = certificatePem.decodeCertificatePem()
+        val javaCertificate = CertificateUtils.decodeCertificatePem(certificatePem)
         val okHttpCertificate =
             CertificateAdapters.CERTIFICATE
                 .fromDer(certificateByteString)
@@ -419,7 +415,7 @@ class DerCertificatesTest {
       |
       """.trimMargin()
 
-        val javaCertificate = certificatePem.decodeCertificatePem()
+        val javaCertificate = CertificateUtils.decodeCertificatePem(certificatePem)
         val okHttpCertificate =
             CertificateAdapters.CERTIFICATE
                 .fromDer(certificateByteString)
