@@ -70,16 +70,18 @@ ready !*
 ## Main concepts
 
 [Jayo](./core) offers solid I/O foundations by providing the tools we need for binary data manipulation
-* `Buffer` is a mutable sequence of bytes one can easily write to and read from.
-* `ByteString` is an immutable and serializable sequence of bytes that stores a String-related binary content as-is.
-* `RawReader` and `RawWriter`, and mostly their buffered versions `Reader` and `Writer`, offer great improvements over
-`InputStream` and `OutputStream`.
-* `NetworkSocket` is a nice replacement for `java.net.Socket`, and `NetworkServer` for `java.net.ServerSocket`.
+* `jayo.Buffer` is a mutable sequence of bytes one can easily write to and read from.
+* `jayo.bytestring.ByteString` is an immutable and serializable sequence of bytes that stores a String-related binary
+content as-is.
+* `jayo.RawReader` and `jayo.RawWriter`, and mostly their buffered versions `jayo.Reader` and `jayo.Writer`, offer great
+improvements over `java.io.InputStream` and `java.io.OutputStream`.
+* `jayo.network.NetworkSocket` is a nice replacement for `java.net.Socket`, and `jayo.network.NetworkServer` for
+`java.net.ServerSocket`.
 
 Jayo also provides some useful tools for TLS
-* `ClientTlsSocket` and `ServerTlsSocket` are easy-to-use APIs based on Jayo's reader and writer, that allow to
-secure JVM applications with minimal added complexity.
-* `JssePlatform` eases access to platform-specific Java Secure Socket Extension (JSSE) features.
+* `jayo.tls.ClientTlsSocket` and `jayo.tls.ServerTlsSocket` are easy-to-use APIs based on Jayo's reader and writer, that
+allow to secure JVM applications with minimal added complexity.
+* `jayo.tls.JssePlatform` eases access to platform-specific Java Secure Socket Extension (JSSE) features.
 
 ### Files
 
@@ -87,7 +89,7 @@ A `java.io.File` can indeed be a file. \
 But... it can also be a directory; weird. \
 Furthermore, it can also refer to a file or a directory that does not exist; now it gets even weirder! \
 
-Jayo tries to clarify things. To do that, this module only provides :
+Jayo tries to clarify things with only 2 classes :
 * `jayo.files.File`, that is guaranteed to be a real existing file.
 * `jayo.files.Directory`, that is guaranteed to be a real existing directory.
 
