@@ -29,13 +29,13 @@ conscrypt = "2.5.2"
 # https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
 junit = "6.0.2"
 # https://mvnrepository.com/artifact/org.assertj/assertj-core
-assertj = "3.27.6"
+assertj = "3.27.7"
 # https://mvnrepository.com/artifact/software.amazon.cryptools/AmazonCorrettoCryptoProvider
 amazonCorretto = "2.5.0"
 # https://mvnrepository.com/artifact/org.slf4j/slf4j-jdk-platform-logging
 slf4j = "2.0.17"
 # https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
-logback = "1.5.25"
+logback = "1.5.26"
 
 # third-parties
 # https://github.com/Kotlin/kotlinx.serialization/releases
