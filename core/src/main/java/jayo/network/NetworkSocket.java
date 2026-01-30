@@ -175,13 +175,14 @@ public sealed interface NetworkSocket extends RawNetworkSocket, RawSocket
          * {@code IPv4} or {@code IPv6}. The default protocol is platform (and possibly configuration) dependent and
          * therefore unspecified.
          * <p>
-         * This option <b>is only available for Java NIO</b>, so Java NIO mode is forced when this parameter is set!
+         * This option <b>is only available for Java NIO</b>, so {@linkplain #useNio(boolean) Java NIO mode} is forced
+         * when this parameter is set!
          *
          * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6">
          * java.net.preferIPv4Stack</a> system property
          */
         @NonNull
-        Builder protocol(final @NonNull NetworkProtocol protocol);
+        Builder networkProtocol(final @NonNull NetworkProtocol protocol);
 
         /**
          * If true, the underlying socket will be a Java NIO one. If false, it will be a Java IO one. Default is

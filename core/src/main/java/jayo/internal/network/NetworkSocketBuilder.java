@@ -109,7 +109,7 @@ public final class NetworkSocketBuilder implements NetworkSocket.Builder {
     }
 
     @Override
-    public @NonNull NetworkSocketBuilder protocol(final @NonNull NetworkProtocol protocol) {
+    public @NonNull NetworkSocketBuilder networkProtocol(final @NonNull NetworkProtocol protocol) {
         Objects.requireNonNull(protocol);
         this.protocolFamily = switch (protocol) {
             case IPv4 -> StandardProtocolFamily.INET;

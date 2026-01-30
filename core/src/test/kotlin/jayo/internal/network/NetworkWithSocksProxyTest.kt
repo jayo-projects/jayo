@@ -39,16 +39,16 @@ class NetworkWithSocksProxyTest {
     @Test
     fun `Socks V5 Proxy test with NIO and IPv4`() {
         socks5(
-            NetworkSocket.builder().protocol(NetworkProtocol.IPv4),
-            NetworkServer.builder().protocol(NetworkProtocol.IPv4)
+            NetworkSocket.builder().networkProtocol(NetworkProtocol.IPv4),
+            NetworkServer.builder().networkProtocol(NetworkProtocol.IPv4)
         )
     }
 
     @Test
     fun `Socks V5 Proxy test with NIO and IPv6`() {
         socks5(
-            NetworkSocket.builder().protocol(NetworkProtocol.IPv6),
-            NetworkServer.builder().protocol(NetworkProtocol.IPv6)
+            NetworkSocket.builder().networkProtocol(NetworkProtocol.IPv6),
+            NetworkServer.builder().networkProtocol(NetworkProtocol.IPv6)
         )
     }
 
@@ -134,8 +134,8 @@ class NetworkWithSocksProxyTest {
     @Test
     fun `Socks V4 Proxy test with NIO and IPv4`() {
         socks4(
-            NetworkSocket.builder().protocol(NetworkProtocol.IPv4),
-            NetworkServer.builder().protocol(NetworkProtocol.IPv4)
+            NetworkSocket.builder().networkProtocol(NetworkProtocol.IPv4),
+            NetworkServer.builder().networkProtocol(NetworkProtocol.IPv4)
         )
     }
 
@@ -143,8 +143,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V4 Proxy test with NIO and IPv6`() {
         assertThatThrownBy {
             socks4(
-                NetworkSocket.builder().useNio(false).protocol(NetworkProtocol.IPv6),
-                NetworkServer.builder().useNio(false).protocol(NetworkProtocol.IPv6)
+                NetworkSocket.builder().useNio(false).networkProtocol(NetworkProtocol.IPv6),
+                NetworkServer.builder().useNio(false).networkProtocol(NetworkProtocol.IPv6)
             )
         }.isInstanceOf(JayoSocketException::class.java)
             .hasMessage("SOCKS4 : SOCKS V4 only supports IPv4 socket address")
@@ -158,8 +158,8 @@ class NetworkWithSocksProxyTest {
     @Test
     fun `Socks V4 Proxy test with NIO and proxy credentials success`() {
         socks4(
-            NetworkSocket.builder().protocol(NetworkProtocol.IPv4),
-            NetworkServer.builder().protocol(NetworkProtocol.IPv4),
+            NetworkSocket.builder().networkProtocol(NetworkProtocol.IPv4),
+            NetworkServer.builder().networkProtocol(NetworkProtocol.IPv4),
             "Noël"
         )
     }
@@ -177,8 +177,8 @@ class NetworkWithSocksProxyTest {
     fun `Socks V4 Proxy test with NIO and proxy credentials failure`() {
         assertThatThrownBy {
             socks4(
-                NetworkSocket.builder().protocol(NetworkProtocol.IPv4),
-                NetworkServer.builder().protocol(NetworkProtocol.IPv4),
+                NetworkSocket.builder().networkProtocol(NetworkProtocol.IPv4),
+                NetworkServer.builder().networkProtocol(NetworkProtocol.IPv4),
                 "Noël",
                 false
             )

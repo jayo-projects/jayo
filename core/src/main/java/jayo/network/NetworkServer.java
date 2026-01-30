@@ -180,7 +180,11 @@ public sealed interface NetworkServer extends AutoCloseable
 
         /**
          * Sets the maximum number of pending connections on the {@link NetworkServer} that will be built using this
-         * builder. Default is zero. If the value is zero, an implementation-specific default is used.
+         * builder. Default is zero. If set to 0, then an implementation-specific default is used and therefore
+         * unspecified.
+         * <p>
+         * Its exact semantics are implementation-specific. Some implementations may impose a maximum length or may
+         * choose to ignore that parameter altogether.
          */
         @NonNull
         Builder maxPendingConnections(final int maxPendingConnections);
@@ -190,13 +194,14 @@ public sealed interface NetworkServer extends AutoCloseable
          * {@code IPv4} or {@code IPv6}. The default protocol is platform (and possibly configuration) dependent and
          * therefore unspecified.
          * <p>
-         * This option <b>is only available for Java NIO</b>, so Java NIO mode is forced when this parameter is set!
+         * This option <b>is only available for Java NIO</b>, so {@linkplain #useNio(boolean) Java NIO mode} is forced
+         * when this parameter is set!
          *
          * @see <a href="https://docs.oracle.com/javase/8/docs/api/java/net/doc-files/net-properties.html#Ipv4IPv6">
          * java.net.preferIPv4Stack</a> system property
          */
         @NonNull
-        Builder protocol(final @NonNull NetworkProtocol protocol);
+        Builder networkProtocol(final @NonNull NetworkProtocol protocol);
 
         /**
          * If true, the underlying server socket will be a Java NIO one. If false, it will be a Java IO one. Default is

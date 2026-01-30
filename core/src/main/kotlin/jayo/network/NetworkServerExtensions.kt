@@ -69,7 +69,7 @@ public value class NetworkServerBuilderDsl(private val builder: NetworkServer.Bu
         @Deprecated("Getter is unsupported.", level = DeprecationLevel.ERROR)
         get() = error("unsupported")
         set(value) {
-            builder.protocol(value)
+            builder.networkProtocol(value)
         }
 
     /**
