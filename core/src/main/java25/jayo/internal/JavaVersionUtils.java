@@ -31,10 +31,10 @@ public final class JavaVersionUtils {
 
     static {
         LOGGER.log(INFO, """
-     
-     Jayo runs in Java 25 mode :
-      ☑ virtual threads,
-      ☑ scoped value""".stripIndent());
+                
+                Jayo runs in Java 25 mode :
+                 ☑ virtual threads,
+                 ☑ scoped value""".stripIndent());
     }
 
     /**
@@ -106,14 +106,6 @@ public final class JavaVersionUtils {
 
         final var cancellationContext = new CancellationContext(cancelToken);
         return ScopedValue.where(CANCELLATION_CONTEXT, cancellationContext).call(() -> block.apply(cancelToken));
-    }
-
-    /**
-     * Java 21 has the {@code executor.close()} method, we just call it.
-     */
-    public static void close(@NonNull ExecutorService executor) {
-        assert executor != null;
-        executor.close();
     }
 
     /**

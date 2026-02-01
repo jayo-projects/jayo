@@ -58,11 +58,6 @@ public final class JayoUtils {
         return JavaVersionUtils.executorService(prefix, isDaemon);
     }
 
-    public static void close(final @NonNull ExecutorService executor) {
-        Objects.requireNonNull(executor);
-        JavaVersionUtils.close(executor);
-    }
-
     public static void checkOffsetAndCount(final long size, final long offset, final long byteCount) {
         if ((offset | byteCount) < 0 || offset > size || size - offset < byteCount) {
             throw new IndexOutOfBoundsException("size=" + size + " offset=" + offset + " byteCount=" + byteCount);

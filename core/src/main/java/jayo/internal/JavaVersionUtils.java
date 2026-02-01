@@ -29,10 +29,10 @@ public final class JavaVersionUtils {
 
     static {
         LOGGER.log(INFO, """
-     
-     Jayo runs in Java 17 mode :
-      ☒ virtual threads,
-      ☒ scoped value""".stripIndent());
+                
+                Jayo runs in Java 17 mode :
+                 ☒ virtual threads,
+                 ☒ scoped value""".stripIndent());
     }
 
     /**
@@ -123,7 +123,7 @@ public final class JavaVersionUtils {
     }
 
     public static <T> T callCancellable(final @NonNull RealCancelToken cancelToken,
-                                 final @NonNull Function<CancelScope, T> block) {
+                                        final @NonNull Function<CancelScope, T> block) {
         assert cancelToken != null;
         assert block != null;
 
@@ -143,32 +143,6 @@ public final class JavaVersionUtils {
             return block.apply(cancelToken);
         } finally {
             CANCELLATION_CONTEXT.remove();
-        }
-    }
-
-    /**
-     * Java 17 has no {executor.close()}, we add it here.
-     */
-    public static void close(final @NonNull ExecutorService executor) {
-        assert executor != null;
-
-        var terminated = executor.isTerminated();
-        if (!terminated) {
-            executor.shutdown();
-            var interrupted = false;
-            while (!terminated) {
-                try {
-                    terminated = executor.awaitTermination(1L, TimeUnit.DAYS);
-                } catch (InterruptedException e) {
-                    if (!interrupted) {
-                        executor.shutdownNow();
-                        interrupted = true;
-                    }
-                }
-            }
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
         }
     }
 
