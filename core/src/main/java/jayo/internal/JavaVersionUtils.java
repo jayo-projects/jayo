@@ -43,9 +43,10 @@ public final class JavaVersionUtils {
      */
     public static @NonNull ExecutorService executorService(final @NonNull String prefix, final boolean isDaemon) {
         assert prefix != null;
+        // configured with the same settings as https://tomcat.apache.org/tomcat-11.0-doc/config/executor.html
         return new ThreadPoolExecutor(
-                0, // corePoolSize
-                Integer.MAX_VALUE, // maximumPoolSize
+                25, // corePoolSize
+                200, // maximumPoolSize
                 60L, TimeUnit.SECONDS, // keepAliveTime
                 new SynchronousQueue<>(),
                 threadFactory(prefix, isDaemon)
