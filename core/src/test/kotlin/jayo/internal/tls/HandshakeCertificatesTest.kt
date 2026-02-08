@@ -49,9 +49,7 @@ class HandshakeCertificatesTest {
         @BeforeAll
         @JvmStatic
         fun setUp() {
-            executorService = Executors.newCachedThreadPool(
-                threadFactory("HandshakeCertificatesTest", true)
-            )
+            executorService = Executors.newCachedThreadPool(threadFactory("HandshakeCertificatesTest"))
         }
 
         @AfterAll

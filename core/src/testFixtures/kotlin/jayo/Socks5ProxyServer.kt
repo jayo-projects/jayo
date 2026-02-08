@@ -49,7 +49,7 @@ class Socks5ProxyServer(private val credentials: PasswordAuthentication? = null)
 
     fun play() {
         networkServer = NetworkServer.bindTcp(InetSocketAddress(0 /* find free port */))
-        executor = JayoUtils.executorService("Socks5ProxyServer", false)
+        executor = JayoUtils.executorService("Socks5ProxyServer")
 
         executor.execute {
             val threadName = "Socks5ProxyServer ${networkServer.localAddress.port}"

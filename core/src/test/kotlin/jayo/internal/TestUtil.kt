@@ -197,7 +197,7 @@ object TestUtil {
     }
 
     @JvmStatic
-    fun newThreadFactory(): ThreadFactory = JavaVersionUtils.threadFactory("JayoTests#", true)
+    fun newThreadFactory(): ThreadFactory = JavaVersionUtils.threadFactory("JayoTests#")
 
     @JvmStatic
     fun newThread(task: Runnable): Thread = newThreadFactory().newThread(task)

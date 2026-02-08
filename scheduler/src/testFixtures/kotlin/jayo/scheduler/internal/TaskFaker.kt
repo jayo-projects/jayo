@@ -75,9 +75,7 @@ class TaskFaker : Closeable {
     val logger: System.Logger = System.getLogger("TaskFaker." + instance++)
 
     /** Though this executor service may hold many threads, they are not executed concurrently. */
-    private val tasksExecutor = Executors.newCachedThreadPool(
-        threadFactory("TaskFaker", true)
-    )
+    private val tasksExecutor = Executors.newCachedThreadPool(threadFactory("TaskFaker"))
 
     /**
      * True if this task faker has ever had multiple tasks scheduled to run concurrently. Guarded by

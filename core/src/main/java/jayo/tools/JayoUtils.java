@@ -53,9 +53,9 @@ public final class JayoUtils {
      * @implNote New threads created by this executor will <b>not inherit thread-local variables</b> from the
      * constructing thread.
      */
-    public static @NonNull ExecutorService executorService(final @NonNull String prefix, final boolean isDaemon) {
+    public static @NonNull ExecutorService executorService(final @NonNull String prefix) {
         Objects.requireNonNull(prefix);
-        return JavaVersionUtils.executorService(prefix, isDaemon);
+        return JavaVersionUtils.executorService(prefix);
     }
 
     public static void checkOffsetAndCount(final long size, final long offset, final long byteCount) {

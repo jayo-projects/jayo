@@ -31,7 +31,7 @@ public final class JavaVersionUtils {
         LOGGER.log(INFO, """
                 
                 Jayo runs in Java 17 mode :
-                 ☒ virtual threads,
+                 ☒ virtual threads
                  ☒ scoped value""".stripIndent());
     }
 
@@ -39,9 +39,9 @@ public final class JavaVersionUtils {
      * The internal executor for Jayo subprojects like jayo-http.
      * <p>
      * Java 17 has no virtual Thread support, so we use pooled platform threads through {@link ThreadPoolExecutor} with
-     * our {@link #threadFactory(String, boolean)}.
+     * our {@link #threadFactory(String)}.
      */
-    public static @NonNull ExecutorService executorService(final @NonNull String prefix, final boolean isDaemon) {
+    public static @NonNull ExecutorService executorService(final @NonNull String prefix) {
         assert prefix != null;
         // configured with the same settings as https://tomcat.apache.org/tomcat-11.0-doc/config/executor.html
         return new ThreadPoolExecutor(
@@ -49,30 +49,29 @@ public final class JavaVersionUtils {
                 200, // maximumPoolSize
                 60L, TimeUnit.SECONDS, // keepAliveTime
                 new SynchronousQueue<>(),
-                threadFactory(prefix, isDaemon)
+                threadFactory(prefix)
         );
     }
 
     /**
      * The internal thread factory for jayo (core) and its subprojects like jayo-http.
      * <p>
-     * Java 17 has no virtual Thread support, so we use platform threads.
+     * Java 17 has no virtual Thread support, so we use platform threads configured in
+     * {@linkplain Thread#setDaemon(boolean) daemon mode}.
      */
-    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix, final boolean isDaemon) {
+    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix) {
         assert prefix != null;
-        return new PlatformThreadFactory(prefix, isDaemon);
+        return new PlatformThreadFactory(prefix);
     }
 
     private static final class PlatformThreadFactory implements ThreadFactory {
         private final @NonNull String prefix;
-        private final boolean isDaemon;
         private final @NonNull AtomicInteger threadCounter = new AtomicInteger();
 
-        private PlatformThreadFactory(final @NonNull String prefix, final boolean isDaemon) {
+        private PlatformThreadFactory(final @NonNull String prefix) {
             assert prefix != null;
 
             this.prefix = prefix;
-            this.isDaemon = isDaemon;
         }
 
         @Override
@@ -85,7 +84,7 @@ public final class JavaVersionUtils {
                     prefix + threadCounter.getAndIncrement(),
                     0L,
                     false);
-            thread.setDaemon(isDaemon);
+            thread.setDaemon(true);
             return thread;
         }
     }
