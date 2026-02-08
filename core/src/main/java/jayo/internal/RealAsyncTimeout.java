@@ -151,8 +151,8 @@ public final class RealAsyncTimeout implements AsyncTimeout {
     // @formatter:off
     private static final @NonNull TimeoutNode IDLE_SENTINEL_WATCHDOG_RUNNING = new TimeoutNode(0L, () -> {});
     // @formatter:on
-    private static final ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
-            JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#", true);
+    private static final @NonNull ThreadFactory ASYNC_TIMEOUT_WATCHDOG_THREAD_FACTORY =
+            JavaVersionUtils.threadFactory("JayoAsyncTimeoutWatchdog#");
 
     private @NonNull TimeoutNode insertIntoQueue(final @NonNull RealCancelToken cancelToken) {
         assert cancelToken != null;

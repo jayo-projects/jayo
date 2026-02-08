@@ -33,7 +33,7 @@ public final class JavaVersionUtils {
         LOGGER.log(INFO, """
                 
                 Jayo runs in Java 21 mode :
-                 ☑ virtual threads,
+                 ☑ virtual threads
                  ☒ scoped value""".stripIndent());
     }
 
@@ -41,21 +41,19 @@ public final class JavaVersionUtils {
      * The internal executor for Jayo subprojects like jayo-http.
      * <p>
      * Java 21 has virtual Thread support, so we use them through
-     * {@link Executors#newThreadPerTaskExecutor(ThreadFactory)} with our {@link #threadFactory(String, boolean)}.
+     * {@link Executors#newThreadPerTaskExecutor(ThreadFactory)} with our {@link #threadFactory(String)}.
      */
-    public static @NonNull ExecutorService executorService(final @NonNull String prefix, final boolean isDaemon) {
+    public static @NonNull ExecutorService executorService(final @NonNull String prefix) {
         assert prefix != null;
-        return Executors.newThreadPerTaskExecutor(threadFactory(prefix, isDaemon));
+        return Executors.newThreadPerTaskExecutor(threadFactory(prefix));
     }
 
     /**
      * The internal thread factory for jayo (core) and its subprojects like jayo-http.
      * <p>
-     * Java 21 has virtual Thread support, so we use them.
-     *
-     * @implNote the {@code isDaemon} parameter is ignored, virtual threads are always daemon threads.
+     * Java 21 has virtual Thread support, so we use them. All virtual threads are daemon threads.
      */
-    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix, final boolean isDaemon) {
+    public static @NonNull ThreadFactory threadFactory(final @NonNull String prefix) {
         assert prefix != null;
         return Thread.ofVirtual()
                 .name(prefix, 0)
