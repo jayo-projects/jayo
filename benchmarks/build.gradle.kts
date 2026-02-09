@@ -34,7 +34,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 jmh {
@@ -42,13 +42,13 @@ jmh {
     duplicateClassesStrategy = WARN
     jmhVersion = catalogVersion("jmh")
 
-//    includes.set(listOf("""jayo\.benchmarks\.BufferLatin1Benchmark.*"""))
+    includes.set(listOf("""jayo\.benchmarks\.BufferLatin1Benchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.BufferUtf8Benchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.JsonSerializationBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SlowReaderBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SlowWriterBenchmark.*"""))
 //    includes.set(listOf("""jayo\.benchmarks\.SocketReaderBenchmark.*"""))
-    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
+//    includes.set(listOf("""jayo\.benchmarks\.TcpAndJsonSerializationBenchmark.*"""))
 }
 
 tasks {
