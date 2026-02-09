@@ -45,16 +45,14 @@ import org.jspecify.annotations.Nullable;
  * are never executed concurrently. It is an error to use a task in multiple queues.
  */
 abstract class Task<T extends Task<T>> {
-    final @NonNull String name;
+    final @Nullable String name;
     final boolean cancellable;
 
     // Guarded by the TaskRunner.
     @Nullable
     RealTaskQueue<T> queue = null;
 
-    Task(final @NonNull String name, final boolean cancellable) {
-        assert name != null;
-
+    Task(final @Nullable String name, final boolean cancellable) {
         this.name = name;
         this.cancellable = cancellable;
     }
@@ -71,7 +69,7 @@ abstract class Task<T extends Task<T>> {
     }
 
     static abstract class RunnableTask extends Task<RunnableTask> implements Runnable {
-        RunnableTask(@NonNull String name, boolean cancellable) {
+        RunnableTask(@Nullable String name, boolean cancellable) {
             super(name, cancellable);
         }
 

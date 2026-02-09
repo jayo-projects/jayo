@@ -22,12 +22,12 @@
 package jayo.scheduler.internal
 
 import jayo.scheduler.TaskRunner
-import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.offset
+import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.lang.Thread.UncaughtExceptionHandler
+import java.time.Duration
 import java.util.concurrent.*
 
 /**
@@ -53,17 +53,19 @@ class TaskRunnerRealBackendTest {
             }
         }
 
-    private val taskRunner = TaskRunner.create(Executors.newCachedThreadPool(threadFactory))
-    private val backend = taskRunner.backend as RealTaskRunner.RealBackend
+    private val executor = Executors.newCachedThreadPool(threadFactory)
+    private val taskRunner = TaskRunner.create(executor)
 
     @AfterEach
     fun tearDown() {
-        backend.shutdown()
+        taskRunner.shutdown(Duration.ZERO)
+        executor.shutdown()
     }
 
     @Test
     fun testQueueSchedule() {
         val queue = taskRunner.newScheduledQueue()
+        assertThat(queue.name).isEqualTo("Q10000")
         val t1 = System.nanoTime() / 1e6
 
         val delays = mutableListOf(TimeUnit.MILLISECONDS.toNanos(1000), -1L)
@@ -105,7 +107,7 @@ class TaskRunnerRealBackendTest {
     fun testSingleExecute() {
         val t1 = System.nanoTime() / 1e6
 
-        taskRunner.execute("singleTask", true) {
+        taskRunner.execute(true) {
             log.put("runOnce")
         }
 
@@ -143,13 +145,15 @@ class TaskRunnerRealBackendTest {
     fun idleLatchAfterShutdown() {
         val queue = taskRunner.newQueue()
         queue.execute("task", true) {
-            Thread.sleep(200)
-            taskRunner.shutdown()
+            Thread.sleep(100)
+            taskRunner.shutdown(Duration.ofMillis(100))
         }
 
         assertThat(queue.idleLatch().count).isEqualTo(1)
-        assertThat(queue.idleLatch().await(400L, TimeUnit.MILLISECONDS)).isTrue()
-        assertThat(queue.idleLatch().count).isEqualTo(0)
+        assertThat(queue.idleLatch().await(400L, TimeUnit.MILLISECONDS)).isFalse()
+        assertThatThrownBy {
+            assertThat(queue.idleLatch().count).isEqualTo(0)
+        }.isInstanceOf(RejectedExecutionException::class.java)
         assertThat(log).isEmpty()
 
         queue.shutdown()

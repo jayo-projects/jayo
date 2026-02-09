@@ -90,7 +90,7 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
     }
 
     /**
-     * @return a snapshot of tasks currently scheduled for execution. Does not include the currently-executing task
+     * @return a snapshot of tasks currently scheduled for execution. Does not include the currently executing task
      * unless it is also scheduled for future execution.
      */
     @NonNull
@@ -122,6 +122,7 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
             if (initialDelayNanos < 0) {
                 throw new IllegalArgumentException("initialDelayNanos < 0: " + initialDelayNanos);
             }
+            taskRunner.ensureRunning();
 
             schedule(new Task.@NonNull ScheduledTask(name, true) {
                 @Override
@@ -137,6 +138,7 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
                             final @NonNull Runnable block) {
             Objects.requireNonNull(name);
             Objects.requireNonNull(block);
+            taskRunner.ensureRunning();
 
             schedule(new Task.@NonNull ScheduledTask(name, cancellable) {
                 @Override
@@ -149,6 +151,8 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
 
         @Override
         public @NonNull CountDownLatch idleLatch() {
+            taskRunner.ensureRunning();
+
             taskRunner.scheduledLock.lock();
             try {
                 // If the queue is already idle, that's easy.
@@ -334,6 +338,7 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
                             final @NonNull Runnable block) {
             Objects.requireNonNull(name);
             Objects.requireNonNull(block);
+            taskRunner.ensureRunning();
 
             schedule(new Task.@NonNull RunnableTask(name, cancellable) {
                 @Override
@@ -345,6 +350,8 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
 
         @Override
         public @NonNull CountDownLatch idleLatch() {
+            taskRunner.ensureRunning();
+
             taskRunner.lock.lock();
             try {
                 // If the queue is already idle, that's easy.
