@@ -25,6 +25,7 @@ import jayo.internal.JavaVersionUtils.threadFactory
 import jayo.scheduler.TaskRunner
 import org.assertj.core.api.Assertions.assertThat
 import java.io.Closeable
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.Executors
@@ -121,10 +122,6 @@ class TaskFaker : Closeable {
                     serialTaskQueue += queuedTask
                     executeCallCount++
                     isParallel = serialTaskQueue.size > 1
-                }
-
-                override fun shutdown() {
-                    // no-op
                 }
 
                 override fun nanoTime() = nanoTime
@@ -428,7 +425,7 @@ class TaskFaker : Closeable {
     fun isIdle() = taskRunner.futureTasks.isEmpty() && taskRunner.futureScheduledTasks.isEmpty()
 
     override fun close() {
-        taskRunner.shutdown()
+        taskRunner.shutdown(Duration.ofSeconds(1))
         tasksExecutor.shutdownNow()
     }
 

@@ -62,7 +62,7 @@ public sealed interface TaskQueue permits RealTaskQueue, ScheduledTaskQueue {
 
     /**
      * First, initiates an orderly shutdown; no new tasks will be accepted. Then schedules immediate cancellation on all
-     * currently enqueued tasks by calling {@link #cancelAll()}.
+     * currently enqueued cancellable tasks by calling {@link #cancelAll()}.
      */
     void shutdown();
 }

@@ -26,11 +26,14 @@ import jayo.scheduler.TaskRunner;
 import jayo.scheduler.tools.BasicFifoQueue;
 import org.jspecify.annotations.NonNull;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
+import java.util.Set;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -76,6 +79,27 @@ public final class RealTaskRunner implements TaskRunner {
     private int executeCallCount = 0;
     private int runCallCount = 0;
 
+    // termination
+    private final @NonNull Set<@NonNull Thread> threads = ConcurrentHashMap.newKeySet();
+    private final @NonNull CountDownLatch terminationSignal = new CountDownLatch(1);
+
+    // state lifecycle: RUNNING -> SHUTDOWN_STARTED -> SHUTDOWN
+    private static final int RUNNING = 0;
+    private static final int SHUTDOWN_STARTED = 1;
+    private static final int SHUTDOWN = 2;
+    @SuppressWarnings("FieldMayBeFinal")
+    private volatile int state = 0;
+    private static final @NonNull VarHandle STATE;
+
+    static {
+        try {
+            final var l = MethodHandles.lookup();
+            STATE = l.findVarHandle(RealTaskRunner.class, "state", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
+
     /**
      * sequential tasks FIFO ordered.
      */
@@ -85,7 +109,7 @@ public final class RealTaskRunner implements TaskRunner {
      */
     final Queue<Task.ScheduledTask> futureScheduledTasks = new PriorityQueue<>();
 
-    public RealTaskRunner(final @NonNull ExecutorService executor) {
+    public RealTaskRunner(final @NonNull Executor executor) {
         this(new RealBackend(executor), LOGGER);
     }
 
@@ -109,9 +133,12 @@ public final class RealTaskRunner implements TaskRunner {
             }
 
             final var currentThread = Thread.currentThread();
+            threads.add(currentThread);
+
             final var oldName = currentThread.getName();
             try {
-                while (true) {
+                while (!Thread.interrupted()) {
+                    assert task.name != null;
                     currentThread.setName(task.name);
                     assert task.queue != null;
                     final var delayNanos = TaskLogger.logElapsed(logger, task, task.queue, task::runOnce);
@@ -138,6 +165,7 @@ public final class RealTaskRunner implements TaskRunner {
                 }
                 throw thrown;
             } finally {
+                executionComplete(currentThread);
                 currentThread.setName(oldName);
             }
         };
@@ -156,10 +184,16 @@ public final class RealTaskRunner implements TaskRunner {
             }
 
             final var currentThread = Thread.currentThread();
+            threads.add(currentThread);
+
             final var oldName = currentThread.getName();
+            var threadNameChanged = false;
             try {
-                while (true) {
-                    currentThread.setName(task.name);
+                while (!Thread.interrupted()) {
+                    if (task.name != null) {
+                        currentThread.setName(task.name);
+                        threadNameChanged = true;
+                    }
                     task.run();
                     // A task ran successfully. Update the execution state and take the next task.
                     lock.lock();
@@ -174,7 +208,7 @@ public final class RealTaskRunner implements TaskRunner {
                     }
                 }
             } catch (Throwable thrown) {
-                // A task failed. Update execution state and re-throw the exception.
+                // A task failed. Update the execution state and re-throw the exception.
                 lock.lock();
                 try {
                     assert task != null;
@@ -184,9 +218,44 @@ public final class RealTaskRunner implements TaskRunner {
                 }
                 throw thrown;
             } finally {
-                currentThread.setName(oldName);
+                executionComplete(currentThread);
+                if (threadNameChanged) {
+                    currentThread.setName(oldName);
+                }
             }
         };
+    }
+
+    private boolean isShuttingDown() {
+        return state >= SHUTDOWN_STARTED;
+    }
+
+    void ensureRunning() {
+        if (isShuttingDown()) {
+            // shutdown or terminated
+            throw new RejectedExecutionException();
+        }
+    }
+
+    private void executionComplete(final @NonNull Thread thread) {
+        assert thread != null;
+
+        boolean removed = threads.remove(thread);
+        assert removed;
+        if (state == SHUTDOWN_STARTED) {
+            tryShutdown();
+        }
+    }
+
+    /**
+     * Try to terminate if already shutdown.
+     */
+    private void tryShutdown() {
+        if (threads.isEmpty()
+                && STATE.compareAndSet(this, SHUTDOWN_STARTED, SHUTDOWN)) {
+            // signaling termination is done
+            terminationSignal.countDown();
+        }
     }
 
     void kickScheduledCoordinator() {
@@ -287,9 +356,9 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     /**
-     * Returns an immediately executable task for the calling thread to execute, sleeping as necessary until one is
-     * ready. If there are no ready task, or if other threads can execute it this will return null. If there is more
-     * than a single task ready to execute immediately this will start another thread to handle that work.
+     * @return an immediately executable task for the calling thread to execute, sleeping as necessary until one is
+     * ready. If there is no ready task, or if other threads can execute it, this will return null. If there is more
+     * than a single task ready to execute immediately, this will start another thread to handle that work.
      */
     private Task.ScheduledTask awaitScheduledTaskToRun() {
         while (true) {
@@ -349,7 +418,7 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     /**
-     * Start another thread, unless a new thread is already scheduled to start.
+     * Start another thread unless a new thread is already scheduled to start.
      */
     void startAnotherThread() {
         if (executeCallCount > runCallCount) {
@@ -403,13 +472,11 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     @Override
-    public void execute(final @NonNull String name,
-                        final boolean cancellable,
-                        final @NonNull Runnable block) {
-        assert name != null;
+    public void execute(final boolean cancellable, final @NonNull Runnable block) {
         assert block != null;
 
-        final var task = new Task.RunnableTask(name, cancellable) {
+        ensureRunning();
+        final var task = new Task.RunnableTask(null, cancellable) {
             @Override
             public void run() {
                 block.run();
@@ -428,15 +495,31 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     @Override
-    public void shutdown() {
+    public void shutdown(final @NonNull Duration shutdownTimeout) {
+        Objects.requireNonNull(shutdownTimeout);
+        if (isShuttingDown() ||
+                !STATE.compareAndSet(this, RUNNING, SHUTDOWN_STARTED)) {
+            return; // already shutting down or shutdown
+        }
+
+        tryShutdown();
+
         scheduledLock.lock();
         lock.lock();
         try {
             cancelAll();
-            backend.shutdown();
         } finally {
             lock.unlock();
             scheduledLock.unlock();
+        }
+
+        try {
+            if (!terminationSignal.await(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS)) {
+                System.out.println("interrupting remaining active threads");
+                threads.forEach(Thread::interrupt);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -473,11 +556,9 @@ public final class RealTaskRunner implements TaskRunner {
                                 final long nanos) throws InterruptedException;
 
         void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable);
-
-        void shutdown();
     }
 
-    record RealBackend(@NonNull ExecutorService executor) implements Backend {
+    record RealBackend(@NonNull Executor executor) implements Backend {
         @Override
         public long nanoTime() {
             return System.nanoTime();
@@ -513,11 +594,6 @@ public final class RealTaskRunner implements TaskRunner {
             assert taskRunner != null;
             assert runnable != null;
             executor.execute(runnable);
-        }
-
-        @Override
-        public void shutdown() {
-            executor.shutdown();
         }
     }
 }

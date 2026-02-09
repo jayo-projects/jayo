@@ -24,9 +24,10 @@ package jayo.scheduler;
 import jayo.scheduler.internal.RealTaskRunner;
 import org.jspecify.annotations.NonNull;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 /**
  * A set of worker threads that are shared among a set of task queues.
@@ -42,7 +43,7 @@ public sealed interface TaskRunner permits RealTaskRunner {
      * Create a new {@link TaskRunner} that will use the provided {@code executor} to schedule and execute asynchronous
      * tasks.
      */
-    static TaskRunner create(final @NonNull ExecutorService executor) {
+    static TaskRunner create(final @NonNull Executor executor) {
         Objects.requireNonNull(executor);
         return new RealTaskRunner(executor);
     }
@@ -62,15 +63,20 @@ public sealed interface TaskRunner permits RealTaskRunner {
     /**
      * Execute once on a task runner thread.
      */
-    void execute(final @NonNull String name,
-                 final boolean cancellable,
-                 final @NonNull Runnable block);
+    void execute(final boolean cancellable, final @NonNull Runnable block);
 
     /**
-     * Schedules immediate cancellation on all currently enqueued tasks. These calls will not be made until any
-     * currently executing task has completed. All cancellable tasks will be removed from the execution schedule.
+     * <ul>
+     * <li>First, initiates an orderly shutdown; no new tasks will be accepted.
+     * <li>Second, schedules immediate cancellation on all currently enqueued cancellable tasks.
+     * <li>Then wait at most for {@code shutdownTimeout} to let currently running and non-cancellable enqueued tasks
+     * complete.
+     * </ul>
+     * If some tasks did not complete in time, they will be forcibly terminated.
+     * <p>
+     * A {@code shutdownTimeout} of 0 will immediately forcibly terminate all tasks.
      */
-    void shutdown();
+    void shutdown(final @NonNull Duration shutdownTimeout);
 
     @NonNull
     Backend getBackend();
