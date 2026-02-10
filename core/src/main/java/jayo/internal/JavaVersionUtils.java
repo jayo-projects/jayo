@@ -48,7 +48,7 @@ public final class JavaVersionUtils {
                 25, // corePoolSize
                 200, // maximumPoolSize
                 60L, TimeUnit.SECONDS, // keepAliveTime
-                new SynchronousQueue<>(),
+                new LinkedBlockingQueue<>(),
                 threadFactory(prefix)
         );
     }
