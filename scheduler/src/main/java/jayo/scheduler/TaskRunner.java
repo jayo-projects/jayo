@@ -63,7 +63,9 @@ public sealed interface TaskRunner permits RealTaskRunner {
     /**
      * Execute once on a task runner thread.
      */
-    void execute(final boolean cancellable, final @NonNull Runnable block);
+    void execute(final @NonNull String name,
+                 final boolean cancellable,
+                 final @NonNull Runnable block);
 
     /**
      * <ul>

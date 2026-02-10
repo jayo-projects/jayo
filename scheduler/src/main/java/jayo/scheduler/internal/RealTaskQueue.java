@@ -495,8 +495,8 @@ public sealed abstract class RealTaskQueue<T extends Task<T>> implements TaskQue
      * Otherwise, returns this string.
      */
     private static @NonNull String removePrefix(final @NonNull String string, final @NonNull String prefix) {
-        Objects.requireNonNull(string);
-        Objects.requireNonNull(prefix);
+        assert string != null;
+        assert prefix != null;
 
         if (string.startsWith(prefix)) {
             return string.substring(prefix.length());

@@ -187,13 +187,9 @@ public final class RealTaskRunner implements TaskRunner {
             threads.add(currentThread);
 
             final var oldName = currentThread.getName();
-            var threadNameChanged = false;
             try {
                 while (!Thread.interrupted()) {
-                    if (task.name != null) {
-                        currentThread.setName(task.name);
-                        threadNameChanged = true;
-                    }
+                    currentThread.setName(task.name);
                     task.run();
                     // A task ran successfully. Update the execution state and take the next task.
                     lock.lock();
@@ -219,9 +215,7 @@ public final class RealTaskRunner implements TaskRunner {
                 throw thrown;
             } finally {
                 executionComplete(currentThread);
-                if (threadNameChanged) {
-                    currentThread.setName(oldName);
-                }
+                currentThread.setName(oldName);
             }
         };
     }
@@ -472,11 +466,14 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     @Override
-    public void execute(final boolean cancellable, final @NonNull Runnable block) {
-        assert block != null;
-
+    public void execute(final @NonNull String name,
+                        final boolean cancellable,
+                        final @NonNull Runnable block) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(block);
         ensureRunning();
-        final var task = new Task.RunnableTask(null, cancellable) {
+
+        final var task = new Task.RunnableTask(name, cancellable) {
             @Override
             public void run() {
                 block.run();
@@ -497,6 +494,7 @@ public final class RealTaskRunner implements TaskRunner {
     @Override
     public void shutdown(final @NonNull Duration shutdownTimeout) {
         Objects.requireNonNull(shutdownTimeout);
+
         if (isShuttingDown() ||
                 !STATE.compareAndSet(this, RUNNING, SHUTDOWN_STARTED)) {
             return; // already shutting down or shutdown
