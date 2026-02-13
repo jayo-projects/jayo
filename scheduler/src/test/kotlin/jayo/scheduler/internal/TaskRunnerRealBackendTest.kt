@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test
 import java.lang.Thread.UncaughtExceptionHandler
 import java.time.Duration
 import java.util.concurrent.*
+import java.util.concurrent.atomic.LongAdder
 
 /**
  * Integration test to confirm that [RealTaskRunner] works with a real backend. Business logic is all exercised by
@@ -194,6 +195,23 @@ class TaskRunnerRealBackendTest {
         queue.shutdown()
 
         val result = countDownLatch.await(500, TimeUnit.MILLISECONDS)
-        assertThat(result).isFalse
+        assertThat(result).isFalse()
+    }
+
+    @Test
+    fun shutdown() {
+        val counter = LongAdder()
+        taskRunner.execute("test task", false) {
+            counter.increment()
+            Thread.sleep(400)
+            counter.increment()
+        }
+        assertThat(taskRunner.isShutdown).isFalse()
+
+        taskRunner.shutdown(Duration.ofMillis(200))
+        Thread.sleep(100)
+
+        assertThat(taskRunner.isShutdown).isTrue()
+        assertThat(counter.sum()).isEqualTo(1)
     }
 }

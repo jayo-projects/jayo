@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static java.lang.System.Logger.Level.INFO;
+
 public final class RealTaskRunner implements TaskRunner {
     private static final System.Logger LOGGER = System.getLogger("jayo.scheduler.TaskRunner");
 
@@ -220,12 +222,12 @@ public final class RealTaskRunner implements TaskRunner {
         };
     }
 
-    private boolean isShuttingDown() {
+    public boolean isShutdown() {
         return state >= SHUTDOWN_STARTED;
     }
 
     void ensureRunning() {
-        if (isShuttingDown()) {
+        if (isShutdown()) {
             // shutdown or terminated
             throw new RejectedExecutionException();
         }
@@ -495,7 +497,7 @@ public final class RealTaskRunner implements TaskRunner {
     public void shutdown(final @NonNull Duration shutdownTimeout) {
         Objects.requireNonNull(shutdownTimeout);
 
-        if (isShuttingDown() ||
+        if (isShutdown() ||
                 !STATE.compareAndSet(this, RUNNING, SHUTDOWN_STARTED)) {
             return; // already shutting down or shutdown
         }
@@ -513,7 +515,7 @@ public final class RealTaskRunner implements TaskRunner {
 
         try {
             if (!terminationSignal.await(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS)) {
-                System.out.println("interrupting remaining active threads");
+                logger.log(INFO, "interrupting remaining active threads");
                 threads.forEach(Thread::interrupt);
             }
         } catch (InterruptedException e) {

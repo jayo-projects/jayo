@@ -68,6 +68,11 @@ public sealed interface TaskRunner permits RealTaskRunner {
                  final @NonNull Runnable block);
 
     /**
+     * @return true if this task runner has been shut down.
+     */
+    boolean isShutdown();
+
+    /**
      * <ul>
      * <li>First, initiates an orderly shutdown; no new tasks will be accepted.
      * <li>Second, schedules immediate cancellation on all currently enqueued cancellable tasks.
