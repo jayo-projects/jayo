@@ -51,14 +51,16 @@ class TaskFaker : Closeable {
     private fun Any.assertThreadHoldsLock() {
         if (assertionsEnabled &&
             !taskRunner.scheduledLock.isHeldByCurrentThread &&
-            !taskRunner.lock.isHeldByCurrentThread) {
+            !taskRunner.lock.isHeldByCurrentThread
+        ) {
             throw AssertionError("Thread ${Thread.currentThread().name} MUST hold lock on $this")
         }
     }
 
     private fun Any.assertThreadDoesntHoldLock() {
         if (assertionsEnabled &&
-            (taskRunner.scheduledLock.isHeldByCurrentThread || taskRunner.scheduledLock.isHeldByCurrentThread)) {
+            (taskRunner.scheduledLock.isHeldByCurrentThread || taskRunner.scheduledLock.isHeldByCurrentThread)
+        ) {
             throw AssertionError("Thread ${Thread.currentThread().name} MUST NOT hold lock on $this")
         }
     }
@@ -123,6 +125,8 @@ class TaskFaker : Closeable {
                     executeCallCount++
                     isParallel = serialTaskQueue.size > 1
                 }
+
+                override fun isShutdown(): Boolean = false
 
                 override fun nanoTime() = nanoTime
 

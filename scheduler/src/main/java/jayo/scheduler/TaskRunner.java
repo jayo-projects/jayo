@@ -27,7 +27,7 @@ import org.jspecify.annotations.NonNull;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * A set of worker threads that are shared among a set of task queues.
@@ -40,12 +40,12 @@ import java.util.concurrent.Executor;
  */
 public sealed interface TaskRunner permits RealTaskRunner {
     /**
-     * Create a new {@link TaskRunner} that will use the provided {@code executor} to schedule and execute asynchronous
+     * Create a new {@link TaskRunner} that will use the provided {@code executorService} to schedule and execute asynchronous
      * tasks.
      */
-    static TaskRunner create(final @NonNull Executor executor) {
-        Objects.requireNonNull(executor);
-        return new RealTaskRunner(executor);
+    static TaskRunner create(final @NonNull ExecutorService executorService) {
+        Objects.requireNonNull(executorService);
+        return new RealTaskRunner(executorService);
     }
 
     /**

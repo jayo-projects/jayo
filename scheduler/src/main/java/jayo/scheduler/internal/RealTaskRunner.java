@@ -111,8 +111,8 @@ public final class RealTaskRunner implements TaskRunner {
      */
     final Queue<Task.ScheduledTask> futureScheduledTasks = new PriorityQueue<>();
 
-    public RealTaskRunner(final @NonNull Executor executor) {
-        this(new RealBackend(executor), LOGGER);
+    public RealTaskRunner(final @NonNull ExecutorService executorService) {
+        this(new RealBackend(executorService), LOGGER);
     }
 
     RealTaskRunner(final @NonNull Backend backend, final System.@NonNull Logger logger) {
@@ -223,7 +223,7 @@ public final class RealTaskRunner implements TaskRunner {
     }
 
     public boolean isShutdown() {
-        return state >= SHUTDOWN_STARTED;
+        return backend.isShutdown() || (state >= SHUTDOWN_STARTED);
     }
 
     void ensureRunning() {
@@ -556,9 +556,17 @@ public final class RealTaskRunner implements TaskRunner {
                                 final long nanos) throws InterruptedException;
 
         void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable);
+
+        boolean isShutdown();
     }
 
-    record RealBackend(@NonNull Executor executor) implements Backend {
+    private static final class RealBackend implements Backend {
+        private final @NonNull ExecutorService executorService;
+
+        private RealBackend(final @NonNull ExecutorService executorService) {
+            this.executorService = executorService;
+        }
+
         @Override
         public long nanoTime() {
             return System.nanoTime();
@@ -593,7 +601,12 @@ public final class RealTaskRunner implements TaskRunner {
         public void execute(final @NonNull RealTaskRunner taskRunner, final @NonNull Runnable runnable) {
             assert taskRunner != null;
             assert runnable != null;
-            executor.execute(runnable);
+            executorService.execute(runnable);
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return executorService.isShutdown();
         }
     }
 }

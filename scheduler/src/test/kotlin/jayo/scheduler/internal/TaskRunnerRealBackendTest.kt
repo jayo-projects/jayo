@@ -214,4 +214,11 @@ class TaskRunnerRealBackendTest {
         assertThat(taskRunner.isShutdown).isTrue()
         assertThat(counter.sum()).isEqualTo(1)
     }
+
+    @Test
+    fun shutdownExecutor() {
+        assertThat(taskRunner.isShutdown).isFalse()
+        executor.shutdown()
+        assertThat(taskRunner.isShutdown).isTrue()
+    }
 }
