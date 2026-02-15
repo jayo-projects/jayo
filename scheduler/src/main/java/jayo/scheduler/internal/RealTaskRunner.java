@@ -82,6 +82,7 @@ public final class RealTaskRunner implements TaskRunner {
     private int runCallCount = 0;
 
     // termination
+    private final @NonNull AtomicInteger threadCount = new AtomicInteger();
     private final @NonNull Set<@NonNull Thread> threads = ConcurrentHashMap.newKeySet();
     private final @NonNull CountDownLatch terminationSignal = new CountDownLatch(1);
 
@@ -122,102 +123,106 @@ public final class RealTaskRunner implements TaskRunner {
         this.backend = backend;
         this.logger = logger;
         scheduledRunnable = () -> {
-            Task.ScheduledTask task;
-            scheduledLock.lock();
-            try {
-                scheduledRunCallCount++;
-                task = awaitScheduledTaskToRun();
-                if (task == null) {
-                    return;
-                }
-            } finally {
-                scheduledLock.unlock();
-            }
-
             final var currentThread = Thread.currentThread();
             threads.add(currentThread);
-
-            final var oldName = currentThread.getName();
             try {
-                while (!Thread.interrupted()) {
-                    assert task.name != null;
-                    currentThread.setName(task.name);
-                    assert task.queue != null;
-                    final var delayNanos = TaskLogger.logElapsed(logger, task, task.queue, task::runOnce);
-                    // A task ran successfully. Update the execution state and take the next task.
-                    scheduledLock.lock();
-                    try {
-                        afterScheduledRun(task, delayNanos, true);
-                        task = awaitScheduledTaskToRun();
-                        if (task == null) {
-                            return;
-                        }
-                    } finally {
-                        scheduledLock.unlock();
-                    }
-                }
-            } catch (Throwable thrown) {
-                // A task failed. Update the execution state and re-throw the exception.
+                Task.ScheduledTask task;
                 scheduledLock.lock();
                 try {
-                    assert task != null;
-                    afterScheduledRun(task, -1L, false);
+                    scheduledRunCallCount++;
+                    task = awaitScheduledTaskToRun();
+                    if (task == null) {
+                        return;
+                    }
                 } finally {
                     scheduledLock.unlock();
                 }
-                throw thrown;
+
+                final var oldName = currentThread.getName();
+                try {
+                    while (!Thread.interrupted()) {
+                        assert task.name != null;
+                        currentThread.setName(task.name);
+                        assert task.queue != null;
+                        final var delayNanos = TaskLogger.logElapsed(logger, task, task.queue, task::runOnce);
+                        // A task ran successfully. Update the execution state and take the next task.
+                        scheduledLock.lock();
+                        try {
+                            afterScheduledRun(task, delayNanos, true);
+                            task = awaitScheduledTaskToRun();
+                            if (task == null) {
+                                return;
+                            }
+                        } finally {
+                            scheduledLock.unlock();
+                        }
+                    }
+                } catch (Throwable thrown) {
+                    // A task failed. Update the execution state and re-throw the exception.
+                    scheduledLock.lock();
+                    try {
+                        assert task != null;
+                        afterScheduledRun(task, -1L, false);
+                    } finally {
+                        scheduledLock.unlock();
+                    }
+                    throw thrown;
+                } finally {
+                    currentThread.setName(oldName);
+                }
             } finally {
                 executionComplete(currentThread);
-                currentThread.setName(oldName);
             }
         };
 
         runnable = () -> {
-            Task.RunnableTask task;
-            lock.lock();
-            try {
-                runCallCount++;
-                task = awaitTaskToRun();
-                if (task == null) {
-                    return;
-                }
-            } finally {
-                lock.unlock();
-            }
-
             final var currentThread = Thread.currentThread();
             threads.add(currentThread);
-
-            final var oldName = currentThread.getName();
             try {
-                while (!Thread.interrupted()) {
-                    currentThread.setName(task.name);
-                    task.run();
-                    // A task ran successfully. Update the execution state and take the next task.
-                    lock.lock();
-                    try {
-                        afterRun(task, true);
-                        task = awaitTaskToRun();
-                        if (task == null) {
-                            return;
-                        }
-                    } finally {
-                        lock.unlock();
-                    }
-                }
-            } catch (Throwable thrown) {
-                // A task failed. Update the execution state and re-throw the exception.
+                Task.RunnableTask task;
                 lock.lock();
                 try {
-                    assert task != null;
-                    afterRun(task, false);
+                    runCallCount++;
+                    task = awaitTaskToRun();
+                    if (task == null) {
+                        return;
+                    }
                 } finally {
                     lock.unlock();
                 }
-                throw thrown;
+
+                final var oldName = currentThread.getName();
+                try {
+                    while (!Thread.interrupted()) {
+                        currentThread.setName(task.name);
+                        task.run();
+                        // A task ran successfully. Update the execution state and take the next task.
+                        lock.lock();
+                        try {
+                            afterRun(task, true);
+                            task = awaitTaskToRun();
+                            if (task == null) {
+                                return;
+                            }
+                        } finally {
+                            lock.unlock();
+                        }
+                    }
+                } catch (Throwable thrown) {
+                    // A task failed. Update the execution state and re-throw the exception.
+                    lock.lock();
+                    try {
+                        assert task != null;
+                        afterRun(task, false);
+                    } finally {
+                        lock.unlock();
+                    }
+                    throw thrown;
+                } finally {
+                    currentThread.setName(oldName);
+                }
             } finally {
                 executionComplete(currentThread);
-                currentThread.setName(oldName);
             }
         };
     }
@@ -238,17 +243,16 @@ public final class RealTaskRunner implements TaskRunner {
 
         boolean removed = threads.remove(thread);
         assert removed;
-        if (state == SHUTDOWN_STARTED) {
+        if (threadCount.decrementAndGet() == 0 && state == SHUTDOWN_STARTED) {
             tryShutdown();
         }
     }
 
     /**
-     * Try to terminate if already shutdown.
+     * Try to terminate if a shutdown phase has started.
      */
     private void tryShutdown() {
-        if (threads.isEmpty()
-                && STATE.compareAndSet(this, SHUTDOWN_STARTED, SHUTDOWN)) {
+        if (STATE.compareAndSet(this, SHUTDOWN_STARTED, SHUTDOWN)) {
             // signaling termination is done
             terminationSignal.countDown();
         }
@@ -270,6 +274,7 @@ public final class RealTaskRunner implements TaskRunner {
             return; // A thread is still starting.
         }
         scheduledExecuteCallCount++;
+        threadCount.incrementAndGet();
         backend.execute(this, scheduledRunnable);
     }
 
@@ -421,6 +426,7 @@ public final class RealTaskRunner implements TaskRunner {
             return; // A thread is still starting.
         }
         executeCallCount++;
+        threadCount.incrementAndGet();
         backend.execute(this, runnable);
     }
 
@@ -502,8 +508,6 @@ public final class RealTaskRunner implements TaskRunner {
             return; // already shutting down or shutdown
         }
 
-        tryShutdown();
-
         scheduledLock.lock();
         lock.lock();
         try {
@@ -513,6 +517,9 @@ public final class RealTaskRunner implements TaskRunner {
             scheduledLock.unlock();
         }
 
+        if (threadCount.get() == 0) {
+            tryShutdown();
+        }
         try {
             if (!terminationSignal.await(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS)) {
                 logger.log(INFO, "interrupting remaining active threads");

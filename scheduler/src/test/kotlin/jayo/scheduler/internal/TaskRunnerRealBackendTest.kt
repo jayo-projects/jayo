@@ -24,6 +24,7 @@ package jayo.scheduler.internal
 import jayo.scheduler.TaskRunner
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import java.lang.Thread.UncaughtExceptionHandler
@@ -198,18 +199,18 @@ class TaskRunnerRealBackendTest {
         assertThat(result).isFalse()
     }
 
-    @Test
+    @RepeatedTest(10)
     fun shutdown() {
         val counter = LongAdder()
         taskRunner.execute("test task", false) {
+            Thread.sleep(100)
             counter.increment()
-            Thread.sleep(400)
+            Thread.sleep(300)
             counter.increment()
         }
         assertThat(taskRunner.isShutdown).isFalse()
 
-        taskRunner.shutdown(Duration.ofMillis(200))
-        Thread.sleep(100)
+        taskRunner.shutdown(Duration.ofMillis(300))
 
         assertThat(taskRunner.isShutdown).isTrue()
         assertThat(counter.sum()).isEqualTo(1)
