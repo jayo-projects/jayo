@@ -3,7 +3,7 @@
 * verify you are using SSH with GIT
 * use Temurin 25 as the project JDK
 * do **publish** task
-* go to *build/repos/releases* on **core**, **scheduler**, and **kotlinx-serial**
+* go to *build/repos/releases* on **core**, and **kotlinx-serial**
 * remove the "maven-metadata.xml" (and all files in the same directory) for both projects
 * zip the **dev** dir with all projects aggregated. Save it with a name like *jayo-0.1.0-alpha11.zip*.
 * upload manually on https://central.sonatype.com/publishing (jayo account)
