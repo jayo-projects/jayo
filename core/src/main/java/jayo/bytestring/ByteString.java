@@ -215,6 +215,16 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
 
     /**
      * Constructs a new String by encoding all the bytes from this byte string using
+     * <a href="https://www.ietf.org/rfc/rfc2045.txt">Base64</a>. In violation of the RFC, the returned string does not
+     * wrap lines at 76 columns.
+     * <p>
+     * If the size of this byte string is not an integral multiple of 3, the result is not padded with {@code '='}.
+     */
+    @NonNull
+    String base64NoPadding();
+
+    /**
+     * Constructs a new String by encoding all the bytes from this byte string using
      * <a href="https://www.ietf.org/rfc/rfc4648.txt">URL-safe Base64</a>.
      * <p>
      * If the size of this byte string is not an integral multiple of 3, the result is padded with {@code '='} to an
@@ -222,6 +232,15 @@ public sealed interface ByteString extends Serializable, Comparable<ByteString>
      */
     @NonNull
     String base64Url();
+
+    /**
+     * Constructs a new String by encoding all the bytes from this byte string using
+     * <a href="https://www.ietf.org/rfc/rfc4648.txt">URL-safe Base64</a>.
+     * <p>
+     * If the size of this byte string is not an integral multiple of 3, the result is not padded with {@code '='}.
+     */
+    @NonNull
+    String base64UrlNoPadding();
 
     /**
      * Constructs a new String by encoding all the bytes from this byte string using Hex format.

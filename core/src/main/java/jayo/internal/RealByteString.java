@@ -80,12 +80,22 @@ public final /*Valhalla 'primitive class' or at least 'value class'*/ class Real
 
     @Override
     public @NonNull String base64() {
-        return Base64Utils.encode(data);
+        return Base64Utils.encode(data, true);
+    }
+
+    @Override
+    public @NonNull String base64NoPadding() {
+        return Base64Utils.encode(data, false);
     }
 
     @Override
     public @NonNull String base64Url() {
-        return Base64Utils.encodeUrl(data);
+        return Base64Utils.encodeUrl(data, true);
+    }
+
+    @Override
+    public @NonNull String base64UrlNoPadding() {
+        return Base64Utils.encodeUrl(data, false);
     }
 
     @Override

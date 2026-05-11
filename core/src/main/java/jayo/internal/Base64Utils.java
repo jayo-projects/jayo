@@ -133,19 +133,25 @@ public final class Base64Utils {
         return Arrays.copyOf(out, outCount);
     }
 
-    static String encode(byte[] in) {
-        return encode(in, BASE64);
+    static String encode(byte[] in, boolean includePadding) {
+        return encode(in, BASE64, includePadding);
     }
 
-    static String encodeUrl(byte[] in) {
-        return encode(in, BASE64_URL_SAFE);
+    static String encodeUrl(byte[] in, boolean includePadding) {
+        return encode(in, BASE64_URL_SAFE, includePadding);
     }
 
-    private static String encode(byte[] in, byte[] map) {
-        int length = (in.length + 2) / 3 * 4;
-        byte[] out = new byte[length];
-        int index = 0, end = in.length - in.length % 3;
-        for (int i = 0; i < end; i += 3) {
+    private static String encode(byte @NonNull [] in, byte @NonNull [] map, boolean includePadding) {
+        assert in != null;
+        assert map != null;
+
+        final var length = includePadding ?
+                (in.length + 2) / 3 * 4 :
+                (in.length * 4 + 2) / 3;
+        final var out = new byte[length];
+        var index = 0;
+        final var end = in.length - in.length % 3;
+        for (var i = 0; i < end; i += 3) {
             out[index++] = map[(in[i] & 0xff) >> 2];
             out[index++] = map[((in[i] & 0x03) << 4) | ((in[i + 1] & 0xff) >> 4)];
             out[index++] = map[((in[i + 1] & 0x0f) << 2) | ((in[i + 2] & 0xff) >> 6)];
@@ -155,14 +161,18 @@ public final class Base64Utils {
             case 1:
                 out[index++] = map[(in[end] & 0xff) >> 2];
                 out[index++] = map[(in[end] & 0x03) << 4];
-                out[index++] = '=';
-                out[index] = '=';
+                if (includePadding) {
+                    out[index++] = '=';
+                    out[index] = '=';
+                }
                 break;
             case 2:
                 out[index++] = map[(in[end] & 0xff) >> 2];
                 out[index++] = map[((in[end] & 0x03) << 4) | ((in[end + 1] & 0xff) >> 4)];
                 out[index++] = map[((in[end + 1] & 0x0f) << 2)];
-                out[index] = '=';
+                if (includePadding) {
+                    out[index] = '=';
+                }
                 break;
         }
         return new String(out, StandardCharsets.US_ASCII);
