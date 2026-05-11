@@ -498,6 +498,17 @@ public final class ByteStringJavaTest {
 
     @ParameterizedTest
     @MethodSource("parameters")
+    public void encodeBase64NoPadding(ByteStringFactory factory) {
+        assertEquals("", factory.encodeUtf8("").base64NoPadding());
+        assertEquals("AA", factory.encodeUtf8("\u0000").base64NoPadding());
+        assertEquals("AAA", factory.encodeUtf8("\u0000\u0000").base64NoPadding());
+        assertEquals("AAAA", factory.encodeUtf8("\u0000\u0000\u0000").base64NoPadding());
+        assertEquals("SG93IG1hbnkgbGluZXMgb2YgY29kZSBhcmUgdGhlcmU/ICdib3V0IDIgbWlsbGlvbi4",
+                factory.encodeUtf8("How many lines of code are there? 'bout 2 million.").base64NoPadding());
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
     public void encodeBase64Url(ByteStringFactory factory) {
         assertEquals("", factory.encodeUtf8("").base64Url());
         assertEquals("AA==", factory.encodeUtf8("\u0000").base64Url());
@@ -505,6 +516,17 @@ public final class ByteStringJavaTest {
         assertEquals("AAAA", factory.encodeUtf8("\u0000\u0000\u0000").base64Url());
         assertEquals("SG93IG1hbnkgbGluZXMgb2YgY29kZSBhcmUgdGhlcmU_ICdib3V0IDIgbWlsbGlvbi4=",
                 factory.encodeUtf8("How many lines of code are there? 'bout 2 million.").base64Url());
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void encodeBase64UrlNoPadding(ByteStringFactory factory) {
+        assertEquals("", factory.encodeUtf8("").base64UrlNoPadding());
+        assertEquals("AA", factory.encodeUtf8("\u0000").base64UrlNoPadding());
+        assertEquals("AAA", factory.encodeUtf8("\u0000\u0000").base64UrlNoPadding());
+        assertEquals("AAAA", factory.encodeUtf8("\u0000\u0000\u0000").base64UrlNoPadding());
+        assertEquals("SG93IG1hbnkgbGluZXMgb2YgY29kZSBhcmUgdGhlcmU_ICdib3V0IDIgbWlsbGlvbi4",
+                factory.encodeUtf8("How many lines of code are there? 'bout 2 million.").base64UrlNoPadding());
     }
 
     @Test

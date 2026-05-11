@@ -294,8 +294,18 @@ public final class SegmentedByteString implements ByteString {
     }
 
     @Override
+    public @NonNull String base64NoPadding() {
+        return toRealByteString().base64NoPadding();
+    }
+
+    @Override
     public @NonNull String base64Url() {
         return toRealByteString().base64Url();
+    }
+
+    @Override
+    public @NonNull String base64UrlNoPadding() {
+        return toRealByteString().base64UrlNoPadding();
     }
 
     @Override
