@@ -6,7 +6,7 @@
 * go to *build/repos/releases* on **core**, and **kotlinx-serial**
 * remove the "maven-metadata.xml" (and all files in the same directory) for both projects
 * zip the **dev** dir with all projects aggregated. Save it with a name like *jayo-0.1.0-alpha11.zip*.
-* upload manually on https://central.sonatype.com/publishing (jayo account)
+* upload manually on https://central.sonatype.com/publishing/deployments (jayo account)
   * do **Publish Component**
   * Deployment name → use release name *jayo-X.Y.Z*, use the same name as the zip.
   * Click on **Publish Component**, **Refresh**. Check artifacts are ok, then **Publish**
